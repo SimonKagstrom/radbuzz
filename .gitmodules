@@ -1,0 +1,6 @@
+[submodule "external/libmaelir"]
+	path = external/libmaelir
+	url = git@github.com:SimonKagstrom/libmaelir.git
+[submodule "external/lvgl"]
+	path = external/lvgl
+	url = https://github.com/lvgl/lvgl.git

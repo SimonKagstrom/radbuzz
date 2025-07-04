@@ -39,3 +39,18 @@
 
 # debug information files
 *.dwo
+
+
+*~
+*.pro*
+*.old
+*.lock
+.vscode
+managed_components
+*.DS_Store
+*.code-workspace
+build/
+target/build
+external/lvgl/examples
+external/lvgl/tests
+external/lvgl/zephyr
