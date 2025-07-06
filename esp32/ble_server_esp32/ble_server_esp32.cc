@@ -1,3 +1,4 @@
+// From https://github.com/SIMS-IOT-Devices/FreeRTOS-ESP-IDF-BLE-Server/blob/main/proj3.c
 #include "ble_server_esp32.hh"
 
 namespace
@@ -69,12 +70,13 @@ BleServerEsp32::Start()
     // Terminator
     m_ble_gatt_chr_defs.push_back({0});
 
-    m_gatt_svc_def.type = BLE_GATT_SVC_TYPE_PRIMARY;
-    m_gatt_svc_def.uuid = reinterpret_cast<const ble_uuid_t*>(&m_service_uuid);
-    m_gatt_svc_def.includes = nullptr;
-    m_gatt_svc_def.characteristics = m_ble_gatt_chr_defs.data();
+    m_gatt_svc_def.push_back({0});
+    m_gatt_svc_def.back().type = BLE_GATT_SVC_TYPE_PRIMARY;
+    m_gatt_svc_def.back().uuid = reinterpret_cast<const ble_uuid_t*>(&m_service_uuid);
+    m_gatt_svc_def.back().includes = nullptr;
+    m_gatt_svc_def.back().characteristics = m_ble_gatt_chr_defs.data();
+    m_gatt_svc_def.push_back({0});
 
-    // From https://github.com/SIMS-IOT-Devices/FreeRTOS-ESP-IDF-BLE-Server/blob/main/proj3.c
     nvs_flash_init();                          // 1 - Initialize NVS flash using
     esp_nimble_hci_init();                     // 2 - Initialize ESP controller
     nimble_port_init();                        // 3 - Initialize the host stack
@@ -82,9 +84,10 @@ BleServerEsp32::Start()
     ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
     ble_svc_gatt_init();                       // 4 - Initialize NimBLE configuration - gatt service
     ble_gatts_count_cfg(
-        &m_gatt_svc_def); // 4 - Initialize NimBLE configuration - config gatt services
+        m_gatt_svc_def.data()); // 4 - Initialize NimBLE configuration - config gatt services
     ble_gatts_add_svcs(
-        &m_gatt_svc_def);     // 4 - Initialize NimBLE configuration - queues gatt services.
+        m_gatt_svc_def.data()); // 4 - Initialize NimBLE configuration - queues gatt services.
+
     ble_hs_cfg.sync_cb = []() // 5 - Initialize application
     {
         ble_hs_id_infer_auto(
@@ -112,6 +115,7 @@ BleServerEsp32::AppAdvertise()
     memset(&adv_params, 0, sizeof(adv_params));
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND; // connectable or non-connectable
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN; // discoverable or non-discoverable
+
     ble_gap_adv_start(
         m_ble_addr_type,
         NULL,
@@ -127,6 +131,7 @@ BleServerEsp32::AppAdvertise()
 int
 BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
 {
+    printf("T: %d\n", event->type);
     switch (event->type)
     {
     // Advertise if connected
@@ -158,8 +163,14 @@ BleServerEsp32::PollEvents()
     // From https://github.com/espressif/esp-idf/issues/3555#issuecomment-497148594
     auto eventq = nimble_port_get_dflt_eventq();
 
-    while (auto ev = ble_npl_eventq_get(eventq, 0))
+    struct ble_npl_event* ev;
+    do
     {
-        ble_npl_event_run(ev);
-    }
+        ev = ble_npl_eventq_get(eventq, 0);
+
+        if (ev != nullptr)
+        {
+            ble_npl_event_run(ev);
+        }
+    } while (ev);
 }

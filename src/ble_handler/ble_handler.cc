@@ -27,6 +27,19 @@ BleHandler::OnStartup()
     m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kChaNav),
                                          [this](auto data) { OnChaNav(data); });
 
+    m_server.AddWriteGattCharacteristics(
+        hal::detail::StringToUuid128(kChaSettings),
+        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+    m_server.AddWriteGattCharacteristics(
+        hal::detail::StringToUuid128(kChaNavTbtIcon),
+        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+    m_server.AddWriteGattCharacteristics(
+        hal::detail::StringToUuid128(kChaNavTbtIconDesc),
+        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+    m_server.AddWriteGattCharacteristics(
+        hal::detail::StringToUuid128(kChaGpsSpeed),
+        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+
     m_server.Start();
 }
 
@@ -39,4 +52,5 @@ BleHandler::OnActivation()
 void
 BleHandler::OnChaNav(std::span<const uint8_t> data)
 {
+    printf("ChaNav: %.*s\n", data.size(), (const char*)data.data());
 }
