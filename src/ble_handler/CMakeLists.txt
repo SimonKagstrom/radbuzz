@@ -10,5 +10,5 @@ PUBLIC
 target_link_libraries(ble_handler
 PUBLIC
     base_thread
-    buzzbar_interface
+    radbuzz_interface
 )

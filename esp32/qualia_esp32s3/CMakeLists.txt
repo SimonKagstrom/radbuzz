@@ -7,7 +7,7 @@ add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 #include($ENV{IDF_PATH}/tools/cmake/idf.cmake)
 
-project (buzzbar_esp32s3_qualia LANGUAGES CXX C ASM)
+project (radbuzz_esp32s3_qualia LANGUAGES CXX C ASM)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
