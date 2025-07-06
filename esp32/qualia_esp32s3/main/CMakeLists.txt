@@ -6,6 +6,8 @@ target_link_libraries(${COMPONENT_TARGET}
     idf::freertos
     idf::spi_flash
     idf::esp_partition
+    ble_handler
+    ble_server_esp32
     button_debouncer
     rotary_encoder
     gpio_esp32

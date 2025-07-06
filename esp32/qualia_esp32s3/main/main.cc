@@ -1,3 +1,5 @@
+#include "ble_handler.hh"
+#include "ble_server_esp32.hh"
 #include "button_debouncer.hh"
 #include "gpio_esp32.hh"
 #include "nvm_esp32.hh"
@@ -215,8 +217,12 @@ app_main(void)
 
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a_gpio, *pin_b_gpio);
 
+    auto ble_server = std::make_unique<BleServerEsp32>();
+    auto ble_handler = std::make_unique<BleHandler>(*ble_server);
+
     auto display = CreateDisplay();
 
+    ble_handler->Start("ble_server", 8192);
     while (true)
     {
         vTaskSuspend(nullptr);
