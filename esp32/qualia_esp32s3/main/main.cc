@@ -220,7 +220,7 @@ app_main(void)
     auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_handler = std::make_unique<BleHandler>(*ble_server);
 
-    auto display = CreateDisplay();
+//    auto display = CreateDisplay();
 
     ble_handler->Start("ble_server", 8192);
     while (true)

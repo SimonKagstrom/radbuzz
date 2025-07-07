@@ -32,10 +32,10 @@ BleHandler::OnStartup()
         [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
     m_server.AddWriteGattCharacteristics(
         hal::detail::StringToUuid128(kChaNavTbtIcon),
-        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+        [this](auto data) { printf("Tebet icon: %.*s\n", data.size(), (const char*)data.data()); });
     m_server.AddWriteGattCharacteristics(
         hal::detail::StringToUuid128(kChaNavTbtIconDesc),
-        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+        [this](auto data) { printf("Ifondesc : %.*s\n", data.size(), (const char*)data.data()); });
     m_server.AddWriteGattCharacteristics(
         hal::detail::StringToUuid128(kChaGpsSpeed),
         [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });

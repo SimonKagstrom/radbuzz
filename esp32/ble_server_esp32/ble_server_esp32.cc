@@ -1,6 +1,9 @@
 // From https://github.com/SIMS-IOT-Devices/FreeRTOS-ESP-IDF-BLE-Server/blob/main/proj3.c
 #include "ble_server_esp32.hh"
 
+extern "C" {
+#include <services/ans/ble_svc_ans.h>
+}
 namespace
 {
 
@@ -42,16 +45,18 @@ BleServerEsp32::AddWriteGattCharacteristics(std::span<const uint8_t, 16> uuid,
                                uint16_t attr_handle,
                                struct ble_gatt_access_ctxt* ctxt,
                                void* arg) {
-        std::array<uint8_t, 256> flattened;
         auto p = reinterpret_cast<WriteCharacteristic*>(arg);
 
+        auto data_size = OS_MBUF_PKTLEN(ctxt->om);
+        auto flattened = std::make_unique<uint8_t[]>(data_size);
         uint16_t out_sz = 0;
-        auto rv = ble_hs_mbuf_to_flat(ctxt->om, flattened.data(), flattened.size(), &out_sz);
+        auto rv = ble_hs_mbuf_to_flat(ctxt->om, flattened.get(), data_size, &out_sz);
 
         if (rv == 0)
         {
-            p->cb(std::span<const uint8_t> {flattened.data(), out_sz});
+            p->cb(std::span<const uint8_t> {flattened.get(), out_sz});
         }
+        ble_gatts_chr_updated(attr_handle);
 
         return 0;
     };
@@ -82,11 +87,14 @@ BleServerEsp32::Start()
     nimble_port_init();                        // 3 - Initialize the host stack
     ble_svc_gap_device_name_set("Bicycletas"); // 4 - Initialize NimBLE configuration - server name
     ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
-    ble_svc_gatt_init();                       // 4 - Initialize NimBLE configuration - gatt service
+    ble_svc_ans_init();
+    ble_svc_gatt_init(); // 4 - Initialize NimBLE configuration - gatt service
     ble_gatts_count_cfg(
         m_gatt_svc_def.data()); // 4 - Initialize NimBLE configuration - config gatt services
     ble_gatts_add_svcs(
         m_gatt_svc_def.data()); // 4 - Initialize NimBLE configuration - queues gatt services.
+
+    ble_gap_write_sugg_def_data_len(512, 0x1000);
 
     ble_hs_cfg.sync_cb = []() // 5 - Initialize application
     {
@@ -108,6 +116,9 @@ BleServerEsp32::AppAdvertise()
     fields.name = (uint8_t*)device_name;
     fields.name_len = strlen(device_name);
     fields.name_is_complete = 1;
+    fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
+    fields.tx_pwr_lvl_is_present = 1;
+    fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
     ble_gap_adv_set_fields(&fields);
 
     // GAP - device connectivity definition
@@ -145,6 +156,12 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
     case BLE_GAP_EVENT_DISCONNECT:
         ESP_LOGI("GAP", "BLE GAP EVENT DISCONNECT %d", event->disconnect.reason);
         break;
+    case BLE_GAP_EVENT_DATA_LEN_CHG:
+        //        printf("LC: %d and %d\n",
+        //               event->data_len_chg.max_rx_octets,
+        //               event->data_len_chg.max_tx_octets);
+        break;
+
     // Advertise again after completion of the event
     case BLE_GAP_EVENT_ADV_COMPLETE:
         ESP_LOGI("GAP", "BLE GAP EVENT");
