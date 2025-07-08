@@ -1,4 +1,5 @@
 add_subdirectory(ble_handler)
+add_subdirectory(image_cache)
 add_subdirectory(user_interface)
 
 add_library(radbuzz_interface INTERFACE)
