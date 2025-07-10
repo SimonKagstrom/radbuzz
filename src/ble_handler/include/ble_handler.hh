@@ -1,5 +1,6 @@
 #pragma once
 
+#include "application_state.hh"
 #include "base_thread.hh"
 #include "hal/i_ble_server.hh"
 #include "image_cache.hh"
@@ -7,7 +8,7 @@
 class BleHandler : public os::BaseThread
 {
 public:
-    BleHandler(hal::IBleServer& server, ImageCache& cache);
+    BleHandler(hal::IBleServer& server, ApplicationState& state, ImageCache& cache);
 
 private:
     // From BaseThread
@@ -19,5 +20,6 @@ private:
 
     os::TimerHandle m_ble_poller;
     hal::IBleServer& m_server;
-    ImageCache &m_image_cache;
+    ApplicationState& m_state;
+    ImageCache& m_image_cache;
 };

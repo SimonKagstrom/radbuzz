@@ -8,6 +8,7 @@
 #include "sdkconfig.h"
 #include "st7701_display_esp32.hh"
 #include "uart_esp32.hh"
+#include "user_interface.hh"
 
 #include <esp_io_expander_tca9554.h>
 #include <esp_lcd_panel_io.h>
@@ -207,6 +208,8 @@ app_main(void)
     // Install the GPIO interrupt service
     gpio_install_isr_service(0);
 
+    ApplicationState application_state;
+
     auto target_nvm = std::make_unique<NvmTarget>();
 
     auto button_debouncer = std::make_unique<ButtonDebouncer>();
@@ -221,7 +224,7 @@ app_main(void)
     auto image_cache = std::make_unique<ImageCache>();
 
     auto ble_server = std::make_unique<BleServerEsp32>();
-    auto ble_handler = std::make_unique<BleHandler>(*ble_server, *image_cache);
+    auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
 
     auto display = CreateDisplay();
 

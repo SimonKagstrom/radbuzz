@@ -11,4 +11,5 @@ target_link_libraries(ble_handler
 PUBLIC
     base_thread
     image_cache
+    application_state
 )

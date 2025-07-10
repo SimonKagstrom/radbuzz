@@ -42,6 +42,10 @@ constexpr auto kMaxCachedImages = 32;
 class ImageCache
 {
 public:
+    ImageCache() = default;
+    ImageCache(const ImageCache&) = delete;
+    ImageCache operator=(const ImageCache&) = delete;
+
     // Context: Some thread (BLE)
     void Insert(uint32_t key, uint8_t width, uint8_t height, std::span<const uint8_t> data);
 

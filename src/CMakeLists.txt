@@ -1,3 +1,4 @@
+add_subdirectory(application_state)
 add_subdirectory(ble_handler)
 add_subdirectory(image_cache)
 add_subdirectory(user_interface)
