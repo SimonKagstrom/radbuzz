@@ -13,7 +13,7 @@ namespace detail
 {
 
 // TODO: Cleanup this messy hack
-consteval std::array<uint8_t, 16>
+constexpr std::array<uint8_t, 16>
 StringToUuid128(std::string_view string)
 {
     std::array<uint8_t, 16> out = {};

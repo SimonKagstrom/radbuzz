@@ -1,18 +1,6 @@
 // Most of this is based on https://github.com/maisonsmd/esp32-google-maps
 #include "ble_handler.hh"
 
-constexpr auto kImageWidth = 64;
-constexpr auto kImageHeight = 62;
-constexpr auto kImageByteSize = (kImageWidth * kImageHeight) / 8;
-
-constexpr auto kServiceUuid = "ec91d7ab-e87c-48d5-adfa-cc4b2951298a";
-
-constexpr auto kChaSettings = "9d37a346-63d3-4df6-8eee-f0242949f59f";
-constexpr auto kChaNav = "0b11deef-1563-447f-aece-d3dfeb1c1f20";
-constexpr auto kChaNavTbtIcon = "d4d8fcca-16b2-4b8e-8ed5-90137c44a8ad";
-constexpr auto kChaNavTbtIconDesc = "d63a466e-5271-4a5d-a942-a34ccdb013d9";
-constexpr auto kChaGpsSpeed = "98b6073a-5cf3-4e73-b6d3-f8e05fa018a9";
-
 namespace
 {
 
@@ -50,7 +38,7 @@ StringToKey(std::span<const uint8_t> data)
         return kInvalidIconHash;
     }
 
-    auto s = std::string(reinterpret_cast<const char*>(data.subspan(0, 8).data()));
+    auto s = std::string(reinterpret_cast<const char*>(data.data()), 8);
 
     return std::stoul(s, 0, 16);
 }
@@ -75,7 +63,6 @@ BleHandler::BleHandler(hal::IBleServer& server, ApplicationState& state, ImageCa
                          kImageWidth,
                          kImageHeight,
                          {static_cast<const uint8_t*>(invalid_data.get()), kImageByteSize});
-
 }
 
 void
@@ -94,15 +81,16 @@ BleHandler::OnStartup()
 
     m_server.AddWriteGattCharacteristics(
         hal::detail::StringToUuid128(kChaSettings),
-        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+        [this](auto data) { printf(": %.*s\n", (int)data.size(), (const char*)data.data()); });
     m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kChaNavTbtIcon),
                                          [this](auto data) { OnIcon(data); });
     m_server.AddWriteGattCharacteristics(
-        hal::detail::StringToUuid128(kChaNavTbtIconDesc),
-        [this](auto data) { printf("Ifondesc : %.*s\n", data.size(), (const char*)data.data()); });
+        hal::detail::StringToUuid128(kChaNavTbtIconDesc), [this](auto data) {
+            printf("Ifondesc : %.*s\n", (int)data.size(), (const char*)data.data());
+        });
     m_server.AddWriteGattCharacteristics(
         hal::detail::StringToUuid128(kChaGpsSpeed),
-        [this](auto data) { printf(": %.*s\n", data.size(), (const char*)data.data()); });
+        [this](auto data) { printf(": %.*s\n", (int)data.size(), (const char*)data.data()); });
 
     m_server.Start();
 }
@@ -147,7 +135,7 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
         }
     }
 
-    printf("ChaNav: %.*s\n", data.size(), (const char*)data.data());
+    printf("ChaNav: %.*s\n", (int)data.size(), (const char*)data.data());
 }
 
 
@@ -161,6 +149,11 @@ BleHandler::OnIcon(std::span<const uint8_t> data)
      * a7f7f83332;
      * ^^^key     ^^^data follows here
      */
+    if (data.size() < kImageByteSize + 11)
+    {
+        return;
+    }
+
     auto key = StringToKey(data);
 
     m_image_cache.Insert(key, kImageWidth, kImageHeight, data.subspan(10));

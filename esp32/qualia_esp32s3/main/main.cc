@@ -220,15 +220,18 @@ app_main(void)
         std::make_unique<TargetGpio>(kPinButton, TargetGpio::Polarity::kActiveLow));
 
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a_gpio, *pin_b_gpio);
+    auto display = CreateDisplay();
 
     auto image_cache = std::make_unique<ImageCache>();
 
     auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
-
-    auto display = CreateDisplay();
+    auto user_interface =
+        std::make_unique<UserInterface>(*display, application_state, *image_cache);
 
     ble_handler->Start("ble_server", 8192);
+    user_interface->Start("user_interface", 8192);
+
     while (true)
     {
         vTaskSuspend(nullptr);

@@ -3,6 +3,7 @@
 #include <etl/unordered_map.h>
 #include <etl/vector.h>
 #include <lvgl.h>
+#include <span>
 
 class CachedImage
 {
