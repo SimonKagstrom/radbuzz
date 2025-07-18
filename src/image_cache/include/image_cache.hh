@@ -10,9 +10,12 @@ class CachedImage
 public:
     CachedImage(std::span<const uint8_t> data, uint16_t width, uint16_t height)
     {
-        auto data_size = (width * height) / 8;
+        constexpr auto kBlackWhitePalette =
+            std::array<uint8_t, 8> {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff};
+        auto data_size = (width * height) / 8 + kBlackWhitePalette.size();
 
         m_bits.reserve(data_size);
+        std::ranges::copy(kBlackWhitePalette, std::back_inserter(m_bits));
         std::ranges::copy(data, std::back_inserter(m_bits));
 
         m_lv_image_dsc.header.magic = LV_IMAGE_HEADER_MAGIC;

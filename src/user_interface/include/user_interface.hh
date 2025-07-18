@@ -25,5 +25,8 @@ private:
     ImageCache& m_image_cache;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
+
+    lv_obj_t* m_screen;
     lv_obj_t* m_current_icon {nullptr};
+    lv_obj_t* m_description_label {nullptr};
 };

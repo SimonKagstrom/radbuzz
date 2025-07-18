@@ -38,9 +38,18 @@ UserInterface::OnStartup()
         });
 
 
-    m_current_icon = lv_image_create(lv_screen_active());
+    m_screen = lv_obj_create(nullptr);
+    lv_screen_load(m_screen);
+
+
+    m_current_icon = lv_image_create(m_screen);
+    lv_obj_center(m_current_icon);
     lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
     lv_obj_align(m_current_icon, LV_ALIGN_CENTER, 0, 0);
+
+    m_description_label = lv_label_create(m_screen);
+    lv_obj_align(m_description_label, LV_ALIGN_LEFT_MID, 10, 0);
+    lv_obj_set_style_text_font(m_description_label, &lv_font_montserrat_22, LV_PART_MAIN);
 }
 
 std::optional<milliseconds>

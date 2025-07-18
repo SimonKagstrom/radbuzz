@@ -1,0 +1,1 @@
+../esp32/qualia_esp32s3/lv_conf.h
