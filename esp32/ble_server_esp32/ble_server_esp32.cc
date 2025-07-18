@@ -85,10 +85,10 @@ BleServerEsp32::Start()
     nvs_flash_init();                          // 1 - Initialize NVS flash using
     esp_nimble_hci_init();                     // 2 - Initialize ESP controller
     nimble_port_init();                        // 3 - Initialize the host stack
-    ble_svc_gap_device_name_set("Bicycletas"); // 4 - Initialize NimBLE configuration - server name
     ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
-    ble_svc_ans_init();
     ble_svc_gatt_init(); // 4 - Initialize NimBLE configuration - gatt service
+    ble_svc_ans_init();
+    ble_svc_gap_device_name_set("Bicycletas"); // 4 - Initialize NimBLE configuration - server name
     ble_gatts_count_cfg(
         m_gatt_svc_def.data()); // 4 - Initialize NimBLE configuration - config gatt services
     ble_gatts_add_svcs(
@@ -155,11 +155,15 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         break;
     case BLE_GAP_EVENT_DISCONNECT:
         ESP_LOGI("GAP", "BLE GAP EVENT DISCONNECT %d", event->disconnect.reason);
+        AppAdvertise();
         break;
     case BLE_GAP_EVENT_DATA_LEN_CHG:
-        //        printf("LC: %d and %d\n",
-        //               event->data_len_chg.max_rx_octets,
-        //               event->data_len_chg.max_tx_octets);
+                printf("LC: %d and %d\n",
+                       event->data_len_chg.max_rx_octets,
+                       event->data_len_chg.max_tx_octets);
+        break;
+    case BLE_GAP_EVENT_MTU:
+        printf("MTU: %d\n", event->mtu.value);
         break;
 
     // Advertise again after completion of the event
