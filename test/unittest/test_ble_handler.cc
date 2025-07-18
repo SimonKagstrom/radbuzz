@@ -68,6 +68,8 @@ public:
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
 {
+    constexpr auto kPaletteSize = 8;
+
     uint32_t key = 0xa7f7f833;
     std::string icon_header = "a7f7f83332;";
     auto icon_data = std::array<uint8_t, kImageByteSize> {};
@@ -99,8 +101,8 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
         }
         AND_THEN("the image is of the correct size")
         {
-            const auto &image_dsc = in_cache->GetDsc();
-            REQUIRE(image_dsc.data_size == kImageByteSize);
+            const auto& image_dsc = in_cache->GetDsc();
+            REQUIRE(image_dsc.data_size == kImageByteSize + kPaletteSize);
             REQUIRE(image_dsc.header.w == kImageWidth);
             REQUIRE(image_dsc.header.h == kImageHeight);
         }
@@ -114,6 +116,31 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
         THEN("it's not placed in the cache")
         {
             REQUIRE(cache.Lookup(key) == nullptr);
+        }
+    }
+}
+
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle navigation info")
+{
+    DoStartup();
+
+    WHEN("a non-empty description comes in")
+    {
+        auto non_empty = R"VOBB(nextRd=Braxvägen
+nextRdDesc=
+distToNext=
+totalDist=30 m
+eta=15:19
+ete=0 min
+iconHash=a7f7f83332
+        )VOBB";
+
+        srv.Inject(kChaNav, non_empty);
+
+        THEN("the key is updated")
+        {
+            REQUIRE(state.CheckoutReadonly()->current_icon_hash == 0xa7f7f833);
         }
     }
 }

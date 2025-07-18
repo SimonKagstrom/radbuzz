@@ -46,7 +46,7 @@ StringToKey(std::span<const uint8_t> data)
 uint32_t
 StringToKey(const std::string& s)
 {
-    return StringToKey({s.data(), s.size()});
+    return StringToKey({reinterpret_cast<const uint8_t*>(s.data()), s.size()});
 }
 
 } // namespace
@@ -151,10 +151,12 @@ BleHandler::OnIcon(std::span<const uint8_t> data)
      */
     if (data.size() < kImageByteSize + 11)
     {
+        printf("Not long enough: %d\n", data.size());
         return;
     }
 
     auto key = StringToKey(data);
 
+    printf("Inserted 0x%x\n", key);
     m_image_cache.Insert(key, kImageWidth, kImageHeight, data.subspan(10));
 }
