@@ -9,6 +9,8 @@ ImageCache::Insert(uint32_t key, uint8_t width, uint8_t height, std::span<const 
 
         m_images.push_back(std::make_unique<CachedImage>(data, width, height));
         m_cache[key] = index;
+
+        std::ranges::for_each(m_listeners, [](auto s) { s->release(); });
     }
 }
 
@@ -24,4 +26,16 @@ ImageCache::Lookup(uint32_t key) const
     }
 
     return m_images[it->second].get();
+}
+
+
+std::unique_ptr<ListenerCookie>
+ImageCache::ListenToChanges(os::binary_semaphore& semaphore)
+{
+    auto sema_p = &semaphore;
+
+    m_listeners.push_back(sema_p);
+
+    return std::make_unique<ListenerCookie>(
+        [this, sema_p]() { std::ranges::remove(m_listeners, sema_p); });
 }

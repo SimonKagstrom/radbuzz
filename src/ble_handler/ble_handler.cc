@@ -119,12 +119,12 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
          SplitString(std::string(reinterpret_cast<const char*>(data.data()), data.size()), "\n"))
     {
         auto key_val = SplitString(line, "=");
-        if (key_val.size() != 2)
-        {
-            continue;
-        }
         auto key = key_val[0];
-        auto val = key_val[1];
+        std::string val = "";
+        if (key_val.size() >= 2)
+        {
+            val = key_val[1];
+        }
 
         if (key == "iconHash")
         {

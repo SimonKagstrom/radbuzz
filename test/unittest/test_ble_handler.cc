@@ -143,4 +143,25 @@ iconHash=a7f7f83332
             REQUIRE(state.CheckoutReadonly()->current_icon_hash == 0xa7f7f833);
         }
     }
+
+    WHEN("an empty description comes in")
+    {
+        auto non_empty = R"VOBB(nextRd=
+nextRdDesc=
+distToNext=
+totalDist=
+eta=
+ete=
+iconHash=
+        )VOBB";
+
+        state.Checkout()->current_icon_hash = 1976;
+        REQUIRE(state.CheckoutReadonly()->current_icon_hash != kInvalidIconHash);
+        srv.Inject(kChaNav, non_empty);
+
+        THEN("the key is set to the invalid icon hash")
+        {
+            REQUIRE(state.CheckoutReadonly()->current_icon_hash == kInvalidIconHash);
+        }
+    }
 }
