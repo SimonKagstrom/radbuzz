@@ -32,10 +32,17 @@ ImageCache::Lookup(uint32_t key) const
 std::unique_ptr<ListenerCookie>
 ImageCache::ListenToChanges(os::binary_semaphore& semaphore)
 {
+    if (m_listeners.full())
+    {
+        return nullptr;
+    }
+
     auto sema_p = &semaphore;
 
     m_listeners.push_back(sema_p);
 
-    return std::make_unique<ListenerCookie>(
-        [this, sema_p]() { std::ranges::remove(m_listeners, sema_p); });
+    return std::make_unique<ListenerCookie>([this, sema_p]() {
+        auto [b, e] = std::ranges::remove(m_listeners, sema_p);
+        m_listeners.erase(b);
+    });
 }
