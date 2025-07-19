@@ -90,7 +90,7 @@ BleHandler::OnStartup()
         });
     m_server.AddWriteGattCharacteristics(
         hal::detail::StringToUuid128(kChaGpsSpeed),
-        [this](auto data) { printf(": %.*s\n", (int)data.size(), (const char*)data.data()); });
+        [this](auto data) { });
 
     m_server.Start();
 }
@@ -157,6 +157,5 @@ BleHandler::OnIcon(std::span<const uint8_t> data)
 
     auto key = StringToKey(data);
 
-    printf("Inserted 0x%x\n", key);
-    m_image_cache.Insert(key, kImageWidth, kImageHeight, data.subspan(10));
+    m_image_cache.Insert(key, kImageWidth, kImageHeight, data.subspan(11));
 }
