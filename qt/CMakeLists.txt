@@ -48,6 +48,7 @@ add_executable(radbuzz_qt
 target_link_libraries(radbuzz_qt
     display_qt
     os_qt
+    app_simulator
     user_interface
     ble_handler
     ble_server_host

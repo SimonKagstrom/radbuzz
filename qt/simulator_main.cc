@@ -1,3 +1,4 @@
+#include "app_simulator.hh"
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
 #include "simulator_mainwindow.hh"
@@ -45,12 +46,19 @@ main(int argc, char* argv[])
     auto image_cache = std::make_unique<ImageCache>();
 
     // Threads
+    auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
     auto user_interface =
         std::make_unique<UserInterface>(window.GetDisplay(), application_state, *image_cache);
 
+
+    application_state.Checkout()->current_icon_hash = 0x27d9a40f;
+
     ble_handler->Start("ble_handler");
     user_interface->Start("user_interface");
+
+    os::Sleep(10ms);
+    app_simulator->Start("app_simulator");
 
     window.show();
 
