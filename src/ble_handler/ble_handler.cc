@@ -151,7 +151,7 @@ BleHandler::OnIcon(std::span<const uint8_t> data)
      */
     if (data.size() < kImageByteSize + 11)
     {
-        printf("Not long enough: %d\n", data.size());
+        printf("Not long enough: %zd\n", data.size());
         return;
     }
 
