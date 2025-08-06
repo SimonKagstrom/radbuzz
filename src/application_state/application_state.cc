@@ -93,8 +93,19 @@ ApplicationState::Commit(const ApplicationState::StateImpl* state)
     auto updated = false;
 
     // Ugly, but reflection is not available
+    updated |= UpdateIfChanged(&ApplicationState::State::navigation_active, state, &m_global_state);
     updated |= UpdateIfChanged(&ApplicationState::State::current_icon_hash, state, &m_global_state);
     updated |= UpdateIfChanged(&ApplicationState::State::dist_to_next, state, &m_global_state);
+
+    // Make sure the backing store reflects the next street, so make a copy but leave the old lingering
+    if (state->m_shadow.next_street != m_next_street[m_active_street])
+    {
+        m_next_street[m_active_street] = state->m_shadow.next_street;
+        m_global_state.next_street = m_next_street[m_active_street];
+
+        m_active_street = !m_active_street;
+        updated = true;
+    }
 
     if (!updated)
     {
