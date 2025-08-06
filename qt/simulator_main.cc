@@ -1,6 +1,7 @@
 #include "app_simulator.hh"
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
+#include "buzz_handler.hh"
 #include "simulator_mainwindow.hh"
 #include "time.hh"
 #include "user_interface.hh"
@@ -48,13 +49,13 @@ main(int argc, char* argv[])
     // Threads
     auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
+    auto buzz_handler = std::make_unique<BuzzHandler>(
+        window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto user_interface =
         std::make_unique<UserInterface>(window.GetDisplay(), application_state, *image_cache);
 
-
-    application_state.Checkout()->current_icon_hash = 0x27d9a40f;
-
     ble_handler->Start("ble_handler");
+    buzz_handler->Start("buzz_handler");
     user_interface->Start("user_interface");
 
     os::Sleep(10ms);

@@ -53,5 +53,7 @@ target_link_libraries(radbuzz_qt
     ble_handler
     ble_server_host
     lvgl
+    gpio_host
+    buzz_handler
     Qt6::Widgets
 )
