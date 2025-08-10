@@ -132,6 +132,7 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
         }
         if (key == "distToNext")
         {
+            state->distance_to_next = std::stoul(val);
         }
     }
 

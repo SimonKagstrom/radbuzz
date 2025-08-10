@@ -117,6 +117,7 @@ constexpr auto kImages = std::array {
         },
     },
     RawImageData {
+        // Roundabout straight ahead
         0x28936c85,
         {
             '2',  '8',  '9',  '3',  '6',  'c',  '8',  '5',  'x',  'x',  ';',
@@ -160,6 +161,7 @@ constexpr auto kImages = std::array {
         },
     },
     RawImageData {
+        // Left
         0x27d9a40f,
         {
             '2',  '7',  'd',  '9',  'a',  '4',  '0',  'f',  'x',  'x',  ';',
@@ -203,6 +205,7 @@ constexpr auto kImages = std::array {
         },
     },
     RawImageData {
+        // Destination + road (?)
         0x09cefe42,
         {
             '0',  '9',  'c',  'e',  'f',  'e',  '4',  '2',  'x',  'x',  ';',

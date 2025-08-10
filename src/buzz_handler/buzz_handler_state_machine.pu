@@ -1,0 +1,26 @@
+@startuml
+
+state kNoNavigation
+state kNewTurn
+state kFar
+state kNear
+state kImminent
+state kAt
+
+[*] --> kNoNavigation
+
+kNoNavigation --> kNewTurn : new icon hash
+kNewTurn --> kFar : distance >= 100m
+
+kFar --> kNear : distance < 100m
+kFar --> kImminent : distance < 20m
+kFar --> kAt : distance < 20m
+
+kNear --> kImminent : distance < 20m
+kNear --> kAt : distance < 20m
+
+kImminent --> kAt : distance < 5m
+
+kAt --> kNewTurn : new icon hash
+
+@enduml

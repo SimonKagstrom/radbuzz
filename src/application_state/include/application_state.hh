@@ -25,7 +25,7 @@ public:
         virtual ~State() = default;
 
         bool navigation_active {false};
-        uint32_t dist_to_next {0};
+        uint32_t distance_to_next {0};
         uint32_t current_icon_hash {kInvalidIconHash};
         std::string_view next_street {""};
 
