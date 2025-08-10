@@ -1,5 +1,7 @@
 #include "buzz_handler.hh"
 
+constexpr auto kAtDistance = 10;
+
 BuzzHandler::BuzzHandler(hal::IGpio& left_buzzer,
                          hal::IGpio& right_buzzer,
                          ApplicationState& app_state)
@@ -7,6 +9,7 @@ BuzzHandler::BuzzHandler(hal::IGpio& left_buzzer,
     , m_right_buzzer(right_buzzer)
     , m_state(app_state)
     , m_state_listener(m_state.AttachListener(GetSemaphore()))
+    , m_off_timer(StartTimer(0ms))
 {
 }
 
@@ -29,6 +32,8 @@ BuzzHandler::RunStateMachine(const ApplicationState::State* app_state)
 
     do
     {
+        before = m_current_state;
+
         switch (m_current_state)
         {
         case State::kNoNavigation:
@@ -54,7 +59,7 @@ BuzzHandler::RunStateMachine(const ApplicationState::State* app_state)
         }
         break;
         case State::kAt:
-            if (app_state->distance_to_next > 5)
+            if (app_state->distance_to_next > kAtDistance)
             {
                 EnterState(State::kNewTurn);
             }
@@ -98,7 +103,7 @@ BuzzHandler::EnterState(State s)
 BuzzHandler::State
 BuzzHandler::DistanceToState(uint32_t distance) const
 {
-    if (distance < 5)
+    if (distance <= kAtDistance)
     {
         return State::kAt;
     }
@@ -117,6 +122,11 @@ BuzzHandler::DistanceToState(uint32_t distance) const
 void
 BuzzHandler::Indicate()
 {
+    // Make sure it's turned off, if we have an early exit from the last indication
+    m_left_buzzer.SetState(false);
+    m_right_buzzer.SetState(false);
+
+
     auto delay = 100ms;
 
     switch (m_state.CheckoutReadonly()->current_icon_hash)
@@ -143,8 +153,12 @@ BuzzHandler::Indicate()
     default:
         break;
     }
+    printf("Buzzing for %d ms\n", delay.count());
 
-    os::Sleep(delay);
-    m_left_buzzer.SetState(false);
-    m_right_buzzer.SetState(false);
+    m_off_timer = StartTimer(delay, [this]() {
+        printf("BUZZ OFF!\n");
+        m_left_buzzer.SetState(false);
+        m_right_buzzer.SetState(false);
+        return std::nullopt;
+    });
 }

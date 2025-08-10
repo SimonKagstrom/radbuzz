@@ -43,4 +43,6 @@ private:
     // State data
     State m_current_state {State::kNoNavigation};
     uint32_t m_current_hash;
+
+    os::TimerHandle m_off_timer;
 };
