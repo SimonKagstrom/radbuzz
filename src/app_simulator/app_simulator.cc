@@ -12,7 +12,7 @@ constexpr auto kStreets = std::array {
     "Kämnärsvägen",
     "Willy-Andreas Allé",
     "Lindblomsvägen",
-    "Bredgatan",
+    "Östra Hamngatan",
     "Östra Prinsgatan",
     "Skeppargatan",
     "Vävar Johans gata",
