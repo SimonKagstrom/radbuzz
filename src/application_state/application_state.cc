@@ -98,9 +98,9 @@ ApplicationState::Commit(const ApplicationState::StateImpl* state)
     updated |= UpdateIfChanged(&ApplicationState::State::distance_to_next, state, &m_global_state);
 
     // Make sure the backing store reflects the next street, so make a copy but leave the old lingering
-    if (state->m_shadow.next_street != m_next_street[m_active_street])
+    if (state->m_shadow.next_street != state->next_street)
     {
-        m_next_street[m_active_street] = state->m_shadow.next_street;
+        m_next_street[m_active_street] = state->next_street;
         m_global_state.next_street = m_next_street[m_active_street];
 
         m_active_street = !m_active_street;

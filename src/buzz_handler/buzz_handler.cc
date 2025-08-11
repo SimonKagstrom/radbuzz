@@ -153,10 +153,8 @@ BuzzHandler::Indicate()
     default:
         break;
     }
-    printf("Buzzing for %d ms\n", delay.count());
 
     m_off_timer = StartTimer(delay, [this]() {
-        printf("BUZZ OFF!\n");
         m_left_buzzer.SetState(false);
         m_right_buzzer.SetState(false);
         return std::nullopt;

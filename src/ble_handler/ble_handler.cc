@@ -88,9 +88,8 @@ BleHandler::OnStartup()
         hal::detail::StringToUuid128(kChaNavTbtIconDesc), [this](auto data) {
             printf("Ifondesc : %.*s\n", (int)data.size(), (const char*)data.data());
         });
-    m_server.AddWriteGattCharacteristics(
-        hal::detail::StringToUuid128(kChaGpsSpeed),
-        [this](auto data) { });
+    m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kChaGpsSpeed),
+                                         [this](auto data) {});
 
     m_server.Start();
 }
@@ -104,6 +103,7 @@ BleHandler::OnActivation()
 void
 BleHandler::OnChaNav(std::span<const uint8_t> data)
 {
+    std::string next_street;
     auto state = m_state.Checkout();
 
     /*
@@ -134,9 +134,15 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
         {
             state->distance_to_next = std::stoul(val);
         }
+        if (key == "nextRd")
+        {
+            // Make sure it's not released on the stack (val)
+            next_street = val;
+            state->next_street = next_street;
+        }
     }
 
-    printf("ChaNav: %.*s\n", (int)data.size(), (const char*)data.data());
+    //    printf("ChaNav: %.*s\n", (int)data.size(), (const char*)data.data());
 }
 
 

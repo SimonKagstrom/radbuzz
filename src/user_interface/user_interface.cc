@@ -69,6 +69,8 @@ UserInterface::OnActivation()
         }
     }
 
+    lv_label_set_text(m_description_label, std::format("{}", state->next_street).c_str());
+
     if (auto time_before = os::GetTimeStampRaw(); m_next_redraw_time > time_before)
     {
         // Wait for the next redraw
