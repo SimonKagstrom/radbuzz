@@ -1,6 +1,7 @@
 #include "ble_handler.hh"
 #include "ble_server_esp32.hh"
 #include "button_debouncer.hh"
+#include "buzz_handler.hh"
 #include "gpio_esp32.hh"
 #include "image_cache.hh"
 #include "nvm_esp32.hh"
@@ -21,6 +22,10 @@
 
 namespace
 {
+
+// TODO
+constexpr auto kPinLeftBuzzer = GPIO_NUM_6;
+constexpr auto kPinRightBuzzer = GPIO_NUM_7;
 
 constexpr auto kTftDEPin = 40;
 constexpr auto kTftVSYNCPin = 39;
@@ -200,13 +205,20 @@ app_main(void)
 
     auto display = CreateDisplay();
 
+    auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
+    auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
+
     auto image_cache = std::make_unique<ImageCache>();
 
+    // Threads
+    auto buzz_handler =
+        std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
     auto user_interface =
         std::make_unique<UserInterface>(*display, application_state, *image_cache);
 
+    buzz_handler->Start("buzz_handler");
     ble_handler->Start("ble_server", 8192);
     user_interface->Start("user_interface", 8192);
 

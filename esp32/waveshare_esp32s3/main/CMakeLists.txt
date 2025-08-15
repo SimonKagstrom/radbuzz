@@ -15,5 +15,6 @@ target_link_libraries(${COMPONENT_TARGET}
     os_esp32
     st7701_display_esp32
     uart_esp32
+    buzz_handler
     user_interface
 )
