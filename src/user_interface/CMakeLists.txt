@@ -1,3 +1,9 @@
+convert_font(radbuzz_font_22
+    ${CMAKE_CURRENT_LIST_DIR}/../../external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    22
+    "ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜ"
+)
+
 add_library(user_interface EXCLUDE_FROM_ALL
     user_interface.cc
 )
@@ -13,4 +19,5 @@ PUBLIC
     base_thread
     image_cache
     lvgl
+    radbuzz_font_22_library
 )

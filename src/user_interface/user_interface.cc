@@ -1,4 +1,5 @@
 #include "user_interface.hh"
+#include "radbuzz_font_22.h"
 
 UserInterface::UserInterface(hal::IDisplay& display, ApplicationState& state, ImageCache& cache)
     : m_display(display)
@@ -51,7 +52,7 @@ UserInterface::OnStartup()
 
     m_description_label = lv_label_create(m_screen);
     lv_obj_align(m_description_label, LV_ALIGN_LEFT_MID, 10, 0);
-    lv_obj_set_style_text_font(m_description_label, &lv_font_montserrat_22, LV_PART_MAIN);
+    lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
 }
 
 std::optional<milliseconds>
