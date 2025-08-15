@@ -1,5 +1,6 @@
 #include "user_interface.hh"
-#include "radbuzz_font_22.h"
+
+#include <radbuzz_font_22.h>
 
 UserInterface::UserInterface(hal::IDisplay& display, ApplicationState& state, ImageCache& cache)
     : m_display(display)
@@ -50,9 +51,16 @@ UserInterface::OnStartup()
     lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
     lv_obj_align(m_current_icon, LV_ALIGN_CENTER, 0, 0);
 
-    m_description_label = lv_label_create(m_screen);
-    lv_obj_align(m_description_label, LV_ALIGN_LEFT_MID, 10, 0);
+    auto label_box = lv_obj_create(m_screen);
+    lv_obj_set_size(label_box, 400, 100);
+    lv_obj_align(label_box, LV_ALIGN_BOTTOM_MID, 0, -100);
+    lv_obj_set_style_border_width(label_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(label_box, LV_OPA_TRANSP, LV_PART_MAIN);
+
+    m_description_label = lv_label_create(label_box);
+    lv_obj_align(m_description_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
 }
 
 std::optional<milliseconds>
