@@ -32,4 +32,5 @@ private:
     lv_obj_t* m_screen;
     lv_obj_t* m_current_icon {nullptr};
     lv_obj_t* m_description_label {nullptr};
+    lv_obj_t* m_distance_left_label {nullptr};
 };
