@@ -164,4 +164,25 @@ iconHash=
             REQUIRE(state.CheckoutReadonly()->current_icon_hash == kInvalidIconHash);
         }
     }
+
+    WHEN("navigation is starting")
+    {
+        auto non_empty = R"VOBB(nextRd=
+nextRdDesc=
+distToNext=Starting navigation...
+totalDist=
+eta=
+ete=
+iconHash=
+        )VOBB";
+
+        state.Checkout()->current_icon_hash = 1976;
+        REQUIRE(state.CheckoutReadonly()->current_icon_hash != kInvalidIconHash);
+        srv.Inject(kChaNav, non_empty);
+
+        THEN("the distance is still set to 0")
+        {
+            REQUIRE(state.CheckoutReadonly()->distance_to_next == 0);
+        }
+    }
 }

@@ -23,9 +23,9 @@
 namespace
 {
 
-// TODO
-constexpr auto kPinLeftBuzzer = GPIO_NUM_6;
-constexpr auto kPinRightBuzzer = GPIO_NUM_7;
+// TODO, dummy pins
+constexpr auto kPinLeftBuzzer = GPIO_NUM_43;
+constexpr auto kPinRightBuzzer = GPIO_NUM_44;
 
 constexpr auto kTftDEPin = 40;
 constexpr auto kTftVSYNCPin = 39;

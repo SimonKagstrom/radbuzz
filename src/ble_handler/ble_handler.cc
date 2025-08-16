@@ -130,7 +130,7 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
         {
             state->current_icon_hash = StringToKey(val);
         }
-        if (key == "distToNext")
+        if (key == "distToNext" && val.size() > 0 && std::isdigit(val[0]))
         {
             state->distance_to_next = std::stoul(val);
         }
