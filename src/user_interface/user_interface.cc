@@ -63,7 +63,7 @@ UserInterface::OnStartup()
     lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
 
     m_distance_left_label = lv_label_create(label_box);
-    lv_obj_align(m_distance_left_label, LV_ALIGN_CENTER, 0, 30);
+    lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
 }
