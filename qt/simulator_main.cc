@@ -2,9 +2,12 @@
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
 #include "buzz_handler.hh"
+#include "gps_reader.hh"
+#include "httpd_client.hh"
 #include "simulator_mainwindow.hh"
 #include "time.hh"
 #include "user_interface.hh"
+#include "wgs84_to_osm_point.hh"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -62,6 +65,33 @@ main(int argc, char* argv[])
     app_simulator->Start("app_simulator");
 
     window.show();
+
+    GpsPosition p;
+    p.latitude = 59.29325147850288;
+    p.longitude = 17.956672660463134;
+    auto x = Wgs84ToOsmPoint(p, 15);
+    auto t = ToTile(*x);
+
+    printf("pixel pos: %d,%d\n", x->x, x->y);
+    printf("tile pos: %d,%d\n", t.x, t.y);
+    exit(0);
+    constexpr auto kalle = OSM_API_KEY;
+    auto vobb = std::make_unique<HttpdClient>();
+    auto mibb = vobb->Get("https://tile.thunderforest.com/cycle/15/18018/9643.png?apikey=" +
+                          std::string(kalle));
+    if (mibb)
+    {
+        auto out_file = QFile("test.png");
+        if (out_file.open(QIODevice::WriteOnly))
+        {
+            out_file.write(reinterpret_cast<const char*>(mibb->data()), mibb->size());
+            out_file.close();
+        }
+        else
+        {
+            std::print("Failed to open file for writing\n");
+        }
+    }
 
     auto out = QApplication::exec();
 

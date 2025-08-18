@@ -55,5 +55,7 @@ target_link_libraries(radbuzz_qt
     lvgl
     gpio_host
     buzz_handler
+    tile_cache
+    gps_reader
     Qt6::Widgets
 )

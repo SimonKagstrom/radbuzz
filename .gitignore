@@ -1,3 +1,9 @@
+# Should not be added, private to the user
+*osm_api_key.txt
+
+# Scratch files I use :-)
+*kalkon.py
+
 # Prerequisites
 *.d
 
