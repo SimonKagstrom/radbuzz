@@ -94,6 +94,9 @@ ApplicationState::Commit(const ApplicationState::StateImpl* state)
 
     // Ugly, but reflection is not available
     updated |= UpdateIfChanged(&ApplicationState::State::navigation_active, state, &m_global_state);
+    updated |= UpdateIfChanged(&ApplicationState::State::wifi_connected, state, &m_global_state);
+    updated |= UpdateIfChanged(&ApplicationState::State::bluetooth_connected, state, &m_global_state);
+    updated |= UpdateIfChanged(&ApplicationState::State::gps_position_valid, state, &m_global_state);
     updated |= UpdateIfChanged(&ApplicationState::State::current_icon_hash, state, &m_global_state);
     updated |= UpdateIfChanged(&ApplicationState::State::distance_to_next, state, &m_global_state);
 

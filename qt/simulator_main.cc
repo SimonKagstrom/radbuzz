@@ -69,16 +69,23 @@ main(int argc, char* argv[])
     GpsPosition p;
     p.latitude = 59.29325147850288;
     p.longitude = 17.956672660463134;
+    //p.latitude = 59.34451772083831;
+    //p.longitude = 18.047964506090967;
+
     auto x = Wgs84ToOsmPoint(p, 15);
     auto t = ToTile(*x);
 
     printf("pixel pos: %d,%d\n", x->x, x->y);
-    printf("tile pos: %d,%d\n", t.x, t.y);
-    exit(0);
+    printf("tile pos: %d,%d -> offset %d,%d\n",
+           t.x,
+           t.y,
+           x->x - t.x * kTileSize,
+           x->y - t.y * kTileSize);
+
     constexpr auto kalle = OSM_API_KEY;
     auto vobb = std::make_unique<HttpdClient>();
-    auto mibb = vobb->Get("https://tile.thunderforest.com/cycle/15/18018/9643.png?apikey=" +
-                          std::string(kalle));
+    auto mibb = vobb->Get(std::format(
+        "https://tile.thunderforest.com/cycle/15/{}/{}.png?apikey={}", t.x, t.y, kalle));
     if (mibb)
     {
         auto out_file = QFile("test.png");

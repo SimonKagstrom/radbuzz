@@ -13,6 +13,8 @@ struct Tile
     int32_t y;
 };
 
+constexpr auto kInvalidTile = Tile {-1, -1};
+
 struct Point
 {
     int32_t x;
@@ -30,5 +32,20 @@ ToTile(const Point& point)
 {
     return Tile {point.x / kTileSize, point.y / kTileSize};
 }
+
+inline bool
+operator==(const Tile& lhs, const Tile& rhs)
+{
+    return lhs.x == rhs.x && lhs.y == rhs.y;
+}
+
+inline bool
+operator==(const Point& lhs, const Point& rhs)
+{
+    return lhs.x == rhs.x && lhs.y == rhs.y;
+}
+
+auto operator<=>(const Tile& lhs, const Point& rhs) = delete;
+auto operator<=>(const Point& lhs, const Tile& rhs) = delete;
 
 std::optional<Point> Wgs84ToOsmPoint(GpsPosition position, int zoom);

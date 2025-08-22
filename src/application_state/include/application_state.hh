@@ -24,6 +24,10 @@ public:
     {
         virtual ~State() = default;
 
+        bool wifi_connected {false};
+        bool bluetooth_connected {false};
+        bool gps_position_valid {false};
+        
         bool navigation_active {false};
         uint32_t distance_to_next {0};
         uint32_t current_icon_hash {kInvalidIconHash};

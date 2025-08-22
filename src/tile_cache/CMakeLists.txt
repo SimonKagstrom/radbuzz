@@ -18,6 +18,9 @@ PUBLIC
     httpd_client
     base_thread
     application_state
+    painter
+    wgs84_to_osm_point
+    filesystem_implementation
 )
 
 target_compile_definitions(tile_cache

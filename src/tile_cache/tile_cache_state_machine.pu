@@ -1,0 +1,15 @@
+@startuml
+
+state kWaitingForGps
+state kGpsSignalAcquired
+state kDownloadTiles
+state kRunning
+
+[*] --> kWaitingForGps
+
+kWaitingForGps --> kGpsSignalAcquired : GPS signal acquired
+kGpsSignalAcquired --> kDownloadTiles : Nearby tiles not cached
+kGpsSignalAcquired --> kRunning : Nearby tiles cached
+kDownloadTiles --> kRunning : Download complete
+
+@enduml

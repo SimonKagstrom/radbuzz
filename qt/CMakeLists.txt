@@ -39,6 +39,8 @@ add_subdirectory(../external/libmaelir/qt libradbuzz_qt)
 add_subdirectory(ble_server_host)
 
 
+add_library(filesystem_implementation ALIAS std_filesystem)
+
 add_executable(radbuzz_qt
     simulator_main.cc
     simulator_mainwindow.ui
