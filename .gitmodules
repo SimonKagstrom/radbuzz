@@ -4,3 +4,7 @@
 [submodule "external/lvgl"]
 	path = external/lvgl
 	url = https://github.com/lvgl/lvgl.git
+[submodule "external/PNGdec"]
+	path = external/PNGdec
+	url = https://github.com/bitbank2/PNGdec.git
+	ignore = dirty
