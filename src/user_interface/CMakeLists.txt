@@ -19,5 +19,6 @@ PUBLIC
     base_thread
     image_cache
     lvgl
+    tile_cache
     radbuzz_font_22_library
 )

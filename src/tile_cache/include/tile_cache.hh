@@ -72,6 +72,8 @@ private:
 
     uint8_t EvictTile();
 
+    bool DecodePng(std::span<const std::byte> png_data, TileImage &out);
+
     // helpers
     const ApplicationState::State* AppState() const
     {

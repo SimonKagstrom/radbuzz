@@ -21,6 +21,8 @@ PUBLIC
     painter
     wgs84_to_osm_point
     filesystem_implementation
+PRIVATE
+    pngdec
 )
 
 target_compile_definitions(tile_cache

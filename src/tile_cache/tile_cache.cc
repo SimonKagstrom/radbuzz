@@ -1,7 +1,39 @@
 #include "tile_cache.hh"
 
+#include <PNGdec.h>
+
 namespace
 {
+
+
+struct DecodeHelper
+{
+    DecodeHelper(PNG& png, uint16_t* dst)
+        : png(png)
+        , dst(dst)
+        , offset(0)
+    {
+    }
+
+    DecodeHelper() = delete;
+
+    PNG& png;
+    uint16_t* dst;
+    size_t offset;
+};
+
+int
+PngDraw(PNGDRAW* pDraw)
+{
+    auto helper = static_cast<DecodeHelper*>(pDraw->pUser);
+
+    helper->png.getLineAsRGB565(
+        pDraw, helper->dst + helper->offset, PNG_RGB565_LITTLE_ENDIAN, 0xffffffff);
+    helper->offset += pDraw->iWidth;
+
+    return 1;
+}
+
 
 class TileHandle : public ITileHandle
 {
@@ -52,10 +84,45 @@ TileCache::OnActivation()
 {
     FillFromColdStore();
     FillFromServer();
+    // Again, in case the server has written them to FS
+    FillFromColdStore();
 
     RunStateMachine();
     return std::nullopt;
 }
+
+bool
+TileCache::DecodePng(std::span<const std::byte> png_data, TileImage& out)
+{
+    auto png = std::make_unique<PNG>();
+
+    auto rc = png->openFLASH((uint8_t*)png_data.data(), png_data.size(), PngDraw);
+    if (rc != PNG_SUCCESS)
+    {
+        return false;
+    }
+
+
+    if (out.Data16().size() == png->getWidth() * png->getHeight())
+    {
+        DecodeHelper priv(*png, out.WritableData16());
+        rc = png->decode((void*)&priv, 0);
+    }
+    else
+    {
+        rc = PNG_MEM_ERROR;
+    }
+
+    png->close();
+    if (rc != PNG_SUCCESS)
+    {
+        // Failed to decode
+        return false;
+    }
+
+    return true;
+}
+
 
 void
 TileCache::FillFromColdStore()
@@ -64,12 +131,16 @@ TileCache::FillFromColdStore()
 
     while (m_get_from_coldstore.pop(t))
     {
-        auto data = m_filesystem.ReadFile(std::format("tiles/15/{}/{}.tile", t.x, t.y));
+        auto data = m_filesystem.ReadFile(std::format("tiles/15/{}/{}.png", t.x, t.y));
         if (data)
         {
             auto index = EvictTile();
-            m_tiles[index] = t;
-            // Decode PNG...
+
+            if (DecodePng(*data, m_image_cache[index]))
+            {
+                // Successfully decoded, otherwise the evicted tile remains evicted
+                m_tiles[index] = t;
+            }
         }
         else
         {
@@ -89,14 +160,20 @@ TileCache::FillFromServer()
         return;
     }
 
+    if (!m_get_from_server.empty())
+    {
+        // TODO: Rate limit better
+        os::Sleep(1s);
+    }
     for (auto& t : m_get_from_server)
     {
+        printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
         auto data = m_httpd_client.Get(std::format(
             "https://tile.thunderforest.com/cycle/15/{}/{}.png?apikey={}", t.x, t.y, kOsmApiKey));
 
         if (data)
         {
-            m_filesystem.WriteFile(std::format("tiles/15/{}/{}.tile", t.x, t.y),
+            m_filesystem.WriteFile(std::format("tiles/15/{}/{}.png", t.x, t.y),
                                    {data->data(), data->size()});
         }
     }

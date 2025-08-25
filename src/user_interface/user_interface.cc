@@ -1,12 +1,28 @@
 #include "user_interface.hh"
 
+#include "painter.hh"
+#include "wgs84_to_osm_point.hh"
+
 #include <radbuzz_font_22.h>
 
-UserInterface::UserInterface(hal::IDisplay& display, ApplicationState& state, ImageCache& cache)
+UserInterface::UserInterface(hal::IDisplay& display,
+                             ApplicationState& state,
+                             ImageCache& cache,
+                             TileCache& tile_cache)
     : m_display(display)
     , m_state(state)
     , m_image_cache(cache)
+    , m_tile_cache(tile_cache)
 {
+    m_static_map_buffer =
+        std::make_unique<uint8_t[]>(hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t));
+    m_static_map_image = std::make_unique<Image>(
+        std::span<const uint8_t> {m_static_map_buffer.get(),
+                                  hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t)},
+        hal::kDisplayWidth,
+        hal::kDisplayHeight);
+
+
     m_state_listener = m_state.AttachListener(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
 }
@@ -46,6 +62,11 @@ UserInterface::OnStartup()
     lv_screen_load(m_screen);
 
 
+    m_background = lv_image_create(m_screen);
+
+    lv_obj_move_background(m_background);
+    lv_image_set_src(m_background, &m_static_map_image->lv_image_dsc);
+
     m_current_icon = lv_image_create(m_screen);
     lv_obj_center(m_current_icon);
     lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
@@ -82,6 +103,35 @@ UserInterface::OnActivation()
             lv_image_set_src(m_current_icon, &image->GetDsc());
         }
     }
+
+
+    GpsPosition p;
+    p.latitude = 59.29325147850288;
+    p.longitude = 17.956672660463134;
+    p.latitude = 59.34451772083831;
+    p.longitude = 18.047964506090967;
+
+    auto x = Wgs84ToOsmPoint(p, 15);
+    auto t = ToTile(*x);
+
+    // TMP
+    for (auto dy = -1; dy <= 1; ++dy)
+    {
+        for (auto dx = -1; dx <= 1; ++dx)
+        {
+            auto image = m_tile_cache.GetTile(Tile {t.x + dx, t.y + dy});
+
+            if ((dx + 1) * kTileSize > hal::kDisplayWidth ||
+                (dy + 1) * kTileSize > hal::kDisplayHeight)
+            {
+                continue;
+            }
+            painter::Blit(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
+                          image,
+                          {(dx + 1) * kTileSize, (dy + 1) * kTileSize});
+        }
+    }
+
 
     lv_label_set_text(m_description_label, std::format("{}", state->next_street).c_str());
     lv_label_set_text(m_distance_left_label, std::format("{} m", state->distance_to_next).c_str());
