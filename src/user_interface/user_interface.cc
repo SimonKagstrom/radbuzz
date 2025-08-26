@@ -1,19 +1,22 @@
 #include "user_interface.hh"
 
 #include "painter.hh"
-#include "wgs84_to_osm_point.hh"
 
 #include <radbuzz_font_22.h>
 
 UserInterface::UserInterface(hal::IDisplay& display,
                              ApplicationState& state,
+                             std::unique_ptr<IGpsPort> gps_port,
                              ImageCache& cache,
                              TileCache& tile_cache)
     : m_display(display)
     , m_state(state)
+    , m_gps_port(std::move(gps_port))
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
 {
+    m_gps_port->AwakeOn(GetSemaphore());
+
     m_static_map_buffer =
         std::make_unique<uint8_t[]>(hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t));
     m_static_map_image = std::make_unique<Image>(
@@ -104,16 +107,12 @@ UserInterface::OnActivation()
         }
     }
 
+    if (auto gps_data = m_gps_port->Poll(); gps_data)
+    {
+        m_current_position = gps_data->position;
+    }
 
-    GpsPosition p;
-    p.latitude = 59.29325147850288;
-    p.longitude = 17.956672660463134;
-//    p.latitude = 59.324653406431125;
-//    p.longitude =  18.103529555239938;
-//    p.latitude = 59.34443143179733;
-//    p.longitude = 18.04792142012441;
-
-    auto point = Wgs84ToOsmPoint(p, 15);
+    auto point = Wgs84ToOsmPoint(m_current_position, 15);
     auto t = ToTile(*point);
 
     // Calculate the center of the display
@@ -142,10 +141,9 @@ UserInterface::OnActivation()
             int dst_x = tile_pixel_x - start_x;
             int dst_y = tile_pixel_y - start_y;
 
-            auto tile = m_tile_cache.GetTile(ToTile(Point{tile_pixel_x, tile_pixel_y}));
-            painter::Blit(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
-                          tile,
-                          {dst_x, dst_y});
+            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y}));
+            painter::Blit(
+                reinterpret_cast<uint16_t*>(m_static_map_buffer.get()), tile, {dst_x, dst_y});
         }
     }
 

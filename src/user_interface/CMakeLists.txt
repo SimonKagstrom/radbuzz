@@ -20,5 +20,6 @@ PUBLIC
     image_cache
     lvgl
     tile_cache
+    gps_reader
     radbuzz_font_22_library
 )

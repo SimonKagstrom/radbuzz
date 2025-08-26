@@ -3,6 +3,7 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "filesystem.hh"
+#include "gps_reader.hh"
 #include "httpd_client.hh"
 #include "image.hh"
 #include "wgs84_to_osm_point.hh"
@@ -52,6 +53,7 @@ class TileCache : public os::BaseThread
 {
 public:
     TileCache(ApplicationState& application_state,
+              std::unique_ptr<IGpsPort> gps_port,
               Filesystem& filesystem,
               HttpdClient& httpd_client);
 
@@ -80,6 +82,7 @@ private:
 
     void FillFromColdStore();
     void FillFromServer();
+    void RefreshCityTiles(const Tile &center);
 
     uint8_t EvictTile();
 
@@ -92,6 +95,7 @@ private:
     }
 
     ApplicationState& m_application_state;
+    std::unique_ptr<IGpsPort> m_gps_port;
     Filesystem& m_filesystem;
     HttpdClient& m_httpd_client;
 
@@ -106,4 +110,5 @@ private:
 
     etl::queue_spsc_atomic<Tile, kTileCacheSize> m_get_from_coldstore;
     std::vector<Tile> m_get_from_server;
+    Tile m_current_city_tile {kInvalidTile};
 };

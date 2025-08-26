@@ -6,6 +6,7 @@
 #include <optional>
 
 constexpr auto kTileSize = 256;
+constexpr auto kCityTileFactor = 15;
 
 struct Tile
 {
@@ -33,6 +34,13 @@ ToTile(const Point& point)
     return Tile {point.x / kTileSize, point.y / kTileSize};
 }
 
+inline auto
+ToCityTile(const Point& point)
+{
+    return Tile {(point.x / kTileSize / kCityTileFactor) * kCityTileFactor,
+                 (point.y / kTileSize / kCityTileFactor) * kCityTileFactor};
+}
+
 inline bool
 operator==(const Tile& lhs, const Tile& rhs)
 {
@@ -49,3 +57,5 @@ auto operator<=>(const Tile& lhs, const Point& rhs) = delete;
 auto operator<=>(const Point& lhs, const Tile& rhs) = delete;
 
 std::optional<Point> Wgs84ToOsmPoint(GpsPosition position, int zoom);
+
+GpsPosition OsmPointToWgs84(Point point, int zoom);

@@ -252,12 +252,28 @@ constexpr auto kImages = std::array {
 
 AppSimulator::AppSimulator(BleServerHost& ble_server)
     : m_ble_server(ble_server)
+    , m_current_point(*Wgs84ToOsmPoint(
+          {
+              59.34443143179733,
+              18.04792142012441,
+          },
+          15))
 {
 }
+
+hal::IGps&
+AppSimulator::GetSimulatedGps()
+{
+    return m_gps;
+}
+
 
 std::optional<milliseconds>
 AppSimulator::OnActivation()
 {
+    m_current_point.x++;
+    m_current_point.y++;
+
     if (m_streets.empty())
     {
         for (auto& street : kStreets)
@@ -305,5 +321,31 @@ iconHash={:08x}32
 
     m_distance_left -= 10;
 
+    m_gps.NextPoint(m_current_point);
+
     return 250ms;
+}
+
+
+void
+AppSimulator::SimulatedGps::NextPoint(const Point& point)
+{
+    m_current_point = point;
+    m_data_semaphore.release();
+}
+
+std::optional<hal::RawGpsData>
+AppSimulator::SimulatedGps::WaitForData(os::binary_semaphore& semaphore)
+{
+    m_data_semaphore.acquire();
+
+    semaphore.release();
+
+    hal::RawGpsData out;
+
+    out.heading = 15; // TODO
+    out.speed = 25;   // TODO
+    out.position = OsmPointToWgs84(m_current_point, 15);
+
+    return out;
 }

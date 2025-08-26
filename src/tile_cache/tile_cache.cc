@@ -69,25 +69,44 @@ private:
 } // namespace
 
 TileCache::TileCache(ApplicationState& application_state,
+                     std::unique_ptr<IGpsPort> gps_port,
                      Filesystem& filesystem,
                      HttpdClient& httpd_client)
     : m_application_state(application_state)
+    , m_gps_port(std::move(gps_port))
     , m_filesystem(filesystem)
     , m_httpd_client(httpd_client)
     , m_state_listener(m_application_state.AttachListener(GetSemaphore()))
 {
     std::ranges::fill(m_tiles, kInvalidTile);
+
+    m_gps_port->AwakeOn(GetSemaphore());
 }
 
 std::optional<milliseconds>
 TileCache::OnActivation()
 {
+    if (auto gps_data = m_gps_port->Poll(); gps_data)
+    {
+        auto city_tile = ToCityTile(gps_data->pixel_position);
+
+        if (city_tile != m_current_city_tile)
+        {
+            m_current_city_tile = city_tile;
+
+            auto center_tile = ToTile(gps_data->pixel_position);
+
+            RefreshCityTiles(center_tile);
+        }
+    }
+
     FillFromColdStore();
     FillFromServer();
     // Again, in case the server has written them to FS
     FillFromColdStore();
 
     RunStateMachine();
+
     return std::nullopt;
 }
 
@@ -148,6 +167,25 @@ TileCache::FillFromColdStore()
         }
     }
 }
+
+void
+TileCache::RefreshCityTiles(const Tile& center)
+{
+    for (int dx = -kCityTileFactor; dx <= kCityTileFactor; ++dx)
+    {
+        for (int dy = -kCityTileFactor; dy <= kCityTileFactor; ++dy)
+        {
+            Tile t{center.x + dx, center.y + dy};
+            auto path = std::format("tiles/15/{}/{}.png", t.x, t.y);
+
+            if (!m_filesystem.FileExists(path))
+            {
+                m_get_from_server.push_back(t);
+            }
+        }
+    }
+}
+
 
 void
 TileCache::FillFromServer()
