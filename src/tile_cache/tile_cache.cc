@@ -185,15 +185,29 @@ TileCache::FillFromServer()
 uint8_t
 TileCache::EvictTile()
 {
+    auto lowest_use_count = UINT32_MAX;
+    auto selected = 0u;
+
     for (auto i = 0u; i < m_tiles.size(); ++i)
     {
+        auto& tile = m_image_cache[i];
         if (m_tiles[i] == kInvalidTile)
         {
             return i;
         }
+
+        /*
+         * There is the case where use count wraps, but that should only cause
+         * some extra loads from disk.
+         */
+        if (tile.UseCount() < lowest_use_count)
+        {
+            lowest_use_count = tile.UseCount();
+            selected = i;
+        }
     }
 
-    return 0; // TODO: LRU
+    return selected;
 }
 
 const Image&
@@ -203,7 +217,11 @@ TileCache::GetTile(const Tile& at)
 
     if (cached != m_tiles.end())
     {
-        return m_image_cache[cached - m_tiles.begin()];
+        auto& tile = m_image_cache[cached - m_tiles.begin()];
+
+        tile.BumpUseCount();
+
+        return tile;
     }
     else
     {

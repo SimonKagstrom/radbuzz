@@ -34,7 +34,18 @@ public:
     {
     }
 
+    uint32_t UseCount() const
+    {
+        return m_use_count.load();
+    }
+
+    void BumpUseCount()
+    {
+        m_use_count++;
+    }
+
 private:
+    std::atomic<uint32_t> m_use_count {0};
 };
 
 class TileCache : public os::BaseThread
@@ -72,7 +83,7 @@ private:
 
     uint8_t EvictTile();
 
-    bool DecodePng(std::span<const std::byte> png_data, TileImage &out);
+    bool DecodePng(std::span<const std::byte> png_data, TileImage& out);
 
     // helpers
     const ApplicationState::State* AppState() const
