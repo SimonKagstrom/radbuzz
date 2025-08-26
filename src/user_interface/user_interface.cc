@@ -108,27 +108,44 @@ UserInterface::OnActivation()
     GpsPosition p;
     p.latitude = 59.29325147850288;
     p.longitude = 17.956672660463134;
-    p.latitude = 59.34451772083831;
-    p.longitude = 18.047964506090967;
+//    p.latitude = 59.324653406431125;
+//    p.longitude =  18.103529555239938;
+//    p.latitude = 59.34443143179733;
+//    p.longitude = 18.04792142012441;
 
-    auto x = Wgs84ToOsmPoint(p, 15);
-    auto t = ToTile(*x);
+    auto point = Wgs84ToOsmPoint(p, 15);
+    auto t = ToTile(*point);
 
-    // TMP
-    for (auto dy = -1; dy <= 1; ++dy)
+    // Calculate the center of the display
+    int display_cx = hal::kDisplayWidth / 2;
+    int display_cy = hal::kDisplayHeight / 2;
+
+    // Calculate the top-left pixel in OSM coordinates that should be at (0,0) on the display
+    int start_x = point->x - display_cx;
+    int start_y = point->y - display_cy;
+
+    // Calculate how many tiles are needed to cover the display
+    int num_tiles_x = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
+    int num_tiles_y = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
+
+    // For each tile, calculate its top-left position in display coordinates and blit it
+    for (int y = 0; y < num_tiles_y; ++y)
     {
-        for (auto dx = -1; dx <= 1; ++dx)
+        for (int x = 0; x < num_tiles_x; ++x)
         {
-            auto image = m_tile_cache.GetTile(Tile {t.x + dx, t.y + dy});
+            int tile_x = (start_x / kTileSize) + x;
+            int tile_y = (start_y / kTileSize) + y;
 
-            if ((dx + 1) * kTileSize > hal::kDisplayWidth ||
-                (dy + 1) * kTileSize > hal::kDisplayHeight)
-            {
-                continue;
-            }
+            int tile_pixel_x = tile_x * kTileSize;
+            int tile_pixel_y = tile_y * kTileSize;
+
+            int dst_x = tile_pixel_x - start_x;
+            int dst_y = tile_pixel_y - start_y;
+
+            auto tile = m_tile_cache.GetTile(ToTile(Point{tile_pixel_x, tile_pixel_y}));
             painter::Blit(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
-                          image,
-                          {(dx + 1) * kTileSize, (dy + 1) * kTileSize});
+                          tile,
+                          {dst_x, dst_y});
         }
     }
 
