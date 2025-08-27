@@ -2,6 +2,7 @@
 #include "ble_server_esp32.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
+#include "filesystem.hh"
 #include "gpio_esp32.hh"
 #include "image_cache.hh"
 #include "nvm_esp32.hh"
@@ -9,14 +10,18 @@
 #include "sdkconfig.h"
 #include "st7701_display_esp32.hh"
 #include "uart_esp32.hh"
+#include "uart_gps_esp32.hh"
 #include "user_interface.hh"
 
+#include <driver/sdmmc_host.h>
 #include <esp_io_expander_tca9554.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_io_additions.h>
 #include <esp_lcd_panel_rgb.h>
 #include <esp_partition.h>
 #include <esp_random.h>
+#include <esp_vfs_fat.h>
+#include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -204,22 +209,76 @@ app_main(void)
     ApplicationState application_state;
 
     auto display = CreateDisplay();
+    // Wifi
+    wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
 
+    nvs_flash_init();
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    esp_netif_create_default_wifi_sta();
+
+    ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
+
+    static wifi_config_t sta_config;
+
+    // Setup ssid etc
+    /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (password len => 8).
+             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
+             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
+             * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
+             */
+    //sta_config.sta.sae_h2e_identifier = "";
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
+
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    os::Sleep(1s);
+    esp_wifi_connect();
+    application_state.Checkout()->wifi_connected = true;
+
+    //    // The filesystem
+    sdmmc_host_init();
+
+    sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
+    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+    auto err =
+        esp_vfs_fat_sdmmc_mount("/sdcard", &sd_mmc_host_config, &slot_config, nullptr, nullptr);
+
+
+    gpio_install_isr_service(0);
+
+    // Devices / helper classes
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
-
     auto image_cache = std::make_unique<ImageCache>();
+    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
+                                              9600,
+                                              GPIO_NUM_44,  // RX
+                                              GPIO_NUM_43); // TX
+
+    auto uart_gps = std::make_unique<UartGps>(*uart1);
+    auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data");
+    auto httpd_client = std::make_unique<HttpdClient>();
 
     // Threads
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     auto ble_server = std::make_unique<BleServerEsp32>();
+    auto gps_reader = std::make_unique<GpsReader>(*uart_gps);
+    auto tile_cache = std::make_unique<TileCache>(
+        application_state, gps_reader->AttachListener(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
-    auto user_interface =
-        std::make_unique<UserInterface>(*display, application_state, *image_cache);
+    auto user_interface = std::make_unique<UserInterface>(
+        *display, application_state, gps_reader->AttachListener(), *image_cache, *tile_cache);
 
-    buzz_handler->Start("buzz_handler");
+
+    buzz_handler->Start("buzz_handler", 8192);
     ble_handler->Start("ble_server", 8192);
+    gps_reader->Start("gps_reader");
+    tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", 8192);
 
     while (true)
