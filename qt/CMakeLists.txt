@@ -36,7 +36,6 @@ find_package(etl REQUIRED)
 
 add_subdirectory(.. radbuzz)
 add_subdirectory(../external/libmaelir/qt libradbuzz_qt)
-add_subdirectory(ble_server_host)
 
 
 add_library(filesystem_implementation ALIAS std_filesystem)

@@ -163,7 +163,7 @@ TileCache::FillFromColdStore()
         }
         else
         {
-            m_get_from_server.push_back(t);
+            m_get_from_server.push_front(t);
         }
     }
 }
@@ -201,7 +201,7 @@ TileCache::FillFromServer()
     if (!m_get_from_server.empty())
     {
         // TODO: Rate limit better
-        os::Sleep(1s);
+        os::Sleep(100ms);
     }
     for (auto& t : m_get_from_server)
     {

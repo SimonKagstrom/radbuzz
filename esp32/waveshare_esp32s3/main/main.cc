@@ -1,3 +1,4 @@
+#include "app_simulator.hh"
 #include "ble_handler.hh"
 #include "ble_server_esp32.hh"
 #include "button_debouncer.hh"
@@ -24,6 +25,7 @@
 #include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <sdmmc_cmd.h>
 
 namespace
 {
@@ -65,6 +67,7 @@ constexpr auto kI2cExpanderAddress = ESP_IO_EXPANDER_I2C_TCA9554_ADDRESS_000;
 constexpr auto kExpanderTftReset = IO_EXPANDER_PIN_NUM_0;
 constexpr auto kExpanderTftTpRst = IO_EXPANDER_PIN_NUM_1;
 constexpr auto kExpanderTftCs = IO_EXPANDER_PIN_NUM_2;
+constexpr auto kExpanderSdCardCs = IO_EXPANDER_PIN_NUM_4;
 
 constexpr auto kTftSck = 2;
 constexpr auto kTftSda = 1;
@@ -194,6 +197,10 @@ CreateDisplay()
     // Turn on the backlight
     gpio_set_level(kTftBacklight, 1);
 
+    esp_io_expander_set_level(expander_handle, kExpanderTftCs, 0);
+//    esp_io_expander_set_dir(expander_handle, kExpanderSdCardCs, IO_EXPANDER_OUTPUT);
+//    esp_io_expander_set_level(expander_handle, kExpanderSdCardCs, 1);
+
     // For now, maybe keep it in the future
     esp_io_expander_del(expander_handle);
     i2c_del_master_bus(bus_handle);
@@ -244,8 +251,27 @@ app_main(void)
 
     sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+
+    slot_config.width = 1;
+    slot_config.clk = GPIO_NUM_2;
+    slot_config.d0 = GPIO_NUM_42;
+    slot_config.cmd = GPIO_NUM_1;
+    slot_config.cd = GPIO_NUM_NC;
+    slot_config.flags &= ~SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+
+    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
+        .format_if_mount_failed = true,
+        .max_files = 5,
+        .allocation_unit_size = 16 * 1024,
+    };
+    sdmmc_card_t* card;
+
     auto err =
-        esp_vfs_fat_sdmmc_mount("/sdcard", &sd_mmc_host_config, &slot_config, nullptr, nullptr);
+        esp_vfs_fat_sdmmc_mount("/sdcard", &sd_mmc_host_config, &slot_config, &mount_config, &card);
+    if (err == ESP_OK)
+    {
+        sdmmc_card_print_info(stdout, card);
+    }
 
 
     gpio_install_isr_service(0);
@@ -254,20 +280,22 @@ app_main(void)
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
     auto image_cache = std::make_unique<ImageCache>();
-    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
-                                              9600,
-                                              GPIO_NUM_44,  // RX
-                                              GPIO_NUM_43); // TX
-
-    auto uart_gps = std::make_unique<UartGps>(*uart1);
+//    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
+//                                              9600,
+//                                              GPIO_NUM_44,  // RX
+//                                              GPIO_NUM_43); // TX
+//
+//    auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data");
     auto httpd_client = std::make_unique<HttpdClient>();
 
     // Threads
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
-    auto ble_server = std::make_unique<BleServerEsp32>();
-    auto gps_reader = std::make_unique<GpsReader>(*uart_gps);
+    //auto ble_server = std::make_unique<BleServerEsp32>();
+    auto ble_server = std::make_unique<BleServerHost>();
+    auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
+    auto gps_reader = std::make_unique<GpsReader>(app_simulator->GetSimulatedGps());
     auto tile_cache = std::make_unique<TileCache>(
         application_state, gps_reader->AttachListener(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
@@ -276,10 +304,11 @@ app_main(void)
 
 
     buzz_handler->Start("buzz_handler", 8192);
+    app_simulator->Start("app_simulator", 8192);
     ble_handler->Start("ble_server", 8192);
     gps_reader->Start("gps_reader");
     tile_cache->Start("tile_cache", 8192);
-    user_interface->Start("user_interface", 8192);
+    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
 
     while (true)
     {

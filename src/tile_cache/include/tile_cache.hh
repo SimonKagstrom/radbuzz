@@ -10,6 +10,7 @@
 
 #include <array>
 #include <atomic>
+#include <deque>
 #include <etl/queue_spsc_atomic.h>
 
 consteval auto
@@ -109,6 +110,6 @@ private:
     std::array<TileImage, kTileCacheSize> m_image_cache;
 
     etl::queue_spsc_atomic<Tile, kTileCacheSize> m_get_from_coldstore;
-    std::vector<Tile> m_get_from_server;
+    std::deque<Tile> m_get_from_server;
     Tile m_current_city_tile {kInvalidTile};
 };
