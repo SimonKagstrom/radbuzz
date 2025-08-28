@@ -95,6 +95,7 @@ CreateDisplay()
     esp_io_expander_set_dir(expander_handle, kExpanderTftReset, IO_EXPANDER_OUTPUT);
     esp_io_expander_set_dir(expander_handle, kExpanderTftTpRst, IO_EXPANDER_OUTPUT);
     esp_io_expander_set_dir(expander_handle, kExpanderTftCs, IO_EXPANDER_OUTPUT);
+    esp_io_expander_set_dir(expander_handle, kExpanderSdCardCs, IO_EXPANDER_OUTPUT);
 
     esp_io_expander_set_level(expander_handle, kExpanderTftReset, 1);
     esp_io_expander_set_level(expander_handle, kExpanderTftTpRst, 0);
@@ -197,10 +198,6 @@ CreateDisplay()
     // Turn on the backlight
     gpio_set_level(kTftBacklight, 1);
 
-    esp_io_expander_set_level(expander_handle, kExpanderTftCs, 0);
-//    esp_io_expander_set_dir(expander_handle, kExpanderSdCardCs, IO_EXPANDER_OUTPUT);
-//    esp_io_expander_set_level(expander_handle, kExpanderSdCardCs, 1);
-
     // For now, maybe keep it in the future
     esp_io_expander_del(expander_handle);
     i2c_del_master_bus(bus_handle);
@@ -231,10 +228,10 @@ app_main(void)
 
     // Setup ssid etc
     /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (password len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-             * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
+                 * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
+                 * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
+                 * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
+                 */
     //sta_config.sta.sae_h2e_identifier = "";
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
@@ -246,7 +243,7 @@ app_main(void)
     esp_wifi_connect();
     application_state.Checkout()->wifi_connected = true;
 
-    //    // The filesystem
+    // The filesystem
     sdmmc_host_init();
 
     sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
@@ -280,12 +277,12 @@ app_main(void)
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
     auto image_cache = std::make_unique<ImageCache>();
-//    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
-//                                              9600,
-//                                              GPIO_NUM_44,  // RX
-//                                              GPIO_NUM_43); // TX
-//
-//    auto uart_gps = std::make_unique<UartGps>(*uart1);
+    //    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
+    //                                              9600,
+    //                                              GPIO_NUM_44,  // RX
+    //                                              GPIO_NUM_43); // TX
+    //
+    //    auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data");
     auto httpd_client = std::make_unique<HttpdClient>();
 
