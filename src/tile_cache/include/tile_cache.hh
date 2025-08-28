@@ -41,9 +41,9 @@ public:
         return m_use_count.load();
     }
 
-    void BumpUseCount()
+    void BumpUseCount(uint32_t delta = 1)
     {
-        m_use_count++;
+        m_use_count += delta;
     }
 
 private:

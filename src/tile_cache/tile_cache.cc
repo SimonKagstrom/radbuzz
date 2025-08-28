@@ -224,7 +224,8 @@ TileCache::FillFromServer()
 uint8_t
 TileCache::EvictTile()
 {
-    auto lowest_use_count = UINT32_MAX;
+    uint32_t lowest_use_count = UINT32_MAX;
+    uint32_t highest_use_count = 0;
     auto selected = 0u;
 
     for (auto i = 0u; i < m_tiles.size(); ++i)
@@ -239,13 +240,16 @@ TileCache::EvictTile()
          * There is the case where use count wraps, but that should only cause
          * some extra loads from disk.
          */
-        if (tile.UseCount() < lowest_use_count)
+        auto uc = tile.UseCount();
+        if (uc < lowest_use_count)
         {
-            lowest_use_count = tile.UseCount();
+            lowest_use_count = uc;
             selected = i;
         }
+        highest_use_count = std::max(highest_use_count, uc);
     }
 
+    m_image_cache[selected].BumpUseCount(highest_use_count - lowest_use_count + 1);
     return selected;
 }
 
