@@ -9,7 +9,7 @@ target_link_libraries(${COMPONENT_TARGET}
     idf::vfs
     idf::fatfs
     idf::sdmmc
-    idf::esp_wifi
+    wifi_client_esp32
     ble_handler
     ble_server_esp32
     button_debouncer

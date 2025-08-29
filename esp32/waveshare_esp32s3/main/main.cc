@@ -13,6 +13,7 @@
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
+#include "wifi_client_esp32.hh"
 
 #include <driver/sdmmc_host.h>
 #include <esp_io_expander_tca9554.h>
@@ -22,10 +23,10 @@
 #include <esp_partition.h>
 #include <esp_random.h>
 #include <esp_vfs_fat.h>
-#include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <sdmmc_cmd.h>
+#include <sstream>
 
 namespace
 {
@@ -210,38 +211,13 @@ CreateDisplay()
 extern "C" void
 app_main(void)
 {
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+    ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
     ApplicationState application_state;
 
     auto display = CreateDisplay();
-    // Wifi
-    wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
-
-    nvs_flash_init();
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-    esp_netif_create_default_wifi_sta();
-
-    ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
-
-    static wifi_config_t sta_config;
-
-    // Setup ssid etc
-    /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (password len => 8).
-                 * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-                 * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-                 * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-                 */
-    //sta_config.sta.sae_h2e_identifier = "";
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
-
-    ESP_ERROR_CHECK(esp_wifi_start());
-
-    os::Sleep(1s);
-    esp_wifi_connect();
-    application_state.Checkout()->wifi_connected = true;
 
     // The filesystem
     sdmmc_host_init();
@@ -270,9 +246,6 @@ app_main(void)
         sdmmc_card_print_info(stdout, card);
     }
 
-
-    gpio_install_isr_service(0);
-
     // Devices / helper classes
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
@@ -284,6 +257,20 @@ app_main(void)
     //
     //    auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data");
+    auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
+
+    auto ssid_data = filesystem->ReadFile("SSID.TXT");
+    if (ssid_data)
+    {
+        std::stringstream ssid_stream(reinterpret_cast<const char*>(ssid_data->data()));
+        std::string ssid, password;
+
+        std::getline(ssid_stream, ssid);
+        std::getline(ssid_stream, password);
+
+        wifi_client->Start(ssid.c_str(), password.c_str());
+    }
+
     auto httpd_client = std::make_unique<HttpdClient>();
 
     // Threads
