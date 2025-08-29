@@ -31,6 +31,8 @@ private:
 
     std::optional<milliseconds> OnActivation() final;
 
+    void SetupStreetOrder();
+
     BleServerHost& m_ble_server;
 
     std::random_device m_random_device;

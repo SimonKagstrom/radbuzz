@@ -259,6 +259,7 @@ AppSimulator::AppSimulator(BleServerHost& ble_server)
           },
           15))
 {
+    SetupStreetOrder();
 }
 
 hal::IGps&
@@ -267,6 +268,22 @@ AppSimulator::GetSimulatedGps()
     return m_gps;
 }
 
+void
+AppSimulator::SetupStreetOrder()
+{
+    for (auto& street : kStreets)
+    {
+        m_streets.push_back(street);
+    }
+
+    std::ranges::shuffle(m_streets, m_random_engine);
+
+    m_cached_images.clear();
+
+    // In meters
+    m_distance_left = 500;
+    m_current_image = m_random_engine() % kImages.size();
+}
 
 std::optional<milliseconds>
 AppSimulator::OnActivation()
@@ -274,26 +291,15 @@ AppSimulator::OnActivation()
     m_current_point.x++;
     m_current_point.y++;
 
-    if (m_streets.empty())
-    {
-        for (auto& street : kStreets)
-        {
-            m_streets.push_back(street);
-        }
-
-        std::ranges::shuffle(m_streets, m_random_engine);
-
-        m_cached_images.clear();
-
-        // In meters
-        m_distance_left = 500;
-        m_current_image = m_random_engine() % kImages.size();
-    }
     if (m_distance_left <= 0)
     {
         m_distance_left = 100 + (m_random_engine() % 90) * 10;
         m_streets.pop_back();
         m_current_image = m_random_engine() % kImages.size();
+    }
+    if (m_streets.empty())
+    {
+        SetupStreetOrder();
     }
 
     auto current_street = m_streets.back();
