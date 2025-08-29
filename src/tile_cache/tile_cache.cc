@@ -150,7 +150,13 @@ TileCache::FillFromColdStore()
 
     while (m_get_from_coldstore.pop(t))
     {
-        printf("TileCache: Cold store tile %d/%d\n", t.x, t.y);
+        auto cached = std::ranges::find(m_tiles, t);
+        if (cached != m_tiles.end())
+        {
+            // Already cached
+            continue;
+        }
+
         auto data = m_filesystem.ReadFile(std::format("tiles/15/{}/{}.png", t.x, t.y));
         if (data)
         {
@@ -160,6 +166,11 @@ TileCache::FillFromColdStore()
             {
                 // Successfully decoded, otherwise the evicted tile remains evicted
                 m_tiles[index] = t;
+            }
+            else
+            {
+                m_tiles[index] = kInvalidTile;
+                m_image_cache[index].SetUseCount(0);
             }
         }
         else
@@ -176,7 +187,7 @@ TileCache::RefreshCityTiles(const Tile& center)
     {
         for (int dy = -kCityTileFactor; dy <= kCityTileFactor; ++dy)
         {
-            Tile t{center.x + dx, center.y + dy};
+            Tile t {center.x + dx, center.y + dy};
             auto path = std::format("tiles/15/{}/{}.png", t.x, t.y);
 
             if (!m_filesystem.FileExists(path))
@@ -228,16 +239,12 @@ TileCache::EvictTile()
     for (auto i = 0u; i < m_tiles.size(); ++i)
     {
         auto& tile = m_image_cache[i];
-        if (m_tiles[i] == kInvalidTile)
-        {
-            return i;
-        }
+        auto uc = tile.UseCount();
 
         /*
          * There is the case where use count wraps, but that should only cause
          * some extra loads from disk.
          */
-        auto uc = tile.UseCount();
         if (uc < lowest_use_count)
         {
             lowest_use_count = uc;
@@ -246,7 +253,7 @@ TileCache::EvictTile()
         highest_use_count = std::max(highest_use_count, uc);
     }
 
-    m_image_cache[selected].BumpUseCount(highest_use_count - lowest_use_count + 1);
+    m_image_cache[selected].SetUseCount(highest_use_count + 1);
     return selected;
 }
 

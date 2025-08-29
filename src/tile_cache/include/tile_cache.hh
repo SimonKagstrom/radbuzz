@@ -36,6 +36,9 @@ public:
     {
     }
 
+    TileImage(const TileImage&) = delete;
+    TileImage& operator=(const TileImage&) = delete;
+
     uint32_t UseCount() const
     {
         return m_use_count.load();
@@ -44,6 +47,11 @@ public:
     void BumpUseCount(uint32_t delta = 1)
     {
         m_use_count += delta;
+    }
+
+    void SetUseCount(uint32_t count)
+    {
+        m_use_count = count;
     }
 
 private:
