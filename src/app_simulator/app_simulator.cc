@@ -254,8 +254,12 @@ AppSimulator::AppSimulator(BleServerHost& ble_server)
     : m_ble_server(ble_server)
     , m_current_point(*Wgs84ToOsmPoint(
           {
+              // Stockholm
               59.34443143179733,
               18.04792142012441,
+
+              // Enköping
+              // 59.646331787827336, 17.07769480747484,
           },
           15))
 {

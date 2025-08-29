@@ -107,7 +107,14 @@ TileCache::OnActivation()
 
     RunStateMachine();
 
-    return std::nullopt;
+    if (m_get_from_server.empty())
+    {
+        return std::nullopt;
+    }
+    else
+    {
+        return 75ms;
+    }
 }
 
 bool
@@ -184,6 +191,11 @@ TileCache::FillFromColdStore()
 void
 TileCache::RefreshCityTiles(const Tile& center)
 {
+    if (!m_get_from_server.empty())
+    {
+        return;
+    }
+
     for (int dx = -kCityTileFactor; dx <= kCityTileFactor; ++dx)
     {
         for (int dy = -kCityTileFactor; dy <= kCityTileFactor; ++dy)
@@ -205,28 +217,39 @@ TileCache::FillFromServer()
 {
     constexpr auto kOsmApiKey = OSM_API_KEY;
 
+    if (m_get_from_server.empty())
+    {
+        return;
+    }
+
     if (!AppState()->wifi_connected)
     {
         m_get_from_server.clear();
         return;
     }
 
-    for (auto& t : m_get_from_server)
+    while (!m_get_from_server.empty())
     {
+        auto t = m_get_from_server.front();
+        m_get_from_server.pop_front();
+
+        auto path = std::format("tiles/15/{}/{}.png", t.x, t.y);
+        if (m_filesystem.FileExists(path))
+        {
+            // Already got it, probably from another thread
+            continue;
+        }
+
         printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
         auto data = m_httpd_client.Get(std::format(
             "https://tile.thunderforest.com/cycle/15/{}/{}.png?apikey={}", t.x, t.y, kOsmApiKey));
 
         if (data)
         {
-            m_filesystem.WriteFile(std::format("tiles/15/{}/{}.png", t.x, t.y),
-                                   {data->data(), data->size()});
+            m_filesystem.WriteFile(path, {data->data(), data->size()});
         }
-        // TODO: Rate limit better
-        os::Sleep(75ms);
+        break;
     }
-
-    m_get_from_server.clear();
 }
 
 
