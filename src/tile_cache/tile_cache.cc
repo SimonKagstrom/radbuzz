@@ -199,11 +199,6 @@ TileCache::FillFromServer()
         return;
     }
 
-    if (!m_get_from_server.empty())
-    {
-        // TODO: Rate limit better
-        os::Sleep(100ms);
-    }
     for (auto& t : m_get_from_server)
     {
         printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
@@ -215,6 +210,8 @@ TileCache::FillFromServer()
             m_filesystem.WriteFile(std::format("tiles/15/{}/{}.png", t.x, t.y),
                                    {data->data(), data->size()});
         }
+        // TODO: Rate limit better
+        os::Sleep(75ms);
     }
 
     m_get_from_server.clear();
