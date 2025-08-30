@@ -105,8 +105,6 @@ TileCache::OnActivation()
     // Again, in case the server has written them to FS
     FillFromColdStore();
 
-    RunStateMachine();
-
     if (m_get_from_server.empty())
     {
         return std::nullopt;
@@ -301,69 +299,4 @@ TileCache::GetTile(const Tile& at)
     }
 
     return m_black_tile;
-}
-
-void
-TileCache::RunStateMachine()
-{
-    auto before = m_state;
-    do
-    {
-        before = m_state;
-        switch (m_state)
-        {
-        case State::kWaitingForGps:
-            m_state = StateWaitingForGps();
-            break;
-        case State::kGpsSignalAcquired:
-            m_state = StateGpsSignalAcquired();
-            break;
-        case State::kDownloadTiles:
-            m_state = StateDownloadTiles();
-            break;
-        case State::kRunning:
-            m_state = StateRunning();
-            break;
-
-        case State::kValueCount:
-            break;
-        }
-
-
-    } while (m_state != before);
-}
-
-// The state machine implementation
-TileCache::State
-TileCache::StateWaitingForGps()
-{
-    if (AppState()->gps_position_valid)
-    {
-        return State::kGpsSignalAcquired;
-    }
-
-    return State::kWaitingForGps;
-}
-
-TileCache::State
-TileCache::StateGpsSignalAcquired()
-{
-    if (AppState()->wifi_connected)
-    {
-        return State::kDownloadTiles;
-    }
-
-    return State::kGpsSignalAcquired;
-}
-
-TileCache::State
-TileCache::StateDownloadTiles()
-{
-    return State::kDownloadTiles;
-}
-
-TileCache::State
-TileCache::StateRunning()
-{
-    return State::kRunning;
 }

@@ -66,28 +66,11 @@ public:
               Filesystem& filesystem,
               HttpdClient& httpd_client);
 
-    enum class State
-    {
-        kWaitingForGps,
-        kGpsSignalAcquired,
-        kDownloadTiles,
-        kRunning,
-
-        kValueCount,
-    };
-
     // Context: Another thread
     const Image& GetTile(const Tile& at);
 
 private:
     std::optional<milliseconds> OnActivation() final;
-
-    void RunStateMachine();
-
-    State StateWaitingForGps();
-    State StateGpsSignalAcquired();
-    State StateDownloadTiles();
-    State StateRunning();
 
     void FillFromColdStore();
     void FillFromServer();
@@ -107,8 +90,6 @@ private:
     std::unique_ptr<IGpsPort> m_gps_port;
     Filesystem& m_filesystem;
     HttpdClient& m_httpd_client;
-
-    State m_state {State::kWaitingForGps};
 
     std::unique_ptr<ApplicationState::IListener> m_state_listener;
 
