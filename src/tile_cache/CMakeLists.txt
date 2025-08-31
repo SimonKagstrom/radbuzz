@@ -20,6 +20,7 @@ PUBLIC
     application_state
     painter
     gps_reader
+    filesystem_interface
     wgs84_to_osm_point
     filesystem_implementation
 PRIVATE
