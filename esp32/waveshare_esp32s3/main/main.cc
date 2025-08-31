@@ -31,8 +31,9 @@
 namespace
 {
 
-// TODO, dummy pins
-constexpr auto kPinLeftBuzzer = GPIO_NUM_43;
+// GP0
+constexpr auto kPinLeftBuzzer = GPIO_NUM_0;
+// RXD
 constexpr auto kPinRightBuzzer = GPIO_NUM_44;
 
 constexpr auto kTftDEPin = 40;
@@ -190,12 +191,6 @@ CreateDisplay()
 
     auto out = std::make_unique<DisplayTarget>(io_config, rgb_config);
 
-    gpio_config_t io_conf = {};
-
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = 1 << kTftBacklight;
-    gpio_config(&io_conf);
-
     // Turn on the backlight
     gpio_set_level(kTftBacklight, 1);
 
@@ -216,6 +211,13 @@ app_main(void)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     ApplicationState application_state;
+
+    gpio_config_t io_conf = {};
+
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask =
+        (1ull << kTftBacklight) | (1ull << kPinLeftBuzzer) | (1ull << kPinRightBuzzer);
+    gpio_config(&io_conf);
 
     auto display = CreateDisplay();
 
@@ -249,6 +251,14 @@ app_main(void)
     // Devices / helper classes
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
+
+
+    left_buzzer_gpio->SetState(true);
+    right_buzzer_gpio->SetState(true);
+    os::Sleep(500ms);
+    left_buzzer_gpio->SetState(false);
+    right_buzzer_gpio->SetState(false);
+
     auto image_cache = std::make_unique<ImageCache>();
     //    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
     //                                              9600,
