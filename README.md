@@ -1,6 +1,10 @@
 # Radbuzz
 Bicycle
 
+## Setup
+```
+npm i lv_font_conv -g
+```
 
 ## The OSM API key
 Get an API key for thunderforest via https://www.thunderforest.com/docs/apikeys/
