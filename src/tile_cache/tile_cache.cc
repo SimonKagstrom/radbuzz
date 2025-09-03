@@ -90,7 +90,8 @@ TileCache::OnActivation()
     {
         auto city_tile = ToCityTile(gps_data->pixel_position);
 
-        if (city_tile != m_current_city_tile)
+        if (AppState()->wifi_connected &&
+            city_tile != m_current_city_tile)
         {
             m_current_city_tile = city_tile;
 
@@ -179,7 +180,7 @@ TileCache::FillFromColdStore()
                 m_image_cache[index].SetUseCount(0);
             }
         }
-        else
+        else if (AppState()->wifi_connected)
         {
             m_get_from_server.push_front(t);
         }
@@ -201,10 +202,7 @@ TileCache::RefreshCityTiles(const Tile& center)
             Tile t {center.x + dx, center.y + dy};
             auto path = std::format("tiles/15/{}/{}.png", t.x, t.y);
 
-            if (!m_filesystem.FileExists(path))
-            {
-                m_get_from_server.push_back(t);
-            }
+            m_get_from_server.push_back(t);
         }
     }
 }
@@ -234,7 +232,7 @@ TileCache::FillFromServer()
         auto path = std::format("tiles/15/{}/{}.png", t.x, t.y);
         if (m_filesystem.FileExists(path))
         {
-            // Already got it, probably from another thread
+            // Already got it, probably from being requested by the UI
             continue;
         }
 
