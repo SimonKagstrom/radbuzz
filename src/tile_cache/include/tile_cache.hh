@@ -86,6 +86,10 @@ private:
         return m_application_state.CheckoutReadonly();
     }
 
+    std::string GetTileUrl(const Tile& t) const;
+
+    std::string GetTilePath(const Tile& t, unsigned zoom_level) const;
+
     ApplicationState& m_application_state;
     std::unique_ptr<IGpsPort> m_gps_port;
     Filesystem& m_filesystem;
@@ -100,5 +104,6 @@ private:
 
     etl::queue_spsc_atomic<Tile, kTileCacheSize> m_get_from_coldstore;
     std::deque<Tile> m_get_from_server;
+    std::deque<Tile> m_reload_tiles_from_server;
     Tile m_current_city_tile {kInvalidTile};
 };

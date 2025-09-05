@@ -90,8 +90,7 @@ TileCache::OnActivation()
     {
         auto city_tile = ToCityTile(gps_data->pixel_position);
 
-        if (AppState()->wifi_connected &&
-            city_tile != m_current_city_tile)
+        if (AppState()->wifi_connected && city_tile != m_current_city_tile)
         {
             m_current_city_tile = city_tile;
 
@@ -165,6 +164,9 @@ TileCache::FillFromColdStore()
 
         printf("Getting tile %d,%d from cold store\n", t.x, t.y);
         auto data = m_filesystem.ReadFile(std::format("tiles/15/{}/{}.png", t.x, t.y));
+
+        auto wifi_connected = AppState()->wifi_connected;
+
         if (data)
         {
             auto index = EvictTile();
@@ -178,9 +180,15 @@ TileCache::FillFromColdStore()
             {
                 m_tiles[index] = kInvalidTile;
                 m_image_cache[index].SetUseCount(0);
+
+                // Reload it from the server
+                if (wifi_connected)
+                {
+                    m_reload_tiles_from_server.push_front(t);
+                }
             }
         }
-        else if (AppState()->wifi_connected)
+        else if (wifi_connected)
         {
             m_get_from_server.push_front(t);
         }
@@ -200,7 +208,7 @@ TileCache::RefreshCityTiles(const Tile& center)
         for (int dy = -kCityTileFactor; dy <= kCityTileFactor; ++dy)
         {
             Tile t {center.x + dx, center.y + dy};
-            auto path = std::format("tiles/15/{}/{}.png", t.x, t.y);
+            auto path = GetTilePath(t, 15);
 
             m_get_from_server.push_back(t);
         }
@@ -211,9 +219,7 @@ TileCache::RefreshCityTiles(const Tile& center)
 void
 TileCache::FillFromServer()
 {
-    constexpr auto kOsmApiKey = OSM_API_KEY;
-
-    if (m_get_from_server.empty())
+    if (m_get_from_server.empty() && m_reload_tiles_from_server.empty())
     {
         return;
     }
@@ -229,7 +235,7 @@ TileCache::FillFromServer()
         auto t = m_get_from_server.front();
         m_get_from_server.pop_front();
 
-        auto path = std::format("tiles/15/{}/{}.png", t.x, t.y);
+        auto path = GetTilePath(t, 15);
         if (m_filesystem.FileExists(path))
         {
             // Already got it, probably from being requested by the UI
@@ -237,8 +243,24 @@ TileCache::FillFromServer()
         }
 
         printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
-        auto data = m_httpd_client.Get(std::format(
-            "https://tile.thunderforest.com/cycle/15/{}/{}.png?apikey={}", t.x, t.y, kOsmApiKey));
+        auto data = m_httpd_client.Get(GetTileUrl(t));
+
+        if (data)
+        {
+            m_filesystem.WriteFile(path, {data->data(), data->size()});
+        }
+        break;
+    }
+
+    while (!m_reload_tiles_from_server.empty())
+    {
+        auto t = m_reload_tiles_from_server.front();
+        m_reload_tiles_from_server.pop_front();
+
+        auto path = GetTilePath(t, 15);
+
+        printf("TileCache: Need to reload tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
+        auto data = m_httpd_client.Get(GetTileUrl(t));
 
         if (data)
         {
@@ -248,6 +270,19 @@ TileCache::FillFromServer()
     }
 }
 
+std::string
+TileCache::GetTileUrl(const Tile& t) const
+{
+    constexpr auto kOsmApiKey = OSM_API_KEY;
+
+    return std::format(
+        "https://tile.thunderforest.com/cycle/15/{}/{}.png?apikey={}", t.x, t.y, kOsmApiKey);
+}
+
+std::string TileCache::GetTilePath(const Tile& t, unsigned zoom_level) const
+{
+    return std::format("tiles/{}/{}/{}.png", zoom_level, t.x, t.y);
+}
 
 uint8_t
 TileCache::EvictTile()
