@@ -279,7 +279,8 @@ TileCache::GetTileUrl(const Tile& t) const
         "https://tile.thunderforest.com/cycle/15/{}/{}.png?apikey={}", t.x, t.y, kOsmApiKey);
 }
 
-std::string TileCache::GetTilePath(const Tile& t, unsigned zoom_level) const
+std::string
+TileCache::GetTilePath(const Tile& t, unsigned zoom_level) const
 {
     return std::format("tiles/{}/{}/{}.png", zoom_level, t.x, t.y);
 }
