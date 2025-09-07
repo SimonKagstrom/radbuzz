@@ -46,8 +46,8 @@ private:
     lv_obj_t* m_distance_left_label {nullptr};
 
     GpsPosition m_current_position {
-        59.29325147850288,
-        17.956672660463134,
+        59.646331787827336,
+        17.07769480747484,
     };
 
     // Maybe TMP
