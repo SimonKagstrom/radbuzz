@@ -5,6 +5,7 @@
 namespace
 {
 
+constexpr auto kPendingCityTilesFileName = "/pending_city_tiles.bin";
 
 struct DecodeHelper
 {
@@ -83,12 +84,40 @@ TileCache::TileCache(ApplicationState& application_state,
     m_gps_port->AwakeOn(GetSemaphore());
 }
 
+void
+TileCache::OnStartup()
+{
+    auto pending_city_tile_data = m_filesystem.ReadFile(kPendingCityTilesFileName);
+
+    if (pending_city_tile_data && pending_city_tile_data->size() % sizeof(Tile) == 0)
+    {
+        auto count = pending_city_tile_data->size() / sizeof(int32_t);
+        auto ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
+
+        for (auto i = 0u; i < count; i += 2)
+        {
+            m_pending_city_tiles.insert(Tile {ptr[i], ptr[i + 1]});
+        }
+    }
+
+    for (auto city_tile : m_pending_city_tiles)
+    {
+        RefreshCityTiles(city_tile);
+    }
+}
+
 std::optional<milliseconds>
 TileCache::OnActivation()
 {
     if (auto gps_data = m_gps_port->Poll(); gps_data)
     {
         auto city_tile = ToCityTile(gps_data->pixel_position);
+
+        if (m_pending_city_tiles.find(city_tile) == m_pending_city_tiles.end())
+        {
+            m_pending_city_tiles.insert(city_tile);
+            SavePendingCityTiles();
+        }
 
         if (AppState()->wifi_connected && city_tile != m_current_city_tile)
         {
@@ -184,13 +213,13 @@ TileCache::FillFromColdStore()
                 // Reload it from the server
                 if (wifi_connected)
                 {
-                    m_reload_tiles_from_server.push_front(t);
+                    m_reload_tiles_from_server.push_back(t);
                 }
             }
         }
         else if (wifi_connected)
         {
-            m_get_from_server.push_front(t);
+            m_get_from_server.push_back(t);
         }
     }
 }
@@ -198,19 +227,13 @@ TileCache::FillFromColdStore()
 void
 TileCache::RefreshCityTiles(const Tile& center)
 {
-    if (!m_get_from_server.empty())
-    {
-        return;
-    }
-
     for (int dx = -kCityTileFactor; dx <= kCityTileFactor; ++dx)
     {
         for (int dy = -kCityTileFactor; dy <= kCityTileFactor; ++dy)
         {
             Tile t {center.x + dx, center.y + dy};
-            auto path = GetTilePath(t, 15);
 
-            m_get_from_server.push_back(t);
+            m_get_from_server_background.push_back(t);
         }
     }
 }
@@ -219,7 +242,7 @@ TileCache::RefreshCityTiles(const Tile& center)
 void
 TileCache::FillFromServer()
 {
-    if (m_get_from_server.empty() && m_reload_tiles_from_server.empty())
+    if (m_get_from_server.empty() && m_reload_tiles_from_server.empty() && m_get_from_server_background.empty())
     {
         return;
     }
@@ -230,10 +253,22 @@ TileCache::FillFromServer()
         return;
     }
 
-    while (!m_get_from_server.empty())
+    while (!m_get_from_server.empty() && !m_get_from_server_background.empty())
     {
-        auto t = m_get_from_server.front();
-        m_get_from_server.pop_front();
+        Tile t;
+
+        if (m_get_from_server.empty())
+        {
+            t = m_get_from_server.back();
+            m_get_from_server.pop_back();
+        }
+        else
+        {
+            // Second priority, get when the first are empty
+            t = m_get_from_server_background.back();
+            m_get_from_server_background.pop_back();
+        }
+
 
         auto path = GetTilePath(t, 15);
         if (m_filesystem.FileExists(path))
@@ -254,8 +289,8 @@ TileCache::FillFromServer()
 
     while (!m_reload_tiles_from_server.empty())
     {
-        auto t = m_reload_tiles_from_server.front();
-        m_reload_tiles_from_server.pop_front();
+        auto t = m_reload_tiles_from_server.back();
+        m_reload_tiles_from_server.pop_back();
 
         auto path = GetTilePath(t, 15);
 
@@ -283,6 +318,22 @@ std::string
 TileCache::GetTilePath(const Tile& t, unsigned zoom_level) const
 {
     return std::format("tiles/{}/{}/{}.png", zoom_level, t.x, t.y);
+}
+
+void
+TileCache::SavePendingCityTiles()
+{
+    std::vector<std::byte> data;
+    data.resize(m_pending_city_tiles.size() * sizeof(Tile));
+
+    auto ptr = reinterpret_cast<int32_t*>(data.data());
+    for (const auto& t : m_pending_city_tiles)
+    {
+        *ptr++ = t.x;
+        *ptr++ = t.y;
+    }
+
+    m_filesystem.WriteFile(kPendingCityTilesFileName, data);
 }
 
 uint8_t

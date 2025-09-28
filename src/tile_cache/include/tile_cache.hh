@@ -12,6 +12,7 @@
 #include <atomic>
 #include <deque>
 #include <etl/queue_spsc_atomic.h>
+#include <unordered_set>
 
 consteval auto
 TilesBySize(auto mb)
@@ -70,11 +71,12 @@ public:
     const Image& GetTile(const Tile& at);
 
 private:
+    void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
     void FillFromColdStore();
     void FillFromServer();
-    void RefreshCityTiles(const Tile &center);
+    void RefreshCityTiles(const Tile& center);
 
     uint8_t EvictTile();
 
@@ -90,6 +92,8 @@ private:
 
     std::string GetTilePath(const Tile& t, unsigned zoom_level) const;
 
+    void SavePendingCityTiles();
+
     ApplicationState& m_application_state;
     std::unique_ptr<IGpsPort> m_gps_port;
     Filesystem& m_filesystem;
@@ -103,7 +107,10 @@ private:
     std::array<TileImage, kTileCacheSize> m_image_cache;
 
     etl::queue_spsc_atomic<Tile, kTileCacheSize> m_get_from_coldstore;
-    std::deque<Tile> m_get_from_server;
-    std::deque<Tile> m_reload_tiles_from_server;
+    std::vector<Tile> m_get_from_server;
+    std::vector<Tile> m_get_from_server_background;
+    std::vector<Tile> m_reload_tiles_from_server;
     Tile m_current_city_tile {kInvalidTile};
+
+    std::unordered_set<Tile> m_pending_city_tiles;
 };
