@@ -12,6 +12,7 @@
 #include "st7701_display_esp32.hh"
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
+#include "i2c_gps_esp32.hh"
 #include "user_interface.hh"
 #include "wifi_client_esp32.hh"
 
@@ -238,6 +239,8 @@ app_main(void)
         .format_if_mount_failed = true,
         .max_files = 5,
         .allocation_unit_size = 16 * 1024,
+        .disk_status_check_enable = true,
+        .use_one_fat = false,
     };
     sdmmc_card_t* card;
 
@@ -265,8 +268,10 @@ app_main(void)
     //                                              GPIO_NUM_44,  // RX
     //                                              GPIO_NUM_43); // TX
     //
+
+    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
     //    auto uart_gps = std::make_unique<UartGps>(*uart1);
-    auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data");
+    auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
     auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
 
     auto ssid_data = filesystem->ReadFile("SSID.TXT");
@@ -288,8 +293,8 @@ app_main(void)
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     //auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_server = std::make_unique<BleServerHost>();
-    auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
-    auto gps_reader = std::make_unique<GpsReader>(app_simulator->GetSimulatedGps());
+//    auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
+    auto gps_reader = std::make_unique<GpsReader>(*gps);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, gps_reader->AttachListener(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
@@ -298,9 +303,9 @@ app_main(void)
 
 
     buzz_handler->Start("buzz_handler", 8192);
-    app_simulator->Start("app_simulator", 8192);
+  //  app_simulator->Start("app_simulator", 8192);
     ble_handler->Start("ble_server", 8192);
-    gps_reader->Start("gps_reader");
+    gps_reader->Start("gps_reader", 8192);
     tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
 

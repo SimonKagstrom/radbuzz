@@ -17,6 +17,7 @@ target_link_libraries(${COMPONENT_TARGET}
     gpio_esp32
     app_simulator
     uart_gps_esp32
+    i2c_gps_esp32
     nvm_esp32
     os_esp32
     st7701_display_esp32
