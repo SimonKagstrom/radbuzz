@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <unordered_map>
 
 constexpr auto kTileSize = 256;
 constexpr auto kCityTileFactor = 30;
@@ -13,6 +14,21 @@ struct Tile
     int32_t x;
     int32_t y;
 };
+
+namespace std
+{
+template <>
+struct hash<Tile>
+{
+    std::size_t operator()(const Tile& t) const noexcept
+    {
+        auto h1 = std::hash<int32_t> {}(t.x);
+        auto h2 = std::hash<int32_t> {}(t.y);
+        return h1 ^ (h2 << 1);
+    }
+};
+
+} // namespace std
 
 constexpr auto kInvalidTile = Tile {-1, -1};
 
