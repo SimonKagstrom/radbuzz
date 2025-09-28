@@ -242,15 +242,8 @@ TileCache::RefreshCityTiles(const Tile& center)
 void
 TileCache::FillFromServer()
 {
-    if (m_get_from_server.empty() && m_reload_tiles_from_server.empty() &&
-        m_get_from_server_background.empty())
-    {
-        return;
-    }
-
     if (!AppState()->wifi_connected)
     {
-        m_get_from_server.clear();
         return;
     }
 
