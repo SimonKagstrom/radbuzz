@@ -258,7 +258,7 @@ TileCache::FillFromServer()
     {
         Tile t;
 
-        if (m_get_from_server.empty())
+        if (!m_get_from_server.empty())
         {
             t = m_get_from_server.back();
             m_get_from_server.pop_back();
