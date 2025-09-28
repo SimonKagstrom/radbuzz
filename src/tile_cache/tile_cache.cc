@@ -5,7 +5,7 @@
 namespace
 {
 
-constexpr auto kPendingCityTilesFileName = "/pending_city_tiles.bin";
+constexpr auto kPendingCityTilesFileName = "pending.bin";
 
 struct DecodeHelper
 {
@@ -89,7 +89,7 @@ TileCache::OnStartup()
 {
     auto pending_city_tile_data = m_filesystem.ReadFile(kPendingCityTilesFileName);
 
-    if (pending_city_tile_data && pending_city_tile_data->size() % sizeof(Tile) == 0)
+    if (pending_city_tile_data && pending_city_tile_data->size() % (2 * sizeof(int32_t)) == 0)
     {
         auto count = pending_city_tile_data->size() / sizeof(int32_t);
         auto ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
@@ -242,7 +242,8 @@ TileCache::RefreshCityTiles(const Tile& center)
 void
 TileCache::FillFromServer()
 {
-    if (m_get_from_server.empty() && m_reload_tiles_from_server.empty() && m_get_from_server_background.empty())
+    if (m_get_from_server.empty() && m_reload_tiles_from_server.empty() &&
+        m_get_from_server_background.empty())
     {
         return;
     }
