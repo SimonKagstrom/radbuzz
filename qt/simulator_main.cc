@@ -5,6 +5,7 @@
 #include "filesystem.hh"
 #include "gps_reader.hh"
 #include "httpd_client.hh"
+#include "pm_host.hh"
 #include "simulator_mainwindow.hh"
 #include "tile_cache.hh"
 #include "time.hh"
@@ -53,16 +54,21 @@ main(int argc, char* argv[])
     auto image_cache = std::make_unique<ImageCache>();
     auto filesystem = std::make_unique<Filesystem>("./app_data");
     auto httpd_client = std::make_unique<HttpdClient>();
+    auto pm = std::make_unique<PmHost>();
 
     // Threads
     auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
     auto gps_reader = std::make_unique<GpsReader>(app_simulator->GetSimulatedGps());
-    auto tile_cache = std::make_unique<TileCache>(
-        application_state, gps_reader->AttachListener(), *filesystem, *httpd_client);
+    auto tile_cache = std::make_unique<TileCache>(application_state,
+                                                  pm->CreateFullPowerLock(),
+                                                  gps_reader->AttachListener(),
+                                                  *filesystem,
+                                                  *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
+                                                          pm->CreateFullPowerLock(),
                                                           application_state,
                                                           gps_reader->AttachListener(),
                                                           *image_cache,

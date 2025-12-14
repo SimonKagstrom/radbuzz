@@ -55,6 +55,7 @@ target_link_libraries(radbuzz_qt
     ble_server_host
     lvgl
     gpio_host
+    pm_host
     buzz_handler
     tile_cache
     gps_reader

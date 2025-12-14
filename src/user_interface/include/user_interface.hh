@@ -4,7 +4,9 @@
 #include "base_thread.hh"
 #include "gps_reader.hh"
 #include "hal/i_display.hh"
+#include "hal/i_pm.hh"
 #include "image_cache.hh"
+#include "menu_screen.hh"
 #include "tile_cache.hh"
 #include "wgs84_to_osm_point.hh"
 
@@ -15,6 +17,7 @@ class UserInterface : public os::BaseThread
 {
 public:
     UserInterface(hal::IDisplay& display,
+                  std::unique_ptr<hal::IPm::ILock> pm_lock,
                   ApplicationState& state,
                   std::unique_ptr<IGpsPort> gps_port,
                   ImageCache& cache,
@@ -25,6 +28,7 @@ private:
     std::optional<milliseconds> OnActivation() final;
 
     hal::IDisplay& m_display;
+    std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     ApplicationState& m_state;
     std::unique_ptr<IGpsPort> m_gps_port;
 
@@ -44,6 +48,9 @@ private:
     lv_obj_t* m_current_icon {nullptr};
     lv_obj_t* m_description_label {nullptr};
     lv_obj_t* m_distance_left_label {nullptr};
+    lv_indev_t* m_lvgl_input_dev {nullptr};
+
+    std::unique_ptr<MenuScreen> m_menu_screen;
 
     GpsPosition m_current_position {
         59.646331787827336,

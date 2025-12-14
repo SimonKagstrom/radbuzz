@@ -70,10 +70,12 @@ private:
 } // namespace
 
 TileCache::TileCache(ApplicationState& application_state,
+                     std::unique_ptr<hal::IPm::ILock> pm_lock,
                      std::unique_ptr<IGpsPort> gps_port,
                      Filesystem& filesystem,
                      HttpdClient& httpd_client)
     : m_application_state(application_state)
+    , m_pm_lock(std::move(pm_lock))
     , m_gps_port(std::move(gps_port))
     , m_filesystem(filesystem)
     , m_httpd_client(httpd_client)
@@ -147,6 +149,8 @@ TileCache::OnActivation()
 bool
 TileCache::DecodePng(std::span<const std::byte> png_data, TileImage& out)
 {
+    auto lock = m_pm_lock->FullPower();
+
     auto png = std::make_unique<PNG>();
 
     auto rc = png->openFLASH((uint8_t*)png_data.data(), png_data.size(), PngDraw);

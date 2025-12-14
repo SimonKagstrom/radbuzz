@@ -5,11 +5,13 @@
 #include <radbuzz_font_22.h>
 
 UserInterface::UserInterface(hal::IDisplay& display,
+                             std::unique_ptr<hal::IPm::ILock> pm_lock,
                              ApplicationState& state,
                              std::unique_ptr<IGpsPort> gps_port,
                              ImageCache& cache,
                              TileCache& tile_cache)
     : m_display(display)
+    , m_pm_lock(std::move(pm_lock))
     , m_state(state)
     , m_gps_port(std::move(gps_port))
     , m_image_cache(cache)
@@ -60,6 +62,11 @@ UserInterface::OnStartup()
             }
         });
 
+    m_lvgl_input_dev = lv_indev_create();
+    lv_indev_set_mode(m_lvgl_input_dev, LV_INDEV_MODE_EVENT);
+    lv_indev_set_type(m_lvgl_input_dev, LV_INDEV_TYPE_ENCODER);
+    lv_indev_set_user_data(m_lvgl_input_dev, this);
+    //lv_indev_set_read_cb(m_lvgl_input_dev, StaticLvglEncoderRead);
 
     m_screen = lv_obj_create(nullptr);
     lv_screen_load(m_screen);
@@ -90,11 +97,17 @@ UserInterface::OnStartup()
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
+
+
+//    m_menu_screen = std::make_unique<MenuScreen>(
+//        GetTimerManager(), m_lvgl_input_dev, []() { printf("Menu closed\n"); });
 }
 
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
+    auto max_power = m_pm_lock->FullPower();
+
     auto state = m_state.CheckoutReadonly();
     auto state_hash = state->current_icon_hash;
 

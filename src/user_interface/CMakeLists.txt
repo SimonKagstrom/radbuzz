@@ -22,4 +22,5 @@ PUBLIC
     tile_cache
     gps_reader
     radbuzz_font_22_library
+    ui_menu
 )

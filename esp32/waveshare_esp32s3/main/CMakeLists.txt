@@ -20,6 +20,7 @@ target_link_libraries(${COMPONENT_TARGET}
     i2c_gps_esp32
     nvm_esp32
     os_esp32
+    pm_esp32
     st7701_display_esp32
     uart_esp32
     buzz_handler
