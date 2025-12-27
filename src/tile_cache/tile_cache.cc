@@ -195,7 +195,7 @@ TileCache::FillFromColdStore()
             continue;
         }
 
-        printf("Getting tile %d,%d from cold store\n", t.x, t.y);
+//        printf("Getting tile %d,%d from cold store\n", t.x, t.y);
         auto data = m_filesystem.ReadFile(std::format("tiles/15/{}/{}.png", t.x, t.y));
 
         auto wifi_connected = AppState()->wifi_connected;

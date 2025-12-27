@@ -4,7 +4,6 @@
 
 #include <esp_log.h>
 #include <esp_nimble_cfg.h>
-#include <esp_nimble_hci.h>
 #include <host/ble_hs.h>
 #include <memory>
 #include <nimble/nimble_port.h>
