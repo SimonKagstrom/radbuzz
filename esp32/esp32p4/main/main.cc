@@ -24,6 +24,7 @@
 #include <esp_vfs_fat.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <sd_pwr_ctrl_by_on_chip_ldo.h>
 #include <sdmmc_cmd.h>
 #include <sstream>
 
@@ -31,7 +32,7 @@ namespace
 {
 
 constexpr auto kTftBacklight = GPIO_NUM_26;
-constexpr auto kPinLeftBuzzer = GPIO_NUM_32; // TODO
+constexpr auto kPinLeftBuzzer = GPIO_NUM_32;  // TODO
 constexpr auto kPinRightBuzzer = GPIO_NUM_48; // TODO
 
 
@@ -270,20 +271,36 @@ app_main(void)
 
     auto display = CreateDisplay();
 
-    // The filesystem
-    sdmmc_host_init();
-
     sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
 
-//    slot_config.width = 1;
-//    slot_config.clk = GPIO_NUM_43; //
-//    slot_config.d0 = GPIO_NUM_39; //
-//    slot_config.d1 = GPIO_NUM_40; //
-//    slot_config.d2 = GPIO_NUM_41; //
-//    slot_config.cmd = GPIO_NUM_44; //
-//    slot_config.cd = GPIO_NUM_42; //
-//    slot_config.flags &= ~SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+    sd_mmc_host_config.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
+
+#define CONFIG_EXAMPLE_SD_PWR_CTRL_LDO_IO_ID 4
+    sd_pwr_ctrl_ldo_config_t ldo_config = {
+        .ldo_chan_id = CONFIG_EXAMPLE_SD_PWR_CTRL_LDO_IO_ID,
+    };
+    sd_pwr_ctrl_handle_t pwr_ctrl_handle = NULL;
+
+    auto ret = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &pwr_ctrl_handle);
+    if (ret != ESP_OK)
+    {
+        printf("Failed to create a new on-chip LDO power control driver");
+        return;
+    }
+    sd_mmc_host_config.pwr_ctrl_handle = pwr_ctrl_handle;
+
+    // The filesystem
+    sdmmc_host_init();
+
+    slot_config.width = 4;
+    slot_config.clk = GPIO_NUM_43;
+    slot_config.cmd = GPIO_NUM_44;
+    slot_config.d0 = GPIO_NUM_39;
+    slot_config.d1 = GPIO_NUM_40;
+    slot_config.d2 = GPIO_NUM_41;
+    slot_config.d3 = GPIO_NUM_42;
+    slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = true,
@@ -319,7 +336,7 @@ app_main(void)
     //                                              GPIO_NUM_43); // TX
     //
 
-//    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
+    //    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
     //    auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
     auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);

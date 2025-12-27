@@ -20,7 +20,7 @@ TilesBySize(auto mb)
 {
     return mb * 1024 * 1024 / (kTileSize * kTileSize * sizeof(uint16_t));
 }
-constexpr auto kTileCacheSize = TilesBySize(2);
+constexpr auto kTileCacheSize = TilesBySize(4);
 
 class ITileHandle
 {

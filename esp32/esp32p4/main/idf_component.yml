@@ -1,6 +1,9 @@
 ## IDF Component Manager Manifest File
 dependencies:
   espressif/esp_lcd_jd9365: "*"
+  espressif/esp_wifi_remote: "*"
+  espressif/esp_hosted: "*"
+
   ## Required IDF version
   idf:
     version: ">=4.1.0"

@@ -1,6 +1,8 @@
 // See https://github.com/espressif/esp-idf/blob/v5.5/examples/wifi/getting_started/station/main/station_example_main.c
 #include "wifi_client_esp32.hh"
 
+#include <esp_wifi.h>
+
 static const char* TAG = "wifi station";
 
 
@@ -31,6 +33,8 @@ WifiClientEsp32::Start(const char* ssid, const char* password)
     // Setup ssid etc
     strcpy((char*)sta_config.sta.ssid, ssid);
     strcpy((char*)sta_config.sta.password, password);
+    sta_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    sta_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_HUNT_AND_PECK;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
