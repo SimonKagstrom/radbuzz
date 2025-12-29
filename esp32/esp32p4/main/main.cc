@@ -39,7 +39,7 @@ constexpr auto kPinRightBuzzer = GPIO_NUM_48; // TODO
 #define TEST_LCD_BIT_PER_PIXEL (24)
 #define TEST_PIN_NUM_LCD_RST   (27)
 #define TEST_PIN_NUM_BK_LIGHT  (26) // set to -1 if not used
-#define TEST_MIPI_DSI_LANE_NUM (2)
+#define TEST_MIPI_DSI_LANE_NUM (4)
 
 #define TEST_MIPI_DPI_PX_FORMAT (LCD_COLOR_PIXEL_FORMAT_RGB565)
 
