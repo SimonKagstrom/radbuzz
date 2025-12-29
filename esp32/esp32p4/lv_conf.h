@@ -129,7 +129,8 @@
 #define LV_DRAW_BUF_STRIDE_ALIGN                1
 
 /** Align start address of draw_buf addresses to this bytes*/
-#define LV_DRAW_BUF_ALIGN                       4
+#define LV_DRAW_BUF_ALIGN                       64
+#define CONFIG_LV_DRAW_BUF_ALIGN LV_DRAW_BUF_ALIGN
 
 /** Using matrix for transformations.
  * Requirements:
@@ -321,6 +322,12 @@
 /** Draw using cached OpenGLES textures */
 #define LV_USE_DRAW_OPENGLES 0
 
+/** Draw using espressif PPA accelerator */
+#define LV_USE_PPA  1
+#if LV_USE_PPA
+    #define LV_USE_PPA_IMG 1
+#endif
+
 /*=======================
  * FEATURE CONFIGURATION
  *=======================*/
@@ -504,7 +511,8 @@
 
 /** Align VG_LITE buffers on this number of bytes.
  *  @note  vglite_src_buf_aligned() uses this value to validate alignment of passed buffer pointers. */
-#define LV_ATTRIBUTE_MEM_ALIGN_SIZE 1
+#define LV_ATTRIBUTE_MEM_ALIGN_SIZE 64
+#define CONFIG_LV_ATTRIBUTE_MEM_ALIGN_SIZE LV_ATTRIBUTE_MEM_ALIGN_SIZE
 
 /** Will be added where memory needs to be aligned (with -Os data might not be aligned to boundary by default).
  *  E.g. __attribute__((aligned(4)))*/

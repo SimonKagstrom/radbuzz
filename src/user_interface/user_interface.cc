@@ -19,8 +19,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
 {
     m_gps_port->AwakeOn(GetSemaphore());
 
-    m_static_map_buffer =
-        std::make_unique<uint8_t[]>(hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t));
+    m_static_map_buffer = std::unique_ptr<uint8_t[]>(static_cast<uint8_t*>(
+        aligned_alloc(64, hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t))));
     m_static_map_image = std::make_unique<Image>(
         std::span<const uint8_t> {m_static_map_buffer.get(),
                                   hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t)},
@@ -99,8 +99,8 @@ UserInterface::OnStartup()
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
 
 
-//    m_menu_screen = std::make_unique<MenuScreen>(
-//        GetTimerManager(), m_lvgl_input_dev, []() { printf("Menu closed\n"); });
+    //    m_menu_screen = std::make_unique<MenuScreen>(
+    //        GetTimerManager(), m_lvgl_input_dev, []() { printf("Menu closed\n"); });
 }
 
 std::optional<milliseconds>
@@ -137,10 +137,12 @@ UserInterface::OnActivation()
     int start_y = point->y - display_cy;
 
     // Calculate how many tiles are needed to cover the display
-    int num_tiles_x = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
-    int num_tiles_y = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
+    constexpr int num_tiles_x = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
+    constexpr int num_tiles_y = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
 
     // For each tile, calculate its top-left position in display coordinates and blit it
+    constexpr auto kMaxTiles = num_tiles_x * num_tiles_y;
+
     for (int y = 0; y < num_tiles_y; ++y)
     {
         for (int x = 0; x < num_tiles_x; ++x)
@@ -151,15 +153,15 @@ UserInterface::OnActivation()
             int tile_pixel_x = tile_x * kTileSize;
             int tile_pixel_y = tile_y * kTileSize;
 
-            int dst_x = tile_pixel_x - start_x;
-            int dst_y = tile_pixel_y - start_y;
+            int16_t dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
+            int16_t dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
 
             auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y}));
-            painter::Blit(
-                reinterpret_cast<uint16_t*>(m_static_map_buffer.get()), tile, {dst_x, dst_y});
+            painter::Blit(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
+                          tile,
+                          painter::Rect {dst_x, dst_y});
         }
     }
-
 
     lv_label_set_text(m_description_label, std::format("{}", state->next_street).c_str());
     lv_label_set_text(m_distance_left_label, std::format("{} m", state->distance_to_next).c_str());

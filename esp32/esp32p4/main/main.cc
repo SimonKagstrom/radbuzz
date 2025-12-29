@@ -198,7 +198,7 @@ CreateDisplay()
     static const esp_lcd_dpi_panel_config_t dpi_config = {
         .virtual_channel = 0,
         .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
-        .dpi_clock_freq_mhz = 80,
+        .dpi_clock_freq_mhz = 40,
         .pixel_format = TEST_MIPI_DPI_PX_FORMAT,
         .in_color_format = LCD_COLOR_FMT_RGB565,
         .out_color_format = LCD_COLOR_FMT_RGB565,
@@ -321,7 +321,6 @@ app_main(void)
     // Devices / helper classes
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
-
 
     left_buzzer_gpio->SetState(true);
     right_buzzer_gpio->SetState(true);
