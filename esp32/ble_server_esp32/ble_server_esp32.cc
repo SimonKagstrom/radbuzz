@@ -84,7 +84,7 @@ BleServerEsp32::Start()
     m_gatt_svc_def.push_back({0});
 
     nvs_flash_init();                          // 1 - Initialize NVS flash using
-    esp_nimble_init();
+    //esp_nimble_init();
     //esp_nimble_hci_init();                     // 2 - Initialize ESP controller
     nimble_port_init();                        // 3 - Initialize the host stack
     ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service

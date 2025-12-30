@@ -34,6 +34,8 @@ namespace
 constexpr auto kTftBacklight = GPIO_NUM_26;
 constexpr auto kPinLeftBuzzer = GPIO_NUM_32;  // TODO
 constexpr auto kPinRightBuzzer = GPIO_NUM_48; // TODO
+constexpr auto kI2cSdaPin = GPIO_NUM_7;
+constexpr auto kI2cSclPin = GPIO_NUM_8;
 
 
 #define TEST_LCD_BIT_PER_PIXEL (16)
@@ -344,8 +346,8 @@ app_main(void)
     //                                              GPIO_NUM_43); // TX
     //
 
-    //    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
-    //    auto uart_gps = std::make_unique<UartGps>(*uart1);
+    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
+    //auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
     auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
 
@@ -368,10 +370,10 @@ app_main(void)
     // Threads
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
-    //auto ble_server = std::make_unique<BleServerEsp32>();
-    auto ble_server = std::make_unique<BleServerHost>();
-    auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
-    auto gps_reader = std::make_unique<GpsReader>(app_simulator->GetSimulatedGps());
+    auto ble_server = std::make_unique<BleServerEsp32>();
+    //auto ble_server = std::make_unique<BleServerHost>();
+    //auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
+    auto gps_reader = std::make_unique<GpsReader>(*gps);
     auto tile_cache = std::make_unique<TileCache>(application_state,
                                                   pm->CreateFullPowerLock(),
                                                   gps_reader->AttachListener(),
@@ -387,7 +389,7 @@ app_main(void)
 
 
     buzz_handler->Start("buzz_handler", 8192);
-    app_simulator->Start("app_simulator", 8192);
+    //app_simulator->Start("app_simulator", 8192);
     ble_handler->Start("ble_server", 8192);
     gps_reader->Start("gps_reader", 8192);
     tile_cache->Start("tile_cache", 8192);
