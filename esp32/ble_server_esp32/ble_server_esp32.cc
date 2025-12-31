@@ -2,6 +2,7 @@
 #include "ble_server_esp32.hh"
 //#include <esp_nimble_hci.h>
 
+#include <esp_err.h>
 extern "C" {
 #include <services/ans/ble_svc_ans.h>
 }
@@ -83,11 +84,11 @@ BleServerEsp32::Start()
     m_gatt_svc_def.back().characteristics = m_ble_gatt_chr_defs.data();
     m_gatt_svc_def.push_back({0});
 
-    nvs_flash_init();                          // 1 - Initialize NVS flash using
+    nvs_flash_init(); // 1 - Initialize NVS flash using
     //esp_nimble_init();
     //esp_nimble_hci_init();                     // 2 - Initialize ESP controller
-    nimble_port_init();                        // 3 - Initialize the host stack
-    ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
+    nimble_port_init();  // 3 - Initialize the host stack
+    ble_svc_gap_init();  // 4 - Initialize NimBLE configuration - gap service
     ble_svc_gatt_init(); // 4 - Initialize NimBLE configuration - gatt service
     ble_svc_ans_init();
     ble_svc_gap_device_name_set("Bicycletas"); // 4 - Initialize NimBLE configuration - server name
@@ -160,9 +161,9 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         AppAdvertise();
         break;
     case BLE_GAP_EVENT_DATA_LEN_CHG:
-                printf("LC: %d and %d\n",
-                       event->data_len_chg.max_rx_octets,
-                       event->data_len_chg.max_tx_octets);
+        printf("LC: %d and %d\n",
+               event->data_len_chg.max_rx_octets,
+               event->data_len_chg.max_tx_octets);
         break;
     case BLE_GAP_EVENT_MTU:
         printf("MTU: %d\n", event->mtu.value);
