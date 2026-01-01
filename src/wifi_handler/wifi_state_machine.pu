@@ -1,0 +1,24 @@
+@startuml
+
+state kOn
+state kOff #Orange
+state kScanning
+state kConnect
+state kConnected #LightGreen
+
+[*] --> kOn
+
+kOn --> kScanning
+
+kScanning --> kConnect : Matching SSID\nfound
+kScanning --> kOff : Moving (1 min)
+
+kConnect --> kConnected : Connected
+
+
+kConnected --> kOff : Moving + lost connection
+kConnected --> kScanning : lost connection,\nnot moving
+
+kOff --> kOn : Not moving (1 min)
+
+@enduml
