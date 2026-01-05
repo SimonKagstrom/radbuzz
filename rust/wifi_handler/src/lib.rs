@@ -1,16 +1,16 @@
+use autocxx::prelude::*; // use all the main autocxx functions
 
-#[cxx::bridge]
-mod ffi {
-unsafe extern "C++" {
-    fn kalkon() -> i32;
-}
+include_cpp! {
+    #include "kalkon.hh" // your header file name
+    safety!(unsafe) // see details of unsafety policies described in the 'safety' section of the book
+    generate!("kalkon") // add this line for each function or type you wish to generate
 }
 
 #[unsafe(no_mangle)]
 extern "C" fn rust_main() -> i32 {
     log::info!("Hello, world!");
-    println!("Hello from Rust!");
+    println!("Hello from Rust! SIMON");
 
-    ffi::kalkon()
+    ffi::kalkon().into()
 //    42
 }

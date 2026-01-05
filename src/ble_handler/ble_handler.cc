@@ -68,10 +68,10 @@ BleHandler::BleHandler(hal::IBleServer& server, ApplicationState& state, ImageCa
 void
 BleHandler::OnStartup()
 {
-    m_ble_poller = StartTimer(20ms, [this]() {
+    m_ble_poller = StartTimer(50ms, [this]() {
         m_server.PollEvents();
 
-        return 20ms;
+        return 50ms;
     });
 
     m_server.SetServiceUuid128(hal::detail::StringToUuid128(kServiceUuid));

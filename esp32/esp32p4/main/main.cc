@@ -260,7 +260,7 @@ CreateDisplay()
 } // namespace
 
 extern "C" int rust_main(void);
-extern "C" int kalkon()
+int kalkon()
 {
     return 43;
 }
@@ -386,22 +386,23 @@ app_main(void)
                                                   *filesystem,
                                                   *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
-    //auto user_interface = std::make_unique<UserInterface>(*display,
-    //                                                      pm->CreateFullPowerLock(),
-    //                                                      application_state,
-    //                                                      gps_reader->AttachListener(),
-    //                                                      *image_cache,
-    //                                                      *tile_cache);
+    auto user_interface = std::make_unique<UserInterface>(*display,
+                                                          pm->CreateFullPowerLock(),
+                                                          application_state,
+                                                          gps_reader->AttachListener(),
+                                                          *image_cache,
+                                                          *tile_cache);
 
 
-    rust_main();
+    auto v = rust_main();
+    printf("Rust returned %d\n", v);
 
     buzz_handler->Start("buzz_handler", 8192);
     //app_simulator->Start("app_simulator", 8192);
     ble_handler->Start("ble_server", 8192);
     gps_reader->Start("gps_reader", 8192);
     tile_cache->Start("tile_cache", 8192);
-    //user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
+    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
 
     while (true)
     {

@@ -51,9 +51,7 @@ endif()
 
 set(CARGO_BUILD_STD_ARG -Zbuild-std=std,panic_abort)
 
-if(IDF_VERSION_MAJOR GREATER "4")
-set(ESP_RUSTFLAGS "--cfg espidf_time64")
-endif()
+set(ESP_RUSTFLAGS "--cfg espidf_time64 --cfg=force_disable_atomic64 ")
 
 # TMP
 set(CARGO_PROJECT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../rust/wifi_handler")
@@ -78,8 +76,10 @@ ExternalProject_Add(
         cargo clean --target ${RUST_TARGET} --target-dir ${CARGO_TARGET_DIR}
     USES_TERMINAL_BUILD true
     BUILD_COMMAND ${CMAKE_COMMAND} -E env
+        "CXXFLAGS_riscv32imafc_esp_espidf=-march=rv32imafc -mabi=ilp32f"
         CARGO_CMAKE_BUILD_INCLUDES=$<TARGET_PROPERTY:${COMPONENT_TARGET},INCLUDE_DIRECTORIES>
         CARGO_CMAKE_BUILD_LINK_LIBRARIES=$<TARGET_PROPERTY:${COMPONENT_TARGET},LINK_LIBRARIES>
+
         CARGO_CMAKE_BUILD_COMPILER=${CMAKE_C_COMPILER}
         RUSTFLAGS=${ESP_RUSTFLAGS}
         CROSS_COMPILE=riscv32-esp-elf
