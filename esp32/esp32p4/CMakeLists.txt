@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.21)
 
+include(ExternalProject)
+
 include_directories(../lvgl_setup)
 add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 
