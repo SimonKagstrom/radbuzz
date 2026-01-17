@@ -9,20 +9,23 @@ CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state, uint8_
     m_state_listener = m_state.AttachListener(GetSemaphore());
     m_bus_listener = m_bus.AttachWakeupListener(GetSemaphore());
 
-    // Ugly, but no cookie in the vesc can SDK
-    static auto pThis = this;
     vesc_can_init(
-        [](uint32_t id, uint8_t* data, uint8_t len) {
+        [](uint32_t id, const uint8_t* data, uint8_t len, void* user_cookie) {
+            auto pThis = static_cast<CanBusHandler*>(user_cookie);
             return pThis->m_bus.SendFrame(id, std::span<const uint8_t> {data, len});
         },
         controller_id, // Receiver controller ID
-        0x02           // Sender ID
-    );
+        0x02,          // Sender ID
+        this);
 
-    vesc_set_response_callback(
-        [](uint8_t controller_id, uint8_t command, uint8_t* data, uint8_t len) {
-            pThis->VescResponseCallback(controller_id, command, data, len);
-        });
+    vesc_set_response_callback([](uint8_t controller_id,
+                                  uint8_t command,
+                                  const uint8_t* data,
+                                  uint8_t len,
+                                  void* user_cookie) {
+        auto pThis = static_cast<CanBusHandler*>(user_cookie);
+        pThis->VescResponseCallback(controller_id, command, data, len);
+    });
 }
 
 void
@@ -46,7 +49,7 @@ CanBusHandler::OnActivation()
 void
 CanBusHandler::VescResponseCallback(uint8_t controller_id,
                                     uint8_t command,
-                                    uint8_t* data,
+                                    const uint8_t* data,
                                     uint8_t len)
 {
     if (command == CAN_PACKET_STATUS)

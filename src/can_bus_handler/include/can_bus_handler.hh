@@ -13,7 +13,8 @@ private:
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
-    void VescResponseCallback(uint8_t controller_id, uint8_t command, uint8_t *data, uint8_t len);
+    void
+    VescResponseCallback(uint8_t controller_id, uint8_t command, const uint8_t* data, uint8_t len);
 
     hal::ICan& m_bus;
 

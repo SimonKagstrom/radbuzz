@@ -1,6 +1,6 @@
 [submodule "external/libmaelir"]
 	path = external/libmaelir
 	url = git@github.com:SimonKagstrom/libmaelir.git
-[submodule "vesc_can_sdk"]
+[submodule "external/vesc_can_sdk"]
 	path = external/vesc_can_sdk
-	url = https://github.com/waas-rent/vesc_can_sdk.git
+	url = git@github.com:SimonKagstrom/vesc_can_sdk.git
