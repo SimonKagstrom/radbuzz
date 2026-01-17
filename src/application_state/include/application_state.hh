@@ -27,8 +27,18 @@ public:
         bool wifi_connected {false};
         bool bluetooth_connected {false};
         bool gps_position_valid {false};
-        
+
         bool navigation_active {false};
+
+        // In celcius
+        uint8_t controller_temperature {0};
+        uint8_t motor_temperature {0};
+        // km/h
+        uint8_t speed {0};
+
+        // Well, for now only handle up to 65v batteries...
+        uint16_t battery_millivolts {0};
+
         uint32_t distance_to_next {0};
         uint32_t current_icon_hash {kInvalidIconHash};
         std::string_view next_street {""};
