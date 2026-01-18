@@ -17,8 +17,9 @@ private:
     VescResponseCallback(uint8_t controller_id, uint8_t command, const uint8_t* data, uint8_t len);
 
     hal::ICan& m_bus;
-
     ApplicationState& m_state;
+    const uint8_t m_controller_id;
+
     std::unique_ptr<ApplicationState::IListener> m_state_listener;
     std::unique_ptr<ListenerCookie> m_bus_listener;
 };
