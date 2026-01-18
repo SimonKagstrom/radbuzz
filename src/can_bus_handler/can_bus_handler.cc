@@ -7,7 +7,6 @@ CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state, uint8_
     , m_state(app_state)
 {
     m_state_listener = m_state.AttachListener(GetSemaphore());
-    m_bus_listener = m_bus.AttachWakeupListener(GetSemaphore());
 
     vesc_can_init(
         [](uint32_t id, const uint8_t* data, uint8_t len, void* user_cookie) {
@@ -31,13 +30,13 @@ CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state, uint8_
 void
 CanBusHandler::OnStartup()
 {
-    m_bus.Start();
+    m_bus_listener = m_bus.Start(GetSemaphore());
 }
 
 std::optional<milliseconds>
 CanBusHandler::OnActivation()
 {
-    if (auto frame = m_bus.ReceiveFrame())
+    while (auto frame = m_bus.ReceiveFrame())
     {
         vesc_process_can_frame(
             frame->id, frame->data.data(), static_cast<uint8_t>(frame->data.size()));
