@@ -22,4 +22,6 @@ private:
 
     std::unique_ptr<ApplicationState::IListener> m_state_listener;
     std::unique_ptr<ListenerCookie> m_bus_listener;
+
+    os::TimerHandle m_periodic_timer;
 };
