@@ -48,8 +48,8 @@ CanBusHandler::OnActivation()
 {
     while (auto frame = m_bus.ReceiveFrame())
     {
-        vesc_process_can_frame(
-            frame->id, frame->data.data(), static_cast<uint8_t>(frame->data.size()));
+        auto d = frame->Data();
+        vesc_process_can_frame(frame->Id(), d.data(), static_cast<uint8_t>(d.size()));
     }
 
     return std::nullopt;
@@ -122,7 +122,59 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
     else if (command == COMM_GET_VALUES_SETUP_SELECTIVE &&
              data[0] == COMM_GET_VALUES_SETUP_SELECTIVE)
     {
-        int32_t index = 5; // Skip the mask and packet ID
+        int32_t index = 1; // Skip packet ID
+        etl::bitset<22, uint32_t> mask(vesc_buffer_get_uint32(data, &index));
+
+        for (auto i = mask.find_first(true); i != mask.npos; i = mask.find_next(true, i + 1))
+        {
+            switch (1 << i)
+            {
+            case vesc_setup_value_index_t::SETUP_VALUE_TEMP_FET_FILTERED:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_TEMP_MOTOR_FILTERED:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_CURRENT_TOT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_CURRENT_IN_TOT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_DUTY_CYCLE_NOW:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_RPM:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_SPEED:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_INPUT_VOLTAGE_FILTERED:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_BATTERY_LEVEL:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_AH_TOT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_AH_CHARGE_TOT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_WH_TOT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_WH_CHARGE_TOT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_DISTANCE:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_DISTANCE_ABS:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_PID_POS_NOW:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_FAULT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_SECOND_MOTOR_CONTROLLER_ID:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_NUM_VESCS:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_WH_BATT_LEFT:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_ODOMETER:
+                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_SYSTEM_TIME_MS:
+                break;
+            }
+        }
         auto input_voltage_filtered = vesc_buffer_get_float16(data, 1e3f, &index);
         auto odometer = vesc_buffer_get_uint32(data, &index);
 
