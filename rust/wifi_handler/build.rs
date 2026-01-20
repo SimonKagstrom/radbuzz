@@ -1,22 +1,32 @@
-fn main() -> miette::Result<()> {
-    let include_path = "../../src/include"; // path to your C++ headers
+use std::env;
+use std::path::PathBuf;
 
-    let mut b = autocxx_build::Builder::new("src/lib.rs", &[&include_path])
-    .extra_clang_args(&["-x", "c++", "-std=c++23"])
-        .extra_clang_args(&["--target", "riscv32imafc-unknown-none-elf"])
-        .extra_clang_args(&["-isystem", "/Users/ska/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20251107/riscv32-esp-elf/bin/../riscv32-esp-elf/include",
-        "-isystem", "/Users/ska/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20251107/riscv32-esp-elf/bin/../riscv32-esp-elf/include/c++/14.2.0",
-        "-isystem", "/Users/ska/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20251107/riscv32-esp-elf/bin/../riscv32-esp-elf/include/c++/14.2.0/riscv32-esp-elf/"])
-        .build()?;
+fn main() {
+    // Tell cargo to look for shared libraries in the specified directory
+    println!("cargo:rustc-link-search=/path/to/lib");
 
-    b.flag("-march=rv32imafc")
-        //        .flag("-mabi=ilp32f")
-        .flag("-std=c++23")
-        .compile("autocxx-demo"); // arbitrary library name, pick anything
-    
-    println!("cargo:rerun-if-changed=src/lib.rs");
+    // Tell cargo to tell rustc to link the system bzip2
+    // shared library.
+    println!("cargo:rustc-link-lib=bz2");
 
-    // Add instructions to link to any C++ libraries you need.
+    // The bindgen::Builder is the main entry point
+    // to bindgen, and lets you build up options for
+    // the resulting bindings.
+    let bindings = bindgen::Builder::default()
+        // The input header we would like to generate
+        // bindings for.
+        .header("wrapper.h")
+        // Tell cargo to invalidate the built crate whenever any of the
+        // included header files changed.
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+        // Finish the builder and generate the bindings.
+        .generate()
+        // Unwrap the Result and panic on failure.
+        .expect("Unable to generate bindings");
 
-    Ok(())
+    // Write the bindings to the $OUT_DIR/bindings.rs file.
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("bindings.rs"))
+        .expect("Couldn't write bindings!");
 }
