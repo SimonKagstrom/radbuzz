@@ -39,6 +39,7 @@ add_subdirectory(../external/libmaelir/qt libradbuzz_qt)
 
 
 add_library(filesystem_implementation ALIAS std_filesystem)
+add_library(display_properties ALIAS display_800x800)
 
 add_executable(radbuzz_qt
     simulator_main.cc

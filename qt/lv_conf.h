@@ -1,1 +1,1 @@
-../esp32/qualia_esp32s3/lv_conf.h
+../esp32/esp32p4/lv_conf.h
