@@ -14,6 +14,8 @@ PRIVATE
     ble_handler
     ble_server_esp32
     button_debouncer
+    can_esp32
+    can_bus_handler
     rotary_encoder
     gpio_esp32
     app_simulator

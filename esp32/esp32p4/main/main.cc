@@ -3,6 +3,8 @@
 #include "ble_server_esp32.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
+#include "can_bus_handler.hh"
+#include "can_esp32.hh"
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
 #include "i2c_gps_esp32.hh"
@@ -192,14 +194,13 @@ CreateDisplay()
     };
     ESP_ERROR_CHECK(esp_ldo_acquire_channel(&ldo_mipi_phy_config, &ldo_mipi_phy));
 
-    static const esp_lcd_dsi_bus_config_t bus_config =
-        {
-            .bus_id = 0,
-            .num_data_lanes = 2,
-            // Below esp32p4 v3
-            .phy_clk_src = MIPI_DSI_PHY_PLLREF_CLK_SRC_DEFAULT_LEGACY,
-            .lane_bit_rate_mbps = 1500,
-        };
+    static const esp_lcd_dsi_bus_config_t bus_config = {
+        .bus_id = 0,
+        .num_data_lanes = 2,
+        // Below esp32p4 v3
+        .phy_clk_src = MIPI_DSI_PHY_PLLREF_CLK_SRC_DEFAULT_LEGACY,
+        .lane_bit_rate_mbps = 1500,
+    };
 
     ESP_ERROR_CHECK(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus));
 
@@ -373,12 +374,16 @@ app_main(void)
 
     auto pm = std::make_unique<PmEsp32>();
 
+    auto can = std::make_unique<CanEsp32>(GPIO_NUM_5, GPIO_NUM_4, 500000);
+
     // Threads
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
-    auto ble_server = std::make_unique<BleServerEsp32>();
-    //auto ble_server = std::make_unique<BleServerHost>();
+    //auto ble_server = std::make_unique<BleServerEsp32>();
+    auto ble_server = std::make_unique<BleServerHost>();
     //auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
+    auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
+
     auto gps_reader = std::make_unique<GpsReader>(*gps);
     auto tile_cache = std::make_unique<TileCache>(application_state,
                                                   pm->CreateFullPowerLock(),
@@ -399,6 +404,7 @@ app_main(void)
 
     buzz_handler->Start("buzz_handler", 8192);
     //app_simulator->Start("app_simulator", 8192);
+    can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     gps_reader->Start("gps_reader", 8192);
     tile_cache->Start("tile_cache", 8192);

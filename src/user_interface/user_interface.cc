@@ -166,6 +166,13 @@ UserInterface::OnActivation()
     lv_label_set_text(m_description_label, std::format("{}", state->next_street).c_str());
     lv_label_set_text(m_distance_left_label, std::format("{} m", state->distance_to_next).c_str());
 
+    // TMP!
+    lv_label_set_text(m_description_label,
+                      std::format("Controller: {}°C, Battery: {:.1f}V",
+                                  state->controller_temperature,
+                                  static_cast<float>(state->battery_millivolts) / 1000.0f)
+                          .c_str());
+
     if (auto time_before = os::GetTimeStampRaw(); m_next_redraw_time > time_before)
     {
         // Wait for the next redraw
