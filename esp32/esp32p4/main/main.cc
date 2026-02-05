@@ -260,11 +260,18 @@ CreateDisplay()
 
 } // namespace
 
-extern "C" int rust_main(void);
-int kalkon()
+extern "C" int rust_main(void* wifi_handle);
+#include "hal/c_interface/i_wifi.h"
+struct Networks ScanForNetworks(IWifiHandle *handle)
 {
-    return 43;
+    return {};
 }
+
+void ConnectToHotspot(IWifiHandle *handle, const char* ssid, const char* password)
+{
+    printf("Connecting with %p, to SSID: %s:%s\n", handle, ssid, password);
+}
+
 
 extern "C" void
 app_main(void)
@@ -377,6 +384,7 @@ app_main(void)
     auto can = std::make_unique<CanEsp32>(GPIO_NUM_5, GPIO_NUM_4, 500000);
 
     // Threads
+    /*
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     //auto ble_server = std::make_unique<BleServerEsp32>();
@@ -397,18 +405,19 @@ app_main(void)
                                                           gps_reader->AttachListener(),
                                                           *image_cache,
                                                           *tile_cache);
+                                                          */
 
+                                                          int vobb;
+    auto v = rust_main((void*)&vobb);
+    printf("Rust returned %d. Vobb is %p\n", v, &vobb);
 
-    auto v = rust_main();
-    printf("Rust returned %d\n", v);
-
-    buzz_handler->Start("buzz_handler", 8192);
+    //    buzz_handler->Start("buzz_handler", 8192);
     //app_simulator->Start("app_simulator", 8192);
-    can_bus_handler->Start("can_bus_handler", 4096);
-    ble_handler->Start("ble_server", 8192);
-    gps_reader->Start("gps_reader", 8192);
-    tile_cache->Start("tile_cache", 8192);
-    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
+    //    can_bus_handler->Start("can_bus_handler", 4096);
+    //    ble_handler->Start("ble_server", 8192);
+    //    gps_reader->Start("gps_reader", 8192);
+    //    tile_cache->Start("tile_cache", 8192);
+    //    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
 
     while (true)
     {

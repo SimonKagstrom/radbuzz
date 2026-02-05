@@ -2,12 +2,6 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Tell cargo to look for shared libraries in the specified directory
-    println!("cargo:rustc-link-search=/path/to/lib");
-
-    // Tell cargo to tell rustc to link the system bzip2
-    // shared library.
-    println!("cargo:rustc-link-lib=bz2");
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for

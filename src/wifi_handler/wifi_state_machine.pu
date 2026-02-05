@@ -1,23 +1,27 @@
 @startuml
 
-state kOn
-state kOff #Orange
-state kScanning
-state kConnect
+state kOn : turn on wifi
+state kOff #Orange : turn off wifi
+state kScanning : Scan for networks
+state kConnect : connect()
 state kConnected #LightGreen
+state kLostConnection
 
 [*] --> kOn
 
-kOn --> kScanning
+kOn --> kScanning : Scan
 
 kScanning --> kConnect : Matching SSID\nfound
 kScanning --> kOff : Moving (1 min)
 
 kConnect --> kConnected : Connected
+kConnect --> kScanning : Connection failed
 
 
-kConnected --> kOff : Moving + lost connection
-kConnected --> kScanning : lost connection,\nnot moving
+kConnected --> kLostConnection : lost connection
+
+kLostConnection --> kScanning : Not moving (1 min)
+kLostConnection --> kOff : Moving (1 min)
 
 kOff --> kOn : Not moving (1 min)
 

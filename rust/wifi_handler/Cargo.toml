@@ -3,8 +3,9 @@ name = "wifi_handler"
 edition = "2024"
 
 [lib]
+name = "wifi_handler"
 crate-type = ["staticlib"]
-harness = false # do not use the built in cargo test harness -> resolve rust-analyzer errors
+harness = false
 
 [profile.release]
 opt-level = "s"
@@ -21,13 +22,15 @@ opt-level = "z"
 [dependencies]
 #esp-idf-sys = { version = "0.36.1", default-features = false }
 log = "0.4"
-#link-cplusplus = { version = "1" }
-autocxx = "0.30.0"
-cxx = "1.0"
-embassy-executor = "0.9.1"
+ffi_helpers = "0.3.0"
+embassy-executor = {version = "0.9.1", features = [
+    "arch-std",
+    "executor-thread",
+] }
+static_cell = "2"
+state-machines = {version = "0.8.0", features = ["dynamic"]}
+statig = {version = "0.4.1", features = ["async"] }
 
 [build-dependencies]
-bindgen = "0.71.0"
+bindgen = "0.72.1"
 embuild = "0.33.1"
-autocxx-build = "0.30.0"
-miette = { version = "5", features = ["fancy"] }
