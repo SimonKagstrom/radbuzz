@@ -97,7 +97,7 @@ BleServerEsp32::Start()
     ble_gatts_add_svcs(
         m_gatt_svc_def.data()); // 4 - Initialize NimBLE configuration - queues gatt services.
 
-    ble_gap_write_sugg_def_data_len(512, 0x1000);
+    ble_gap_write_sugg_def_data_len(0xfb, 0x1000);
 
     ble_hs_cfg.sync_cb = []() // 5 - Initialize application
     {
