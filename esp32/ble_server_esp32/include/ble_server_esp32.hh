@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 
 #include <esp_log.h>
@@ -13,16 +14,20 @@
 #include <services/gatt/ble_svc_gatt.h>
 #include <vector>
 
-class BleServerEsp32 : public hal::IBleServer
+class BleServerEsp32 : public hal::IBleServer, public hal::IBleClient
 {
 public:
     BleServerEsp32();
     ~BleServerEsp32();
 
-    void SetServiceUuid128(std::span<const uint8_t, 16> service_uuid) final;
+    void SetServiceUuid128(hal::Uuid128Span service_uuid) final;
 
-    void AddWriteGattCharacteristics(std::span<const uint8_t, 16> uuid,
+    void AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                      std::function<void(std::span<const uint8_t>)> data) final;
+
+
+    void ScanForService(hal::Uuid128Span service_uuid,
+                        std::function<void(std::unique_ptr<IPeer>)>& cb) final;
 
     void Start() final;
 

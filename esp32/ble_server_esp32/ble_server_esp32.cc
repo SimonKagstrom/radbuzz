@@ -25,13 +25,13 @@ BleServerEsp32::~BleServerEsp32()
 
 
 void
-BleServerEsp32::SetServiceUuid128(std::span<const uint8_t, 16> service_uuid)
+BleServerEsp32::SetServiceUuid128(hal::Uuid128Span service_uuid)
 {
     memcpy(m_service_uuid.value, service_uuid.data(), service_uuid.size());
 }
 
 void
-BleServerEsp32::AddWriteGattCharacteristics(std::span<const uint8_t, 16> uuid,
+BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                             std::function<void(std::span<const uint8_t>)> cb)
 {
     auto w = std::make_unique<WriteCharacteristic>();
@@ -65,6 +65,14 @@ BleServerEsp32::AddWriteGattCharacteristics(std::span<const uint8_t, 16> uuid,
 
     m_characteristics.push_back(std::move(w));
 }
+
+
+void
+BleServerEsp32::ScanForService(hal::Uuid128Span service_uuid,
+                               std::function<void(std::unique_ptr<IPeer>)>& cb)
+{
+}
+
 
 void
 BleServerEsp32::Start()

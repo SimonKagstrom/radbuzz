@@ -30,9 +30,9 @@ private:
         std::vector<uint8_t> data;
     };
 
-    void SetServiceUuid128(std::span<const uint8_t, 16> service_uuid) final;
+    void SetServiceUuid128(hal::Uuid128Span service_uuid) final;
 
-    void AddWriteGattCharacteristics(std::span<const uint8_t, 16> uuid,
+    void AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                      std::function<void(std::span<const uint8_t>)> data) final;
 
     void Start() final;

@@ -1,12 +1,12 @@
 #include "ble_server_host.hh"
 
 void
-BleServerHost::SetServiceUuid128(std::span<const uint8_t, 16> service_uuid)
+BleServerHost::SetServiceUuid128(hal::Uuid128Span service_uuid)
 {
 }
 
 void
-BleServerHost::AddWriteGattCharacteristics(std::span<const uint8_t, 16> uuid,
+BleServerHost::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                            std::function<void(std::span<const uint8_t>)> data)
 {
     // For now assume they are unique
