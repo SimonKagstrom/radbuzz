@@ -18,7 +18,7 @@ class BleServerEsp32 : public hal::IBleServer, public hal::IBleClient
 {
 public:
     BleServerEsp32();
-    ~BleServerEsp32();
+    ~BleServerEsp32() final;
 
     void SetServiceUuid128(hal::Uuid128Span service_uuid) final;
 
@@ -27,7 +27,7 @@ public:
 
 
     void ScanForService(hal::Uuid128Span service_uuid,
-                        std::function<void(std::unique_ptr<IPeer>)>& cb) final;
+                        const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
 
     void Start() final;
 
@@ -43,10 +43,14 @@ private:
 
     void AppAdvertise();
     int BleGapEvent(struct ble_gap_event* event);
+    bool ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc);
+
 
     ble_uuid128_t m_service_uuid {.u = {.type = BLE_UUID_TYPE_128}, .value = {}};
 
     std::vector<std::unique_ptr<WriteCharacteristic>> m_characteristics;
+
+    std::optional<hal::Uuid128> m_peer_service_uuid;
 
     // Adaptations to the C interface
     uint8_t m_ble_addr_type {0};

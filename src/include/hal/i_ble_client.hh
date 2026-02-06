@@ -37,7 +37,7 @@ public:
     virtual ~IBleClient() = default;
 
     virtual void ScanForService(Uuid128Span service_uuid,
-                                std::function<void(std::unique_ptr<IPeer>)> &cb) = 0;
+                                const std::function<void(std::unique_ptr<IPeer>)> &cb) = 0;
 };
 
 } // namespace hal

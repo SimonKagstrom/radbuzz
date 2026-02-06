@@ -69,8 +69,54 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
 
 void
 BleServerEsp32::ScanForService(hal::Uuid128Span service_uuid,
-                               std::function<void(std::unique_ptr<IPeer>)>& cb)
+                               const std::function<void(std::unique_ptr<IPeer>)>& cb)
 {
+    m_peer_service_uuid = hal::Uuid128();
+    std::ranges::copy(service_uuid, m_peer_service_uuid->begin());
+
+    uint8_t own_addr_type;
+    struct ble_gap_disc_params disc_params = {};
+    int rc;
+
+    /* Figure out address to use while advertising (no privacy for now) */
+    rc = ble_hs_id_infer_auto(0, &own_addr_type);
+    if (rc != 0)
+    {
+        MODLOG_DFLT(ERROR, "error determining address type; rc=%d\n", rc);
+        return;
+    }
+
+    /* Tell the controller to filter duplicates; we don't want to process
+     * repeated advertisements from the same device.
+     */
+    disc_params.filter_duplicates = 1;
+
+    /**
+     * Perform a passive scan.  I.e., don't send follow-up scan requests to
+     * each advertiser.
+     */
+    disc_params.passive = 1;
+
+    /* Use defaults for the rest of the parameters. */
+    disc_params.itvl = 0;
+    disc_params.window = 0;
+    disc_params.filter_policy = 0;
+    disc_params.limited = 0;
+
+    /* Start discovery for 120 seconds */
+    rc = ble_gap_disc(
+        own_addr_type,
+        (120 * 1000),
+        &disc_params,
+        [](struct ble_gap_event* event, void* arg) {
+            auto p = reinterpret_cast<BleServerEsp32*>(arg);
+            return p->BleGapEvent(event);
+        },
+        this);
+    if (rc != 0)
+    {
+        MODLOG_DFLT(ERROR, "Error initiating GAP discovery procedure; rc=%d\n", rc);
+    }
 }
 
 
@@ -150,6 +196,43 @@ BleServerEsp32::AppAdvertise()
         static_cast<void*>(this));
 }
 
+bool
+BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
+{
+    /* The device has to be advertising connectability. */
+    if (disc->event_type != BLE_HCI_ADV_RPT_EVTYPE_ADV_IND &&
+        disc->event_type != BLE_HCI_ADV_RPT_EVTYPE_DIR_IND)
+    {
+        return false;
+    }
+
+    struct ble_hs_adv_fields fields;
+    auto rc = ble_hs_adv_parse_fields(&fields, disc->data, disc->length_data);
+    if (rc != 0)
+    {
+        return false;
+    }
+
+    // Match the service UUID
+    printf("VOBB: %d 16, %d 128\n", fields.num_uuids16, fields.num_uuids128);
+    for (auto i = 0; i < fields.num_uuids128; i++)
+    {
+        printf("Found service UUID: %02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+               fields.uuids128[i].value[15], fields.uuids128[i].value[14], fields.uuids128[i].value[13],
+               fields.uuids128[i].value[12], fields.uuids128[i].value[11], fields.uuids128[i].value[10],
+               fields.uuids128[i].value[9], fields.uuids128[i].value[8], fields.uuids128[i].value[7],
+               fields.uuids128[i].value[6], fields.uuids128[i].value[5], fields.uuids128[i].value[4],
+               fields.uuids128[i].value[3], fields.uuids128[i].value[2], fields.uuids128[i].value[1],
+               fields.uuids128[i].value[0]);
+        if (fields.uuids128[i].value == m_peer_service_uuid->data())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int
 BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
 {
@@ -157,6 +240,46 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
     switch (event->type)
     {
     // Advertise if connected
+    case BLE_GAP_EVENT_DISC:
+        if (m_peer_service_uuid && ConnectIfPeerMatches(&event->disc))
+        {
+            // Stop scanning
+            auto rc = ble_gap_disc_cancel();
+            if (rc != 0)
+            {
+                MODLOG_DFLT(DEBUG, "Failed to cancel scan; rc=%d\n", rc);
+                break;
+            }
+
+            /* Figure out address to use for connect (no privacy for now) */
+            uint8_t own_addr_type;
+            rc = ble_hs_id_infer_auto(0, &own_addr_type);
+            if (rc != 0)
+            {
+                MODLOG_DFLT(ERROR, "error determining address type; rc=%d\n", rc);
+                break;
+            }
+
+            // Try to connect the the advertiser.
+            auto addr = &((struct ble_gap_disc_desc*)&event->disc)->addr;
+            rc = ble_gap_connect(
+                own_addr_type,
+                addr,
+                30000,
+                NULL,
+                [](struct ble_gap_event* event, void* arg) {
+                    auto p = reinterpret_cast<BleServerEsp32*>(arg);
+                    return p->BleGapEvent(event);
+                },
+                this);
+            if (rc != 0)
+            {
+                MODLOG_DFLT(ERROR, "Failed to connect to device \n");
+                break;
+            }
+        }
+        break;
+
     case BLE_GAP_EVENT_CONNECT:
         ESP_LOGI("GAP", "BLE GAP EVENT CONNECT %s", event->connect.status == 0 ? "OK!" : "FAILED!");
         if (event->connect.status != 0)

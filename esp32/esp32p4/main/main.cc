@@ -397,9 +397,17 @@ app_main(void)
     //app_simulator->Start("app_simulator", 8192);
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
+
     gps_reader->Start("gps_reader", 8192);
     tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
+
+    // TMP!
+    os::Sleep(2s);
+    ble_server->ScanForService(hal::detail::StringToUuid128("7DFC6000-7D1C-4951-86AA-8D9728F8D66C"), [](auto peer) {
+        printf("Found peer\n");
+});
+
 
     while (true)
     {
