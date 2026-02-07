@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.21)
-project (radbuzz_unittest LANGUAGES CXX C ASM)
+project (unittest_radbuzz LANGUAGES CXX C ASM)
 
 include(FetchContent)
 
@@ -27,19 +27,19 @@ add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 enable_testing()
 
 add_subdirectory(../.. radbuzz)
-add_subdirectory(../../external/libmaelir/test libmaelir_test)
+add_subdirectory(../../external/libmaelir/test/unittest libmaelir_unittests)
 
 add_library(filesystem_implementation ALIAS mock_filesystem)
 add_library(httpd_client_implementation ALIAS mock_httpd_client)
 add_library(display_properties ALIAS display_800x800)
 
-add_executable(ut
+add_executable(unittest_radbuzz
     main.cc
     test_ble_handler.cc
     test_tile_cache.cc
 )
 
-target_link_libraries(ut
+target_link_libraries(unittest_radbuzz
     ble_handler
     tile_cache
     os_unittest
@@ -47,4 +47,4 @@ target_link_libraries(ut
     doctest::doctest
     trompeloeil::trompeloeil
 )
-add_test(NAME unittest COMMAND ut)
+add_test(NAME unittest_radbuzz COMMAND unittest_radbuzz)
