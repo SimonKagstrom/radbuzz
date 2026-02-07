@@ -323,7 +323,12 @@
 #define LV_USE_DRAW_OPENGLES 0
 
 /** Draw using espressif PPA accelerator */
+#if defined(__XTENSA__) || defined(__riscv)
+    // Specific to Xtensa-based chips (e.g., ESP32, ESP32-S3)
 #define LV_USE_PPA  1
+#else
+#define LV_USE_PPA  0
+#endif
 #if LV_USE_PPA
     #define LV_USE_PPA_IMG 1
 #endif
