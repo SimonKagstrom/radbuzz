@@ -8,8 +8,7 @@ npm i lv_font_conv -g
 
 ## Build setup (target)
 ```
-(TODO: CONAN)
-cmake -GNinja -B radbuzz_esp32p4 -DCMAKE_PREFIX_PATH="`pwd`/maelir_target_conan/build/Release/generators/" -DCMAKE_BUILD_TYPE=Release ~/projects/radbuzz/esp32/esp32p4/
+cmake -GNinja -B radbuzz_esp32p4 -DCMAKE_BUILD_TYPE=Release ~/projects/radbuzz/esp32/esp32p4/
 ```
 
 ## The OSM API key

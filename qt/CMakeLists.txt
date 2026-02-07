@@ -32,7 +32,7 @@ endif()
 add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
-find_package(etl REQUIRED)
+# ETL is via FetchContent
 
 add_subdirectory(.. radbuzz)
 add_subdirectory(../external/libmaelir/qt libradbuzz_qt)
