@@ -67,6 +67,14 @@ TEST_CASE_FIXTURE(Fixture, "A valid king shark packet is accepted")
     REQUIRE(std::ranges::equal(*d, PacketData({0x19, 0x01, 0x00})));
 }
 
+TEST_CASE_FIXTURE(Fixture, "A valid king shark packet with huge checksum is accepted")
+{
+    KingSharkPacketProtocol p;
+    auto d = p.PushData(PacketData({0x3A, 0x16, 0x19, 0x01, 0xff, 0x2f, 0x01, 0x0D, 0x0A}));
+    REQUIRE(d);
+    REQUIRE(std::ranges::equal(*d, PacketData({0x19, 0x01, 0xff})));
+}
+
 
 TEST_CASE_FIXTURE(Fixture, "Partial king shark packets can be received")
 {
@@ -117,4 +125,14 @@ TEST_CASE_FIXTURE(Fixture, "Consecutive king shark packets can be received")
     d = p.PushData({});
     REQUIRE(std::ranges::equal(*d, PacketData({0x19, 0x01, 0x01})));
     */
+}
+
+
+TEST_CASE_FIXTURE(Fixture, "King shark packets can be serialized")
+{
+    KingSharkPacketProtocol p;
+    auto d = p.BuildTxPacket(0x19, PacketData({0x03}));
+    REQUIRE(d);
+    REQUIRE(
+        std::ranges::equal(*d, PacketData({0x3A, 0x16, 0x19, 0x01, 0x03, 0x33, 0x00, 0x0D, 0x0A})));
 }

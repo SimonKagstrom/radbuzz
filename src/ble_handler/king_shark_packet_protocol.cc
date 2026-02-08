@@ -10,7 +10,17 @@ constexpr auto kFooterMagic = std::array {static_cast<uint8_t>(0x0d), static_cas
 std::optional<std::span<const uint8_t>>
 KingSharkPacketProtocol::BuildTxPacket(uint8_t command, std::span<const uint8_t> payload)
 {
-    return std::nullopt;
+    m_transmit_buffer.clear();
+
+    std::ranges::copy(kHeaderMagic, std::back_inserter(m_transmit_buffer));
+    m_transmit_buffer.push_back(command);
+    m_transmit_buffer.push_back(payload.size());
+    std::ranges::copy(payload, std::back_inserter(m_transmit_buffer));
+    std::ranges::copy(CalculateChecksum(std::span<const uint8_t>(m_transmit_buffer).subspan(1)),
+                       std::back_inserter(m_transmit_buffer));
+    std::ranges::copy(kFooterMagic, std::back_inserter(m_transmit_buffer));
+
+    return m_transmit_buffer;
 }
 
 // Push packet data, and return a payload if a full and valid packet has been received
@@ -72,10 +82,8 @@ KingSharkPacketProtocol::RunStateMachine()
                 std::span<const uint8_t>(m_receive_buffer).subspan(1, kHeaderSize + m_length - 1);
             auto payload_checksum_span =
                 std::span<const uint8_t>(m_receive_buffer).subspan(kHeaderSize + m_length, 2);
-            auto checksum = std::accumulate(payload_span.begin(), payload_span.end(), 0);
 
-            if (std::ranges::equal(payload_checksum_span,
-                                   std::array {checksum & 0xFF, checksum >> 8}))
+            if (std::ranges::equal(payload_checksum_span, CalculateChecksum(payload_span)))
             {
                 m_current_state = State::kValidData;
             }
@@ -98,4 +106,12 @@ KingSharkPacketProtocol::RunStateMachine()
     } while (before != m_current_state);
 
     return out;
+}
+
+std::array<uint8_t, 2>
+KingSharkPacketProtocol::CalculateChecksum(std::span<const uint8_t> data) const
+{
+    auto checksum = std::accumulate(data.begin(), data.end(), 0);
+
+    return {static_cast<uint8_t>(checksum & 0xFF), static_cast<uint8_t>(checksum >> 8)};
 }

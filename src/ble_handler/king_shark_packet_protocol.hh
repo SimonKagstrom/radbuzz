@@ -29,7 +29,9 @@ private:
 
     std::optional<std::span<const uint8_t>> RunStateMachine();
 
-    std::array<uint8_t, 32> m_transmit_buffer;
+    std::array<uint8_t, 2> CalculateChecksum(std::span<const uint8_t> data) const;
+
+    etl::vector<uint8_t, 128> m_transmit_buffer;
     etl::vector<uint8_t, 128> m_receive_buffer;
 
     State m_current_state {State::kIdle};
