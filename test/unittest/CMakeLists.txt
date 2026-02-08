@@ -1,20 +1,6 @@
 cmake_minimum_required (VERSION 3.21)
 project (unittest_radbuzz LANGUAGES CXX C ASM)
 
-include(FetchContent)
-
-FetchContent_Declare(
-  doctest
-  GIT_REPOSITORY https://github.com/doctest/doctest.git
-  GIT_TAG        1da23a3e8119ec5cce4f9388e91b065e20bf06f5 # v2.4.12
-)
-FetchContent_Declare(
-  trompeloeil
-  GIT_REPOSITORY https://github.com/rollbear/trompeloeil.git
-  GIT_TAG        eaeb89c1ce9d354b0ba7eb921fd5712cdbd78adf # v49
-)
-FetchContent_MakeAvailable(doctest trompeloeil)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
 
@@ -37,10 +23,11 @@ add_executable(unittest_radbuzz
     main.cc
     test_ble_handler.cc
     test_tile_cache.cc
+    test_king_shark_packet_protocol.cc
 )
 
 target_link_libraries(unittest_radbuzz
-    ble_handler
+    ble_handler_private
     tile_cache
     os_unittest
     mock_filesystem
