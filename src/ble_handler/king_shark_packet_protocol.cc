@@ -24,11 +24,10 @@ KingSharkPacketProtocol::BuildTxPacket(uint8_t command, std::span<const uint8_t>
 }
 
 // Push packet data, and return a payload if a full and valid packet has been received
-std::optional<std::span<const uint8_t>>
+void
 KingSharkPacketProtocol::PushData(std::span<const uint8_t> data)
 {
     m_receive_buffer.insert(m_receive_buffer.end(), data.begin(), data.end());
-    return RunStateMachine();
 }
 
 std::optional<std::span<const uint8_t>>
@@ -52,7 +51,7 @@ KingSharkPacketProtocol::RunStateMachine()
 
         case State::kWaitForHeader:
             if (m_receive_buffer.size() >= kHeaderSize &&
-                std::ranges::starts_with(m_receive_buffer, kHeaderMagic))
+                std::equal(kHeaderMagic.begin(), kHeaderMagic.end(), m_receive_buffer.begin()))
             {
                 m_length = m_receive_buffer[3];
                 m_current_state = State::kWaitForData;
@@ -106,6 +105,11 @@ KingSharkPacketProtocol::RunStateMachine()
     } while (before != m_current_state);
 
     return out;
+}
+
+std::optional<std::span<const uint8_t>> KingSharkPacketProtocol::Poll()
+{
+    return RunStateMachine();
 }
 
 std::array<uint8_t, 2>

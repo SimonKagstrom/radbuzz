@@ -12,7 +12,8 @@ public:
                                                           std::span<const uint8_t> payload);
 
     // Push packet data, and return a payload if a full and valid packet has been received
-    std::optional<std::span<const uint8_t>> PushData(std::span<const uint8_t> data);
+    void PushData(std::span<const uint8_t> data);
+    std::optional<std::span<const uint8_t>> Poll();
 
 private:
     enum class State
