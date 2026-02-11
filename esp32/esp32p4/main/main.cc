@@ -404,7 +404,7 @@ app_main(void)
 
     // TMP!
     os::Sleep(2s);
-    ble_server->ScanForService(hal::detail::StringToUuid128("7DFC6000-7D1C-4951-86AA-8D9728F8D66C"), [](auto peer) {
+    ble_server->ScanForService(hal::Uuid16(0x61c9), [](auto peer) {
         printf("Found peer\n");
 });
 

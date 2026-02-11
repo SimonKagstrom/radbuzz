@@ -8,6 +8,8 @@
 namespace hal
 {
 
+using Uuid16 = uint16_t;
+
 using Uuid128 = std::array<uint8_t, 16>;
 using Uuid128Span = std::span<const uint8_t, 16>;
 
