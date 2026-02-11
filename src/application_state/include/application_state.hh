@@ -67,7 +67,7 @@ private:
 
     State m_global_state;
     etl::mutex m_mutex;
-    etl::vector<ListenerImpl*, 4> m_listeners;
+    std::vector<ListenerImpl*> m_listeners;
 
     std::array<std::string, 2> m_next_street;
     uint32_t m_active_street {0};
