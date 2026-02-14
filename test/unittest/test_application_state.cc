@@ -41,6 +41,19 @@ TEST_CASE("Non-atomic members are kept alive via shared pointers")
 }
 
 
+TEST_CASE("Partial snapshot sizes are reasonable")
+{
+    ApplicationState app_state;
+    auto small_snapshot = app_state.CheckoutPartialSnapshot<AS::speed>();
+    auto big_snapshot = app_state.CheckoutPartialSnapshot<AS::speed,
+                                                          AS::controller_temperature,
+                                                          AS::battery_millivolts,
+                                                          AS::distance_to_next>();
+
+    REQUIRE(sizeof(small_snapshot) < sizeof(big_snapshot));
+    REQUIRE(sizeof(small_snapshot) <= 16); // Reasonable for now
+}
+
 TEST_CASE("A partial snapshot keeps a cached state")
 {
     ApplicationState app_state;
@@ -119,10 +132,11 @@ TEST_CASE("Listeners can be added to the application state")
 TEST_CASE("Snapshots affect listeners on destruction")
 {
     ApplicationState app_state;
-    os::binary_semaphore sem {0};
+    os::binary_semaphore sem {0}, sem_other {0};
 
     auto ro = app_state.CheckoutReadonly();
     auto listener = app_state.AttachListener<AS::speed, AS::controller_temperature>(sem);
+    auto listener_other = app_state.AttachListener<AS::battery_millivolts>(sem_other);
 
     {
         auto snapshot = app_state.CheckoutPartialSnapshot<AS::speed>();
@@ -131,6 +145,11 @@ TEST_CASE("Snapshots affect listeners on destruction")
         snapshot.Set<AS::speed>(11);
         REQUIRE(sem.try_acquire() == false);
         REQUIRE(ro.Get<AS::speed>() == 0);
+
+        REQUIRE(sem_other.try_acquire() == false);
+        // Write through
+        snapshot.Set<AS::battery_millivolts>(3000);
+        REQUIRE(sem_other.try_acquire() == true);
     }
 
     REQUIRE(ro.Get<AS::speed>() == 11);

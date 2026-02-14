@@ -64,7 +64,8 @@ public:
         template <typename T>
         void Set(const auto& value)
         {
-            m_parent.Set<T>(value);
+            std::lock_guard lock(m_parent.m_mutex);
+            m_parent.SetUnlocked<T>(value);
         }
 
     private:
@@ -80,9 +81,10 @@ public:
 
         ~PartialSnapshot()
         {
-            // TODO: Lock and do each write in a single transaction
-            (void)std::initializer_list<int> {
-                ((m_changed.test(AS::IndexOf<T>()) ? (m_parent.Set<T>(Get<T>()), 0) : 0))...};
+            std::lock_guard lock(m_parent.m_mutex);
+
+            (void)std::initializer_list<int> {((
+                m_changed.test(AS::IndexOf<T>()) ? (m_parent.SetUnlocked<T>(Get<T>()), 0) : 0))...};
         }
 
         template <typename S>
@@ -103,9 +105,11 @@ public:
         template <typename S>
         void Set(const auto& value)
         {
+            std::lock_guard lock(m_parent.m_mutex);
+
             if constexpr (!std::disjunction_v<std::is_same<S, T>...>)
             {
-                m_parent.Set<S>(value);
+                m_parent.SetUnlocked<S>(value);
             }
             else
             {
@@ -195,10 +199,8 @@ private:
 
 
     template <typename T>
-    void Set(const auto& value)
+    void SetUnlocked(const auto& value)
     {
-        std::lock_guard lock(m_mutex);
-
         if constexpr (T::IsAtomic())
         {
             if (value == Get<T>())
