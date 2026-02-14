@@ -12,13 +12,22 @@ add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 
 enable_testing()
 
-add_subdirectory(../.. radbuzz)
-add_subdirectory(../../external/libmaelir/test/unittest libmaelir_unittests)
+set(TOP ${CMAKE_CURRENT_LIST_DIR}/../../)
+
+add_subdirectory(${TOP} radbuzz)
+add_subdirectory(${TOP}/external/libmaelir/test/unittest libmaelir_unittests)
+
+generate_application_state(radbuzz_unittest_application_state
+    "${TOP}/application_state/parameters.yml;${TOP}/application_state/application_state.yml;${CMAKE_CURRENT_SOURCE_DIR}/unittest_parameters.yml"
+)
+
 
 add_library(filesystem_implementation ALIAS mock_filesystem)
 add_library(httpd_client_implementation ALIAS mock_httpd_client)
 add_library(display_properties ALIAS display_800x800)
-add_library(generated_application_state ALIAS radbuzz_application_state)
+add_library(generated_application_state ALIAS radbuzz_unittest_application_state)
+
+
 
 add_executable(unittest_radbuzz
     main.cc

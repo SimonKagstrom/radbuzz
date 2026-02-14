@@ -93,8 +93,10 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         vesc_status_msg_4_t status;
         if (vesc_parse_status_msg_4(data, len, &status))
         {
-            state.Set<AS::controller_temperature>(static_cast<uint8_t>(status.temp_fet));
-            state.Set<AS::motor_temperature>(static_cast<uint8_t>(status.temp_motor));
+            auto qw = m_state.CheckoutQueuedWriter<AS::controller_temperature, AS::motor_temperature>();
+
+            qw.Set<AS::controller_temperature>(static_cast<uint8_t>(status.temp_fet));
+            qw.Set<AS::motor_temperature>(static_cast<uint8_t>(status.temp_motor));
         }
     }
     else if (command == CAN_PACKET_STATUS_5)

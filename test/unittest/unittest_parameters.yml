@@ -1,0 +1,3 @@
+parameters:
+  only_as_a_parameter:
+    type: bool

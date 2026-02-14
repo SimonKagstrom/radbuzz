@@ -177,3 +177,102 @@ TEST_CASE("Snapshots affect listeners on destruction")
     REQUIRE(ro.Get<AS::speed>() == 11);
     REQUIRE(sem.try_acquire() == true);
 }
+
+TEST_CASE("the build is OK even with parameters not in the application state")
+{
+    ApplicationState app_state;
+    auto ro = app_state.CheckoutReadonly();
+
+    if constexpr (false)
+    {
+        // This doesn't exist in the application state, but as a parameter
+        ro.Get<AS::only_as_a_parameter>();
+    }
+}
+
+TEST_CASE("A demo of the application state functionality")
+{
+    ApplicationState app_state;
+
+    auto rw_task_1 = app_state.CheckoutReadWrite();
+    auto rw_task_2 = app_state.CheckoutReadWrite();
+    auto ro = app_state.CheckoutReadonly();
+
+    GIVEN("the case when a stable state is not needed")
+    {
+        THEN("the read-only state is immediately affected by writes")
+        {
+            rw_task_1.Set<AS::speed>(10);
+            REQUIRE(ro.Get<AS::speed>() == 10);
+        }
+        AND_THEN("also writers can see each other's writes")
+        {
+            rw_task_1.Set<AS::speed>(20);
+            REQUIRE(rw_task_2.Get<AS::speed>() == 20);
+        }
+    }
+
+    GIVEN("a situation where the local state must be stable")
+    {
+        // To ensure snapshot destruction
+        {
+            auto snapshot = app_state.CheckoutPartialSnapshot<AS::speed, AS::motor_temperature>();
+
+            THEN("the snapshot can be used to batch writes")
+            {
+                snapshot.Set<AS::speed>(30);
+                REQUIRE(ro.Get<AS::speed>() == 0);
+                REQUIRE(snapshot.Get<AS::speed>() == 30);
+                snapshot.Set<AS::motor_temperature>(80);
+                snapshot.Set<AS::speed>(50);
+            }
+
+            snapshot.Set<AS::speed>(35);
+        }
+        THEN("the writes are done when the snapshot is destroyed")
+        {
+            REQUIRE(ro.Get<AS::speed>() == 35);
+        }
+    }
+
+    GIVEN("the case when multiple values should be changed")
+    {
+        // To ensure destruction
+        {
+            auto qw =
+                app_state
+                    .CheckoutQueuedWriter<AS::controller_temperature, AS::battery_millivolts>();
+
+            qw.Set<AS::controller_temperature>(45);
+            qw.Set<AS::battery_millivolts>(3000);
+
+            // Not yet
+            THEN("a queued writer can be used, where the values are written on destruction")
+            {
+                REQUIRE(ro.Get<AS::controller_temperature>() == 0);
+                REQUIRE(ro.Get<AS::battery_millivolts>() == 0);
+            }
+        }
+        THEN("the writes are done when the writer is destroyed")
+        {
+            REQUIRE(ro.Get<AS::controller_temperature>() == 45);
+            REQUIRE(ro.Get<AS::battery_millivolts>() == 3000);
+        }
+    }
+
+    GIVEN("a parameter which doesn't exist in the application state")
+    {
+        THEN("it can be guarded via constexprs")
+        {
+            if constexpr (false)
+            {
+                /*
+                 * Undefined symbols for architecture x86_64:
+                 *   "AS::storage::OrphanNotFound()", referenced from:
+                 *       auto& AS::storage::state::GetRef<AS::only_as_a_parameter>() in test_application_state.cc.o
+                 */
+                ro.Get<AS::only_as_a_parameter>();
+            }
+        }
+    }
+}
