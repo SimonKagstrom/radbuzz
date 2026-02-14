@@ -38,6 +38,9 @@ TEST_CASE("Non-atomic members are kept alive via shared pointers")
     auto s2 = ro.Get<AS::next_street>();
     REQUIRE(*s == "St Mickelsgatan");
     REQUIRE(*s2 == "Östra Prinsgatan");
+
+    s = ro.Get<AS::next_street>();
+    REQUIRE(*s == "Östra Prinsgatan");
 }
 
 
