@@ -12,6 +12,8 @@
 
 constexpr auto kInvalidIconHash = 0;
 
+using ParameterBitset = etl::bitset<AS::kLastIndex + 1, uint32_t>;
+
 namespace AS::storage
 {
 
@@ -78,6 +80,7 @@ public:
 
         ~PartialSnapshot()
         {
+            // TODO: Lock and do each write in a single transaction
             (void)std::initializer_list<int> {
                 ((m_changed.test(AS::IndexOf<T>()) ? (m_parent.Set<T>(Get<T>()), 0) : 0))...};
         }
@@ -128,14 +131,22 @@ public:
         ApplicationState& m_parent;
         AS::storage::partial_state<T...> m_state;
 
-        etl::bitset<AS::kLastIndex + 1, uint32_t> m_changed;
+        ParameterBitset m_changed;
     };
 
 
     ApplicationState();
 
 
-    std::unique_ptr<IListener> AttachListener(os::binary_semaphore& semaphore);
+    template <class... T>
+    std::unique_ptr<IListener> AttachListener(os::binary_semaphore& semaphore)
+    {
+        ParameterBitset interested;
+
+        (void)std::initializer_list<int> {(interested.set<AS::IndexOf<T>()>(), 0)...};
+
+        return DoAttachListener(interested, semaphore);
+    }
 
     // Checkout a local copy of the global state. Rewritten when the unique ptr is released
     ReadWriteState CheckoutReadWrite();
@@ -207,11 +218,18 @@ private:
 
             m_global_state.GetRef<T>() = std::make_shared<std::decay_t<decltype(*ref)>>(value);
         }
+
+        NotifyChange(AS::IndexOf<T>());
     }
 
+    std::unique_ptr<IListener> DoAttachListener(const ParameterBitset& interested,
+                                                os::binary_semaphore& semaphore);
+    void DetachListener(const ListenerImpl* impl);
+    void NotifyChange(unsigned index);
 
     AS::storage::state m_global_state;
 
     etl::mutex m_mutex;
-    std::vector<ListenerImpl*> m_listeners;
+
+    std::array<std::vector<ListenerImpl*>, AS::kLastIndex + 1> m_listeners;
 };

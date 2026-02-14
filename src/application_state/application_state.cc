@@ -7,7 +7,6 @@ ApplicationState::ReadOnlyState::ReadOnlyState(ApplicationState& parent)
 {
 }
 
-
 class ApplicationState::ListenerImpl : public ApplicationState::IListener
 {
 public:
@@ -19,7 +18,7 @@ public:
 
     ~ListenerImpl() final
     {
-        // std::erase(m_parent.m_listeners.begin(), m_parent.m_listeners.end(), this);
+        m_parent.DetachListener(this);
     }
 
     void Awake()
@@ -38,14 +37,40 @@ ApplicationState::ApplicationState()
 }
 
 std::unique_ptr<ApplicationState::IListener>
-ApplicationState::AttachListener(os::binary_semaphore& semaphore)
+ApplicationState::DoAttachListener(const etl::bitset<AS::kLastIndex + 1, uint32_t>& interested,
+                                   os::binary_semaphore& semaphore)
 {
     auto out = std::make_unique<ListenerImpl>(*this, semaphore);
 
-    m_listeners.push_back(out.get());
+    for (auto index = interested.find_first(true); index != interested.npos;
+         index = interested.find_next(true, index + 1))
+    {
+        m_listeners[index].push_back(out.get());
+    }
 
     return out;
 }
+
+void
+ApplicationState::DetachListener(const ListenerImpl* impl)
+{
+    std::lock_guard lock(m_mutex);
+
+    for (auto& listeners : m_listeners)
+    {
+        std::erase_if(listeners, [impl](const auto* listener) { return listener == impl; });
+    }
+}
+
+void
+ApplicationState::NotifyChange(unsigned index)
+{
+    for (auto listener : m_listeners[index])
+    {
+        listener->Awake();
+    }
+}
+
 
 ApplicationState::ReadWriteState
 ApplicationState::CheckoutReadWrite()

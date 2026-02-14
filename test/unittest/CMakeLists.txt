@@ -45,6 +45,7 @@ add_executable(unittest_application_state
 
 target_link_libraries(unittest_application_state
     application_state
+    os_unittest
     doctest::doctest
     trompeloeil::trompeloeil
 )
