@@ -108,10 +108,11 @@ TEST_CASE("Listeners can be added to the application state")
     os::binary_semaphore sem {0};
 
     auto listener = app_state.AttachListener<AS::speed, AS::next_street>(sem);
+    auto rw = app_state.CheckoutReadWrite();
 
     WHEN("a non-listened to parameter is changed")
     {
-        app_state.CheckoutReadWrite().Set<AS::controller_temperature>(45);
+        rw.Set<AS::controller_temperature>(45);
 
         THEN("the listener is not notified")
         {
@@ -120,11 +121,32 @@ TEST_CASE("Listeners can be added to the application state")
     }
     AND_THEN("listened to parameters are notified")
     {
-        app_state.CheckoutReadWrite().Set<AS::speed>(10);
+        rw.Set<AS::speed>(10);
         REQUIRE(sem.try_acquire() == true);
 
-        app_state.CheckoutReadWrite().Set<AS::next_street>("St Mickelsgatan");
+        rw.Set<AS::next_street>("St Mickelsgatan");
         REQUIRE(sem.try_acquire() == true);
+        REQUIRE(sem.try_acquire() == false); // No extra notifications
+
+        AND_WHEN("the same value is set")
+        {
+            rw.Set<AS::speed>(10);
+            rw.Set<AS::next_street>("St Mickelsgatan");
+            THEN("there is no notification")
+            {
+                REQUIRE(sem.try_acquire() == false);
+            }
+        }
+        AND_WHEN("the listener is removed")
+        {
+            listener = nullptr;
+
+            THEN("notifications are no longer sent")
+            {
+                rw.Set<AS::next_street>("Östra Hamngatan");
+                REQUIRE(sem.try_acquire() == false);
+            }
+        }
     }
 }
 

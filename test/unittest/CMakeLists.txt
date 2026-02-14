@@ -22,6 +22,7 @@ add_library(generated_application_state ALIAS radbuzz_application_state)
 
 add_executable(unittest_radbuzz
     main.cc
+    test_application_state.cc
     test_ble_handler.cc
     test_tile_cache.cc
     test_king_shark_packet_protocol.cc
@@ -36,18 +37,3 @@ target_link_libraries(unittest_radbuzz
     trompeloeil::trompeloeil
 )
 add_test(NAME unittest_radbuzz COMMAND unittest_radbuzz)
-
-
-# TMP!
-add_executable(unittest_application_state
-    main.cc
-    test_application_state.cc
-)
-
-target_link_libraries(unittest_application_state
-    application_state
-    os_unittest
-    doctest::doctest
-    trompeloeil::trompeloeil
-)
-add_test(NAME unittest_application_state COMMAND unittest_application_state)
