@@ -5,3 +5,5 @@ add_subdirectory(wifi_client_esp32)
 
 add_subdirectory(.. radbuzz)
 add_subdirectory(../external/libmaelir/esp32 libmaelir_esp32)
+
+add_library(generated_application_state ALIAS radbuzz_application_state)

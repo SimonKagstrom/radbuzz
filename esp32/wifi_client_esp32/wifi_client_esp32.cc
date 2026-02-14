@@ -65,7 +65,7 @@ WifiClientEsp32::EventHandler(void* arg,
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
-        state.Set(&AS::wifi_connected, false);
+        state.Set<AS::wifi_connected>(false);
 
         if (s_retry_num < 5)
         {
@@ -78,6 +78,6 @@ WifiClientEsp32::EventHandler(void* arg,
         ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
         s_retry_num = 0;
 
-        state.Set(&AS::wifi_connected, true);
+        state.Set<AS::wifi_connected>(true);
     }
 }
