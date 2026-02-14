@@ -24,7 +24,7 @@ public:
 private:
     std::optional<milliseconds> OnActivation() final;
 
-    void RunStateMachine(const ApplicationState::ReadOnlyState& app_state);
+    void RunStateMachine(const ApplicationState::ReadOnly& app_state);
 
     void Indicate();
 

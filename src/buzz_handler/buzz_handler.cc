@@ -26,7 +26,7 @@ BuzzHandler::OnActivation()
 }
 
 void
-BuzzHandler::RunStateMachine(const ApplicationState::ReadOnlyState& app_state)
+BuzzHandler::RunStateMachine(const ApplicationState::ReadOnly& app_state)
 {
     auto before = m_current_state;
 
