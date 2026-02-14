@@ -20,13 +20,13 @@ BuzzHandler::OnActivation()
 
     RunStateMachine(app_state);
 
-    m_current_hash = app_state->current_icon_hash;
+    m_current_hash = app_state.Get(&AS::current_icon_hash);
 
     return std::nullopt;
 }
 
 void
-BuzzHandler::RunStateMachine(const ApplicationState::State* app_state)
+BuzzHandler::RunStateMachine(const ApplicationState::ReadOnlyState& app_state)
 {
     auto before = m_current_state;
 
@@ -37,7 +37,7 @@ BuzzHandler::RunStateMachine(const ApplicationState::State* app_state)
         switch (m_current_state)
         {
         case State::kNoNavigation:
-            if (app_state->current_icon_hash != m_current_hash)
+            if (app_state.Get(&AS::current_icon_hash) != m_current_hash)
             {
                 EnterState(State::kNewTurn);
             }
@@ -51,7 +51,7 @@ BuzzHandler::RunStateMachine(const ApplicationState::State* app_state)
         case State::kNear:
             [[fallthrough]];
         case State::kImminent: {
-            auto s = DistanceToState(app_state->distance_to_next);
+            auto s = DistanceToState(app_state.Get(&AS::distance_to_next));
             if (s != m_current_state)
             {
                 EnterState(s);
@@ -59,7 +59,7 @@ BuzzHandler::RunStateMachine(const ApplicationState::State* app_state)
         }
         break;
         case State::kAt:
-            if (app_state->distance_to_next > kAtDistance)
+            if (app_state.Get(&AS::distance_to_next) > kAtDistance)
             {
                 EnterState(State::kNewTurn);
             }
@@ -129,7 +129,7 @@ BuzzHandler::Indicate()
 
     auto delay = 100ms;
 
-    switch (m_state.CheckoutReadonly()->current_icon_hash)
+    switch (m_state.CheckoutReadonly().Get(&AS::current_icon_hash))
     {
     case 0x27d9a40f: // Left
         m_left_buzzer.SetState(true);

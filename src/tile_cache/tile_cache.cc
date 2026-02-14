@@ -121,7 +121,7 @@ TileCache::OnActivation()
             SavePendingCityTiles();
         }
 
-        if (AppState()->wifi_connected && city_tile != m_current_city_tile)
+        if (AppState().Get(&AS::wifi_connected) && city_tile != m_current_city_tile)
         {
             m_current_city_tile = city_tile;
 
@@ -195,10 +195,10 @@ TileCache::FillFromColdStore()
             continue;
         }
 
-//        printf("Getting tile %d,%d from cold store\n", t.x, t.y);
+        //        printf("Getting tile %d,%d from cold store\n", t.x, t.y);
         auto data = m_filesystem.ReadFile(std::format("tiles/15/{}/{}.png", t.x, t.y));
 
-        auto wifi_connected = AppState()->wifi_connected;
+        auto wifi_connected = AppState().Get(&AS::wifi_connected);
 
         if (data)
         {
@@ -246,7 +246,7 @@ TileCache::RefreshCityTiles(const Tile& center)
 void
 TileCache::FillFromServer()
 {
-    if (!AppState()->wifi_connected)
+    if (!AppState().Get(&AS::wifi_connected))
     {
         return;
     }

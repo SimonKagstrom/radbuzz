@@ -66,13 +66,15 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         return;
     }
 
+    auto state = m_state.CheckoutReadWrite();
+
     if (command == CAN_PACKET_STATUS)
     {
         vesc_status_msg_1_t status;
         if (vesc_parse_status_msg_1(data, len, &status))
         {
             // TODO: Calculate based on RPM and wheel diameter + gear ratio
-            m_state.Checkout()->speed = static_cast<uint8_t>(status.rpm);
+            state.Set(&AS::speed, static_cast<uint8_t>(status.rpm));
         }
     }
     else if (command == CAN_PACKET_STATUS_3)
@@ -91,10 +93,8 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         vesc_status_msg_4_t status;
         if (vesc_parse_status_msg_4(data, len, &status))
         {
-            auto s = m_state.Checkout();
-
-            s->controller_temperature = static_cast<uint8_t>(status.temp_fet);
-            s->motor_temperature = static_cast<uint8_t>(status.temp_motor);
+            state.Set(&AS::controller_temperature, static_cast<uint8_t>(status.temp_fet));
+            state.Set(&AS::motor_temperature, static_cast<uint8_t>(status.temp_motor));
         }
     }
     else if (command == CAN_PACKET_STATUS_5)
@@ -103,8 +103,8 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         if (vesc_parse_status_msg_5(data, len, &status))
         {
             // Store and cap to one decimal place
-            m_state.Checkout()->battery_millivolts =
-                (static_cast<uint16_t>(status.v_in * 1000.0f) / 100) * 100;
+            state.Set(&AS::battery_millivolts,
+                      (static_cast<uint16_t>(status.v_in * 1000.0f) / 100) * 100);
         }
     }
     else if (command == COMM_GET_VALUES_SETUP)

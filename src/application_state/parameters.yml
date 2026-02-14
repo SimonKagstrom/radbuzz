@@ -1,0 +1,25 @@
+# This is the list of all possible parameters
+parameters:
+  wifi_connected:
+    type: bool
+
+  current_icon_hash:
+    type: uint32_t
+
+  distance_to_next:
+    type: uint32_t
+
+  next_street:
+    type: std::string
+
+  speed:
+    type: uint8_t
+
+  controller_temperature:
+    type: uint8_t
+
+  motor_temperature:
+    type: uint8_t
+
+  battery_millivolts:
+    type: uint16_t

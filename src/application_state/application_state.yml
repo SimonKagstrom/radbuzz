@@ -1,0 +1,10 @@
+# This is the list of all used parameters, and their default values
+application_state:
+  wifi_connected: false
+  current_icon_hash: 0
+  distance_to_next: 0
+  next_street: ""
+  speed: 0
+  controller_temperature: 0
+  motor_temperature: 0
+  battery_millivolts: 0

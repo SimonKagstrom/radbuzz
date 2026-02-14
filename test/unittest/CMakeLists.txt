@@ -35,3 +35,17 @@ target_link_libraries(unittest_radbuzz
     trompeloeil::trompeloeil
 )
 add_test(NAME unittest_radbuzz COMMAND unittest_radbuzz)
+
+
+# TMP!
+add_executable(unittest_application_state
+    main.cc
+    test_application_state.cc
+)
+
+target_link_libraries(unittest_application_state
+    application_state
+    doctest::doctest
+    trompeloeil::trompeloeil
+)
+add_test(NAME unittest_application_state COMMAND unittest_application_state)

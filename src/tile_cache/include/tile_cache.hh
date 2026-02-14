@@ -85,7 +85,7 @@ private:
     bool DecodePng(std::span<const std::byte> png_data, TileImage& out);
 
     // helpers
-    const ApplicationState::State* AppState() const
+    ApplicationState::ReadOnlyState AppState() const
     {
         return m_application_state.CheckoutReadonly();
     }

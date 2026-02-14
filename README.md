@@ -4,6 +4,7 @@ Bicycle
 ## Setup
 ```
 npm i lv_font_conv -g
+pip3 install jinja2 pyyaml
 ```
 
 ## Build setup (target)

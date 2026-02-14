@@ -57,6 +57,7 @@ WifiClientEsp32::EventHandler(void* arg,
     static int s_retry_num = 0;
 
     auto p = static_cast<WifiClientEsp32*>(arg);
+    auto state = p->m_app_state.CheckoutReadWrite();
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
@@ -64,8 +65,7 @@ WifiClientEsp32::EventHandler(void* arg,
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
-        auto state = p->m_app_state.Checkout();
-        state->wifi_connected = false;
+        state.Set(&AS::wifi_connected, false);
 
         if (s_retry_num < 5)
         {
@@ -75,11 +75,9 @@ WifiClientEsp32::EventHandler(void* arg,
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
-        auto state = p->m_app_state.Checkout();
-
         ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
         s_retry_num = 0;
 
-        state->wifi_connected = true;
+        state.Set(&AS::wifi_connected, true);
     }
 }

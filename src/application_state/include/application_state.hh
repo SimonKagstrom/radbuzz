@@ -1,14 +1,31 @@
 #pragma once
 
+#include "generated_application_state.hh"
 #include "semaphore.hh"
 
 #include <array>
 #include <atomic>
+#include <etl/bitset.h>
 #include <etl/mutex.h>
 #include <etl/vector.h>
 #include <string_view>
 
 constexpr auto kInvalidIconHash = 0;
+
+namespace AS::storage
+{
+
+template <class... T>
+struct partial_state : public T...
+{
+    template <typename S>
+    auto& GetRef()
+    {
+        return static_cast<S&>(*this).template GetRef<S>();
+    }
+};
+
+} // namespace AS::storage
 
 class ApplicationState
 {
@@ -20,55 +37,181 @@ public:
     };
 
 
-    struct State
+    class ReadOnlyState
     {
-        virtual ~State() = default;
+    public:
+        friend class ApplicationState;
 
-        bool wifi_connected {false};
-        bool bluetooth_connected {false};
-        bool gps_position_valid {false};
+        template <typename T>
+        auto Get()
+        {
+            return m_parent.Get<T>();
+        }
 
-        bool navigation_active {false};
+    protected:
+        explicit ReadOnlyState(ApplicationState& parent);
 
-        // In celcius
-        uint8_t controller_temperature {0};
-        uint8_t motor_temperature {0};
-        // km/h
-        uint8_t speed {0};
-
-        // Well, for now only handle up to 65v batteries...
-        uint16_t battery_millivolts {0};
-
-        uint32_t distance_to_next {0};
-        uint32_t current_icon_hash {kInvalidIconHash};
-        std::string_view next_street {""};
-
-        bool operator==(const State& other) const = default;
-        State& operator=(const State& other) = default;
+        ApplicationState& m_parent;
     };
+
+    class ReadWriteState : public ReadOnlyState
+    {
+    public:
+        friend class ApplicationState;
+
+        template <typename T>
+        void Set(const auto& value)
+        {
+            m_parent.Set<T>(value);
+        }
+
+    private:
+        using ReadOnlyState::ReadOnlyState;
+    };
+
+
+    template <class... T>
+    class PartialSnapshot
+    {
+    public:
+        friend class ApplicationState;
+
+        ~PartialSnapshot()
+        {
+            (void)std::initializer_list<int> {
+                ((m_changed.test(AS::IndexOf<T>()) ? (m_parent.Set<T>(Get<T>()), 0) : 0))...};
+        }
+
+        template <typename S>
+        auto Get()
+        {
+            // If S not in T, return the global state
+            if constexpr (!std::disjunction_v<std::is_same<S, T>...>)
+            {
+                return m_parent.Get<S>();
+            }
+            else
+            {
+                // Never a shared_ptr
+                return m_state.template GetRef<S>();
+            }
+        }
+
+        template <typename S>
+        void Set(const auto& value)
+        {
+            if constexpr (!std::disjunction_v<std::is_same<S, T>...>)
+            {
+                m_parent.Set<S>(value);
+            }
+            else
+            {
+                if (value == Get<S>())
+                {
+                    return;
+                }
+
+                m_state.template GetRef<S>() = value;
+
+                m_changed.set(AS::IndexOf<S>());
+            }
+        }
+
+    private:
+        explicit PartialSnapshot(ApplicationState& parent)
+            : m_parent(parent)
+        {
+            (void)std::initializer_list<int> {
+                (m_state.template GetRef<T>() = m_parent.GetValue<T>(), 0)...};
+        }
+
+        ApplicationState& m_parent;
+        AS::storage::partial_state<T...> m_state;
+
+        etl::bitset<AS::kLastIndex + 1, uint32_t> m_changed;
+    };
+
+
+    ApplicationState();
+
 
     std::unique_ptr<IListener> AttachListener(os::binary_semaphore& semaphore);
 
     // Checkout a local copy of the global state. Rewritten when the unique ptr is released
-    std::unique_ptr<State> Checkout();
+    ReadWriteState CheckoutReadWrite();
 
-    const State* CheckoutReadonly() const;
+    ReadOnlyState CheckoutReadonly();
+
+
+    template <class... T>
+    auto CheckoutPartialSnapshot()
+    {
+        return PartialSnapshot<T...>(*this);
+    }
 
 private:
     class ListenerImpl;
     class StateImpl;
 
-    template <typename M>
-    bool UpdateIfChanged(M ApplicationState::State::* member,
-                         const ApplicationState::StateImpl* current_state,
-                         ApplicationState::State* global_state) const;
+    template <typename T>
+    auto Get()
+    {
+        if constexpr (T::IsAtomic())
+        {
+            return m_global_state.GetRef<T>();
+        }
+        else
+        {
+            auto ptr = m_global_state.GetRef<T>();
 
-    void Commit(const StateImpl* state);
+            using element_type = typename decltype(ptr)::element_type;
+            return std::make_shared<const element_type>(*ptr);
+        }
+    }
 
-    State m_global_state;
+    template <typename T>
+    auto GetValue()
+    {
+        if constexpr (T::IsAtomic())
+        {
+            return m_global_state.GetRef<T>();
+        }
+        else
+        {
+            return *m_global_state.GetRef<T>();
+        }
+    }
+
+
+    template <typename T>
+    void Set(const auto& value)
+    {
+        std::lock_guard lock(m_mutex);
+
+        if constexpr (T::IsAtomic())
+        {
+            if (value == Get<T>())
+            {
+                return;
+            }
+            m_global_state.GetRef<T>() = value;
+        }
+        else
+        {
+            if (value == *Get<T>())
+            {
+                return;
+            }
+
+            auto& ref = m_global_state.GetRef<T>();
+
+            m_global_state.GetRef<T>() = std::make_shared<std::decay_t<decltype(*ref)>>(value);
+        }
+    }
+
+
+    AS::storage::state m_global_state;
+
     etl::mutex m_mutex;
     std::vector<ListenerImpl*> m_listeners;
-
-    std::array<std::string, 2> m_next_street;
-    uint32_t m_active_street {0};
 };

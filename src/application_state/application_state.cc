@@ -2,6 +2,12 @@
 
 #include <mutex>
 
+ApplicationState::ReadOnlyState::ReadOnlyState(ApplicationState& parent)
+    : m_parent(parent)
+{
+}
+
+
 class ApplicationState::ListenerImpl : public ApplicationState::IListener
 {
 public:
@@ -26,24 +32,10 @@ private:
     os::binary_semaphore& m_semaphore;
 };
 
-struct ApplicationState::StateImpl : ApplicationState::State
+ApplicationState::ApplicationState()
 {
-    explicit StateImpl(ApplicationState& parent)
-        : m_parent(parent)
-        , m_shadow(parent.m_global_state)
-    {
-        static_cast<State&>(*this) = parent.m_global_state;
-    }
-
-    ~StateImpl() final
-    {
-        m_parent.Commit(this);
-    }
-
-    ApplicationState& m_parent;
-    ApplicationState::State m_shadow;
-};
-
+    m_global_state.SetupDefaultValues();
+}
 
 std::unique_ptr<ApplicationState::IListener>
 ApplicationState::AttachListener(os::binary_semaphore& semaphore)
@@ -55,72 +47,14 @@ ApplicationState::AttachListener(os::binary_semaphore& semaphore)
     return out;
 }
 
-std::unique_ptr<ApplicationState::State>
-ApplicationState::Checkout()
+ApplicationState::ReadWriteState
+ApplicationState::CheckoutReadWrite()
 {
-    std::lock_guard lock(m_mutex);
-
-    return std::make_unique<StateImpl>(*this);
+    return ApplicationState::ReadWriteState(*this);
 }
 
-const ApplicationState::State*
-ApplicationState::CheckoutReadonly() const
+ApplicationState::ReadOnlyState
+ApplicationState::CheckoutReadonly()
 {
-    return &m_global_state;
-}
-
-
-template <typename M>
-bool
-ApplicationState::UpdateIfChanged(M ApplicationState::State::* member,
-                                  const ApplicationState::StateImpl* current_state,
-                                  ApplicationState::State* global_state) const
-{
-    if (current_state->*member != current_state->m_shadow.*member)
-    {
-        global_state->*member = current_state->*member;
-        return true;
-    }
-
-    return false;
-}
-
-void
-ApplicationState::Commit(const ApplicationState::StateImpl* state)
-{
-    std::lock_guard lock(m_mutex);
-
-    auto updated = false;
-
-    // Ugly, but reflection is not available
-    updated |= UpdateIfChanged(&ApplicationState::State::navigation_active, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::wifi_connected, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::bluetooth_connected, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::gps_position_valid, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::controller_temperature, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::motor_temperature, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::speed, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::battery_millivolts, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::current_icon_hash, state, &m_global_state);
-    updated |= UpdateIfChanged(&ApplicationState::State::distance_to_next, state, &m_global_state);
-
-    // Make sure the backing store reflects the next street, so make a copy but leave the old lingering
-    if (state->m_shadow.next_street != state->next_street)
-    {
-        m_next_street[m_active_street] = state->next_street;
-        m_global_state.next_street = m_next_street[m_active_street];
-
-        m_active_street = !m_active_street;
-        updated = true;
-    }
-
-    if (!updated)
-    {
-        return;
-    }
-
-    for (auto listener : m_listeners)
-    {
-        listener->Awake();
-    }
+    return ApplicationState::ReadOnlyState(*this);
 }

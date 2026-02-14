@@ -1,0 +1,13 @@
+#include "generated_application_state.hh"
+
+void AS::storage::state::SetupDefaultValues()
+{
+    {%- for asp in application_state_parameters %}
+    {%- if asp.parameter.is_atomic == false %}
+    {{ asp.parameter.name }} = std::make_shared<{{ asp.parameter.type }}>(DefaultValue<struct {{ asp.parameter.name }}>());
+    {%- else %}
+    {{ asp.parameter.name }} = DefaultValue<struct {{ asp.parameter.name }}>();
+    {%- endif %}
+    {%- endfor %}
+}
+

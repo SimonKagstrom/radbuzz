@@ -1,0 +1,87 @@
+#pragma once
+
+#include <cstdint>
+#include <memory>
+#include <string>
+
+namespace AS
+{
+
+constexpr auto kLastIndex = {{ max_index }};
+
+{% for parameter in parameters %}
+struct {{ parameter.name }}
+{
+    {{parameter.type}} {{ parameter.name }};
+
+    template<typename T>
+    auto &GetRef();
+
+    template<>
+    auto &GetRef<struct {{ parameter.name }}>()
+    {
+        return {{parameter.name}};
+    }
+
+    static consteval bool IsAtomic()
+    {
+        return {{ parameter.is_atomic|lower }};
+    }
+};
+{% endfor %}
+
+
+template<typename T>
+auto DefaultValue();
+
+{% for asp in application_state_parameters %}
+template<>
+consteval auto DefaultValue<struct {{ asp.parameter.name }}>()
+{
+    return {{ asp.default_value }};
+};
+{% endfor %}
+
+
+template<typename T>
+auto IndexOf();
+
+{% for asp in application_state_parameters %}
+template<>
+consteval auto IndexOf<struct {{ asp.parameter.name }}>()
+{
+    return {{ asp.index }};
+};
+{% endfor %}
+
+
+namespace storage
+{
+struct state
+{
+    {%- for asp in application_state_parameters %}
+    {%- if asp.parameter.is_atomic == false %}
+    std::shared_ptr<{{ asp.parameter.type }}> {{ asp.parameter.name }};
+    {%- else %}
+    {{ asp.parameter.type }} {{ asp.parameter.name }};
+    {%- endif %}
+    {%- endfor %}
+
+
+    template<typename T>
+    auto &GetRef();
+
+    {% for asp in application_state_parameters %}
+    template<>
+    auto &GetRef<struct {{asp.parameter.name}}>()
+    {
+        return {{asp.parameter.name}};
+    }
+    {% endfor %}
+
+    void SetupDefaultValues();
+};
+
+} // namespace storage
+
+} // namespace AS

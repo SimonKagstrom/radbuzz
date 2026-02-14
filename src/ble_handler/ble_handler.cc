@@ -104,7 +104,7 @@ void
 BleHandler::OnChaNav(std::span<const uint8_t> data)
 {
     std::string next_street;
-    auto state = m_state.Checkout();
+    auto state = m_state.CheckoutReadWrite();
 
     /*
      * nextRd=Braxvägen
@@ -128,17 +128,17 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
 
         if (key == "iconHash")
         {
-            state->current_icon_hash = StringToKey(val);
+            state.Set(&AS::current_icon_hash, StringToKey(val));
         }
         if (key == "distToNext" && val.size() > 0 && std::isdigit(val[0]))
         {
-            state->distance_to_next = std::stoul(val);
+            state.Set(&AS::distance_to_next, std::stoul(val));
         }
         if (key == "nextRd")
         {
             // Make sure it's not released on the stack (val)
             next_street = val;
-            state->next_street = next_street;
+            state.Set(&AS::next_street, next_street);
         }
     }
 

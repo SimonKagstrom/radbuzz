@@ -125,6 +125,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle navigation info")
 {
     DoStartup();
 
+    auto app_state = state.CheckoutReadonly();
     WHEN("a non-empty description comes in")
     {
         auto non_empty = R"VOBB(nextRd=Braxvägen
@@ -140,7 +141,7 @@ iconHash=a7f7f83332
 
         THEN("the key is updated")
         {
-            REQUIRE(state.CheckoutReadonly()->current_icon_hash == 0xa7f7f833);
+            REQUIRE(app_state.Get(&AS::current_icon_hash) == 0xa7f7f833);
         }
     }
 
@@ -155,13 +156,13 @@ ete=
 iconHash=
         )VOBB";
 
-        state.Checkout()->current_icon_hash = 1976;
-        REQUIRE(state.CheckoutReadonly()->current_icon_hash != kInvalidIconHash);
+        state.CheckoutReadWrite().Set(&AS::current_icon_hash, 1976);
+        REQUIRE(app_state.Get(&AS::current_icon_hash) != kInvalidIconHash);
         srv.Inject(kChaNav, non_empty);
 
         THEN("the key is set to the invalid icon hash")
         {
-            REQUIRE(state.CheckoutReadonly()->current_icon_hash == kInvalidIconHash);
+            REQUIRE(app_state.Get(&AS::current_icon_hash) == kInvalidIconHash);
         }
     }
 
@@ -176,13 +177,13 @@ ete=
 iconHash=
         )VOBB";
 
-        state.Checkout()->current_icon_hash = 1976;
-        REQUIRE(state.CheckoutReadonly()->current_icon_hash != kInvalidIconHash);
+        state.CheckoutReadWrite().Set(&AS::current_icon_hash, 1976);
+        REQUIRE(app_state.Get(&AS::current_icon_hash) != kInvalidIconHash);
         srv.Inject(kChaNav, non_empty);
 
         THEN("the distance is still set to 0")
         {
-            REQUIRE(state.CheckoutReadonly()->distance_to_next == 0);
+            REQUIRE(app_state.Get(&AS::distance_to_next) == 0);
         }
     }
 }

@@ -45,7 +45,7 @@ main(int argc, char* argv[])
     MainWindow window;
 
     ApplicationState application_state;
-    application_state.Checkout()->wifi_connected = true;
+    application_state.CheckoutReadWrite().Set(&AS::wifi_connected, true);
 
     srand(seed);
 
