@@ -64,7 +64,6 @@ TEST_CASE("A partial snapshot keeps a cached state")
     auto snapshot = app_state.CheckoutPartialSnapshot<AS::speed, AS::battery_millivolts>();
 
     REQUIRE(snapshot.Get<AS::speed>() == 0);
-    REQUIRE(snapshot.Get<AS::controller_temperature>() == 0);
 
     // In the snapshot
     rw.Set<AS::speed>(10);
@@ -73,7 +72,7 @@ TEST_CASE("A partial snapshot keeps a cached state")
 
     REQUIRE(rw.Get<AS::speed>() == 10);
     REQUIRE(snapshot.Get<AS::speed>() == 0);
-    REQUIRE(snapshot.Get<AS::controller_temperature>() == 45);
+    REQUIRE(rw.Get<AS::controller_temperature>() == 45);
 
     snapshot.Set<AS::speed>(20);
     REQUIRE(rw.Get<AS::speed>() == 10);
@@ -172,9 +171,6 @@ TEST_CASE("Snapshots affect listeners on destruction")
         REQUIRE(ro.Get<AS::speed>() == 0);
 
         REQUIRE(sem_other.try_acquire() == false);
-        // Write through
-        snapshot.Set<AS::battery_millivolts>(3000);
-        REQUIRE(sem_other.try_acquire() == true);
     }
 
     REQUIRE(ro.Get<AS::speed>() == 11);
@@ -224,10 +220,12 @@ TEST_CASE("A demo of the application state functionality")
             THEN("the snapshot can be used to batch writes")
             {
                 snapshot.Set<AS::speed>(30);
+
                 REQUIRE(ro.Get<AS::speed>() == 0);
                 REQUIRE(snapshot.Get<AS::speed>() == 30);
-                snapshot.Set<AS::motor_temperature>(80);
-                snapshot.Set<AS::speed>(50);
+
+                // Note: Compile error since battery_millivolts isn't part of the snapshot
+                // snapshot.Get<AS::battery_millivolts>();
             }
 
             snapshot.Set<AS::speed>(35);

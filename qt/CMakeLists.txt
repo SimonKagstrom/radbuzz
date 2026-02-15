@@ -59,6 +59,7 @@ target_link_libraries(radbuzz_qt
     gpio_host
     pm_host
     buzz_handler
+    can_bus_handler
     tile_cache
     gps_reader
     Qt6::Widgets
