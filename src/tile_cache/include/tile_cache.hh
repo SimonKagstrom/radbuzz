@@ -102,7 +102,7 @@ private:
     Filesystem& m_filesystem;
     HttpdClient& m_httpd_client;
 
-    std::unique_ptr<ApplicationState::IListener> m_state_listener;
+    std::unique_ptr<ListenerCookie> m_state_listener;
 
     SingleColorImage m_black_tile {kTileSize, kTileSize, 2, 0x0000}; // Black tile
 

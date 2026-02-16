@@ -39,6 +39,7 @@ add_executable(unittest_radbuzz
 
 target_link_libraries(unittest_radbuzz
     ble_handler_private
+    can_bus_handler
     tile_cache
     os_unittest
     mock_filesystem

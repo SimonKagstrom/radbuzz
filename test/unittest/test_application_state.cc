@@ -67,10 +67,11 @@ TEST_CASE("A partial snapshot keeps a cached state")
 
     // In the snapshot
     rw.Set<AS::speed>(10);
-    // Not in the snapshot - forwarded
+    // Not in the snapshot
     rw.Set<AS::controller_temperature>(45);
 
     REQUIRE(rw.Get<AS::speed>() == 10);
+    // Uses the cached copy
     REQUIRE(snapshot.Get<AS::speed>() == 0);
     REQUIRE(rw.Get<AS::controller_temperature>() == 45);
 
