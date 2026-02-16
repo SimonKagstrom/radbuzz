@@ -108,27 +108,33 @@ TEST_CASE("Writes in partial snapshots are written back on destruction")
 TEST_CASE("Listeners can be added to the application state")
 {
     ApplicationState app_state;
-    os::binary_semaphore sem {0};
+    os::binary_semaphore sem {0}, sem_other {0};
 
     auto listener = app_state.AttachListener<AS::speed, AS::next_street>(sem);
+    auto listener_2 = app_state.AttachListener<AS::next_street>(sem_other);
     auto rw = app_state.CheckoutReadWrite();
 
     WHEN("a non-listened to parameter is changed")
     {
         rw.Set<AS::controller_temperature>(45);
 
-        THEN("the listener is not notified")
+        THEN("the listeners are not notified")
         {
             REQUIRE(sem.try_acquire() == false);
+            REQUIRE(sem_other.try_acquire() == false);
         }
     }
     AND_THEN("listened to parameters are notified")
     {
+        // Not listened to by the second listener
         rw.Set<AS::speed>(10);
         REQUIRE(sem.try_acquire() == true);
+        REQUIRE(sem_other.try_acquire() == false);
 
+        // Listened to by both
         rw.Set<AS::next_street>("St Mickelsgatan");
         REQUIRE(sem.try_acquire() == true);
+        REQUIRE(sem_other.try_acquire() == true);
         REQUIRE(sem.try_acquire() == false); // No extra notifications
 
         AND_WHEN("the same value is set")
@@ -138,16 +144,57 @@ TEST_CASE("Listeners can be added to the application state")
             THEN("there is no notification")
             {
                 REQUIRE(sem.try_acquire() == false);
+                REQUIRE(sem_other.try_acquire() == false);
             }
         }
         AND_WHEN("the listener is removed")
         {
             listener = nullptr;
+            rw.Set<AS::next_street>("Östra Hamngatan");
 
             THEN("notifications are no longer sent")
             {
-                rw.Set<AS::next_street>("Östra Hamngatan");
                 REQUIRE(sem.try_acquire() == false);
+            }
+            AND_THEN("other listeners are still notified")
+            {
+                REQUIRE(sem_other.try_acquire() == true);
+            }
+        }
+    }
+}
+
+TEST_CASE("There's a finite number of listeners that can be attached")
+{
+    ApplicationState app_state;
+    os::binary_semaphore sem {0};
+
+    WHEN("the maximum number of listeners is reached")
+    {
+        std::vector<std::unique_ptr<ListenerCookie>> listeners;
+        std::vector<std::unique_ptr<os::binary_semaphore>> semaphores;
+        for (size_t i = 0; i < 255; ++i)
+        {
+            semaphores.push_back(std::make_unique<os::binary_semaphore>(0));
+            auto cur = app_state.AttachListener<AS::speed>(*semaphores[i]);
+            REQUIRE(cur);
+            listeners.push_back(std::move(cur));
+        }
+
+        THEN("no more listeners can be added")
+        {
+            auto extra_listener = app_state.AttachListener<AS::speed>(sem);
+            REQUIRE(extra_listener == nullptr);
+
+            AND_WHEN("a listener is removed")
+            {
+                listeners[0] = nullptr;
+
+                THEN("a new listener can be added")
+                {
+                    auto new_listener = app_state.AttachListener<AS::speed>(sem);
+                    REQUIRE(new_listener);
+                }
             }
         }
     }
