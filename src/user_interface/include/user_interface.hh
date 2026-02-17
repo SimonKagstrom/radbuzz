@@ -39,7 +39,7 @@ private:
     uint32_t m_next_redraw_time {0};
 
 
-    std::unique_ptr<ApplicationState::IListener> m_state_listener;
+    std::unique_ptr<ListenerCookie> m_state_listener;
     std::unique_ptr<ListenerCookie> m_cache_listener;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
