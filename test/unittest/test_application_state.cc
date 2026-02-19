@@ -9,6 +9,12 @@ TEST_CASE("The application state has default values")
     REQUIRE(ro.Get<AS::wifi_connected>() == false);
     REQUIRE(ro.Get<AS::speed>() == 0);
     REQUIRE(*ro.Get<AS::next_street>() == "");
+
+    auto p = ro.Get<AS::position>();
+    REQUIRE(p->position == GpsPosition {0.0f, 0.0f});
+    REQUIRE(p->speed == 0.0f);
+    REQUIRE(p->heading == 0.0f);
+    REQUIRE(p->pixel_position == Point {0, 0});
 }
 
 TEST_CASE("Writes are seen immediately in read-only checkouts")

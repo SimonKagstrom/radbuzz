@@ -8,3 +8,4 @@ application_state:
   controller_temperature: 0
   motor_temperature: 0
   battery_millivolts: 0
+  position: {}

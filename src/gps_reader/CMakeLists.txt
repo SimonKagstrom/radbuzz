@@ -11,4 +11,5 @@ target_link_libraries(gps_reader
 PUBLIC
     base_thread
     wgs84_to_osm_point
+    application_state
 )

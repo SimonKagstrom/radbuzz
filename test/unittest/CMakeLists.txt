@@ -20,6 +20,10 @@ add_subdirectory(${TOP}/external/libmaelir/test/unittest libmaelir_unittests)
 generate_application_state(radbuzz_unittest_application_state
     "${TOP}/application_state/parameters.yml;${TOP}/application_state/application_state.yml;${CMAKE_CURRENT_SOURCE_DIR}/unittest_parameters.yml"
 )
+target_link_libraries(radbuzz_unittest_application_state
+PUBLIC
+    radbuzz_application_state
+)
 
 
 add_library(filesystem_implementation ALIAS mock_filesystem)

@@ -1,24 +1,12 @@
 #pragma once
 
+#include "application_state.hh"
 #include "base_thread.hh"
 #include "hal/i_gps.hh"
 
 #include <array>
 #include <atomic>
 #include <etl/vector.h>
-
-#include "wgs84_to_osm_point.hh"
-
-struct GpsData
-{
-    GpsPosition position;
-    Point pixel_position;
-
-    float speed;
-    float heading;
-
-    // Add time, height, etc.
-};
 
 class IGpsPort
 {
