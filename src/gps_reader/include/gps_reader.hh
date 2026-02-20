@@ -8,46 +8,21 @@
 #include <atomic>
 #include <etl/vector.h>
 
-class IGpsPort
-{
-public:
-    virtual ~IGpsPort() = default;
-
-    void AwakeOn(os::binary_semaphore& semaphore)
-    {
-        DoAwakeOn(&semaphore);
-    }
-
-    void DisableWakeup()
-    {
-        DoAwakeOn(nullptr);
-    }
-
-    virtual std::optional<GpsData> Poll() = 0;
-
-protected:
-    virtual void DoAwakeOn(os::binary_semaphore* semaphore) = 0;
-};
-
 
 class GpsReader : public os::BaseThread
 {
 public:
-    explicit GpsReader(hal::IGps& gps);
-
-    std::unique_ptr<IGpsPort> AttachListener();
+    explicit GpsReader(ApplicationState &application_state,
+        hal::IGps& gps);
 
 private:
-    class GpsPortImpl;
-
     std::optional<milliseconds> OnActivation() final;
 
     void Reset();
 
+    ApplicationState &m_application_state;
     hal::IGps& m_gps;
 
-    etl::vector<GpsPortImpl*, 8> m_listeners;
-    std::array<std::atomic_bool, 8> m_stale_listeners;
 
     std::optional<GpsPosition> m_position;
     std::optional<float> m_speed;

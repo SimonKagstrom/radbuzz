@@ -58,19 +58,16 @@ main(int argc, char* argv[])
 
     // Threads
     auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
-    auto gps_reader = std::make_unique<GpsReader>(app_simulator->GetSimulatedGps());
-    auto tile_cache = std::make_unique<TileCache>(application_state,
-                                                  pm->CreateFullPowerLock(),
-                                                  gps_reader->AttachListener(),
-                                                  *filesystem,
-                                                  *httpd_client);
+    auto gps_reader =
+        std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
+    auto tile_cache = std::make_unique<TileCache>(
+        application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
                                                           pm->CreateFullPowerLock(),
                                                           application_state,
-                                                          gps_reader->AttachListener(),
                                                           *image_cache,
                                                           *tile_cache);
 

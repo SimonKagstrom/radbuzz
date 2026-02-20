@@ -71,19 +71,15 @@ private:
 
 TileCache::TileCache(ApplicationState& application_state,
                      std::unique_ptr<hal::IPm::ILock> pm_lock,
-                     std::unique_ptr<IGpsPort> gps_port,
                      Filesystem& filesystem,
                      HttpdClient& httpd_client)
     : m_application_state(application_state)
     , m_pm_lock(std::move(pm_lock))
-    , m_gps_port(std::move(gps_port))
     , m_filesystem(filesystem)
     , m_httpd_client(httpd_client)
-    , m_state_listener(m_application_state.AttachListener(GetSemaphore()))
+    , m_state_listener(m_application_state.AttachListener<AS::position>(GetSemaphore()))
 {
     std::ranges::fill(m_tiles, kInvalidTile);
-
-    m_gps_port->AwakeOn(GetSemaphore());
 }
 
 void
@@ -111,7 +107,10 @@ TileCache::OnStartup()
 std::optional<milliseconds>
 TileCache::OnActivation()
 {
-    if (auto gps_data = m_gps_port->Poll(); gps_data)
+    auto ro = m_application_state.CheckoutReadonly();
+
+    auto gps_data = ro.Get<AS::position>();
+    if (m_last_gps_data != *gps_data)
     {
         auto city_tile = ToCityTile(gps_data->pixel_position);
 
@@ -130,6 +129,7 @@ TileCache::OnActivation()
             RefreshCityTiles(center_tile);
         }
     }
+    m_last_gps_data = *gps_data;
 
     FillFromColdStore();
     FillFromServer();

@@ -2,7 +2,6 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
-#include "gps_reader.hh"
 #include "hal/i_display.hh"
 #include "hal/i_pm.hh"
 #include "image_cache.hh"
@@ -19,7 +18,6 @@ public:
     UserInterface(hal::IDisplay& display,
                   std::unique_ptr<hal::IPm::ILock> pm_lock,
                   ApplicationState& state,
-                  std::unique_ptr<IGpsPort> gps_port,
                   ImageCache& cache,
                   TileCache& tile_cache);
 
@@ -30,7 +28,6 @@ private:
     hal::IDisplay& m_display;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     ApplicationState& m_state;
-    std::unique_ptr<IGpsPort> m_gps_port;
 
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;
@@ -51,11 +48,6 @@ private:
     lv_indev_t* m_lvgl_input_dev {nullptr};
 
     std::unique_ptr<MenuScreen> m_menu_screen;
-
-    GpsPosition m_current_position {
-        59.646331787827336,
-        17.07769480747484,
-    };
 
     // Maybe TMP
     std::unique_ptr<uint8_t[]> m_static_map_buffer;

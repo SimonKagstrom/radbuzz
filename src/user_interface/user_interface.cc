@@ -7,18 +7,14 @@
 UserInterface::UserInterface(hal::IDisplay& display,
                              std::unique_ptr<hal::IPm::ILock> pm_lock,
                              ApplicationState& state,
-                             std::unique_ptr<IGpsPort> gps_port,
                              ImageCache& cache,
                              TileCache& tile_cache)
     : m_display(display)
     , m_pm_lock(std::move(pm_lock))
     , m_state(state)
-    , m_gps_port(std::move(gps_port))
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
 {
-    m_gps_port->AwakeOn(GetSemaphore());
-
     m_static_map_buffer = std::unique_ptr<uint8_t[]>(static_cast<uint8_t*>(
         aligned_alloc(64, hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t))));
     m_static_map_image = std::make_unique<Image>(
@@ -28,7 +24,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
         hal::kDisplayHeight);
 
 
-    m_state_listener = m_state.AttachListener(GetSemaphore());
+    m_state_listener = m_state.AttachListener<AS::position>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
 }
 
@@ -120,21 +116,17 @@ UserInterface::OnActivation()
         }
     }
 
-    if (auto gps_data = m_gps_port->Poll(); gps_data)
-    {
-        m_current_position = gps_data->position;
-    }
+    auto gps_data = state.Get<AS::position>();
 
-    auto point = Wgs84ToOsmPoint(m_current_position, 15);
-    auto t = ToTile(*point);
+    auto t = ToTile(gps_data->pixel_position);
 
     // Calculate the center of the display
     int display_cx = hal::kDisplayWidth / 2;
     int display_cy = hal::kDisplayHeight / 2;
 
     // Calculate the top-left pixel in OSM coordinates that should be at (0,0) on the display
-    int start_x = point->x - display_cx;
-    int start_y = point->y - display_cy;
+    int start_x = gps_data->pixel_position.x - display_cx;
+    int start_y = gps_data->pixel_position.y - display_cy;
 
     // Calculate how many tiles are needed to cover the display
     constexpr int num_tiles_x = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;

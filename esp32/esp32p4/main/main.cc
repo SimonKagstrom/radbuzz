@@ -7,6 +7,7 @@
 #include "can_esp32.hh"
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
+#include "gps_reader.hh"
 #include "i2c_gps_esp32.hh"
 #include "image_cache.hh"
 #include "jd9365_display_esp32.hh"
@@ -378,19 +379,12 @@ app_main(void)
     //auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
     auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
 
-    auto gps_reader = std::make_unique<GpsReader>(*gps);
-    auto tile_cache = std::make_unique<TileCache>(application_state,
-                                                  pm->CreateFullPowerLock(),
-                                                  gps_reader->AttachListener(),
-                                                  *filesystem,
-                                                  *httpd_client);
+    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    auto tile_cache = std::make_unique<TileCache>(
+        application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
-    auto user_interface = std::make_unique<UserInterface>(*display,
-                                                          pm->CreateFullPowerLock(),
-                                                          application_state,
-                                                          gps_reader->AttachListener(),
-                                                          *image_cache,
-                                                          *tile_cache);
+    auto user_interface = std::make_unique<UserInterface>(
+        *display, pm->CreateFullPowerLock(), application_state, *image_cache, *tile_cache);
 
 
     buzz_handler->Start("buzz_handler", 8192);
@@ -404,9 +398,7 @@ app_main(void)
 
     // TMP!
     os::Sleep(2s);
-    ble_server->ScanForService(hal::Uuid16(0x61c9), [](auto peer) {
-        printf("Found peer\n");
-});
+    ble_server->ScanForService(hal::Uuid16(0x61c9), [](auto peer) { printf("Found peer\n"); });
 
 
     while (true)

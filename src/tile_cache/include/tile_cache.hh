@@ -3,7 +3,6 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "filesystem.hh"
-#include "gps_reader.hh"
 #include "hal/i_pm.hh"
 #include "httpd_client.hh"
 #include "image.hh"
@@ -65,7 +64,6 @@ class TileCache : public os::BaseThread
 public:
     TileCache(ApplicationState& application_state,
               std::unique_ptr<hal::IPm::ILock> pm_lock,
-              std::unique_ptr<IGpsPort> gps_port,
               Filesystem& filesystem,
               HttpdClient& httpd_client);
 
@@ -98,11 +96,11 @@ private:
 
     ApplicationState& m_application_state;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
-    std::unique_ptr<IGpsPort> m_gps_port;
     Filesystem& m_filesystem;
     HttpdClient& m_httpd_client;
 
     std::unique_ptr<ListenerCookie> m_state_listener;
+    GpsData m_last_gps_data{};
 
     SingleColorImage m_black_tile {kTileSize, kTileSize, 2, 0x0000}; // Black tile
 
