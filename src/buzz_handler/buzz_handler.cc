@@ -8,7 +8,8 @@ BuzzHandler::BuzzHandler(hal::IGpio& left_buzzer,
     : m_left_buzzer(left_buzzer)
     , m_right_buzzer(right_buzzer)
     , m_state(app_state)
-    , m_state_listener(m_state.AttachListener(GetSemaphore()))
+    , m_state_listener(
+          m_state.AttachListener<AS::current_icon_hash, AS::distance_to_next>(GetSemaphore()))
     , m_off_timer(StartTimer(0ms))
 {
 }

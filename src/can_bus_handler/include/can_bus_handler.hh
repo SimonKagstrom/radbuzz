@@ -20,7 +20,6 @@ private:
     ApplicationState& m_state;
     const uint8_t m_controller_id;
 
-    std::unique_ptr<ListenerCookie> m_state_listener;
     std::unique_ptr<ListenerCookie> m_bus_listener;
 
     os::TimerHandle m_periodic_timer;

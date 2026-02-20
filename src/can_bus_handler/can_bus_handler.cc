@@ -8,8 +8,6 @@ CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state, uint8_
     , m_state(app_state)
     , m_controller_id(controller_id)
 {
-    m_state_listener = m_state.AttachListener(GetSemaphore());
-
     vesc_can_init(
         [](uint32_t id, const uint8_t* data, uint8_t len, void* user_cookie) {
             auto pThis = static_cast<CanBusHandler*>(user_cookie);
