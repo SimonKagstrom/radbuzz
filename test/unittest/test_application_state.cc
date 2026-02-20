@@ -53,6 +53,27 @@ TEST_CASE("Non-atomic members are kept alive via shared pointers")
     REQUIRE(*s == "Östra Prinsgatan");
 }
 
+TEST_CASE("Non-atomic structs can be written via value")
+{
+    ApplicationState app_state;
+    auto ro = app_state.CheckoutReadonly();
+    auto rw = app_state.CheckoutReadWrite();
+
+    GpsData gps_data {
+        .position = {59.3293f, 18.0686f},
+        .pixel_position = {100, 200},
+        .speed = 50.0f,
+        .heading = 90.0f,
+    };
+
+    rw.Set<AS::position>(gps_data);
+    auto p = ro.Get<AS::position>();
+
+    REQUIRE(p->position == GpsPosition {59.3293f, 18.0686f});
+    REQUIRE(p->pixel_position == Point {100, 200});
+    REQUIRE(p->speed == 50.0f);
+    REQUIRE(p->heading == 90.0f);
+}
 
 TEST_CASE("Partial snapshot sizes are reasonable")
 {

@@ -12,4 +12,5 @@ struct GpsData
     float heading;
 
     // Add time, height, etc.
+    bool operator==(const GpsData& other) const = default;
 };
