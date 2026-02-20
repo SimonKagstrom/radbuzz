@@ -1,7 +1,10 @@
 # This is the list of all used parameters, and their default values
+cpp_includes:
+  - "tile_constants.hh"
+
 application_state:
   wifi_connected: false
-  current_icon_hash: 0
+  current_icon_hash: kInvalidIconHash
   distance_to_next: 0
   next_street: ""
   speed: 0
