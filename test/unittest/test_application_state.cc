@@ -256,6 +256,50 @@ TEST_CASE("Snapshots affect listeners on destruction")
     REQUIRE(sem.try_acquire() == true);
 }
 
+TEST_CASE("structs can be changed in parts in partial snapshots")
+{
+    ApplicationState app_state;
+    os::binary_semaphore sem {0};
+
+    auto listener = app_state.AttachListener<AS::position>(sem);
+    auto ro = app_state.CheckoutReadonly();
+
+    WHEN("a reference is gotten, and a change is made")
+    {
+        {
+            auto snapshot = app_state.CheckoutPartialSnapshot<AS::position>();
+
+            auto& p = snapshot.GetWritableReference<AS::position>();
+
+            REQUIRE(p.speed == 0.0f);
+            p.speed = 50.0f;
+        }
+
+        THEN("the value is written back, and listeners notified")
+        {
+            REQUIRE(ro.Get<AS::position>()->speed == 50.0f);
+            REQUIRE(sem.try_acquire() == true);
+        }
+    }
+
+    WHEN("a reference is gotten, without changes")
+    {
+        {
+            auto snapshot = app_state.CheckoutPartialSnapshot<AS::position>();
+
+            auto& p = snapshot.GetWritableReference<AS::position>();
+
+            REQUIRE(p.speed == 0.0f);
+        }
+
+        THEN("nothing is written, and no-one is notified")
+        {
+            REQUIRE(ro.Get<AS::position>()->speed == 0.0f);
+            REQUIRE(sem.try_acquire() == false);
+        }
+    }
+}
+
 TEST_CASE("the build is OK even with parameters not in the application state")
 {
     ApplicationState app_state;
