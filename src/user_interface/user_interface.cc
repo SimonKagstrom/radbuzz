@@ -2,6 +2,7 @@
 
 #include "map_screen.hh"
 #include "painter.hh"
+#include "trip_meter_screen.hh"
 
 #include <radbuzz_font_22.h>
 
@@ -57,11 +58,30 @@ UserInterface::OnStartup()
     //lv_indev_set_read_cb(m_lvgl_input_dev, StaticLvglEncoderRead);
 
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache);
+    m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
+
     m_map_screen->Activate();
     m_current_screen = m_map_screen.get();
 
     //    m_menu_screen = std::make_unique<MenuScreen>(
     //        GetTimerManager(), m_lvgl_input_dev, []() { printf("Menu closed\n"); });
+
+    static auto vobb = StartTimer(5s, [this]() {
+        auto now = m_current_screen;
+
+        if (now == m_map_screen.get())
+        {
+            m_trip_meter_screen->Activate();
+            m_current_screen = m_trip_meter_screen.get();
+        }
+        else
+        {
+            m_map_screen->Activate();
+            m_current_screen = m_map_screen.get();
+        }
+
+        return 5s;
+    });
 }
 
 std::optional<milliseconds>
@@ -79,5 +99,10 @@ UserInterface::OnActivation()
     auto delay = lv_timer_handler();
     m_next_redraw_time = os::GetTimeStampRaw() + delay;
 
-    return std::nullopt; //milliseconds(delay);
+    if (lv_display_get_screen_loading(m_lvgl_display))
+    {
+        return milliseconds(delay);
+    }
+
+    return std::nullopt;
 }

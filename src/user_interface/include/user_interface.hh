@@ -12,10 +12,13 @@
 #include <lvgl.h>
 
 class MapScreen;
+class TripMeterScreen;
+
 class UserInterface : public os::BaseThread
 {
 public:
     friend class MapScreen;
+    friend class TripMeterScreen;
 
     class ScreenBase
     {
@@ -76,7 +79,8 @@ private:
     lv_indev_t* m_lvgl_input_dev {nullptr};
 
     std::unique_ptr<ScreenBase> m_map_screen;
+    std::unique_ptr<ScreenBase> m_trip_meter_screen;
     std::unique_ptr<MenuScreen> m_menu_screen;
 
-    ScreenBase *m_current_screen {nullptr};
+    ScreenBase* m_current_screen {nullptr};
 };
