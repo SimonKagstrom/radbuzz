@@ -11,10 +11,42 @@
 
 #include <lvgl.h>
 
-
+class MapScreen;
 class UserInterface : public os::BaseThread
 {
 public:
+    friend class MapScreen;
+
+    class ScreenBase
+    {
+    public:
+        explicit ScreenBase(UserInterface& parent)
+            : m_parent(parent)
+        {
+        }
+
+        virtual ~ScreenBase() = default;
+
+        virtual void Update() = 0;
+
+        void Activate()
+        {
+            lv_screen_load(m_screen);
+        }
+
+        //virtual void HandleInput() = 0;
+
+        lv_obj_t* GetLvglObj()
+        {
+            return m_screen;
+        }
+
+    protected:
+        UserInterface& m_parent;
+
+        lv_obj_t* m_screen {nullptr};
+    };
+
     UserInterface(hal::IDisplay& display,
                   std::unique_ptr<hal::IPm::ILock> pm_lock,
                   ApplicationState& state,
@@ -41,15 +73,10 @@ private:
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
 
-    lv_obj_t* m_screen;
-    lv_obj_t* m_current_icon {nullptr};
-    lv_obj_t* m_description_label {nullptr};
-    lv_obj_t* m_distance_left_label {nullptr};
     lv_indev_t* m_lvgl_input_dev {nullptr};
 
+    std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<MenuScreen> m_menu_screen;
 
-    // Maybe TMP
-    std::unique_ptr<uint8_t[]> m_static_map_buffer;
-    std::unique_ptr<Image> m_static_map_image;
+    ScreenBase *m_current_screen {nullptr};
 };

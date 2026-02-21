@@ -5,6 +5,7 @@ convert_font(radbuzz_font_22
 )
 
 add_library(user_interface EXCLUDE_FROM_ALL
+    map_screen.cc
     user_interface.cc
 )
 
