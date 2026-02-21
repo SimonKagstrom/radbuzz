@@ -64,14 +64,11 @@ UserInterface::OnStartup()
     lv_indev_set_user_data(m_lvgl_input_dev, this);
     //lv_indev_set_read_cb(m_lvgl_input_dev, StaticLvglEncoderRead);
 
-    m_screen = lv_obj_create(nullptr);
+    m_screen = lv_image_create(nullptr);
+
+    lv_obj_move_background(m_screen);
+    lv_image_set_src(m_screen, &m_static_map_image->lv_image_dsc);
     lv_screen_load(m_screen);
-
-
-    m_background = lv_image_create(m_screen);
-
-    lv_obj_move_background(m_background);
-    lv_image_set_src(m_background, &m_static_map_image->lv_image_dsc);
 
     m_current_icon = lv_image_create(m_screen);
     lv_obj_center(m_current_icon);

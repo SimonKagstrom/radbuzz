@@ -52,5 +52,4 @@ private:
     // Maybe TMP
     std::unique_ptr<uint8_t[]> m_static_map_buffer;
     std::unique_ptr<Image> m_static_map_image;
-    lv_obj_t* m_background;
 };
