@@ -2,6 +2,15 @@
 
 #include <radbuzz_font_22.h>
 
+/*
+ * Distance travelled
+ * Wh consumed
+ * Wh regenerated
+ * Average speed
+ * Average consumption
+ * Remaining range
+ */
+
 TripMeterScreen::TripMeterScreen(UserInterface& parent)
     : ScreenBase(parent)
 {

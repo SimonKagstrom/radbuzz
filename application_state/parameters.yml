@@ -27,5 +27,18 @@ parameters:
   battery_millivolts:
     type: uint16_t
 
+  # In percent, 0..100
+  battery_soc:
+    type: uint8_t
+
+  wh_consumed:
+    type: uint32_t
+
+  wh_regenerated:
+    type: uint32_t
+
+  distance_travelled:
+    type: uint32_t
+
   position:
     type: struct GpsData

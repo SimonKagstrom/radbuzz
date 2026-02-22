@@ -11,4 +11,8 @@ application_state:
   controller_temperature: 0
   motor_temperature: 0
   battery_millivolts: 0
+  battery_soc: 0
+  wh_consumed: 0
+  wh_regenerated: 0
+  distance_travelled: 0
   position: {}
