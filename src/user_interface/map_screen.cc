@@ -46,8 +46,8 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
 void
 MapScreen::Update()
 {
-    auto state = m_parent.m_state.CheckoutReadonly();
-    auto state_hash = state.Get<AS::current_icon_hash>();
+    auto ro = m_parent.m_state.CheckoutReadonly();
+    auto state_hash = ro.Get<AS::current_icon_hash>();
 
     if (m_current_icon_hash != state_hash)
     {
@@ -58,7 +58,7 @@ MapScreen::Update()
         }
     }
 
-    auto gps_data = state.Get<AS::position>();
+    auto gps_data = ro.Get<AS::position>();
 
     auto t = ToTile(gps_data->pixel_position);
 
@@ -98,14 +98,14 @@ MapScreen::Update()
     }
 
     lv_label_set_text(m_description_label,
-                      std::format("{}", *state.Get<AS::next_street>()).c_str());
+                      std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
-                      std::format("{} m", state.Get<AS::distance_to_next>()).c_str());
+                      std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
 
     // TMP!
     lv_label_set_text(m_description_label,
                       std::format("Controller: {}°C, Battery: {:.1f}V",
-                                  state.Get<AS::controller_temperature>(),
-                                  static_cast<float>(state.Get<AS::battery_millivolts>()) / 1000.0f)
+                                  ro.Get<AS::controller_temperature>(),
+                                  static_cast<float>(ro.Get<AS::battery_millivolts>()) / 1000.0f)
                           .c_str());
 }
