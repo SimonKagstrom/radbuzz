@@ -376,7 +376,7 @@ app_main(void)
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     auto ble_server = std::make_unique<BleServerEsp32>();
     //auto ble_server = std::make_unique<BleServerHost>();
-    //auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
+    //auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);

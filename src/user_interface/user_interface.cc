@@ -17,7 +17,11 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
 {
-    m_state_listener = m_state.AttachListener<AS::position>(GetSemaphore());
+    m_state_listener = m_state.AttachListener<AS::position,
+                                              AS::battery_soc,
+                                              AS::distance_travelled,
+                                              AS::wh_consumed,
+                                              AS::wh_regenerated>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
 }
 

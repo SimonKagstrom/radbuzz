@@ -1,6 +1,7 @@
 #include "trip_meter_screen.hh"
 
 #include <radbuzz_font_22.h>
+#include <radbuzz_font_big.h>
 
 /*
  * Distance travelled
@@ -19,7 +20,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     // Temporary hack
     m_battery_millivolts_label = lv_label_create(m_screen);
     lv_obj_align(m_battery_millivolts_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_text_font(m_battery_millivolts_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_font(m_battery_millivolts_label, &radbuzz_font_big, LV_PART_MAIN);
     lv_label_set_long_mode(m_battery_millivolts_label, LV_LABEL_LONG_WRAP);
 }
 
@@ -30,8 +31,8 @@ TripMeterScreen::Update()
     auto battery_mv = ro.Get<AS::battery_millivolts>();
 
     lv_label_set_text(m_battery_millivolts_label,
-                      std::format("Controller: {}°C, Battery: {:.1f}V",
-                                  ro.Get<AS::controller_temperature>(),
-                                  static_cast<float>(ro.Get<AS::battery_millivolts>()) / 1000.0f)
+                      std::format("{} {}",
+                                  ro.Get<AS::distance_travelled>(),
+                                  static_cast<float>(ro.Get<AS::wh_consumed>()))
                           .c_str());
 }

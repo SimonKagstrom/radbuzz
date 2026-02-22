@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1096</width>
-    <height>866</height>
+    <width>1291</width>
+    <height>966</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,8 +19,8 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>720</width>
-      <height>720</height>
+      <width>941</width>
+      <height>921</height>
      </rect>
     </property>
     <property name="verticalScrollBarPolicy">
@@ -33,7 +33,7 @@
    <widget class="QPushButton" name="leftButton">
     <property name="geometry">
      <rect>
-      <x>730</x>
+      <x>960</x>
       <y>260</y>
       <width>100</width>
       <height>32</height>
@@ -49,7 +49,7 @@
    <widget class="QPushButton" name="centerButton">
     <property name="geometry">
      <rect>
-      <x>840</x>
+      <x>1070</x>
       <y>260</y>
       <width>100</width>
       <height>32</height>
@@ -65,7 +65,7 @@
    <widget class="QPushButton" name="rightButton">
     <property name="geometry">
      <rect>
-      <x>940</x>
+      <x>1170</x>
       <y>260</y>
       <width>100</width>
       <height>32</height>
@@ -81,7 +81,7 @@
    <widget class="QLabel" name="leftBuzzer">
     <property name="geometry">
      <rect>
-      <x>740</x>
+      <x>970</x>
       <y>320</y>
       <width>58</width>
       <height>16</height>
@@ -94,7 +94,7 @@
    <widget class="QLabel" name="rightBuzzer">
     <property name="geometry">
      <rect>
-      <x>940</x>
+      <x>1170</x>
       <y>320</y>
       <width>58</width>
       <height>16</height>
@@ -104,13 +104,45 @@
      <string>No buzz</string>
     </property>
    </widget>
+   <widget class="QSlider" name="socSlider">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>360</y>
+      <width>160</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="value">
+     <number>50</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Orientation::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>1160</x>
+      <y>360</y>
+      <width>58</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>SoC%</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1096</width>
+     <width>1291</width>
      <height>24</height>
     </rect>
    </property>

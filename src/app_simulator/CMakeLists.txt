@@ -9,6 +9,7 @@ PUBLIC
 
 target_link_libraries(app_simulator
 PUBLIC
+    application_state
     ble_server_host
     base_thread
     wgs84_to_osm_point

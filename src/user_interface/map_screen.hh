@@ -18,6 +18,8 @@ private:
     lv_obj_t* m_description_label {nullptr};
     lv_obj_t* m_distance_left_label {nullptr};
 
+    lv_obj_t* m_soc_label {nullptr};
+
     // Maybe TMP
     std::unique_ptr<uint8_t[]> m_static_map_buffer;
     std::unique_ptr<Image> m_static_map_image;

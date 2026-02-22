@@ -250,8 +250,9 @@ constexpr auto kImages = std::array {
     },
 };
 
-AppSimulator::AppSimulator(BleServerHost& ble_server)
-    : m_ble_server(ble_server)
+AppSimulator::AppSimulator(ApplicationState& app_state, BleServerHost& ble_server)
+    : m_application_state(app_state)
+    , m_ble_server(ble_server)
     , m_current_point(*Wgs84ToOsmPoint(
           {
               // Stockholm
@@ -306,6 +307,10 @@ AppSimulator::OnActivation()
         SetupStreetOrder();
     }
 
+    auto ps =
+        m_application_state
+            .CheckoutPartialSnapshot<AS::distance_travelled, AS::wh_consumed, AS::wh_regenerated>();
+
     auto current_street = m_streets.back();
 
     auto nav_info = std::format(R"VOBB(nextRd={}
@@ -330,6 +335,9 @@ iconHash={:08x}32
     }
 
     m_distance_left -= 10;
+    ps.GetWritableReference<AS::distance_travelled>() += 10;
+    ps.GetWritableReference<AS::wh_consumed>() += 5;
+    ps.GetWritableReference<AS::wh_regenerated>() += 1;
 
     m_gps.NextPoint(m_current_point);
 

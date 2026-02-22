@@ -6,6 +6,14 @@ convert_font(radbuzz_font_22
     "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜ"
 )
 
+# Big font with numbers only
+convert_font(radbuzz_font_big
+    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    60
+    0x20,0x30-0x39
+    "%.°CV"
+)
+
 add_library(user_interface EXCLUDE_FROM_ALL
     map_screen.cc
     trip_meter_screen.cc
@@ -25,5 +33,6 @@ PUBLIC
     lvgl
     tile_cache
     radbuzz_font_22_library
+    radbuzz_font_big_library
     ui_menu
 )

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "application_state.hh"
 #include "display_qt.hh"
 #include "gpio_host.hh"
 
@@ -18,7 +19,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
+    explicit MainWindow(ApplicationState& application_state, QWidget* parent = nullptr);
     ~MainWindow() final;
 
     hal::IDisplay& GetDisplay();
@@ -31,6 +32,8 @@ private slots:
 
 
 private:
+    ApplicationState& m_application_state;
+
     Ui::MainWindow* m_ui {nullptr};
 
     std::unique_ptr<QGraphicsScene> m_scene;

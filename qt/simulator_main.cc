@@ -42,10 +42,10 @@ main(int argc, char* argv[])
         updated = true;
     }
 
-    MainWindow window;
-
     ApplicationState application_state;
     application_state.CheckoutReadWrite().Set<AS::wifi_connected>(true);
+
+    MainWindow window(application_state);
 
     srand(seed);
 
@@ -57,7 +57,7 @@ main(int argc, char* argv[])
     auto pm = std::make_unique<PmHost>();
 
     // Threads
-    auto app_simulator = std::make_unique<AppSimulator>(*ble_server);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto gps_reader =
         std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
     auto tile_cache = std::make_unique<TileCache>(

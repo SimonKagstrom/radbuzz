@@ -1,5 +1,6 @@
 #pragma once
 
+#include "application_state.hh"
 #include "base_thread.hh"
 #include "ble_server_host.hh"
 #include "hal/i_gps.hh"
@@ -12,7 +13,7 @@
 class AppSimulator : public os::BaseThread
 {
 public:
-    AppSimulator(BleServerHost& ble_server);
+    AppSimulator(ApplicationState& app_state, BleServerHost& ble_server);
 
     hal::IGps& GetSimulatedGps();
 
@@ -33,6 +34,7 @@ private:
 
     void SetupStreetOrder();
 
+    ApplicationState& m_application_state;
     BleServerHost& m_ble_server;
 
     std::random_device m_random_device;

@@ -26,6 +26,12 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
     lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
     lv_obj_align(m_current_icon, LV_ALIGN_CENTER, 0, 0);
 
+    m_soc_label = lv_label_create(m_screen);
+    lv_obj_align(m_soc_label, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_set_style_text_font(m_soc_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_soc_label, LV_OPA_TRANSP, LV_PART_MAIN);
+
+
     auto label_box = lv_obj_create(m_screen);
     lv_obj_set_size(label_box, 400, 100);
     lv_obj_align(label_box, LV_ALIGN_BOTTOM_MID, 0, -100);
@@ -97,8 +103,8 @@ MapScreen::Update()
         }
     }
 
-    lv_label_set_text(m_description_label,
-                      std::format("{}", *ro.Get<AS::next_street>()).c_str());
+    lv_label_set_text(m_soc_label, std::format("{}%", ro.Get<AS::battery_soc>()).c_str());
+    lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
                       std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
 

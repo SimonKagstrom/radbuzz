@@ -2,8 +2,9 @@
 
 #include "ui_simulator_mainwindow.h"
 
-MainWindow::MainWindow(QWidget* parent)
+MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     : QMainWindow(parent)
+    , m_application_state(application_state)
     , m_ui(new Ui::MainWindow)
 {
     m_ui->setupUi(this);
@@ -17,6 +18,11 @@ MainWindow::MainWindow(QWidget* parent)
         [this](bool state) { m_ui->leftBuzzer->setText(state ? "Buzz!" : "No buzz"); });
     m_right_buzzer_cookie = m_right_buzzer.AttachIrqListener(
         [this](bool state) { m_ui->rightBuzzer->setText(state ? "Buzz!" : "No buzz"); });
+
+    m_application_state.CheckoutReadWrite().Set<AS::battery_soc>(m_ui->socSlider->value());
+    connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
+        m_application_state.CheckoutReadWrite().Set<AS::battery_soc>(value);
+    });
 }
 
 MainWindow::~MainWindow()
