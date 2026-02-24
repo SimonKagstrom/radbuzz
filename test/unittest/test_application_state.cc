@@ -204,7 +204,7 @@ TEST_CASE("There's a finite number of listeners that can be attached")
     {
         std::vector<std::unique_ptr<ListenerCookie>> listeners;
         std::vector<std::unique_ptr<os::binary_semaphore>> semaphores;
-        for (size_t i = 0; i < 255; ++i)
+        for (size_t i = 0; i < kMaxApplicationStateListeners; ++i)
         {
             semaphores.push_back(std::make_unique<os::binary_semaphore>(0));
             auto cur = app_state.AttachListener<AS::speed>(*semaphores[i]);
