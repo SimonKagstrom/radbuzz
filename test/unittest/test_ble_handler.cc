@@ -75,7 +75,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
     auto icon_data = std::array<uint8_t, kImageByteSize> {};
 
     std::ranges::fill(icon_data, 0x7f);
-    DoStartup();
+    ble.Start("ble");
 
     WHEN("an icon with the proper data comes in")
     {
@@ -123,7 +123,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle navigation info")
 {
-    DoStartup();
+    ble.Start("ble");
 
     auto app_state = state.CheckoutReadonly();
     WHEN("a non-empty description comes in")

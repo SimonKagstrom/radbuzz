@@ -39,15 +39,20 @@ add_executable(unittest_radbuzz
     test_ble_handler.cc
     test_tile_cache.cc
     test_king_shark_packet_protocol.cc
+    test_speedometer_handler.cc
 )
 
 target_link_libraries(unittest_radbuzz
     ble_handler_private
-    can_bus_handler
     tile_cache
     os_unittest
     mock_filesystem
     doctest::doctest
     trompeloeil::trompeloeil
+
+
+    # Compile tests only for now
+    can_bus_handler
+    speedometer_handler
 )
 add_test(NAME unittest_radbuzz COMMAND unittest_radbuzz)

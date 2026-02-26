@@ -6,6 +6,7 @@ add_subdirectory(can_bus_handler)
 add_subdirectory(image_cache)
 add_subdirectory(gps_reader)
 add_subdirectory(tile_cache)
+add_subdirectory(speedometer_handler)
 add_subdirectory(user_interface)
 add_subdirectory(wgs84_to_osm_point)
 

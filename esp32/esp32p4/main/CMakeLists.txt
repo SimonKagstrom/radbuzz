@@ -26,8 +26,9 @@ target_link_libraries(${COMPONENT_TARGET}
     pm_esp32
     uart_esp32
     buzz_handler
-    user_interface
     tile_cache
+    user_interface
+    speedometer_handler
     jd9365_display_esp32
     gps_reader
 )
