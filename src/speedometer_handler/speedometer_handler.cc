@@ -22,12 +22,11 @@ SpeedometerHandler::OnStartup()
 std::optional<milliseconds>
 SpeedometerHandler::OnActivation()
 {
-    auto target_speed = std::min(m_state.CheckoutReadonly().Get<AS::speed>(), kMaxSpeed);
-    auto target_position = static_cast<int32_t>(
+    const auto target_speed = std::min(m_state.CheckoutReadonly().Get<AS::speed>(), kMaxSpeed);
+    const auto target_position = static_cast<int32_t>(
         (static_cast<uint32_t>(target_speed) * m_zero_to_max_steps + (kMaxSpeed / 2u)) / kMaxSpeed);
-    auto delta = target_position - m_position;
 
-    if (delta != 0)
+    if (const auto delta = target_position - m_position; delta != 0)
     {
         m_motor.Step(delta);
     }
