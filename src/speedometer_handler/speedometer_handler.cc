@@ -4,7 +4,7 @@ constexpr uint8_t kMaxSpeed = 60; // At max steps we use 60km/h
 
 SpeedometerHandler::SpeedometerHandler(hal::IStepperMotor& motor,
                                        ApplicationState& app_state,
-                                       uint32_t zero_to_max_steps)
+                                       int32_t zero_to_max_steps)
     : m_motor(motor)
     , m_state(app_state)
     , m_zero_to_max_steps(zero_to_max_steps)

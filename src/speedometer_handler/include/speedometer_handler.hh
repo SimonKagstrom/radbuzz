@@ -9,7 +9,7 @@ class SpeedometerHandler : public os::BaseThread
 public:
     SpeedometerHandler(hal::IStepperMotor& motor,
                        ApplicationState& app_state,
-                       uint32_t zero_to_max_steps);
+                       int32_t zero_to_max_steps);
 
 private:
     void OnStartup() final;
@@ -17,7 +17,7 @@ private:
 
     hal::IStepperMotor& m_motor;
     ApplicationState& m_state;
-    const uint32_t m_zero_to_max_steps;
+    const int32_t m_zero_to_max_steps;
 
     std::unique_ptr<ListenerCookie> m_state_listener;
 
