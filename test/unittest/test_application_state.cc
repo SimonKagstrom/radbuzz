@@ -300,6 +300,40 @@ TEST_CASE("structs can be changed in parts in partial snapshots")
     }
 }
 
+TEST_CASE("listeners are notified of multiple changes in a batch")
+{
+    ApplicationState app_state;
+    os::binary_semaphore sem {0};
+
+    auto listener = app_state.AttachListener<AS::speed, AS::battery_millivolts>(sem);
+    auto ro = app_state.CheckoutReadonly();
+
+    {
+        auto qw = app_state.CheckoutQueuedWriter<AS::speed, AS::battery_millivolts>();
+
+        qw.Set<AS::speed>(10);
+        qw.Set<AS::battery_millivolts>(3000);
+
+        THEN("the writes are not yet visible")
+        {
+            REQUIRE(ro.Get<AS::speed>() == 0);
+            REQUIRE(ro.Get<AS::battery_millivolts>() == 0);
+
+            REQUIRE(sem.try_acquire() == false);
+        }
+    }
+
+    THEN("the writes are done, and the listener notified once")
+    {
+        REQUIRE(ro.Get<AS::speed>() == 10);
+        REQUIRE(ro.Get<AS::battery_millivolts>() == 3000);
+
+        // This test will actually always succeed in unittests, as the code executes sequentially
+        REQUIRE(sem.try_acquire() == true);
+        REQUIRE(sem.try_acquire() == false);
+    }
+}
+
 TEST_CASE("the build is OK even with parameters not in the application state")
 {
     ApplicationState app_state;

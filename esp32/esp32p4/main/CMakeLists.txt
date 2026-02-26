@@ -20,6 +20,7 @@ target_link_libraries(${COMPONENT_TARGET}
     app_simulator
     uart_gps_esp32
     i2c_gps_esp32
+    stepper_motor_esp32
     nvm_esp32
     os_esp32
     pm_esp32
