@@ -1,9 +1,10 @@
 #include "speedometer_qt.hh"
 
-#include <cassert>
 #include <QGraphicsView>
+#include <QMetaObject>
 #include <QPen>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <numbers>
 
@@ -31,10 +32,11 @@ SpeedometerQt::SpeedometerQt(QGraphicsView* graphics_view)
 void
 SpeedometerQt::Step(int delta)
 {
-    printf("Step: %d\n", delta);
     m_position = std::clamp(m_position + delta, 0, kMaxSteps);
 
     m_normalized_speed.store(static_cast<float>(m_position) / kMaxSteps);
+
+    QMetaObject::invokeMethod(m_graphics_view, [this]() { OnRepaint(); }, Qt::QueuedConnection);
 }
 
 void

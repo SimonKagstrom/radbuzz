@@ -124,6 +124,9 @@ TEST_CASE_FIXTURE(StartedFixture, "the stepper motor position is scaled with spe
     do_set_speed(10);
     REQUIRE(pos == 1000);
 
+    do_set_speed(11);
+    REQUIRE(pos == 1100);
+
     do_set_speed(1);
     REQUIRE(pos == 100);
 
