@@ -100,6 +100,46 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
     }
 }
 
+TEST_CASE_FIXTURE(StartedFixture, "the stepper motor will step at most every Xms")
+{
+    constexpr auto kStepInterval = 100ms;
+
+    AdvanceTime(1s);
+
+    auto rw = state.CheckoutReadWrite();
+
+    auto r_first_step = NAMED_REQUIRE_CALL(motor, Step(1000));
+
+    rw.Set<AS::speed>(10);
+    DoRunLoop();
+    r_first_step = nullptr;
+
+
+    WHEN("the speed changes a short time after last invocation")
+    {
+        AdvanceTime(kStepInterval - 1ms);
+        rw.Set<AS::speed>(11);
+
+        auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
+        DoRunLoop();
+        THEN("the motor is not stepped")
+        {
+            REQUIRE(NextWakeupTime() == 1ms);
+            r_no_step = nullptr;
+        }
+        AND_THEN("it's stepped once the grace time has passed")
+        {
+            // Step 1 forward (10 -> 11)
+            REQUIRE_CALL(motor, Step(100));
+            AdvanceTime(1ms);
+
+            // Not ideal: Awake the task manually
+            speedo.Awake();
+            DoRunLoop();
+        }
+    }
+}
+
 TEST_CASE_FIXTURE(StartedFixture, "the stepper motor position is scaled with speed")
 {
     int pos = 0;
@@ -109,6 +149,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the stepper motor position is scaled with spe
         auto rw = state.CheckoutReadWrite();
         rw.Set<AS::speed>(speed);
         DoRunLoop();
+        AdvanceTime(100ms); // Stepper motor steps are rate-limited to 100ms
     };
 
     do_set_speed(30);

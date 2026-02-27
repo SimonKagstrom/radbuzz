@@ -22,6 +22,12 @@ SpeedometerHandler::OnStartup()
 std::optional<milliseconds>
 SpeedometerHandler::OnActivation()
 {
+    if (auto now = os::GetTimeStamp(); now - m_last_step_time < 100ms)
+    {
+        // Don't step too fast - round to 100ms
+        return 100ms - (now - m_last_step_time);
+    }
+
     const int32_t target_speed = std::min(m_state.CheckoutReadonly().Get<AS::speed>(), kMaxSpeed);
     const auto target_position =
         (target_speed * m_zero_to_max_steps + (kMaxSpeed / 2u)) / kMaxSpeed;
@@ -32,6 +38,9 @@ SpeedometerHandler::OnActivation()
     }
 
     m_position = target_position;
+
+    // Take a new timestamp, since the stepping itself might take time
+    m_last_step_time = os::GetTimeStamp();
 
     return std::nullopt;
 }
