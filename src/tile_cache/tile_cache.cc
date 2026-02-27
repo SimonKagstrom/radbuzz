@@ -110,6 +110,7 @@ TileCache::OnActivation()
     auto ro = m_application_state.CheckoutReadonly();
 
     auto gps_data = ro.Get<AS::position>();
+
     if (m_last_gps_data != *gps_data)
     {
         auto city_tile = ToCityTile(gps_data->pixel_position);
@@ -267,6 +268,11 @@ TileCache::FillFromServer()
             m_get_from_server_background.pop_back();
         }
 
+        if (t.x < 0 || t.y < 0)
+        {
+            continue;
+        }
+
 
         auto path = GetTilePath(t, 15);
         if (m_filesystem.FileExists(path))
@@ -289,6 +295,12 @@ TileCache::FillFromServer()
     {
         auto t = m_reload_tiles_from_server.back();
         m_reload_tiles_from_server.pop_back();
+
+        // Invalid tile
+        if (t.x < 0 || t.y < 0)
+        {
+            continue;
+        }
 
         auto path = GetTilePath(t, 15);
 
