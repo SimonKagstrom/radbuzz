@@ -54,14 +54,3 @@ MainWindow::GetRightBuzzer()
 {
     return m_right_buzzer;
 }
-
-void
-MainWindow::paintEvent(QPaintEvent* event)
-{
-    QMainWindow::paintEvent(event);
-
-    if (m_speedometer != nullptr)
-    {
-        m_speedometer->OnRepaint();
-    }
-}

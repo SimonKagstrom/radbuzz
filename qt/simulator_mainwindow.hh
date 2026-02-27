@@ -36,8 +36,6 @@ private slots:
 
 
 private:
-    void paintEvent(QPaintEvent* event) override;
-
     ApplicationState& m_application_state;
 
     Ui::MainWindow* m_ui {nullptr};

@@ -13,8 +13,9 @@ namespace
 
 constexpr float kNeedleThicknessPx = 8.0F;
 constexpr qreal kNeedleLengthPx = 60.0;
-constexpr float kStartAngleDegFromBottom = 20.0F;
-constexpr float kEndAngleDegFromBottom = 320.0F;
+// Like the adafruit stepper motor for automotive guages
+constexpr float kStartAngleDegFromBottom = 22.5F;
+constexpr float kEndAngleDegFromBottom = 337.5F;
 
 constexpr auto kMaxSteps = 6000;
 
@@ -34,15 +35,12 @@ SpeedometerQt::Step(int delta)
 {
     m_position = std::clamp(m_position + delta, 0, kMaxSteps);
 
-    m_normalized_speed.store(static_cast<float>(m_position) / kMaxSteps);
+    auto normalized_speed = static_cast<float>(m_position) / kMaxSteps;
 
-    QMetaObject::invokeMethod(m_graphics_view, [this]() { OnRepaint(); }, Qt::QueuedConnection);
-}
-
-void
-SpeedometerQt::OnRepaint()
-{
-    DrawNeedle(m_normalized_speed.load());
+    QMetaObject::invokeMethod(
+        m_graphics_view,
+        [this, normalized_speed]() { DrawNeedle(normalized_speed); },
+        Qt::QueuedConnection);
 }
 
 void
