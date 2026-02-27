@@ -67,6 +67,8 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
     // TODO: Add more fields here
     auto qw = m_state.CheckoutQueuedWriter<AS::controller_temperature,
                                            AS::motor_temperature,
+                                           AS::wh_consumed,
+                                           AS::wh_regenerated,
                                            AS::speed,
                                            AS::battery_millivolts>();
 
@@ -84,10 +86,8 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         vesc_status_msg_3_t status;
         if (vesc_parse_status_msg_3(data, len, &status))
         {
-            //            printf("VESC#%d Status 3: Wh: %.2f, Wh charged: %.2f\n",
-            //                   status.controller_id,
-            //                   status.watt_hours,
-            //                   status.watt_hours_charged);
+            qw.Set<AS::wh_consumed>(static_cast<uint32_t>(status.watt_hours));
+            qw.Set<AS::wh_regenerated>(static_cast<uint32_t>(status.watt_hours_charged));
         }
     }
     else if (command == CAN_PACKET_STATUS_4)
@@ -114,11 +114,11 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         vesc_values_setup_t status;
         if (vesc_parse_get_values_setup(data, len, &status))
         {
-            printf("VESC#%d Setup Values: Speed: %.2f km/h. Odometer: %d. uptime: %d\n",
-                   controller_id,
-                   status.speed,
-                   status.odometer,
-                   status.system_time_ms);
+            //            printf("VESC#%d Setup Values: Speed: %.2f km/h. Odometer: %d. uptime: %d\n",
+            //                   controller_id,
+            //                   status.speed,
+            //                   status.odometer,
+            //                   status.system_time_ms);
         }
     }
     else if (command == COMM_GET_VALUES_SETUP_SELECTIVE &&
