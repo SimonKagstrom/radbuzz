@@ -307,9 +307,10 @@ AppSimulator::OnActivation()
         SetupStreetOrder();
     }
 
-    auto ps =
-        m_application_state
-            .CheckoutPartialSnapshot<AS::distance_travelled, AS::wh_consumed, AS::wh_regenerated>();
+    auto ps = m_application_state.CheckoutPartialSnapshot<AS::distance_travelled,
+                                                          AS::wh_consumed,
+                                                          AS::wh_regenerated,
+                                                          AS::speed>();
 
     auto current_street = m_streets.back();
 
@@ -338,6 +339,11 @@ iconHash={:08x}32
     ps.GetWritableReference<AS::distance_travelled>() += 10;
     ps.GetWritableReference<AS::wh_consumed>() += 5;
     ps.GetWritableReference<AS::wh_regenerated>() += 1;
+    auto& speed = ps.GetWritableReference<AS::speed>();
+
+    // TODO: Make this more realistic
+    speed = std::clamp(speed + 1, 0, 60);
+
 
     m_gps.NextPoint(m_current_point);
 

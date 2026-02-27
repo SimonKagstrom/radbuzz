@@ -3,11 +3,13 @@
 #include "application_state.hh"
 #include "display_qt.hh"
 #include "gpio_host.hh"
+#include "speedometer_qt.hh"
 
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>
 #include <QImage>
 #include <QMainWindow>
+#include <QPaintEvent>
 
 namespace Ui
 {
@@ -24,6 +26,8 @@ public:
 
     hal::IDisplay& GetDisplay();
 
+    hal::IStepperMotor& GetStepperMotor();
+
     hal::IGpio& GetLeftBuzzer();
 
     hal::IGpio& GetRightBuzzer();
@@ -32,11 +36,14 @@ private slots:
 
 
 private:
+    void paintEvent(QPaintEvent* event) override;
+
     ApplicationState& m_application_state;
 
     Ui::MainWindow* m_ui {nullptr};
 
     std::unique_ptr<QGraphicsScene> m_scene;
+    std::unique_ptr<SpeedometerQt> m_speedometer;
     std::unique_ptr<DisplayQt> m_display;
 
     uint8_t m_state {0};

@@ -136,6 +136,16 @@
      <string>SoC%</string>
     </property>
    </widget>
+   <widget class="QGraphicsView" name="speedometerGraphicsView">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>540</y>
+      <width>256</width>
+      <height>192</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -143,7 +153,7 @@
      <x>0</x>
      <y>0</y>
      <width>1291</width>
-     <height>24</height>
+     <height>30</height>
     </rect>
    </property>
   </widget>

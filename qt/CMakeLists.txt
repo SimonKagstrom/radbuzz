@@ -46,6 +46,7 @@ add_executable(radbuzz_qt
     simulator_main.cc
     simulator_mainwindow.ui
     simulator_mainwindow.cc
+    speedometer_qt.cc
 )
 
 target_link_libraries(radbuzz_qt
@@ -61,6 +62,7 @@ target_link_libraries(radbuzz_qt
     buzz_handler
     can_bus_handler
     tile_cache
+    speedometer_handler
     gps_reader
     Qt6::Widgets
 )

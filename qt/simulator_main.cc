@@ -7,6 +7,7 @@
 #include "httpd_client.hh"
 #include "pm_host.hh"
 #include "simulator_mainwindow.hh"
+#include "speedometer_handler.hh"
 #include "tile_cache.hh"
 #include "time.hh"
 #include "user_interface.hh"
@@ -71,11 +72,15 @@ main(int argc, char* argv[])
                                                           *image_cache,
                                                           *tile_cache);
 
+    auto speedometer_handler =
+        std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
+
     gps_reader->Start("gps_reader");
     ble_handler->Start("ble_handler");
     buzz_handler->Start("buzz_handler");
     tile_cache->Start("tile_cache");
     user_interface->Start("user_interface");
+    speedometer_handler->Start("speedometer_handler");
 
     os::Sleep(10ms);
     app_simulator->Start("app_simulator");

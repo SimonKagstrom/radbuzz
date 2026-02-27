@@ -23,6 +23,8 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
         m_application_state.CheckoutReadWrite().Set<AS::battery_soc>(value);
     });
+
+    m_speedometer = std::make_unique<SpeedometerQt>(m_ui->speedometerGraphicsView);
 }
 
 MainWindow::~MainWindow()
@@ -36,6 +38,12 @@ MainWindow::GetDisplay()
     return *m_display;
 }
 
+hal::IStepperMotor&
+MainWindow::GetStepperMotor()
+{
+    return *m_speedometer;
+}
+
 hal::IGpio&
 MainWindow::GetLeftBuzzer()
 {
@@ -45,4 +53,15 @@ hal::IGpio&
 MainWindow::GetRightBuzzer()
 {
     return m_right_buzzer;
+}
+
+void
+MainWindow::paintEvent(QPaintEvent* event)
+{
+    QMainWindow::paintEvent(event);
+
+    if (m_speedometer != nullptr)
+    {
+        m_speedometer->OnRepaint();
+    }
 }
