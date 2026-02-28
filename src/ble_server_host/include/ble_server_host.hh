@@ -29,6 +29,8 @@ private:
         uint8_t uuid;
         std::vector<uint8_t> data;
     };
+    std::unique_ptr<ListenerCookie>
+    AttachConnectionListener(std::function<void(bool connected)> cb) final;
 
     void SetServiceUuid128(hal::Uuid128Span service_uuid) final;
 
@@ -40,4 +42,6 @@ private:
 
     std::unordered_map<uint8_t, std::function<void(std::span<const uint8_t>)>> m_uuid_cb;
     etl::queue_spsc_atomic<Event, 16> m_event_queue;
+
+    std::function<void(bool)> m_connection_listener {[](auto) {}};
 };

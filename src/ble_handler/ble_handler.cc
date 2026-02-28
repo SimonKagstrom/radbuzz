@@ -91,6 +91,10 @@ BleHandler::OnStartup()
     m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kChaGpsSpeed),
                                          [this](auto data) {});
 
+    m_connection_listener = m_server.AttachConnectionListener([this](bool connected) {
+        m_state.CheckoutReadWrite().Set<AS::bluetooth_connected>(connected);
+    });
+
     m_server.Start();
 }
 

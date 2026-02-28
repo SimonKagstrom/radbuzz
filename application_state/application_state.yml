@@ -4,6 +4,7 @@ cpp_includes:
 
 application_state:
   wifi_connected: false
+  bluetooth_connected: false
   current_icon_hash: kInvalidIconHash
   distance_to_next: 0
   next_street: ""

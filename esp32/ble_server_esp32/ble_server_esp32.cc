@@ -130,6 +130,13 @@ BleServerEsp32::WriteToPeerFfe1(std::span<const uint8_t> data)
     return rc == 0;
 }
 
+std::unique_ptr<hal::ListenerCookie>
+BleServerEsp32::AttachConnectionListener(std::function<void(bool connected)> cb)
+{
+    // NYI
+    return std::make_unique<hal::ListenerCookie>(
+        [this]) { /* Remove the listener */ });
+}
 
 void
 BleServerEsp32::SetServiceUuid128(hal::Uuid128Span service_uuid)

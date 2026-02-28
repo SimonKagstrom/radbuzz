@@ -34,4 +34,6 @@ private:
     hal::IBleServer& m_server;
     ApplicationState& m_state;
     ImageCache& m_image_cache;
+
+    std::unique_ptr<ListenerCookie> m_connection_listener;
 };

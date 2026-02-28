@@ -20,6 +20,9 @@ public:
     BleServerEsp32();
     ~BleServerEsp32() final;
 
+    std::unique_ptr<ListenerCookie>
+    AttachConnectionListener(std::function<void(bool connected)> cb) final;
+
     void SetServiceUuid128(hal::Uuid128Span service_uuid) final;
 
     void AddWriteGattCharacteristics(hal::Uuid128Span uuid,

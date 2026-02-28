@@ -24,6 +24,14 @@ public:
     }
 
 private:
+    std::unique_ptr<ListenerCookie>
+    AttachConnectionListener(std::function<void(bool connected)> cb)
+    {
+        // TODO: Actually implement
+        return nullptr;
+    }
+
+
     void SetServiceUuid128(std::span<const uint8_t, 16> service_uuid) final
     {
     }
