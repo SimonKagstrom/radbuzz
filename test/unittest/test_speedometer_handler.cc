@@ -131,10 +131,8 @@ TEST_CASE_FIXTURE(StartedFixture, "the stepper motor will step at most every Xms
         {
             // Step 1 forward (10 -> 11)
             REQUIRE_CALL(motor, Step(100));
-            AdvanceTime(1ms);
 
-            // Not ideal: Awake the task manually
-            speedo.Awake();
+            AdvanceTime(1ms);
             DoRunLoop();
         }
     }
