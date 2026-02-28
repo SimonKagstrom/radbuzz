@@ -341,9 +341,17 @@ iconHash={:08x}32
     ps.GetWritableReference<AS::wh_regenerated>() += 1;
     auto& speed = ps.GetWritableReference<AS::speed>();
 
-    // TODO: Make this more realistic
-    speed = std::clamp(speed + 1, 0, 60);
-
+    // Also simulate the speedometer bottoming out
+    constexpr auto kMaxSpeed = 70;
+    if (speed != m_target_speed)
+    {
+        auto sign = speed < m_target_speed ? 1 : -1;
+        speed = static_cast<uint8_t>(std::clamp(speed + sign, 0, kMaxSpeed));
+    }
+    else
+    {
+        m_target_speed = m_random_engine() % kMaxSpeed;
+    }
 
     m_gps.NextPoint(m_current_point);
 

@@ -50,4 +50,6 @@ private:
 
     SimulatedGps m_gps;
     Point m_current_point {0, 0};
+
+    uint8_t m_target_speed {10};
 };
