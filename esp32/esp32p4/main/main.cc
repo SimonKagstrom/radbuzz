@@ -15,6 +15,8 @@
 #include "pm_esp32.hh"
 #include "rotary_encoder.hh"
 #include "sdkconfig.h"
+#include "speedometer_handler.hh"
+#include "stepper_motor_esp32.hh"
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
@@ -35,8 +37,13 @@ namespace
 {
 
 constexpr auto kTftBacklight = GPIO_NUM_26;
-constexpr auto kPinLeftBuzzer = GPIO_NUM_32;  // TODO
-constexpr auto kPinRightBuzzer = GPIO_NUM_48; // TODO
+constexpr auto kPinLeftBuzzer = GPIO_NUM_32;     // TODO
+constexpr auto kPinRightBuzzer = GPIO_NUM_48;    // TODO
+constexpr auto kPinStepperEnGpio = GPIO_NUM_25;  // TODO
+constexpr auto kPinStepperDirGpio = GPIO_NUM_49; // TODO
+constexpr auto kPinStepGpio = GPIO_NUM_36;       // TODO
+constexpr auto kCanBusTxPin = GPIO_NUM_5;
+constexpr auto kCanBusRxPin = GPIO_NUM_4;
 constexpr auto kI2cSdaPin = GPIO_NUM_7;
 constexpr auto kI2cSclPin = GPIO_NUM_8;
 
@@ -369,7 +376,14 @@ app_main(void)
 
     auto pm = std::make_unique<PmEsp32>();
 
-    auto can = std::make_unique<CanEsp32>(GPIO_NUM_5, GPIO_NUM_4, 500000);
+    auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
+
+    auto stepper_en_gpio = std::make_unique<TargetGpio>(kPinStepperEnGpio);
+    auto stepper_dir_gpio = std::make_unique<TargetGpio>(kPinStepperDirGpio);
+
+    auto stepper_motor =
+        std::make_unique<StepperMotorEsp32>(*stepper_en_gpio, *stepper_dir_gpio, kPinStepGpio);
+
 
     // Threads
     auto buzz_handler =
@@ -383,6 +397,9 @@ app_main(void)
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
+    auto speedometer_handler =
+        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, 600);
+
     auto user_interface = std::make_unique<UserInterface>(
         *display, pm->CreateFullPowerLock(), application_state, *image_cache, *tile_cache);
 
@@ -391,6 +408,7 @@ app_main(void)
     //app_simulator->Start("app_simulator", 8192);
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
+    speedometer_handler->Start("speedometer_handler");
 
     gps_reader->Start("gps_reader", 8192);
     tile_cache->Start("tile_cache", 8192);
