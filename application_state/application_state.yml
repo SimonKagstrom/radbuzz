@@ -15,5 +15,5 @@ application_state:
   battery_soc: 0
   wh_consumed: 0
   wh_regenerated: 0
-  distance_travelled: 0
+  distance_traveled: 0
   position: {}

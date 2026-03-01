@@ -40,7 +40,7 @@ parameters:
   wh_regenerated:
     type: uint32_t
 
-  distance_travelled:
+  distance_traveled:
     type: uint32_t
 
   position:

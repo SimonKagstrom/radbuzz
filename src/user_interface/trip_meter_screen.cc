@@ -4,7 +4,7 @@
 #include <radbuzz_font_big.h>
 
 /*
- * Distance travelled
+ * Distance traveled
  * Wh consumed
  * Wh regenerated
  * Average speed
@@ -32,7 +32,7 @@ TripMeterScreen::Update()
 
     lv_label_set_text(m_battery_millivolts_label,
                       std::format("{} {}",
-                                  ro.Get<AS::distance_travelled>(),
+                                  ro.Get<AS::distance_traveled>(),
                                   static_cast<float>(ro.Get<AS::wh_consumed>()))
                           .c_str());
 }

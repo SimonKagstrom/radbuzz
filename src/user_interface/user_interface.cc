@@ -19,7 +19,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
 {
     m_state_listener = m_state.AttachListener<AS::position,
                                               AS::battery_soc,
-                                              AS::distance_travelled,
+                                              AS::distance_traveled,
                                               AS::bluetooth_connected,
                                               AS::wifi_connected,
                                               AS::wh_consumed,

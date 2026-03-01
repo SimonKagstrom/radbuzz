@@ -53,7 +53,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
         rw.Set<AS::battery_millivolts>(3000);
         rw.Set<AS::controller_temperature>(45);
         rw.Set<AS::next_street>("Tunavägen");
-        rw.Set<AS::distance_travelled>(100);
+        rw.Set<AS::distance_traveled>(100);
 
         auto ran = DoRunLoop();
 

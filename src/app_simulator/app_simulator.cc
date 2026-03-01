@@ -307,7 +307,7 @@ AppSimulator::OnActivation()
         SetupStreetOrder();
     }
 
-    auto ps = m_application_state.CheckoutPartialSnapshot<AS::distance_travelled,
+    auto ps = m_application_state.CheckoutPartialSnapshot<AS::distance_traveled,
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
                                                           AS::speed>();
@@ -336,7 +336,7 @@ iconHash={:08x}32
     }
 
     m_distance_left -= 10;
-    ps.GetWritableReference<AS::distance_travelled>() += 10;
+    ps.GetWritableReference<AS::distance_traveled>() += 10;
     ps.GetWritableReference<AS::wh_consumed>() += 5;
     ps.GetWritableReference<AS::wh_regenerated>() += 1;
     auto& speed = ps.GetWritableReference<AS::speed>();
