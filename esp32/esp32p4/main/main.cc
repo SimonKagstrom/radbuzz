@@ -37,13 +37,17 @@ namespace
 {
 
 constexpr auto kTftBacklight = GPIO_NUM_26;
-constexpr auto kPinLeftBuzzer = GPIO_NUM_32;     // TODO
-constexpr auto kPinRightBuzzer = GPIO_NUM_48;    // TODO
-constexpr auto kPinStepperEnGpio = GPIO_NUM_25;  // TODO
-constexpr auto kPinStepperDirGpio = GPIO_NUM_49; // TODO
-constexpr auto kPinStepGpio = GPIO_NUM_36;       // TODO
+
+constexpr auto kPinLeftBuzzer = GPIO_NUM_32;  // TODO
+constexpr auto kPinRightBuzzer = GPIO_NUM_48; // TODO
+
+constexpr auto kPinStepperEnGpio = GPIO_NUM_30;
+constexpr auto kPinStepperDirGpio = GPIO_NUM_46;
+constexpr auto kPinStepGpio = GPIO_NUM_31;
+
 constexpr auto kCanBusTxPin = GPIO_NUM_5;
 constexpr auto kCanBusRxPin = GPIO_NUM_4;
+
 constexpr auto kI2cSdaPin = GPIO_NUM_7;
 constexpr auto kI2cSclPin = GPIO_NUM_8;
 
@@ -280,8 +284,9 @@ app_main(void)
     gpio_config_t io_conf = {};
 
     io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask =
-        (1ull << kTftBacklight) | (1ull << kPinLeftBuzzer) | (1ull << kPinRightBuzzer);
+    io_conf.pin_bit_mask = (1ull << kTftBacklight) | (1ull << kPinLeftBuzzer) |
+                           (1ull << kPinRightBuzzer) | (1ull << kPinStepperEnGpio) |
+                           (1ull << kPinStepperDirGpio);
     gpio_config(&io_conf);
 
     // Turn on the backlight
@@ -355,7 +360,7 @@ app_main(void)
     //                                              GPIO_NUM_43); // TX
     //
 
-    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
+    //auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
     //auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
     auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
@@ -376,37 +381,40 @@ app_main(void)
 
     auto pm = std::make_unique<PmEsp32>();
 
-    auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
+    //auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
 
-    auto stepper_en_gpio = std::make_unique<TargetGpio>(kPinStepperEnGpio);
+    auto stepper_en_gpio =
+        std::make_unique<TargetGpio>(kPinStepperEnGpio, TargetGpio::Polarity::kActiveLow);
     auto stepper_dir_gpio = std::make_unique<TargetGpio>(kPinStepperDirGpio);
 
     auto stepper_motor =
         std::make_unique<StepperMotorEsp32>(*stepper_en_gpio, *stepper_dir_gpio, kPinStepGpio);
-
+    stepper_motor->Start();
 
     // Threads
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
-    auto ble_server = std::make_unique<BleServerEsp32>();
-    //auto ble_server = std::make_unique<BleServerHost>();
-    //auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
-    auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
+    //auto ble_server = std::make_unique<BleServerEsp32>();
+    auto ble_server = std::make_unique<BleServerHost>();
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    //auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
 
-    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    //    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    auto gps_reader =
+        std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
     auto speedometer_handler =
-        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, 600);
+        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, 6000);
 
     auto user_interface = std::make_unique<UserInterface>(
         *display, pm->CreateFullPowerLock(), application_state, *image_cache, *tile_cache);
 
 
     buzz_handler->Start("buzz_handler", 8192);
-    //app_simulator->Start("app_simulator", 8192);
-    can_bus_handler->Start("can_bus_handler", 4096);
+    app_simulator->Start("app_simulator", 8192);
+    //can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     speedometer_handler->Start("speedometer_handler");
 
@@ -416,7 +424,7 @@ app_main(void)
 
     // TMP!
     os::Sleep(2s);
-    ble_server->ScanForService(hal::Uuid16(0x61c9), [](auto peer) { printf("Found peer\n"); });
+    //ble_server->ScanForService(hal::Uuid16(0x61c9), [](auto peer) { printf("Found peer\n"); });
 
 
     while (true)
