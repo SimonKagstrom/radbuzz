@@ -346,7 +346,7 @@ iconHash={:08x}32
     if (speed != m_target_speed)
     {
         auto sign = speed < m_target_speed ? 1 : -1;
-        speed = static_cast<uint8_t>(std::clamp(speed + sign, 0, kMaxSpeed));
+        speed = static_cast<uint8_t>(std::clamp(speed + sign * rand() % 3, 0, kMaxSpeed));
     }
     else
     {
