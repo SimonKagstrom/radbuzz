@@ -41,7 +41,7 @@ constexpr auto kTftBacklight = GPIO_NUM_26;
 constexpr auto kPinLeftBuzzer = GPIO_NUM_32;  // TODO
 constexpr auto kPinRightBuzzer = GPIO_NUM_48; // TODO
 
-constexpr auto kPinStepperEnGpio = GPIO_NUM_30;
+constexpr auto kPinStepperSleepGpio = GPIO_NUM_30;
 constexpr auto kPinStepperDirGpio = GPIO_NUM_46;
 constexpr auto kPinStepGpio = GPIO_NUM_31;
 
@@ -285,7 +285,7 @@ app_main(void)
 
     io_conf.mode = GPIO_MODE_OUTPUT;
     io_conf.pin_bit_mask = (1ull << kTftBacklight) | (1ull << kPinLeftBuzzer) |
-                           (1ull << kPinRightBuzzer) | (1ull << kPinStepperEnGpio) |
+                           (1ull << kPinRightBuzzer) | (1ull << kPinStepperSleepGpio) |
                            (1ull << kPinStepperDirGpio);
     gpio_config(&io_conf);
 
@@ -383,12 +383,12 @@ app_main(void)
 
     //auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
 
-    auto stepper_en_gpio =
-        std::make_unique<TargetGpio>(kPinStepperEnGpio, TargetGpio::Polarity::kActiveLow);
+    auto stepper_sleep_gpio =
+        std::make_unique<TargetGpio>(kPinStepperSleepGpio, TargetGpio::Polarity::kActiveHigh);
     auto stepper_dir_gpio = std::make_unique<TargetGpio>(kPinStepperDirGpio);
 
     auto stepper_motor =
-        std::make_unique<StepperMotorEsp32>(*stepper_en_gpio, *stepper_dir_gpio, kPinStepGpio);
+        std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
     stepper_motor->Start();
 
     // Threads
