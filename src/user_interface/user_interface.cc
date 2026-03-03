@@ -82,9 +82,6 @@ UserInterface::OnStartup()
     m_map_screen->Activate();
     m_current_screen = m_map_screen.get();
 
-    //    m_menu_screen = std::make_unique<MenuScreen>(
-    //        GetTimerManager(), m_lvgl_input_dev, []() { printf("Menu closed\n"); });
-
     static auto vobb = StartTimer(5s, [this]() {
         auto now = m_current_screen;
 
@@ -131,10 +128,30 @@ UserInterface::OnActivation()
         default:
             break;
         }
+    }
 
-        if (m_menu_screen)
+
+    if (m_menu_screen)
+    {
+        lv_indev_read(m_lvgl_input_dev);
+    }
+    else
+    {
+        // Ugly
+        if (m_button_state == LV_INDEV_STATE_PRESSED && !m_menu_screen)
         {
-            lv_indev_read(m_lvgl_input_dev);
+            m_menu_screen =
+                std::make_unique<MenuScreen>(GetTimerManager(), m_lvgl_input_dev, [this]() {
+                    printf("Menu closed\n");
+                    m_menu_destructor = Defer([this]() {
+                        m_menu_screen = nullptr;
+                        return std::nullopt;
+                    });
+                });
+        }
+        else
+        {
+            m_current_screen->HandleInput(event);
         }
     }
 

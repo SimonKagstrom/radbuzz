@@ -115,3 +115,7 @@ MapScreen::Update()
                                   static_cast<float>(ro.Get<AS::battery_millivolts>()) / 1000.0f)
                           .c_str());
 }
+
+void MapScreen::HandleInput(hal::IInput::EventType event)
+{
+}

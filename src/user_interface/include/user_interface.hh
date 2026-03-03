@@ -40,7 +40,7 @@ public:
             lv_screen_load_anim(m_screen, LV_SCREEN_LOAD_ANIM_FADE_OUT, 200, 0, false);
         }
 
-        //virtual void HandleInput() = 0;
+        virtual void HandleInput(hal::IInput::EventType event) = 0;
 
         lv_obj_t* GetLvglObj()
         {
@@ -84,6 +84,8 @@ private:
     std::unique_ptr<ListenerCookie> m_state_listener;
     std::unique_ptr<ListenerCookie> m_cache_listener;
     std::unique_ptr<ListenerCookie> m_input_listener;
+
+    os::TimerHandle m_menu_destructor;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
 

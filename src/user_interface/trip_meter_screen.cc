@@ -32,7 +32,11 @@ TripMeterScreen::Update()
 
     lv_label_set_text(m_battery_millivolts_label,
                       std::format("{} {}",
-                                  ro.Get<AS::distance_traveled>(),
+                                  ro.Get<AS::speed>(),
                                   static_cast<float>(ro.Get<AS::wh_consumed>()))
                           .c_str());
+}
+
+void TripMeterScreen::HandleInput(hal::IInput::EventType event)
+{
 }
