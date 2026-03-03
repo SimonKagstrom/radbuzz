@@ -8,11 +8,13 @@
 
 UserInterface::UserInterface(hal::IDisplay& display,
                              std::unique_ptr<hal::IPm::ILock> pm_lock,
+                             hal::IInput& input,
                              ApplicationState& state,
                              ImageCache& cache,
                              TileCache& tile_cache)
     : m_display(display)
     , m_pm_lock(std::move(pm_lock))
+    , m_input(input)
     , m_state(state)
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
@@ -25,6 +27,12 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::wh_consumed,
                                               AS::wh_regenerated>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
+
+    // Context: Interrupt/anoteher thread
+    m_input_listener = m_input.AttachListener([this](auto event) {
+        m_input_queue.push(event);
+        Awake();
+    });
 }
 
 void
@@ -61,7 +69,12 @@ UserInterface::OnStartup()
     lv_indev_set_mode(m_lvgl_input_dev, LV_INDEV_MODE_EVENT);
     lv_indev_set_type(m_lvgl_input_dev, LV_INDEV_TYPE_ENCODER);
     lv_indev_set_user_data(m_lvgl_input_dev, this);
-    //lv_indev_set_read_cb(m_lvgl_input_dev, StaticLvglEncoderRead);
+    lv_indev_set_read_cb(m_lvgl_input_dev, [](lv_indev_t* indev, lv_indev_data_t* data) {
+        auto p = static_cast<UserInterface*>(lv_indev_get_user_data(indev));
+
+        data->state = p->m_button_state;
+        data->enc_diff = p->m_enc_diff;
+    });
 
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
@@ -93,6 +106,38 @@ UserInterface::OnStartup()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
+    hal::IInput::EventType event;
+
+    while (m_input_queue.pop(event))
+    {
+        printf("VOBB : Processing input event %d\n", static_cast<int>(event));
+
+        m_enc_diff = 0;
+
+        switch (event)
+        {
+        case hal::IInput::EventType::kButtonDown:
+            m_button_state = LV_INDEV_STATE_PRESSED;
+            break;
+        case hal::IInput::EventType::kButtonUp:
+            m_button_state = LV_INDEV_STATE_RELEASED;
+            break;
+        case hal::IInput::EventType::kLeft:
+            m_enc_diff = -1;
+            break;
+        case hal::IInput::EventType::kRight:
+            m_enc_diff = 1;
+            break;
+        default:
+            break;
+        }
+
+        if (m_menu_screen)
+        {
+            lv_indev_read(m_lvgl_input_dev);
+        }
+    }
+
     auto max_power = m_pm_lock->FullPower();
 
     m_current_screen->Update();

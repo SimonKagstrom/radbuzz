@@ -19,6 +19,13 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     m_right_buzzer_cookie = m_right_buzzer.AttachIrqListener(
         [this](bool state) { m_ui->rightBuzzer->setText(state ? "Buzz!" : "No buzz"); });
 
+    using Ev = hal::IInput::EventType;
+
+    connect(m_ui->leftButton, &QPushButton::clicked, [this]() { m_on_event(Ev::kLeft); });
+    connect(m_ui->rightButton, &QPushButton::clicked, [this]() { m_on_event(Ev::kRight); });
+    connect(m_ui->centerButton, &QPushButton::pressed, [this]() { m_on_event(Ev::kButtonDown); });
+    connect(m_ui->centerButton, &QPushButton::released, [this]() { m_on_event(Ev::kButtonUp); });
+
     m_application_state.CheckoutReadWrite().Set<AS::battery_soc>(m_ui->socSlider->value());
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
         m_application_state.CheckoutReadWrite().Set<AS::battery_soc>(value);
@@ -53,4 +60,12 @@ hal::IGpio&
 MainWindow::GetRightBuzzer()
 {
     return m_right_buzzer;
+}
+
+std::unique_ptr<ListenerCookie>
+MainWindow::AttachListener(std::function<void(EventType)> on_event)
+{
+    m_on_event = std::move(on_event);
+
+    return std::make_unique<ListenerCookie>([this]() { m_on_event = [](auto) {}; });
 }

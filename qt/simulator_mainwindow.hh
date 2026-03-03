@@ -3,6 +3,7 @@
 #include "application_state.hh"
 #include "display_qt.hh"
 #include "gpio_host.hh"
+#include "hal/i_input.hh"
 #include "speedometer_qt.hh"
 
 #include <QGraphicsPixmapItem>
@@ -16,7 +17,7 @@ namespace Ui
 class MainWindow;
 }
 
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public hal::IInput
 {
     Q_OBJECT
 
@@ -36,6 +37,7 @@ private slots:
 
 
 private:
+    std::unique_ptr<ListenerCookie> AttachListener(std::function<void(EventType)> on_event) final;
     ApplicationState& m_application_state;
 
     Ui::MainWindow* m_ui {nullptr};
@@ -51,4 +53,7 @@ private:
 
     std::unique_ptr<ListenerCookie> m_left_buzzer_cookie;
     std::unique_ptr<ListenerCookie> m_right_buzzer_cookie;
+
+
+    std::function<void(hal::IInput::EventType)> m_on_event {[](auto) {}};
 };

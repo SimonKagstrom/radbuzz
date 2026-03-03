@@ -3,12 +3,15 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "hal/i_display.hh"
+#include "hal/i_gpio.hh"
+#include "hal/i_input.hh"
 #include "hal/i_pm.hh"
 #include "image_cache.hh"
 #include "menu_screen.hh"
 #include "tile_cache.hh"
 #include "wgs84_to_osm_point.hh"
 
+#include <etl/queue_spsc_atomic.h>
 #include <lvgl.h>
 
 class MapScreen;
@@ -52,6 +55,7 @@ public:
 
     UserInterface(hal::IDisplay& display,
                   std::unique_ptr<hal::IPm::ILock> pm_lock,
+                  hal::IInput& input,
                   ApplicationState& state,
                   ImageCache& cache,
                   TileCache& tile_cache);
@@ -62,6 +66,8 @@ private:
 
     hal::IDisplay& m_display;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
+    hal::IInput& m_input;
+
     ApplicationState& m_state;
 
     ImageCache& m_image_cache;
@@ -71,8 +77,13 @@ private:
     uint32_t m_next_redraw_time {0};
 
 
+    etl::queue_spsc_atomic<hal::IInput::EventType, 4> m_input_queue;
+    int16_t m_enc_diff {0};
+    lv_indev_state_t m_button_state {LV_INDEV_STATE_RELEASED};
+
     std::unique_ptr<ListenerCookie> m_state_listener;
     std::unique_ptr<ListenerCookie> m_cache_listener;
+    std::unique_ptr<ListenerCookie> m_input_listener;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
 

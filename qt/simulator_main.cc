@@ -68,6 +68,7 @@ main(int argc, char* argv[])
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
                                                           pm->CreateFullPowerLock(),
+                                                          window, // IInput
                                                           application_state,
                                                           *image_cache,
                                                           *tile_cache);
