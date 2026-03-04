@@ -1,5 +1,4 @@
 #include "app_simulator.hh"
-#include "input_esp32.hh"
 #include "ble_handler.hh"
 #include "ble_server_esp32.hh"
 #include "button_debouncer.hh"
@@ -11,6 +10,7 @@
 #include "gps_reader.hh"
 #include "i2c_gps_esp32.hh"
 #include "image_cache.hh"
+#include "input_esp32.hh"
 #include "jd9365_display_esp32.hh"
 #include "nvm_esp32.hh"
 #include "pm_esp32.hh"
@@ -51,6 +51,10 @@ constexpr auto kCanBusRxPin = GPIO_NUM_4;
 
 constexpr auto kI2cSdaPin = GPIO_NUM_7;
 constexpr auto kI2cSclPin = GPIO_NUM_8;
+
+constexpr auto kButtonGpio = GPIO_NUM_47;
+constexpr auto kRotaryEncoderPinA = GPIO_NUM_52;
+constexpr auto kRotaryEncoderPinB = GPIO_NUM_48;
 
 
 #define TEST_LCD_BIT_PER_PIXEL (16)
@@ -290,6 +294,12 @@ app_main(void)
                            (1ull << kPinStepperDirGpio);
     gpio_config(&io_conf);
 
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    io_conf.pin_bit_mask =
+        (1ull << kButtonGpio) | (1ull << kRotaryEncoderPinA) | (1ull << kRotaryEncoderPinB);
+    gpio_config(&io_conf);
+
     // Turn on the backlight
     gpio_set_level(kTftBacklight, 0);
 
@@ -387,16 +397,20 @@ app_main(void)
     auto stepper_sleep_gpio =
         std::make_unique<TargetGpio>(kPinStepperSleepGpio, TargetGpio::Polarity::kActiveHigh);
     auto stepper_dir_gpio = std::make_unique<TargetGpio>(kPinStepperDirGpio);
+    auto pin_a = std::make_unique<TargetGpio>(kRotaryEncoderPinA);
+    auto pin_b = std::make_unique<TargetGpio>(kRotaryEncoderPinB);
 
     auto stepper_motor =
         std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
     stepper_motor->Start();
 
 
-    auto rotary_encoder = std::make_unique<RotaryEncoder>(GPIO_NUM_45, GPIO_NUM_47, GPIO_NUM_48);
-    auto button_debouncer = std::make_unique<ButtonDebouncer>(GPIO_NUM_45, GPIO_NUM_47, GPIO_NUM_48);
+    auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
+    auto button_debouncer = std::make_unique<ButtonDebouncer>();
+    auto debounced_button = button_debouncer->AddButton(
+        std::make_unique<TargetGpio>(kButtonGpio, TargetGpio::Polarity::kActiveLow));
 
-    auto input_esp32 = std::make_unique<InputEsp32>();
+    auto input_esp32 = std::make_unique<InputEsp32>(*debounced_button, *rotary_encoder);
 
     // Threads
     auto buzz_handler =
@@ -415,10 +429,15 @@ app_main(void)
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, 6000);
 
-    auto user_interface = std::make_unique<UserInterface>(
-        *display, pm->CreateFullPowerLock(), application_state, *image_cache, *tile_cache);
+    auto user_interface = std::make_unique<UserInterface>(*display,
+                                                          pm->CreateFullPowerLock(),
+                                                          *input_esp32,
+                                                          application_state,
+                                                          *image_cache,
+                                                          *tile_cache);
 
 
+    button_debouncer->Start("button_debouncer");
     buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);
     //can_bus_handler->Start("can_bus_handler", 4096);
