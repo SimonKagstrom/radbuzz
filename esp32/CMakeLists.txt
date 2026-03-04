@@ -1,6 +1,7 @@
 add_compile_options(-Wdouble-promotion)
 
 add_subdirectory(ble_server_esp32)
+add_subdirectory(input_esp32)
 add_subdirectory(wifi_client_esp32)
 
 add_subdirectory(.. radbuzz)

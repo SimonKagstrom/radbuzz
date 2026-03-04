@@ -1,4 +1,5 @@
 #include "app_simulator.hh"
+#include "input_esp32.hh"
 #include "ble_handler.hh"
 #include "ble_server_esp32.hh"
 #include "button_debouncer.hh"
@@ -390,6 +391,12 @@ app_main(void)
     auto stepper_motor =
         std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
     stepper_motor->Start();
+
+
+    auto rotary_encoder = std::make_unique<RotaryEncoder>(GPIO_NUM_45, GPIO_NUM_47, GPIO_NUM_48);
+    auto button_debouncer = std::make_unique<ButtonDebouncer>(GPIO_NUM_45, GPIO_NUM_47, GPIO_NUM_48);
+
+    auto input_esp32 = std::make_unique<InputEsp32>();
 
     // Threads
     auto buzz_handler =
