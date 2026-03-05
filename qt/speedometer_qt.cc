@@ -62,7 +62,7 @@ SpeedometerQt::DrawNeedle(float normalized_speed)
     const QPointF end_point(center.x() + kNeedleLengthPx * std::sin(angle_rad),
                             center.y() + kNeedleLengthPx * std::cos(angle_rad));
 
-    QPen needle_pen(Qt::white);
+    QPen needle_pen(Qt::red);
     needle_pen.setWidthF(kNeedleThicknessPx);
     needle_pen.setCapStyle(Qt::RoundCap);
 
