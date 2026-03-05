@@ -24,7 +24,7 @@ target_link_libraries(${COMPONENT_TARGET}
     nvm_esp32
     os_esp32
     pm_esp32
-    input_esp32
+    input
     uart_esp32
     buzz_handler
     tile_cache

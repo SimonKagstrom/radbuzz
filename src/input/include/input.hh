@@ -4,10 +4,10 @@
 #include "hal/i_input.hh"
 #include "rotary_encoder.hh"
 
-class InputEsp32 : public hal::IInput
+class Input : public hal::IInput
 {
 public:
-    InputEsp32(hal::IGpio& button, RotaryEncoder& rotary_encoder);
+    Input(hal::IGpio& button, RotaryEncoder& rotary_encoder);
 
     std::unique_ptr<ListenerCookie> AttachListener(std::function<void(EventType)> on_event) final;
 

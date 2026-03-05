@@ -1,6 +1,6 @@
-#include "input_esp32.hh"
+#include "input.hh"
 
-InputEsp32::InputEsp32(hal::IGpio& button, RotaryEncoder& rotary_encoder)
+Input::Input(hal::IGpio& button, RotaryEncoder& rotary_encoder)
 {
     m_button_listener_cookie = button.AttachIrqListener(
         [this](bool state) { m_on_event(state ? EventType::kButtonDown : EventType::kButtonUp); });
@@ -13,7 +13,7 @@ InputEsp32::InputEsp32(hal::IGpio& button, RotaryEncoder& rotary_encoder)
 }
 
 std::unique_ptr<ListenerCookie>
-InputEsp32::AttachListener(std::function<void(EventType)> on_event)
+Input::AttachListener(std::function<void(EventType)> on_event)
 {
     m_on_event = std::move(on_event);
 

@@ -10,7 +10,7 @@
 #include "gps_reader.hh"
 #include "i2c_gps_esp32.hh"
 #include "image_cache.hh"
-#include "input_esp32.hh"
+#include "input.hh"
 #include "jd9365_display_esp32.hh"
 #include "nvm_esp32.hh"
 #include "pm_esp32.hh"
@@ -371,7 +371,7 @@ app_main(void)
     //                                              GPIO_NUM_43); // TX
     //
 
-    //auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
+    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
     //auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
     auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
@@ -410,19 +410,19 @@ app_main(void)
     auto debounced_button = button_debouncer->AddButton(
         std::make_unique<TargetGpio>(kButtonGpio, TargetGpio::Polarity::kActiveLow));
 
-    auto input_esp32 = std::make_unique<InputEsp32>(*debounced_button, *rotary_encoder);
+    auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder);
 
     // Threads
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     //auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_server = std::make_unique<BleServerHost>();
-    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    //auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     //auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
 
-    //    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
-    auto gps_reader =
-        std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
+    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    //auto gps_reader =
+    //    std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
@@ -431,7 +431,7 @@ app_main(void)
 
     auto user_interface = std::make_unique<UserInterface>(*display,
                                                           pm->CreateFullPowerLock(),
-                                                          *input_esp32,
+                                                          *input,
                                                           application_state,
                                                           *image_cache,
                                                           *tile_cache);
@@ -439,7 +439,7 @@ app_main(void)
 
     button_debouncer->Start("button_debouncer");
     buzz_handler->Start("buzz_handler", 8192);
-    app_simulator->Start("app_simulator", 8192);
+    //app_simulator->Start("app_simulator", 8192);
     //can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     speedometer_handler->Start("speedometer_handler");
