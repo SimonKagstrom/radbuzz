@@ -396,14 +396,14 @@ app_main(void)
 
     auto stepper_sleep_gpio =
         std::make_unique<TargetGpio>(kPinStepperSleepGpio, TargetGpio::Polarity::kActiveHigh);
-    auto stepper_dir_gpio = std::make_unique<TargetGpio>(kPinStepperDirGpio);
+    auto stepper_dir_gpio = std::make_unique<TargetGpio>(kPinStepperDirGpio, TargetGpio::Polarity::kActiveLow);
     auto pin_a = std::make_unique<TargetGpio>(kRotaryEncoderPinA);
     auto pin_b = std::make_unique<TargetGpio>(kRotaryEncoderPinB);
 
     auto stepper_motor =
         std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
-    stepper_motor->Start();
 
+    stepper_motor->Start();
 
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
     auto button_debouncer = std::make_unique<ButtonDebouncer>();
@@ -417,17 +417,20 @@ app_main(void)
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     //auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_server = std::make_unique<BleServerHost>();
-    //auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     //auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
 
-    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
-    //auto gps_reader =
-    //    std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
+//    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    auto gps_reader =
+        std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
+
+    constexpr auto kFullRotation = 2400;
+
     auto speedometer_handler =
-        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, 6000);
+        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
 
     auto user_interface = std::make_unique<UserInterface>(*display,
                                                           pm->CreateFullPowerLock(),
@@ -439,7 +442,7 @@ app_main(void)
 
     button_debouncer->Start("button_debouncer");
     buzz_handler->Start("buzz_handler", 8192);
-    //app_simulator->Start("app_simulator", 8192);
+    app_simulator->Start("app_simulator", 8192);
     //can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     speedometer_handler->Start("speedometer_handler");
@@ -451,7 +454,6 @@ app_main(void)
     // TMP!
     os::Sleep(2s);
     //ble_server->ScanForService(hal::Uuid16(0x61c9), [](auto peer) { printf("Found peer\n"); });
-
 
     while (true)
     {
