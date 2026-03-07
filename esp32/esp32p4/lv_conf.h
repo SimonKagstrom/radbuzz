@@ -204,9 +204,13 @@
         #define LV_DRAW_SW_CIRCLE_CACHE_SIZE 4
     #endif
 
+#if defined(__riscv)
+    #define  LV_USE_DRAW_SW_ASM     LV_DRAW_SW_ASM_RISCV_V
+#else
     #define  LV_USE_DRAW_SW_ASM     LV_DRAW_SW_ASM_NONE
+#endif
 
-    #if LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_CUSTOM
+     #if LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_CUSTOM
         #define  LV_DRAW_SW_ASM_CUSTOM_INCLUDE ""
     #endif
 
