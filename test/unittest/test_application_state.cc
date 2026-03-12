@@ -14,7 +14,6 @@ TEST_CASE("The application state has default values")
     REQUIRE(p->position == GpsPosition {0.0f, 0.0f});
     REQUIRE(p->speed == 0.0f);
     REQUIRE(p->heading == 0.0f);
-    REQUIRE(p->pixel_position == Point {0, 0});
 }
 
 TEST_CASE("Writes are seen immediately in read-only checkouts")
@@ -61,7 +60,6 @@ TEST_CASE("Non-atomic structs can be written via value")
 
     GpsData gps_data {
         .position = {59.3293f, 18.0686f},
-        .pixel_position = {100, 200},
         .speed = 50.0f,
         .heading = 90.0f,
     };
@@ -70,7 +68,6 @@ TEST_CASE("Non-atomic structs can be written via value")
     auto p = ro.Get<AS::position>();
 
     REQUIRE(p->position == GpsPosition {59.3293f, 18.0686f});
-    REQUIRE(p->pixel_position == Point {100, 200});
     REQUIRE(p->speed == 50.0f);
     REQUIRE(p->heading == 90.0f);
 }

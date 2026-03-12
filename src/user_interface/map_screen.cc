@@ -64,17 +64,17 @@ MapScreen::Update()
         }
     }
 
-    auto gps_data = ro.Get<AS::position>();
+    auto pixel_position = *ro.Get<AS::pixel_position>();
 
-    auto t = ToTile(gps_data->pixel_position);
+    auto t = ToTile(pixel_position);
 
     // Calculate the center of the display
     int display_cx = hal::kDisplayWidth / 2;
     int display_cy = hal::kDisplayHeight / 2;
 
     // Calculate the top-left pixel in OSM coordinates that should be at (0,0) on the display
-    int start_x = gps_data->pixel_position.x - display_cx;
-    int start_y = gps_data->pixel_position.y - display_cy;
+    int start_x = pixel_position.x - display_cx;
+    int start_y = pixel_position.y - display_cy;
 
     // Calculate how many tiles are needed to cover the display
     constexpr int num_tiles_x = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
@@ -116,6 +116,7 @@ MapScreen::Update()
                           .c_str());
 }
 
-void MapScreen::HandleInput(hal::IInput::EventType event)
+void
+MapScreen::HandleInput(hal::IInput::EventType event)
 {
 }

@@ -130,6 +130,13 @@ UserInterface::OnActivation()
         }
     }
 
+    // Set the pixel position (since the UI can move it around in the future)
+    auto rw = m_state.CheckoutReadWrite();
+    if (auto pixel_pos = Wgs84ToOsmPoint(rw.Get<AS::position>()->position, 15); pixel_pos)
+    {
+        rw.Set<AS::pixel_position>(*pixel_pos);
+    }
+
 
     if (m_menu_screen)
     {

@@ -17,3 +17,4 @@ application_state:
   wh_regenerated: 0
   distance_traveled: 0
   position: {}
+  pixel_position: {}

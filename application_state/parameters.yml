@@ -1,6 +1,8 @@
 # This is the list of all possible parameters
 cpp_includes:
   - "gps_data.hh"
+  - "wgs84_to_osm_point.hh"
+
 
 parameters:
   wifi_connected:
@@ -45,3 +47,6 @@ parameters:
 
   position:
     type: struct GpsData
+
+  pixel_position:
+    type: struct Point

@@ -42,16 +42,6 @@ GpsReader::OnActivation()
     mangled.position = *m_position;
     mangled.heading = *m_heading;
     mangled.speed = *m_speed;
-    if (auto pixel_pos = Wgs84ToOsmPoint(*m_position, 15); pixel_pos)
-    {
-        mangled.pixel_position = *pixel_pos;
-    }
-    else
-    {
-        // If conversion fails, set to zero
-        mangled.pixel_position = Point {0, 0};
-    }
-
 
     m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);
     Reset();
