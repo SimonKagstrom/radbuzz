@@ -78,6 +78,7 @@ TileCache::TileCache(ApplicationState& application_state,
     , m_filesystem(filesystem)
     , m_httpd_client(httpd_client)
     , m_state_listener(m_application_state.AttachListener<AS::pixel_position>(GetSemaphore()))
+    , m_pixel_state_cache(m_application_state)
 {
     std::ranges::fill(m_tiles, kInvalidTile);
 }
@@ -109,11 +110,13 @@ TileCache::OnActivation()
 {
     auto ro = m_application_state.CheckoutReadonly();
 
-    auto pixel_position = ro.Get<AS::pixel_position>();
+    auto changed = m_pixel_state_cache.Sync();
 
-    if (*pixel_position != m_last_gps_data)
+    if (changed.Changed<AS::pixel_position>())
     {
-        auto city_tile = ToCityTile(*pixel_position);
+        auto pixel_position = m_pixel_state_cache.Get<AS::pixel_position>();
+
+        auto city_tile = ToCityTile(pixel_position);
 
         if (m_pending_city_tiles.find(city_tile) == m_pending_city_tiles.end())
         {
@@ -125,12 +128,11 @@ TileCache::OnActivation()
         {
             m_current_city_tile = city_tile;
 
-            auto center_tile = ToTile(*pixel_position);
+            auto center_tile = ToTile(pixel_position);
 
             RefreshCityTiles(center_tile);
         }
     }
-    m_last_gps_data = *pixel_position;
 
     FillFromColdStore();
     FillFromServer();

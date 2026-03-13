@@ -100,7 +100,7 @@ private:
     HttpdClient& m_httpd_client;
 
     std::unique_ptr<ListenerCookie> m_state_listener;
-    Point m_last_gps_data{};
+    ApplicationState::PartialReadOnlyCache<AS::pixel_position> m_pixel_state_cache;
 
     SingleColorImage m_black_tile {kTileSize, kTileSize, 2, 0x0000}; // Black tile
 
