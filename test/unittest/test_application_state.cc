@@ -136,7 +136,8 @@ TEST_CASE("Writes in partial snapshots are written back on destruction")
 TEST_CASE("PartialStateCaches can be used to track changes")
 {
     ApplicationState app_state;
-    auto state_cache = ApplicationState::PartialReadOnlyCache<AS::speed, AS::battery_millivolts>(app_state);
+    auto state_cache =
+        ApplicationState::PartialReadOnlyCache<AS::speed, AS::battery_millivolts>(app_state);
 
     auto rw = app_state.CheckoutReadWrite();
 
@@ -150,13 +151,14 @@ TEST_CASE("PartialStateCaches can be used to track changes")
             state_cache.Sync();
             REQUIRE(state_cache.Get<AS::speed>() == 10);
         }
+
         AND_THEN("it's marked as being changed")
         {
             auto changed = state_cache.Sync();
             REQUIRE(state_cache.Get<AS::speed>() == 10);
             REQUIRE(changed.Changed<AS::speed>() == true);
 
-            AND_THEN("other parameters are not marked as changed")
+            THEN("other parameters are not marked as changed")
             {
                 REQUIRE(changed.Changed<AS::battery_millivolts>() == false);
             }
@@ -168,10 +170,28 @@ TEST_CASE("PartialStateCaches can be used to track changes")
                 {
                     REQUIRE(next_changed.Changed<AS::speed>() == false);
                 }
+                AND_THEN("the value is still correct")
+                {
+                    REQUIRE(state_cache.Get<AS::speed>() == 10);
+                }
+            }
+        }
+
+        AND_WHEN("another change is made")
+        {
+            rw.Set<AS::speed>(11);
+            auto changed = state_cache.Sync();
+            THEN("also that is visible after syncing")
+            {
+                REQUIRE(state_cache.Get<AS::speed>() == 11);
+            }
+            AND_THEN("the change is marked")
+            {
+                REQUIRE(changed.Changed<AS::speed>() == true);
+                REQUIRE(changed.Changed<AS::battery_millivolts>() == false);
             }
         }
     }
-
 }
 
 
