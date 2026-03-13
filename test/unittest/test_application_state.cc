@@ -133,6 +133,48 @@ TEST_CASE("Writes in partial snapshots are written back on destruction")
 }
 
 
+TEST_CASE("PartialStateCaches can be used to track changes")
+{
+    ApplicationState app_state;
+    auto state_cache = ApplicationState::PartialReadOnlyCache<AS::speed, AS::battery_millivolts>(app_state);
+
+    auto rw = app_state.CheckoutReadWrite();
+
+    WHEN("a value in the global application state is changed")
+    {
+        rw.Set<AS::speed>(10);
+
+        THEN("it's not visible until Sync is called on the partial state cache")
+        {
+            REQUIRE(state_cache.Get<AS::speed>() == 0);
+            state_cache.Sync();
+            REQUIRE(state_cache.Get<AS::speed>() == 10);
+        }
+        AND_THEN("it's marked as being changed")
+        {
+            auto changed = state_cache.Sync();
+            REQUIRE(state_cache.Get<AS::speed>() == 10);
+            REQUIRE(changed.Changed<AS::speed>() == true);
+
+            AND_THEN("other parameters are not marked as changed")
+            {
+                REQUIRE(changed.Changed<AS::battery_millivolts>() == false);
+            }
+
+            AND_WHEN("it's synced again")
+            {
+                auto next_changed = state_cache.Sync();
+                THEN("the change is unmarked again")
+                {
+                    REQUIRE(next_changed.Changed<AS::speed>() == false);
+                }
+            }
+        }
+    }
+
+}
+
+
 TEST_CASE("Listeners can be added to the application state")
 {
     ApplicationState app_state;

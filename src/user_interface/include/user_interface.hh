@@ -73,6 +73,8 @@ private:
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;
 
+    ApplicationState::PartialReadOnlyCache<AS::position> m_state_cache;
+
     lv_display_t* m_lvgl_display {nullptr};
     uint32_t m_next_redraw_time {0};
 

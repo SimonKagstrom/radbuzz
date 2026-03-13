@@ -18,6 +18,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_state(state)
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
+    , m_state_cache(m_state)
 {
     m_state_listener = m_state.AttachListener<AS::position,
                                               AS::battery_soc,
@@ -131,10 +132,14 @@ UserInterface::OnActivation()
     }
 
     // Set the pixel position (since the UI can move it around in the future)
-    auto rw = m_state.CheckoutReadWrite();
-    if (auto pixel_pos = Wgs84ToOsmPoint(rw.Get<AS::position>()->position, 15); pixel_pos)
+    auto changed = m_state_cache.Sync();
+    if (changed.Changed<AS::position>())
     {
-        rw.Set<AS::pixel_position>(*pixel_pos);
+        auto rw = m_state.CheckoutReadWrite();
+        if (auto pixel_pos = Wgs84ToOsmPoint(rw.Get<AS::position>()->position, 15); pixel_pos)
+        {
+            rw.Set<AS::pixel_position>(*pixel_pos);
+        }
     }
 
 
