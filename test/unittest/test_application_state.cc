@@ -137,7 +137,8 @@ TEST_CASE("PartialStateCaches can be used to track changes")
 {
     ApplicationState app_state;
     auto state_cache =
-        ApplicationState::PartialReadOnlyCache<AS::speed, AS::battery_millivolts>(app_state);
+        ApplicationState::PartialReadOnlyCache<AS::speed, AS::battery_millivolts, AS::next_street>(
+            app_state);
 
     auto rw = app_state.CheckoutReadWrite();
 
@@ -145,34 +146,33 @@ TEST_CASE("PartialStateCaches can be used to track changes")
     {
         rw.Set<AS::speed>(10);
 
-        THEN("it's not visible until Sync is called on the partial state cache")
+        THEN("it's not visible until Pull is called on the partial state cache")
         {
-            REQUIRE(state_cache.Get<AS::speed>() == 0);
-            state_cache.Sync();
-            REQUIRE(state_cache.Get<AS::speed>() == 10);
+            const auto& co = state_cache.Pull();
+            REQUIRE(co.Get<AS::speed>() == 10);
         }
 
         AND_THEN("it's marked as being changed")
         {
-            auto changed = state_cache.Sync();
-            REQUIRE(state_cache.Get<AS::speed>() == 10);
-            REQUIRE(changed.Changed<AS::speed>() == true);
+            const auto& co = state_cache.Pull();
+            REQUIRE(co.Get<AS::speed>() == 10);
+            REQUIRE(co.IsChanged<AS::speed>() == true);
 
             THEN("other parameters are not marked as changed")
             {
-                REQUIRE(changed.Changed<AS::battery_millivolts>() == false);
+                REQUIRE(co.IsChanged<AS::battery_millivolts>() == false);
             }
 
-            AND_WHEN("it's synced again")
+            AND_WHEN("it's pulled again")
             {
-                auto next_changed = state_cache.Sync();
+                const auto& next_co = state_cache.Pull();
                 THEN("the change is unmarked again")
                 {
-                    REQUIRE(next_changed.Changed<AS::speed>() == false);
+                    REQUIRE(next_co.IsChanged<AS::speed>() == false);
                 }
                 AND_THEN("the value is still correct")
                 {
-                    REQUIRE(state_cache.Get<AS::speed>() == 10);
+                    REQUIRE(next_co.Get<AS::speed>() == 10);
                 }
             }
         }
@@ -180,16 +180,101 @@ TEST_CASE("PartialStateCaches can be used to track changes")
         AND_WHEN("another change is made")
         {
             rw.Set<AS::speed>(11);
-            auto changed = state_cache.Sync();
-            THEN("also that is visible after syncing")
+            const auto& co = state_cache.Pull();
+            THEN("also that is visible after pulling")
             {
-                REQUIRE(state_cache.Get<AS::speed>() == 11);
+                REQUIRE(co.Get<AS::speed>() == 11);
             }
             AND_THEN("the change is marked")
             {
-                REQUIRE(changed.Changed<AS::speed>() == true);
-                REQUIRE(changed.Changed<AS::battery_millivolts>() == false);
+                REQUIRE(co.IsChanged<AS::speed>() == true);
+                REQUIRE(co.IsChanged<AS::battery_millivolts>() == false);
             }
+        }
+    }
+
+    WHEN("the user wants to use change callbacks")
+    {
+        uint8_t cb_speed = 124;
+        uint16_t cb_battery = 124;
+        std::string cb_next_street = "Kalle Anka";
+
+        auto old_cb_speed = rw.Get<AS::speed>();
+        auto old_cb_battery = rw.Get<AS::battery_millivolts>();
+        auto old_cb_next_street = *rw.Get<AS::next_street>();
+
+        rw.Set<AS::speed>(10);
+        rw.Set<AS::next_street>("St Mickelsgatan");
+
+        const auto& co = state_cache.Pull();
+
+        THEN("a callback can be invoked for each change")
+        {
+            co.OnChanged<AS::speed>([&]() { cb_speed = co.Get<AS::speed>(); })
+                .OnChanged<AS::battery_millivolts>(
+                    [&]() { cb_battery = co.Get<AS::battery_millivolts>(); })
+                .OnChanged<AS::next_street>([&]() { cb_next_street = co.Get<AS::next_street>(); });
+
+            REQUIRE(cb_speed == 10);
+            REQUIRE(cb_battery == 124);
+            REQUIRE(cb_next_street == "St Mickelsgatan");
+        }
+        AND_THEN("a callback with the new value can be invoked for each change")
+        {
+            co.OnNewValue<AS::speed>([&](const auto& new_value) { cb_speed = new_value; })
+                .OnNewValue<AS::battery_millivolts>(
+                    [&](const auto& new_value) { cb_battery = new_value; })
+                .OnNewValue<AS::next_street>(
+                    [&](const auto& new_value) { cb_next_street = new_value; });
+
+            REQUIRE(cb_speed == 10);
+            REQUIRE(cb_battery == 124);
+            REQUIRE(cb_next_street == "St Mickelsgatan");
+        }
+        AND_THEN("a callback with the both the old and new value can be invoked for each change")
+        {
+            co.OnChangedValue<AS::speed>([&](const auto& old, const auto& new_value) {
+                  old_cb_speed = old;
+                  cb_speed = new_value;
+              })
+                .OnChangedValue<AS::battery_millivolts>(
+                    [&](const auto& old, const auto& new_value) {
+                        old_cb_battery = old;
+                        cb_battery = new_value;
+                    })
+                .OnChangedValue<AS::next_street>([&](const auto& old, const auto& new_value) {
+                    old_cb_next_street = old;
+                    cb_next_street = new_value;
+                });
+
+
+            REQUIRE(old_cb_speed == 0);
+            REQUIRE(cb_speed == 10);
+
+            REQUIRE(old_cb_battery == 0);
+            REQUIRE(cb_battery == 124);
+
+            REQUIRE(old_cb_next_street == "");
+            REQUIRE(cb_next_street == "St Mickelsgatan");
+        }
+
+        AND_THEN("the change callback functions can be freely mixed")
+        {
+            co.OnChangedValue<AS::speed>([&](const auto& old, const auto& new_value) {
+                  old_cb_speed = old;
+                  cb_speed = new_value;
+              })
+                .OnChanged<AS::battery_millivolts>(
+                    [&]() { cb_battery = co.Get<AS::battery_millivolts>(); })
+                .OnNewValue<AS::next_street>(
+                    [&](const auto& new_value) { cb_next_street = new_value; });
+
+
+            REQUIRE(old_cb_speed == 0);
+            REQUIRE(cb_speed == 10);
+
+            REQUIRE(cb_battery == 124);
+            REQUIRE(cb_next_street == "St Mickelsgatan");
         }
     }
 }
