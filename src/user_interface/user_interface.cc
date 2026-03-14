@@ -132,15 +132,14 @@ UserInterface::OnActivation()
     }
 
     // Set the pixel position (since the UI can move it around in the future)
-    auto changed = m_state_cache.Sync();
-    if (changed.Changed<AS::position>())
-    {
-        auto rw = m_state.CheckoutReadWrite();
-        if (auto pixel_pos = Wgs84ToOsmPoint(rw.Get<AS::position>()->position, 15); pixel_pos)
+    const auto& co = m_state_cache.Pull();
+
+    co.OnNewValue<AS::position>([&](const auto& gps_data) {
+        if (auto pixel_pos = Wgs84ToOsmPoint(gps_data.position, 15); pixel_pos)
         {
-            rw.Set<AS::pixel_position>(*pixel_pos);
+            m_state.CheckoutReadWrite().Set<AS::pixel_position>(*pixel_pos);
         }
-    }
+    });
 
 
     if (m_menu_screen)

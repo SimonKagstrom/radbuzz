@@ -108,14 +108,9 @@ TileCache::OnStartup()
 std::optional<milliseconds>
 TileCache::OnActivation()
 {
-    auto ro = m_application_state.CheckoutReadonly();
+    const auto& co = m_pixel_state_cache.Pull();
 
-    auto changed = m_pixel_state_cache.Sync();
-
-    if (changed.Changed<AS::pixel_position>())
-    {
-        auto pixel_position = m_pixel_state_cache.Get<AS::pixel_position>();
-
+    co.OnNewValue<AS::pixel_position>([&](const auto& pixel_position) {
         auto city_tile = ToCityTile(pixel_position);
 
         if (m_pending_city_tiles.find(city_tile) == m_pending_city_tiles.end())
@@ -132,7 +127,7 @@ TileCache::OnActivation()
 
             RefreshCityTiles(center_tile);
         }
-    }
+    });
 
     FillFromColdStore();
     FillFromServer();
