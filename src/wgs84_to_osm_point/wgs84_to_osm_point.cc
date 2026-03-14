@@ -16,7 +16,7 @@ deg2rad(float deg)
 } // namespace
 
 std::optional<Point>
-Wgs84ToOsmPoint(GpsPosition position, int zoom)
+Wgs84ToOsmPoint(const GpsPosition& position, int zoom)
 {
     float lat_rad = deg2rad(position.latitude);
     float n = std::powf(2.0f, zoom);
@@ -28,7 +28,7 @@ Wgs84ToOsmPoint(GpsPosition position, int zoom)
 }
 
 GpsPosition
-OsmPointToWgs84(Point point, int zoom)
+OsmPointToWgs84(const Point& point, int zoom)
 {
     float n = std::powf(2.0f, zoom);
 

@@ -72,6 +72,6 @@ operator==(const Point& lhs, const Point& rhs)
 auto operator<=>(const Tile& lhs, const Point& rhs) = delete;
 auto operator<=>(const Point& lhs, const Tile& rhs) = delete;
 
-std::optional<Point> Wgs84ToOsmPoint(GpsPosition position, int zoom);
+std::optional<Point> Wgs84ToOsmPoint(const GpsPosition &position, int zoom);
 
-GpsPosition OsmPointToWgs84(Point point, int zoom);
+GpsPosition OsmPointToWgs84(const Point &point, int zoom);
