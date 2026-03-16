@@ -5,11 +5,15 @@
 class TripMeterScreen : public UserInterface::ScreenBase
 {
 public:
-    TripMeterScreen(UserInterface& parent);
+    explicit TripMeterScreen(UserInterface& parent);
 
 private:
     void Update() final;
     void HandleInput(hal::IInput::EventType event) final;
 
     lv_obj_t* m_battery_millivolts_label {nullptr};
+
+     lv_style_t m_style_bar_bg;
+     lv_style_t m_style_bar_indicator;
+    lv_obj_t* m_consumption_bar {nullptr};
 };

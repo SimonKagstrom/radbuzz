@@ -336,8 +336,8 @@ iconHash={:08x}32
     }
 
     m_distance_left -= 10;
-    ps.GetWritableReference<AS::distance_traveled>() += 10;
-    ps.GetWritableReference<AS::wh_consumed>() += 5;
+    ps.GetWritableReference<AS::distance_traveled>() += 100;
+    ps.GetWritableReference<AS::wh_consumed>() += 2 + (m_random_engine() % 5);
     ps.GetWritableReference<AS::wh_regenerated>() += 1;
     auto& speed = ps.GetWritableReference<AS::speed>();
 
@@ -346,7 +346,8 @@ iconHash={:08x}32
     if (speed != m_target_speed)
     {
         auto sign = speed < m_target_speed ? 1 : -1;
-        speed = static_cast<uint8_t>(std::clamp(speed + sign * rand() % 3, 0, kMaxSpeed));
+        speed = static_cast<uint8_t>(
+            std::clamp(speed + sign * static_cast<uint8_t>(m_random_engine() % 3), 0, kMaxSpeed));
     }
     else
     {

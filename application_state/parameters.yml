@@ -42,6 +42,7 @@ parameters:
   wh_regenerated:
     type: uint32_t
 
+  # In meters
   distance_traveled:
     type: uint32_t
 
