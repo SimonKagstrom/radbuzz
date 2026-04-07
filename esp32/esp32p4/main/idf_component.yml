@@ -3,6 +3,8 @@ dependencies:
   espressif/esp_lcd_jd9365: "*"
   espressif/esp_wifi_remote: "*"
   espressif/esp_hosted: "*"
+  espressif/network_provisioning:
+    version: "^1.1.0"
 
   ## Required IDF version
   idf:
