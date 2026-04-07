@@ -1,7 +1,7 @@
 #pragma once
 
 #include "listener_cookie.hh"
-#include "semaphore.hh"
+#include "event_notifier.hh"
 
 #include <etl/unordered_map.h>
 #include <etl/vector.h>
@@ -53,7 +53,7 @@ public:
     ImageCache(const ImageCache&) = delete;
     ImageCache operator=(const ImageCache&) = delete;
 
-    std::unique_ptr<ListenerCookie> ListenToChanges(os::binary_semaphore& semaphore);
+    std::unique_ptr<ListenerCookie> ListenToChanges(IEventNotifier& notifier);
 
     // Context: Some thread (BLE)
     void Insert(uint32_t key, uint8_t width, uint8_t height, std::span<const uint8_t> data);
@@ -65,5 +65,5 @@ private:
     etl::vector<std::unique_ptr<CachedImage>, kMaxCachedImages> m_images;
     etl::unordered_map<uint32_t, uint8_t, kMaxCachedImages> m_cache;
 
-    etl::vector<os::binary_semaphore*, 4> m_listeners;
+    etl::vector<IEventNotifier*, 4> m_listeners;
 };

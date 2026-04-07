@@ -368,11 +368,11 @@ AppSimulator::SimulatedGps::NextPoint(const Point& point)
 }
 
 std::optional<hal::RawGpsData>
-AppSimulator::SimulatedGps::WaitForData(os::binary_semaphore& semaphore)
+AppSimulator::SimulatedGps::WaitForData(IEventNotifier& notifier)
 {
     m_data_semaphore.acquire();
 
-    semaphore.release();
+    notifier.Notify();
 
     hal::RawGpsData out;
 

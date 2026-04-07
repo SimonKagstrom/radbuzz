@@ -1,4 +1,5 @@
 #include "app_simulator.hh"
+#include "opportunistic_scheduler.hh"
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
 #include "buzz_handler.hh"
@@ -42,6 +43,9 @@ main(int argc, char* argv[])
     {
         updated = true;
     }
+
+    auto scheduler = std::make_unique<os::OpportunisticSchedulerThread>();
+    scheduler->Start("scheduler");
 
     ApplicationState application_state;
     application_state.CheckoutReadWrite().Set<AS::wifi_connected>(true);

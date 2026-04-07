@@ -24,7 +24,7 @@ private:
         void NextPoint(const Point& point);
 
     private:
-        std::optional<hal::RawGpsData> WaitForData(os::binary_semaphore& semaphore) final;
+        std::optional<hal::RawGpsData> WaitForData(IEventNotifier& notifier) final;
 
         Point m_current_point {0, 0};
         os::binary_semaphore m_data_semaphore {0};
