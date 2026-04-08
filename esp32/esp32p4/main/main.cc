@@ -57,12 +57,12 @@ constexpr auto kRotaryEncoderPinA = GPIO_NUM_52;
 constexpr auto kRotaryEncoderPinB = GPIO_NUM_48;
 
 
-#define TEST_LCD_BIT_PER_PIXEL (16)
-#define TEST_PIN_NUM_LCD_RST   (27)
-#define TEST_PIN_NUM_BK_LIGHT  (26) // set to -1 if not used
-#define TEST_MIPI_DSI_LANE_NUM (4)
+#define TEST_LCD_BIT_PER_PIXEL (GPIO_NUM_16)
+#define TEST_PIN_NUM_LCD_RST   (GPIO_NUM_27)
+#define TEST_PIN_NUM_BK_LIGHT  (GPIO_NUM_26) // set to -1 if not used
+#define TEST_MIPI_DSI_LANE_NUM (GPIO_NUM_4)
 
-#define TEST_MIPI_DPI_PX_FORMAT (LCD_COLOR_PIXEL_FORMAT_RGB565)
+#define TEST_MIPI_DPI_PX_FORMAT (LCD_COLOR_FMT_RGB565)
 
 #define TEST_DELAY_TIME_MS (3000)
 
@@ -217,6 +217,10 @@ CreateDisplay()
         // Below esp32p4 v3
         .phy_clk_src = MIPI_DSI_PHY_PLLREF_CLK_SRC_DEFAULT_LEGACY,
         .lane_bit_rate_mbps = 1500,
+        .flags =
+            {
+                .clock_lane_force_hs = false, // TODO: Test
+            },
     };
 
     ESP_ERROR_CHECK(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus));
@@ -227,7 +231,6 @@ CreateDisplay()
         .virtual_channel = 0,
         .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
         .dpi_clock_freq_mhz = 40,
-        .pixel_format = TEST_MIPI_DPI_PX_FORMAT,
         .in_color_format = LCD_COLOR_FMT_RGB565,
         .out_color_format = LCD_COLOR_FMT_RGB565,
         .num_fbs = 2,
@@ -244,7 +247,6 @@ CreateDisplay()
             },
         .flags =
             {
-                .use_dma2d = true,
                 .disable_lp = false,
             },
     };
@@ -259,15 +261,15 @@ CreateDisplay()
             },
     };
     static const esp_lcd_panel_dev_config_t panel_config = {
-        .reset_gpio_num = TEST_PIN_NUM_LCD_RST,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
         .bits_per_pixel = TEST_LCD_BIT_PER_PIXEL,
+        .reset_gpio_num = TEST_PIN_NUM_LCD_RST,
+        .vendor_config = &vendor_config,
         .flags =
             {
                 .reset_active_high = 0,
             },
-        .vendor_config = &vendor_config,
     };
 
     auto out = std::make_unique<DisplayJd9365>(mipi_dbi_io, panel_config);
@@ -396,7 +398,8 @@ app_main(void)
 
     auto stepper_sleep_gpio =
         std::make_unique<TargetGpio>(kPinStepperSleepGpio, TargetGpio::Polarity::kActiveHigh);
-    auto stepper_dir_gpio = std::make_unique<TargetGpio>(kPinStepperDirGpio, TargetGpio::Polarity::kActiveLow);
+    auto stepper_dir_gpio =
+        std::make_unique<TargetGpio>(kPinStepperDirGpio, TargetGpio::Polarity::kActiveLow);
     auto pin_a = std::make_unique<TargetGpio>(kRotaryEncoderPinA);
     auto pin_b = std::make_unique<TargetGpio>(kRotaryEncoderPinB);
 
@@ -420,7 +423,7 @@ app_main(void)
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     //auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x5e);
 
-//    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    //    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto gps_reader =
         std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
     auto tile_cache = std::make_unique<TileCache>(
@@ -432,12 +435,8 @@ app_main(void)
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
 
-    auto user_interface = std::make_unique<UserInterface>(*display,
-                                                          pm->CreateFullPowerLock(),
-                                                          *input,
-                                                          application_state,
-                                                          *image_cache,
-                                                          *tile_cache);
+    auto user_interface = std::make_unique<UserInterface>(
+        *display, pm->CreateFullPowerLock(), *input, application_state, *image_cache, *tile_cache);
 
 
     button_debouncer->Start("button_debouncer");
