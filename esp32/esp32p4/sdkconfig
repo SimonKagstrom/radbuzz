@@ -3750,9 +3750,6 @@ CONFIG_ESP_HOSTED_MAX_CUSTOM_MSG_HANDLERS=3
 # CONFIG_ESP_HOSTED_HOST_POWER_SAVE_ENABLED is not set
 # end of ESP-Hosted config
 
-#
-# Wi-Fi Remote
-#
 # default:
 CONFIG_ESP_WIFI_REMOTE_IDF_SPECIFIC_ADDED=y
 
@@ -3765,7 +3762,6 @@ CONFIG_ESP_WIFI_REMOTE_IDF_SPECIFIC_ADDED=y
 #
 # end of WPS Configuration Options
 # end of Wi-Fi configuration
-# end of Wi-Fi Remote
 
 #
 # Network Provisioning Manager
