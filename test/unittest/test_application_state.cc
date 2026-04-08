@@ -1,4 +1,5 @@
 #include "application_state.hh"
+#include "semaphore.hh"
 #include "test.hh"
 
 TEST_CASE("The application state has default values")
