@@ -9,11 +9,6 @@ static const char* TAG = "wifi station";
 WifiClientEsp32::WifiClientEsp32(ApplicationState& app_state)
     : m_app_state(app_state)
 {
-}
-
-void
-WifiClientEsp32::Start(const char* ssid, const char* password)
-{
     // Wifi
     wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
 
@@ -27,7 +22,11 @@ WifiClientEsp32::Start(const char* ssid, const char* password)
         WIFI_EVENT, ESP_EVENT_ANY_ID, &EventHandler, static_cast<void*>(this), &m_event_data));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
         IP_EVENT, IP_EVENT_STA_GOT_IP, &EventHandler, static_cast<void*>(this), &m_ip_event_data));
+}
 
+void
+WifiClientEsp32::Start(const char* ssid, const char* password)
+{
     wifi_config_t sta_config = {};
 
     // Setup ssid etc

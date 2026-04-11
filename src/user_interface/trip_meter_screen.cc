@@ -56,8 +56,7 @@ TripMeterScreen::Update()
 
     lv_label_set_text(
         m_battery_millivolts_label,
-        std::format("{} {}", ro.Get<AS::speed>(), static_cast<float>(ro.Get<AS::wh_consumed>()))
-            .c_str());
+        std::format("Consumed: {} Wh\nRegenerated: {} Wh", ro.Get<AS::wh_consumed>(), ro.Get<AS::wh_regenerated>()).c_str());
 
     auto average_consumption =
         static_cast<float>(ro.Get<AS::wh_consumed>()) / ro.Get<AS::distance_traveled>() * 1000.0f;

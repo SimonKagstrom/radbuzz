@@ -308,10 +308,16 @@ app_main(void)
 
     auto display = CreateDisplay();
 
+    // Create before SD
+    auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
+
     sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
 
     sd_mmc_host_config.slot = SDMMC_HOST_SLOT_0;
+    // See https://github.com/espressif/esp-hosted-mcu/blob/main/examples/host_sdcard_with_hosted
+    sd_mmc_host_config.init = []() { return ESP_OK; };
+    sd_mmc_host_config.deinit = []() { return ESP_OK; };
     sd_mmc_host_config.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
 
 #define CONFIG_EXAMPLE_SD_PWR_CTRL_LDO_IO_ID 4
@@ -376,7 +382,6 @@ app_main(void)
     auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
     //auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
-    auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
 
     auto ssid_data = filesystem->ReadFile("SSID.TXT");
     if (ssid_data)
