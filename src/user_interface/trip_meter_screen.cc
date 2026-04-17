@@ -6,6 +6,21 @@
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_big.h>
 
+constexpr int kValueRightXOffset = 120;
+constexpr int kLabelColumnWidth = 220;
+constexpr int kValueColumnWidth = 170;
+constexpr int kUnitColumnWidth = 130;
+constexpr int kLabelToValueGap = 24;
+constexpr int kValueToUnitGap = 5;
+constexpr int kFirstRowYOffset = 100;
+constexpr int kRowSpacing = kPixelSize_radbuzz_font_big + 10;
+
+int
+GetSideTextBaselineYOffset()
+{
+    return radbuzz_font_22.base_line - radbuzz_font_big.base_line;
+}
+
 /*
  * Distance traveled
  * Wh consumed
@@ -23,15 +38,8 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
           {"Trip average", "Wh/km", StatValueKind::kTripAverageWhPerKm},
       }
 {
-    static constexpr int kValueRightXOffset = 120;
-    static constexpr int kUnitRightXOffset = 230;
-    static constexpr int kValueColumnWidth = 170;
-    static constexpr int kUnitColumnWidth = 130;
-    static constexpr int kSideTextYOffset = 4;
-    static constexpr int kFirstRowYOffset = -80;
-    static constexpr int kRowSpacing = 80;
-
     m_screen = lv_obj_create(nullptr);
+    const int side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
@@ -46,23 +54,28 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 
         row.label = lv_label_create(m_screen);
         lv_obj_set_style_text_font(row.label, &radbuzz_font_22, LV_PART_MAIN);
+        lv_obj_set_width(row.label, kLabelColumnWidth);
         lv_label_set_text(row.label, row.label_text);
-        const lv_coord_t label_width = lv_obj_get_width(row.label);
-        lv_obj_align(row.label,
-                     LV_ALIGN_CENTER,
-                     -kUnitRightXOffset - (label_width / 2),
-                     y_offset + kSideTextYOffset);
+        lv_obj_set_style_text_align(row.label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
         row.unit = lv_label_create(m_screen);
         lv_obj_set_style_text_font(row.unit, &radbuzz_font_22, LV_PART_MAIN);
         lv_obj_set_width(row.unit, kUnitColumnWidth);
         lv_obj_set_style_text_align(row.unit, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
         lv_label_set_text(row.unit, row.unit_text);
-        lv_obj_align(
-            row.unit, LV_ALIGN_CENTER, kUnitRightXOffset - 20, y_offset + kSideTextYOffset);
 
         lv_obj_align(
-            row.value, LV_ALIGN_CENTER, kValueRightXOffset - (kValueColumnWidth / 2), y_offset);
+            row.value, LV_ALIGN_TOP_MID, kValueRightXOffset - (kValueColumnWidth / 2), y_offset);
+        lv_obj_align_to(row.label,
+                        row.value,
+                        LV_ALIGN_OUT_LEFT_BOTTOM,
+                        -kLabelToValueGap,
+                        side_text_baseline_y_offset);
+        lv_obj_align_to(row.unit,
+                        row.value,
+                        LV_ALIGN_OUT_RIGHT_BOTTOM,
+                        kValueToUnitGap,
+                        side_text_baseline_y_offset);
 
         ++row_index;
     }
@@ -95,23 +108,22 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 void
 TripMeterScreen::Update()
 {
-    static constexpr int kFirstRowYOffset = -80;
-    static constexpr int kRowSpacing = 80;
-
     auto ro = m_parent.m_state.CheckoutReadonly();
+    const int side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
     {
         const int y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
-        uint32_t value = 0;
+        std::string value_text {"0"};
+        std::string unit_text {row.unit_text};
         switch (row.value_kind)
         {
         case StatValueKind::kConsumedWh:
-            value = ro.Get<AS::wh_consumed>();
+            value_text = std::format("{}", ro.Get<AS::wh_consumed>());
             break;
         case StatValueKind::kRegeneratedWh:
-            value = ro.Get<AS::wh_regenerated>();
+            value_text = std::format("{}", ro.Get<AS::wh_regenerated>());
             break;
         case StatValueKind::kTripAverageWhPerKm: {
             const uint32_t distance_traveled = ro.Get<AS::distance_traveled>();
@@ -120,19 +132,31 @@ TripMeterScreen::Update()
                 distance_traveled > 0
                     ? (static_cast<uint64_t>(wh_consumed) * 1000ULL) / distance_traveled
                     : 0ULL;
-            value = static_cast<uint32_t>(std::min<uint64_t>(average_consumption, 60ULL));
+            value_text = std::format(
+                "{}", static_cast<uint32_t>(std::min<uint64_t>(average_consumption, 60ULL)));
             break;
         }
         case StatValueKind::kValueCount:
             break;
         }
 
-        lv_label_set_text(row.value, std::format("{}", value).c_str());
+        lv_label_set_text(row.value, value_text.c_str());
+        lv_label_set_text(row.unit, unit_text.c_str());
 
         static constexpr int kValueRightXOffset = 120;
         static constexpr int kValueColumnWidth = 170;
         lv_obj_align(
-            row.value, LV_ALIGN_CENTER, kValueRightXOffset - (kValueColumnWidth / 2), y_offset);
+            row.value, LV_ALIGN_TOP_MID, kValueRightXOffset - (kValueColumnWidth / 2), y_offset);
+        lv_obj_align_to(row.label,
+                        row.value,
+                        LV_ALIGN_OUT_LEFT_BOTTOM,
+                        -kLabelToValueGap,
+                        side_text_baseline_y_offset);
+        lv_obj_align_to(row.unit,
+                        row.value,
+                        LV_ALIGN_OUT_RIGHT_BOTTOM,
+                        kValueToUnitGap,
+                        side_text_baseline_y_offset);
 
         ++row_index;
     }
