@@ -65,11 +65,13 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
     }
 
     // TODO: Add more fields here
+    auto ro = m_state.CheckoutReadonly();
     auto qw = m_state.CheckoutQueuedWriter<AS::controller_temperature,
                                            AS::motor_temperature,
                                            AS::wh_consumed,
                                            AS::wh_regenerated,
                                            AS::speed,
+                                           AS::max_speed,
                                            AS::battery_millivolts>();
 
     if (command == CAN_PACKET_STATUS)
@@ -77,8 +79,6 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         vesc_status_msg_1_t status;
         if (vesc_parse_status_msg_1(data, len, &status))
         {
-            // TODO: Calculate based on RPM and wheel diameter + gear ratio
-            qw.Set<AS::speed>(static_cast<uint8_t>(status.rpm));
         }
     }
     else if (command == CAN_PACKET_STATUS_3)
@@ -143,8 +143,15 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
                 break;
             case vesc_setup_value_index_t::SETUP_VALUE_RPM:
                 break;
-            case vesc_setup_value_index_t::SETUP_VALUE_SPEED:
-                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_SPEED: {
+                auto meters_per_second = vesc_buffer_get_float32(data, 1e3f, &index);
+                auto km_per_hour = meters_per_second * 3.6f;
+                auto speed = static_cast<uint8_t>(km_per_hour);
+
+                qw.Set<AS::speed>(speed);
+                qw.Set<AS::max_speed>(std::max(ro.Get<AS::max_speed>(), speed));
+            }
+            break;
             case vesc_setup_value_index_t::SETUP_VALUE_INPUT_VOLTAGE_FILTERED:
                 break;
             case vesc_setup_value_index_t::SETUP_VALUE_BATTERY_LEVEL:
