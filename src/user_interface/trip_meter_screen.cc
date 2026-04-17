@@ -15,11 +15,14 @@ constexpr int kValueToUnitGap = 5;
 constexpr int kFirstRowYOffset = 100;
 constexpr int kRowSpacing = kPixelSize_radbuzz_font_big + 10;
 
-int
+namespace
+{
+auto
 GetSideTextBaselineYOffset()
 {
     return radbuzz_font_22.base_line - radbuzz_font_big.base_line;
 }
+} // namespace
 
 /*
  * Distance traveled
@@ -39,7 +42,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
       }
 {
     m_screen = lv_obj_create(nullptr);
-    const int side_text_baseline_y_offset = GetSideTextBaselineYOffset();
+    const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
