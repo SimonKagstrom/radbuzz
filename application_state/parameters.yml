@@ -23,6 +23,9 @@ parameters:
   speed:
     type: uint8_t
 
+  max_speed:
+    type: uint8_t
+
   controller_temperature:
     type: uint8_t
 

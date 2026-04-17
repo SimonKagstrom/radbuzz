@@ -26,10 +26,7 @@ GetSideTextBaselineYOffset()
 
 /*
  * Distance traveled
- * Wh consumed
- * Wh regenerated
  * Average speed
- * Average consumption
  * Remaining range
  */
 

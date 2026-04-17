@@ -9,6 +9,7 @@ application_state:
   distance_to_next: 0
   next_street: ""
   speed: 0
+  max_speed: 0
   controller_temperature: 0
   motor_temperature: 0
   battery_millivolts: 0
