@@ -80,6 +80,7 @@ UserInterface::OnStartup()
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
 
+    m_current_screen = m_map_screen.get();
     m_map_screen->Activate();
 }
 
