@@ -81,24 +81,6 @@ UserInterface::OnStartup()
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
 
     m_map_screen->Activate();
-    m_current_screen = m_map_screen.get();
-
-    static auto vobb = StartTimer(5s, [this]() {
-        auto now = m_current_screen;
-
-        if (now == m_map_screen.get())
-        {
-            m_trip_meter_screen->Activate();
-            m_current_screen = m_trip_meter_screen.get();
-        }
-        else
-        {
-            m_map_screen->Activate();
-            m_current_screen = m_map_screen.get();
-        }
-
-        return 5s;
-    });
 }
 
 std::optional<milliseconds>

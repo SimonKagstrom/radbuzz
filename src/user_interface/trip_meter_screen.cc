@@ -176,6 +176,12 @@ TripMeterScreen::HandleInput(hal::IInput::EventType event)
 {
     switch (event)
     {
+    case hal::IInput::EventType::kLeft:
+        [[fallthrough]]; // For now
+    case hal::IInput::EventType::kRight:
+        m_parent.m_map_screen->Activate();
+        m_parent.m_current_screen = m_parent.m_map_screen.get();
+        break;
     default:
         break;
     }
