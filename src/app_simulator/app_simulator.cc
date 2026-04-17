@@ -310,7 +310,8 @@ AppSimulator::OnActivation()
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::distance_traveled,
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
-                                                          AS::speed>();
+                                                          AS::speed,
+                                                          AS::max_speed>();
 
     auto current_street = m_streets.back();
 
@@ -348,6 +349,9 @@ iconHash={:08x}32
         auto sign = speed < m_target_speed ? 1 : -1;
         speed = static_cast<uint8_t>(
             std::clamp(speed + sign * static_cast<uint8_t>(m_random_engine() % 3), 0, kMaxSpeed));
+
+        ps.GetWritableReference<AS::max_speed>() =
+            std::max(m_application_state.CheckoutReadonly().Get<AS::max_speed>(), speed);
     }
     else
     {
