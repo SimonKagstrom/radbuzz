@@ -36,6 +36,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
           {"Consumed", "Wh", StatValueKind::kConsumedWh},
           {"Regenerated", "Wh", StatValueKind::kRegeneratedWh},
           {"Trip average", "Wh/km", StatValueKind::kTripAverageWhPerKm},
+          {"Trip max speed", "km/h", StatValueKind::kTripMaxSpeed},
       }
 {
     m_screen = lv_obj_create(nullptr);
@@ -124,6 +125,9 @@ TripMeterScreen::Update()
             break;
         case StatValueKind::kRegeneratedWh:
             value_text = std::format("{}", ro.Get<AS::wh_regenerated>());
+            break;
+        case StatValueKind::kTripMaxSpeed:
+            value_text = std::format("{}", ro.Get<AS::max_speed>());
             break;
         case StatValueKind::kTripAverageWhPerKm: {
             const uint32_t distance_traveled = ro.Get<AS::distance_traveled>();

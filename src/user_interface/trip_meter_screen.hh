@@ -15,6 +15,7 @@ private:
         kConsumedWh,
         kRegeneratedWh,
         kTripAverageWhPerKm,
+        kTripMaxSpeed,
 
         kValueCount,
     };
