@@ -46,7 +46,7 @@ struct Point
 inline auto
 ToPoint(const Tile& tile)
 {
-    return Point {tile.x * kTileSize, tile.y * kTileSize};
+    return Point {tile.x * kTileSize, tile.y * kTileSize, tile.zoom};
 }
 
 inline auto
@@ -81,3 +81,5 @@ auto operator<=>(const Point& lhs, const Tile& rhs) = delete;
 std::optional<Point> Wgs84ToOsmPoint(const GpsPosition& position, uint8_t zoom);
 
 GpsPosition OsmPointToWgs84(const Point& point);
+
+Point OsmPointToPoint(const Point& point, uint8_t next_zoom);

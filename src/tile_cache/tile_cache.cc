@@ -95,7 +95,8 @@ TileCache::OnStartup()
 
         for (auto i = 0u; i < count; i += 2)
         {
-            m_pending_city_tiles.insert(Tile {ptr[i], ptr[i + 1]});
+            m_pending_city_tiles.insert(
+                Tile {ptr[i], ptr[i + 1], static_cast<uint8_t>(ptr[i + 2] & 0xff)});
         }
     }
 
@@ -194,7 +195,7 @@ TileCache::FillFromColdStore()
         }
 
         //        printf("Getting tile %d,%d from cold store\n", t.x, t.y);
-        auto data = m_filesystem.ReadFile(std::format("tiles/15/{}/{}.png", t.x, t.y));
+        auto data = m_filesystem.ReadFile(GetTilePath(t));
 
         auto wifi_connected = AppState().Get<AS::wifi_connected>();
 
@@ -233,7 +234,7 @@ TileCache::RefreshCityTiles(const Tile& center)
     {
         for (int dy = -kCityTileFactor; dy <= kCityTileFactor; ++dy)
         {
-            Tile t {center.x + dx, center.y + dy};
+            Tile t {center.x + dx, center.y + dy, center.zoom};
 
             m_get_from_server_background.push_back(t);
         }
@@ -271,7 +272,7 @@ TileCache::FillFromServer()
         }
 
 
-        auto path = GetTilePath(t, 15);
+        auto path = GetTilePath(t);
         if (m_filesystem.FileExists(path))
         {
             // Already got it, probably from being requested by the UI
@@ -299,7 +300,7 @@ TileCache::FillFromServer()
             continue;
         }
 
-        auto path = GetTilePath(t, 15);
+        auto path = GetTilePath(t);
 
         printf("TileCache: Need to reload tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
         auto data = m_httpd_client.Get(GetTileUrl(t));
@@ -317,14 +318,17 @@ TileCache::GetTileUrl(const Tile& t) const
 {
     constexpr auto kOsmApiKey = OSM_API_KEY;
 
-    return std::format(
-        "https://tile.thunderforest.com/cycle/15/{}/{}.png?apikey={}", t.x, t.y, kOsmApiKey);
+    return std::format("https://tile.thunderforest.com/cycle/{}/{}/{}.png?apikey={}",
+                       t.zoom,
+                       t.x,
+                       t.y,
+                       kOsmApiKey);
 }
 
 std::string
-TileCache::GetTilePath(const Tile& t, unsigned zoom_level) const
+TileCache::GetTilePath(const Tile& t) const
 {
-    return std::format("tiles/{}/{}/{}.png", zoom_level, t.x, t.y);
+    return std::format("tiles/{}/{}/{}.png", t.zoom, t.x, t.y);
 }
 
 void
@@ -338,6 +342,7 @@ TileCache::SavePendingCityTiles()
     {
         *ptr++ = t.x;
         *ptr++ = t.y;
+        *ptr++ = t.zoom;
     }
 
     m_filesystem.WriteFile(kPendingCityTilesFileName, data);

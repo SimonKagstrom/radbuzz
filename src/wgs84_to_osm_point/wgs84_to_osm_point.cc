@@ -27,6 +27,14 @@ Wgs84ToOsmPoint(const GpsPosition& position, uint8_t zoom)
     return Point {static_cast<int32_t>(x * kTileSize), static_cast<int32_t>(y * kTileSize), zoom};
 }
 
+Point
+OsmPointToPoint(const Point& point, uint8_t next_zoom)
+{
+    float scale = std::powf(2.0f, static_cast<int>(next_zoom) - static_cast<int>(point.zoom));
+    return Point {
+        static_cast<int32_t>(point.x * scale), static_cast<int32_t>(point.y * scale), next_zoom};
+}
+
 GpsPosition
 OsmPointToWgs84(const Point& point)
 {

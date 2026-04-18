@@ -90,7 +90,7 @@ private:
 
     std::string GetTileUrl(const Tile& t) const;
 
-    std::string GetTilePath(const Tile& t, unsigned zoom_level) const;
+    std::string GetTilePath(const Tile& t) const;
 
     void SavePendingCityTiles();
 

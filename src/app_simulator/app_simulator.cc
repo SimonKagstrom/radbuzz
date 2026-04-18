@@ -262,7 +262,7 @@ AppSimulator::AppSimulator(ApplicationState& app_state, BleServerHost& ble_serve
               // Enköping
               // 59.646331787827336, 17.07769480747484,
           },
-          15))
+          kDefaultZoom))
 {
     SetupStreetOrder();
 }
