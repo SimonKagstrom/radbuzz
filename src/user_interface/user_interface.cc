@@ -26,6 +26,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::distance_traveled,
                                               AS::bluetooth_connected,
                                               AS::wifi_connected,
+                                              AS::speed,
                                               AS::wh_consumed,
                                               AS::wh_regenerated>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
