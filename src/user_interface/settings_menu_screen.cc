@@ -7,6 +7,10 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
               m_parent.ActivateScreen(*m_parent.m_map_screen);
           }))
 {
+    auto& main = m_menu_screen->GetMainPage();
+    main.AddSubPage("Settings");
+    main.AddSeparator();
+    main.AddEntry("Reset trip", [](lv_event_t*) { printf("Resetting trip, but NYI\n"); });
 }
 
 void
