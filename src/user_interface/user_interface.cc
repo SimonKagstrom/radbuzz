@@ -2,6 +2,7 @@
 
 #include "map_screen.hh"
 #include "painter.hh"
+#include "settings_menu_screen.hh"
 #include "trip_meter_screen.hh"
 
 #include <radbuzz_font_22.h>
@@ -79,9 +80,9 @@ UserInterface::OnStartup()
 
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
+    m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
 
-    m_current_screen = m_map_screen.get();
-    m_map_screen->Activate();
+    ActivateScreen(*m_map_screen);
 }
 
 std::optional<milliseconds>
@@ -112,6 +113,8 @@ UserInterface::OnActivation()
         default:
             break;
         }
+
+        m_current_screen->HandleInput(event);
     }
 
     // Set the pixel position (since the UI can move it around in the future)
@@ -123,31 +126,6 @@ UserInterface::OnActivation()
             m_state.CheckoutReadWrite().Set<AS::pixel_position>(*pixel_pos);
         }
     });
-
-
-    if (m_menu_screen)
-    {
-        lv_indev_read(m_lvgl_input_dev);
-    }
-    else
-    {
-        // Ugly
-        if (m_button_state == LV_INDEV_STATE_PRESSED && !m_menu_screen)
-        {
-            m_menu_screen =
-                std::make_unique<MenuScreen>(GetTimerManager(), m_lvgl_input_dev, [this]() {
-                    printf("Menu closed\n");
-                    m_menu_destructor = Defer([this]() {
-                        m_menu_screen = nullptr;
-                        return std::nullopt;
-                    });
-                });
-        }
-        else
-        {
-            m_current_screen->HandleInput(event);
-        }
-    }
 
     auto max_power = m_pm_lock->FullPower();
 

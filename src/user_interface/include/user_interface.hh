@@ -16,18 +16,21 @@
 
 class MapScreen;
 class TripMeterScreen;
+class SettingsMenuScreen;
 
 class UserInterface : public os::BaseThread
 {
 public:
     friend class MapScreen;
     friend class TripMeterScreen;
+    friend class SettingsMenuScreen;
 
     class ScreenBase
     {
     public:
-        explicit ScreenBase(UserInterface& parent)
+        explicit ScreenBase(UserInterface& parent, lv_obj_t *screen)
             : m_parent(parent)
+            , m_screen(screen)
         {
         }
 
@@ -64,6 +67,13 @@ private:
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
+
+    void ActivateScreen(ScreenBase& screen)
+    {
+        screen.Activate();
+        m_current_screen = &screen;
+    }
+
     hal::IDisplay& m_display;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     hal::IInput& m_input;
@@ -95,7 +105,7 @@ private:
 
     std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
-    std::unique_ptr<MenuScreen> m_menu_screen;
+    std::unique_ptr<ScreenBase> m_settings_menu_screen;
 
     ScreenBase* m_current_screen {nullptr};
 };

@@ -5,7 +5,7 @@
 #include <radbuzz_font_22.h>
 
 MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache)
-    : ScreenBase(parent)
+    : ScreenBase(parent, lv_image_create(nullptr))
     , m_image_cache(image_cache)
     , m_tile_cache(tile_cache)
 {
@@ -16,8 +16,6 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
                                   hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t)},
         hal::kDisplayWidth,
         hal::kDisplayHeight);
-
-    m_screen = lv_image_create(nullptr);
 
     lv_image_set_src(m_screen, &m_static_map_image->lv_image_dsc);
 
@@ -124,27 +122,12 @@ MapScreen::HandleInput(hal::IInput::EventType event)
     case hal::IInput::EventType::kLeft:
         [[fallthrough]]; // For now
     case hal::IInput::EventType::kRight:
-        m_parent.m_trip_meter_screen->Activate();
-        m_parent.m_current_screen = m_parent.m_trip_meter_screen.get();
+        m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
+        break;
+    case hal::IInput::EventType::kButtonDown:
+        m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
         break;
     default:
         break;
     }
-
-    //    static auto vobb = StartTimer(5s, [this]() {
-    //        auto now = m_current_screen;
-    //
-    //        if (now == m_map_screen.get())
-    //        {
-    //            m_trip_meter_screen->Activate();
-    //            m_current_screen = m_trip_meter_screen.get();
-    //        }
-    //        else
-    //        {
-    //            m_map_screen->Activate();
-    //            m_current_screen = m_map_screen.get();
-    //        }
-    //
-    //        return 5s;
-    //    });
 }

@@ -31,7 +31,7 @@ GetSideTextBaselineYOffset()
  */
 
 TripMeterScreen::TripMeterScreen(UserInterface& parent)
-    : ScreenBase(parent)
+    : ScreenBase(parent, lv_obj_create(nullptr))
     , m_stat_rows {
           {"Consumed", "Wh", StatValueKind::kConsumedWh},
           {"Regenerated", "Wh", StatValueKind::kRegeneratedWh},
@@ -39,7 +39,6 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
           {"Trip max speed", "km/h", StatValueKind::kTripMaxSpeed},
       }
 {
-    m_screen = lv_obj_create(nullptr);
     const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     std::size_t row_index = 0;
@@ -183,8 +182,10 @@ TripMeterScreen::HandleInput(hal::IInput::EventType event)
     case hal::IInput::EventType::kLeft:
         [[fallthrough]]; // For now
     case hal::IInput::EventType::kRight:
-        m_parent.m_map_screen->Activate();
-        m_parent.m_current_screen = m_parent.m_map_screen.get();
+        m_parent.ActivateScreen(*m_parent.m_map_screen);
+        break;
+    case hal::IInput::EventType::kButtonDown:
+        m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
         break;
     default:
         break;
