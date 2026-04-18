@@ -16,7 +16,7 @@ deg2rad(float deg)
 } // namespace
 
 std::optional<Point>
-Wgs84ToOsmPoint(const GpsPosition& position, int zoom)
+Wgs84ToOsmPoint(const GpsPosition& position, uint8_t zoom)
 {
     float lat_rad = deg2rad(position.latitude);
     float n = std::powf(2.0f, zoom);
@@ -24,13 +24,13 @@ Wgs84ToOsmPoint(const GpsPosition& position, int zoom)
     float x = (position.longitude + 180.0f) / 360.0f * n;
     float y = (1.0f - std::asinhf(std::tanf(lat_rad)) / std::numbers::pi_v<float>) / 2.0f * n;
 
-    return Point {static_cast<int32_t>(x * kTileSize), static_cast<int32_t>(y * kTileSize)};
+    return Point {static_cast<int32_t>(x * kTileSize), static_cast<int32_t>(y * kTileSize), zoom};
 }
 
 GpsPosition
-OsmPointToWgs84(const Point& point, int zoom)
+OsmPointToWgs84(const Point& point)
 {
-    float n = std::powf(2.0f, zoom);
+    float n = std::powf(2.0f, point.zoom);
 
     float x = static_cast<float>(point.x) / kTileSize;
     float y = static_cast<float>(point.y) / kTileSize;

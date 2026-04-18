@@ -382,7 +382,7 @@ AppSimulator::SimulatedGps::WaitForData(IEventNotifier& notifier)
 
     out.heading = 15; // TODO
     out.speed = 25;   // TODO
-    out.position = OsmPointToWgs84(m_current_point, 15);
+    out.position = OsmPointToWgs84(m_current_point);
 
     return out;
 }

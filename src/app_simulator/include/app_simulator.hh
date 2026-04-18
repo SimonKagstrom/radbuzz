@@ -26,7 +26,7 @@ private:
     private:
         std::optional<hal::RawGpsData> WaitForData(IEventNotifier& notifier) final;
 
-        Point m_current_point {0, 0};
+        Point m_current_point {0, 0, 0};
         os::binary_semaphore m_data_semaphore {0};
     };
 
@@ -49,7 +49,7 @@ private:
     std::unordered_set<uint32_t> m_cached_images;
 
     SimulatedGps m_gps;
-    Point m_current_point {0, 0};
+    Point m_current_point {0, 0, kDefaultZoom};
 
     uint8_t m_target_speed {10};
 };

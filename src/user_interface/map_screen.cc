@@ -94,7 +94,7 @@ MapScreen::Update()
             int16_t dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
             int16_t dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
 
-            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y}));
+            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, 15}));
             painter::Blit(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
                           tile,
                           painter::Rect {dst_x, dst_y});

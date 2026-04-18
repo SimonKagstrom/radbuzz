@@ -9,10 +9,13 @@
 constexpr auto kTileSize = 256;
 constexpr auto kCityTileFactor = 30;
 
+constexpr auto kDefaultZoom = 15;
+
 struct Tile
 {
     int32_t x;
     int32_t y;
+    uint8_t zoom;
 };
 
 namespace std
@@ -24,18 +27,20 @@ struct hash<Tile>
     {
         auto h1 = std::hash<int32_t> {}(t.x);
         auto h2 = std::hash<int32_t> {}(t.y);
-        return h1 ^ (h2 << 1);
+        auto h3 = std::hash<uint8_t> {}(t.zoom);
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
     }
 };
 
 } // namespace std
 
-constexpr auto kInvalidTile = Tile {-1, -1};
+constexpr auto kInvalidTile = Tile {-1, -1, 0};
 
 struct Point
 {
     int32_t x;
     int32_t y;
+    uint8_t zoom;
 };
 
 inline auto
@@ -47,31 +52,32 @@ ToPoint(const Tile& tile)
 inline auto
 ToTile(const Point& point)
 {
-    return Tile {point.x / kTileSize, point.y / kTileSize};
+    return Tile {point.x / kTileSize, point.y / kTileSize, point.zoom};
 }
 
 inline auto
 ToCityTile(const Point& point)
 {
     return Tile {(point.x / kTileSize / kCityTileFactor) * kCityTileFactor,
-                 (point.y / kTileSize / kCityTileFactor) * kCityTileFactor};
+                 (point.y / kTileSize / kCityTileFactor) * kCityTileFactor,
+                 point.zoom};
 }
 
 inline bool
 operator==(const Tile& lhs, const Tile& rhs)
 {
-    return lhs.x == rhs.x && lhs.y == rhs.y;
+    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.zoom == rhs.zoom;
 }
 
 inline bool
 operator==(const Point& lhs, const Point& rhs)
 {
-    return lhs.x == rhs.x && lhs.y == rhs.y;
+    return lhs.x == rhs.x && lhs.y == rhs.y && lhs.zoom == rhs.zoom;
 }
 
 auto operator<=>(const Tile& lhs, const Point& rhs) = delete;
 auto operator<=>(const Point& lhs, const Tile& rhs) = delete;
 
-std::optional<Point> Wgs84ToOsmPoint(const GpsPosition &position, int zoom);
+std::optional<Point> Wgs84ToOsmPoint(const GpsPosition& position, uint8_t zoom);
 
-GpsPosition OsmPointToWgs84(const Point &point, int zoom);
+GpsPosition OsmPointToWgs84(const Point& point);
