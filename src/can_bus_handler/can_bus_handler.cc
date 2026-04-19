@@ -36,7 +36,8 @@ CanBusHandler::OnStartup()
 
     m_periodic_timer = StartTimer(500ms, [this]() {
         vesc_get_values_setup_selective(m_controller_id,
-                                        SETUP_VALUE_ODOMETER | SETUP_VALUE_INPUT_VOLTAGE_FILTERED);
+                                        SETUP_VALUE_SPEED | SETUP_VALUE_ODOMETER |
+                                            SETUP_VALUE_INPUT_VOLTAGE_FILTERED);
         return 500ms;
     });
 }
@@ -75,9 +76,10 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
                                            AS::motor_temperature,
                                            AS::wh_consumed,
                                            AS::wh_regenerated,
+                                           AS::distance_traveled,
                                            AS::speed,
                                            AS::max_speed,
-                                           AS::battery_millivolts>();
+                                           AS::battery_millivolts>(); // Millivolts is temporary
 
     if (command == CAN_PACKET_STATUS)
     {
@@ -158,6 +160,7 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
             }
             break;
             case vesc_setup_value_index_t::SETUP_VALUE_INPUT_VOLTAGE_FILTERED:
+                qw.Set<AS::battery_millivolts>(vesc_buffer_get_float16(data, 1e3f, &index) * 1000);
                 break;
             case vesc_setup_value_index_t::SETUP_VALUE_BATTERY_LEVEL:
                 break;
@@ -184,18 +187,11 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
             case vesc_setup_value_index_t::SETUP_VALUE_WH_BATT_LEFT:
                 break;
             case vesc_setup_value_index_t::SETUP_VALUE_ODOMETER:
+                qw.Set<AS::distance_traveled>(vesc_buffer_get_uint32(data, &index));
                 break;
             case vesc_setup_value_index_t::SETUP_VALUE_SYSTEM_TIME_MS:
                 break;
             }
         }
-        auto input_voltage_filtered = vesc_buffer_get_float16(data, 1e3f, &index);
-        auto odometer = vesc_buffer_get_uint32(data, &index);
-
-        printf("Selective VESC#%d. %u bytes. Input Voltage Filtered: %.2f, Odometer: %u\n",
-               controller_id,
-               len,
-               input_voltage_filtered,
-               odometer);
     }
 }
