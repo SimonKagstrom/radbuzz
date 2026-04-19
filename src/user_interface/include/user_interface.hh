@@ -40,7 +40,9 @@ public:
 
         void Activate()
         {
-            lv_screen_load_anim(m_screen, LV_SCREEN_LOAD_ANIM_FADE_OUT, 200, 0, false);
+            // Too slow for now
+            //lv_screen_load_anim(m_screen, LV_SCREEN_LOAD_ANIM_FADE_OUT, 200, 0, false);
+            lv_screen_load(m_screen);
         }
 
         virtual void HandleInput(hal::IInput::EventType event) = 0;
