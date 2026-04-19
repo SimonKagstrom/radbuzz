@@ -5,12 +5,6 @@ cpp_includes:
 
 
 parameters:
-  wifi_connected:
-    type: bool
-
-  bluetooth_connected:
-    type: bool
-
   current_icon_hash:
     type: uint32_t
 

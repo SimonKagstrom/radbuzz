@@ -3,6 +3,7 @@ cpp_includes:
   - "tile_constants.hh"
 
 application_state:
+  demo_mode: false
   wifi_connected: false
   bluetooth_connected: false
   current_icon_hash: kInvalidIconHash
