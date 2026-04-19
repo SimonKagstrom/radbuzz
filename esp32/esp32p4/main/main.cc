@@ -52,9 +52,9 @@ constexpr auto kCanBusRxPin = GPIO_NUM_4;
 constexpr auto kI2cSdaPin = GPIO_NUM_7;
 constexpr auto kI2cSclPin = GPIO_NUM_8;
 
-constexpr auto kButtonGpio = GPIO_NUM_25;
-constexpr auto kRotaryEncoderPinA = GPIO_NUM_49;
-constexpr auto kRotaryEncoderPinB = GPIO_NUM_36;
+constexpr auto kButtonGpio = GPIO_NUM_47;
+constexpr auto kRotaryEncoderPinA = GPIO_NUM_52;
+constexpr auto kRotaryEncoderPinB = GPIO_NUM_48;
 
 
 #define TEST_LCD_BIT_PER_PIXEL (GPIO_NUM_16)
@@ -296,12 +296,15 @@ app_main(void)
                            (1ull << kPinStepperDirGpio);
     gpio_config(&io_conf);
 
+    io_conf = {};
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
     io_conf.pin_bit_mask =
         (1ull << kButtonGpio) | (1ull << kRotaryEncoderPinA) | (1ull << kRotaryEncoderPinB);
     gpio_config(&io_conf);
+
 
     // Turn on the backlight
     gpio_set_level(kTftBacklight, 0);
@@ -445,7 +448,7 @@ app_main(void)
         *display, pm->CreateFullPowerLock(), *input, application_state, *image_cache, *tile_cache);
 
 
-    button_debouncer->Start("button_debouncer");
+    button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);
     //can_bus_handler->Start("can_bus_handler", 4096);
