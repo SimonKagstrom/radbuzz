@@ -12,6 +12,7 @@
 #include <atomic>
 #include <deque>
 #include <etl/queue_spsc_atomic.h>
+#include <unordered_map>
 #include <unordered_set>
 
 consteval auto
@@ -113,5 +114,5 @@ private:
     std::vector<Tile> m_reload_tiles_from_server;
     Tile m_current_city_tile {kInvalidTile};
 
-    std::unordered_set<Tile> m_pending_city_tiles;
+    std::unordered_map<uint8_t, std::unordered_set<Tile>> m_pending_city_tiles_by_zoom;
 };

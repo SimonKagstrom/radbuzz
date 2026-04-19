@@ -1,6 +1,7 @@
 #include "tile_cache.hh"
 
 #include <PNGdec.h>
+#include <format>
 
 namespace
 {
@@ -86,23 +87,28 @@ TileCache::TileCache(ApplicationState& application_state,
 void
 TileCache::OnStartup()
 {
-    auto pending_city_tile_data = m_filesystem.ReadFile(kPendingCityTilesFileName);
-
-    if (pending_city_tile_data && pending_city_tile_data->size() % (2 * sizeof(int32_t)) == 0)
+    for (auto zoom : {kDefaultZoom, kDefaultZoom - 2})
     {
-        auto count = pending_city_tile_data->size() / sizeof(int32_t);
-        auto ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
+        auto pending_city_tile_data =
+            m_filesystem.ReadFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName));
 
-        for (auto i = 0u; i < count; i += 2)
+        if (pending_city_tile_data && pending_city_tile_data->size() % (2 * sizeof(int32_t)) == 0)
         {
-            m_pending_city_tiles.insert(
-                Tile {ptr[i], ptr[i + 1], static_cast<uint8_t>(ptr[i + 2] & 0xff)});
-        }
-    }
+            auto count = pending_city_tile_data->size() / sizeof(int32_t);
+            auto ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
 
-    for (auto city_tile : m_pending_city_tiles)
-    {
-        RefreshCityTiles(city_tile);
+            for (auto i = 0u; i < count; i += 2)
+            {
+                uint8_t tile_zoom = static_cast<uint8_t>(ptr[i + 2] & 0xff);
+                m_pending_city_tiles_by_zoom[tile_zoom].insert(
+                    Tile {ptr[i], ptr[i + 1], tile_zoom});
+            }
+        }
+
+        for (auto city_tile : m_pending_city_tiles_by_zoom[zoom])
+        {
+            RefreshCityTiles(city_tile);
+        }
     }
 }
 
@@ -112,21 +118,28 @@ TileCache::OnActivation()
     const auto& co = m_pixel_state_cache.Pull();
 
     co.OnNewValue<AS::pixel_position>([&](const auto& pixel_position) {
+        auto zoomed_out_position = OsmPointToPoint({pixel_position.x, pixel_position.y}, pixel_position.zoom - 2);
         auto city_tile = ToCityTile(pixel_position);
+        auto zoomed_out_city_tile = ToCityTile(zoomed_out_position);
 
-        if (m_pending_city_tiles.find(city_tile) == m_pending_city_tiles.end())
+        for (auto tile : {city_tile, zoomed_out_city_tile})
         {
-            m_pending_city_tiles.insert(city_tile);
-            SavePendingCityTiles();
+            if (m_pending_city_tiles_by_zoom[tile.zoom].find(tile) ==
+                m_pending_city_tiles_by_zoom[tile.zoom].end())
+            {
+                m_pending_city_tiles_by_zoom[tile.zoom].insert(tile);
+                SavePendingCityTiles();
+            }
         }
-
         if (AppState().Get<AS::wifi_connected>() && city_tile != m_current_city_tile)
         {
             m_current_city_tile = city_tile;
 
             auto center_tile = ToTile(pixel_position);
+            auto center_tile_zoomed_out = ToTile(zoomed_out_position);
 
             RefreshCityTiles(center_tile);
+            RefreshCityTiles(center_tile_zoomed_out);
         }
     });
 
@@ -335,17 +348,19 @@ void
 TileCache::SavePendingCityTiles()
 {
     std::vector<std::byte> data;
-    data.resize(m_pending_city_tiles.size() * sizeof(Tile));
-
-    auto ptr = reinterpret_cast<int32_t*>(data.data());
-    for (const auto& t : m_pending_city_tiles)
+    for (const auto& [zoom, tiles] : m_pending_city_tiles_by_zoom)
     {
-        *ptr++ = t.x;
-        *ptr++ = t.y;
-        *ptr++ = t.zoom;
-    }
+        data.resize(tiles.size() * sizeof(Tile));
+        auto ptr = reinterpret_cast<int32_t*>(data.data());
+        for (const auto& tile : tiles)
+        {
+            *ptr++ = tile.x;
+            *ptr++ = tile.y;
+            *ptr++ = tile.zoom;
+        }
 
-    m_filesystem.WriteFile(kPendingCityTilesFileName, data);
+        m_filesystem.WriteFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName), data);
+    }
 }
 
 uint8_t
