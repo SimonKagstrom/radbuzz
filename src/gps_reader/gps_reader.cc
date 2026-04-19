@@ -43,7 +43,10 @@ GpsReader::OnActivation()
     mangled.heading = *m_heading;
     mangled.speed = *m_speed;
 
-    m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);
+    if (m_application_state.CheckoutReadonly().Get<AS::demo_mode>() == false)
+    {
+        m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);
+    }
     Reset();
 
     return std::nullopt;

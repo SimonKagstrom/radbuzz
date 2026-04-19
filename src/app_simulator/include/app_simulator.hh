@@ -15,21 +15,7 @@ class AppSimulator : public os::BaseThread
 public:
     AppSimulator(ApplicationState& app_state, BleServerHost& ble_server);
 
-    hal::IGps& GetSimulatedGps();
-
 private:
-    class SimulatedGps : public hal::IGps
-    {
-    public:
-        void NextPoint(const Point& point);
-
-    private:
-        std::optional<hal::RawGpsData> WaitForData(IEventNotifier& notifier) final;
-
-        Point m_current_point {0, 0, 0};
-        os::binary_semaphore m_data_semaphore {0};
-    };
-
     std::optional<milliseconds> OnActivation() final;
 
     void SetupStreetOrder();
@@ -48,8 +34,9 @@ private:
 
     std::unordered_set<uint32_t> m_cached_images;
 
-    SimulatedGps m_gps;
     Point m_current_point {0, 0, kDefaultZoom};
 
     uint8_t m_target_speed {10};
+
+    std::unique_ptr<ListenerCookie> m_state_listener;
 };

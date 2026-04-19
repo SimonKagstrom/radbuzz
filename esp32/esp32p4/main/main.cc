@@ -432,9 +432,7 @@ app_main(void)
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x6f);
 
-    //    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
-    auto gps_reader =
-        std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
+    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);

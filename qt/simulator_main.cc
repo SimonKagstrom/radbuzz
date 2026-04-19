@@ -1,11 +1,11 @@
 #include "app_simulator.hh"
-#include "opportunistic_scheduler.hh"
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
 #include "buzz_handler.hh"
 #include "filesystem.hh"
 #include "gps_reader.hh"
 #include "httpd_client.hh"
+#include "opportunistic_scheduler.hh"
 #include "pm_host.hh"
 #include "simulator_mainwindow.hh"
 #include "speedometer_handler.hh"
@@ -48,7 +48,10 @@ main(int argc, char* argv[])
     scheduler->Start("scheduler");
 
     ApplicationState application_state;
-    application_state.CheckoutReadWrite().Set<AS::wifi_connected>(true);
+    auto rw = application_state.CheckoutReadWrite();
+
+    rw.Set<AS::wifi_connected>(true);
+    rw.Set<AS::demo_mode>(true);
 
     MainWindow window(application_state);
 
@@ -63,8 +66,6 @@ main(int argc, char* argv[])
 
     // Threads
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
-    auto gps_reader =
-        std::make_unique<GpsReader>(application_state, app_simulator->GetSimulatedGps());
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
@@ -80,7 +81,6 @@ main(int argc, char* argv[])
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
 
-    gps_reader->Start("gps_reader");
     ble_handler->Start("ble_handler");
     buzz_handler->Start("buzz_handler");
     tile_cache->Start("tile_cache");

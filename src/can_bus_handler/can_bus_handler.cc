@@ -64,8 +64,13 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         return;
     }
 
-    // TODO: Add more fields here
     auto ro = m_state.CheckoutReadonly();
+    if (ro.Get<AS::demo_mode>())
+    {
+        // Don't update state in demo mode
+        return;
+    }
+
     auto qw = m_state.CheckoutQueuedWriter<AS::controller_temperature,
                                            AS::motor_temperature,
                                            AS::wh_consumed,

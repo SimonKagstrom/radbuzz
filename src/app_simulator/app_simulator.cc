@@ -263,14 +263,10 @@ AppSimulator::AppSimulator(ApplicationState& app_state, BleServerHost& ble_serve
               // 59.646331787827336, 17.07769480747484,
           },
           kDefaultZoom))
+    , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
 {
     SetupStreetOrder();
-}
-
-hal::IGps&
-AppSimulator::GetSimulatedGps()
-{
-    return m_gps;
+    Awake();
 }
 
 void
@@ -293,6 +289,12 @@ AppSimulator::SetupStreetOrder()
 std::optional<milliseconds>
 AppSimulator::OnActivation()
 {
+    if (m_application_state.CheckoutReadonly().Get<AS::demo_mode>() == false)
+    {
+        // Wait until demo mode is changed
+        return std::nullopt;
+    }
+
     m_current_point.x++;
     m_current_point.y++;
 
@@ -358,31 +360,13 @@ iconHash={:08x}32
         m_target_speed = m_random_engine() % kMaxSpeed;
     }
 
-    m_gps.NextPoint(m_current_point);
+    GpsData mangled;
+
+    mangled.position = OsmPointToWgs84(m_current_point);
+    mangled.heading = 76;
+    mangled.speed = speed;
+
+    m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);
 
     return 250ms;
-}
-
-
-void
-AppSimulator::SimulatedGps::NextPoint(const Point& point)
-{
-    m_current_point = point;
-    m_data_semaphore.release();
-}
-
-std::optional<hal::RawGpsData>
-AppSimulator::SimulatedGps::WaitForData(IEventNotifier& notifier)
-{
-    m_data_semaphore.acquire();
-
-    notifier.Notify();
-
-    hal::RawGpsData out;
-
-    out.heading = 15; // TODO
-    out.speed = 25;   // TODO
-    out.position = OsmPointToWgs84(m_current_point);
-
-    return out;
 }
