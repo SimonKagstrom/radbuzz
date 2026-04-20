@@ -63,6 +63,7 @@ target_link_libraries(radbuzz_qt
     buzz_handler
     can_bus_handler
     tile_cache
+    trip_computer
     speedometer_handler
     gps_reader
     Qt6::Widgets

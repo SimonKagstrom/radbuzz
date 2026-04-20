@@ -30,6 +30,7 @@ target_link_libraries(${COMPONENT_TARGET}
     tile_cache
     user_interface
     speedometer_handler
+    trip_computer
     jd9365_display_esp32
     gps_reader
 )

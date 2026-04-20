@@ -18,6 +18,7 @@
 #include "sdkconfig.h"
 #include "speedometer_handler.hh"
 #include "stepper_motor_esp32.hh"
+#include "trip_computer.hh"
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
@@ -439,6 +440,12 @@ app_main(void)
 
     constexpr auto kFullRotation = 2400;
 
+    // FIXME! Remove
+    auto rw = application_state.CheckoutReadWrite();
+    rw.Set<AS::battery_series>(7); // Nominal at 3.7*7 =~ 26V
+
+    auto trip_computer = std::make_unique<TripComputer>(application_state);
+
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
 
@@ -452,8 +459,9 @@ app_main(void)
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     speedometer_handler->Start("speedometer_handler");
+    trip_computer->Start("trip_computer");
 
-    gps_reader->Start("gps_reader", 8192);
+    gps_reader->Start("gps_reader");
     tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
 

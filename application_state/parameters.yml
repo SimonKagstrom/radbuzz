@@ -33,6 +33,13 @@ parameters:
   battery_soc:
     type: uint8_t
 
+  # Number of battery cells in series, used to calculate cell voltage from millivolts (14s3p etc)
+  battery_series:
+    type: uint8_t
+
+  current_power_w:
+    type: uint16_t
+
   wh_consumed:
     type: uint32_t
 
