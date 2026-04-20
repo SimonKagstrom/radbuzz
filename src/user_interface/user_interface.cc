@@ -142,7 +142,9 @@ UserInterface::OnActivation()
     auto delay = lv_timer_handler();
     m_next_redraw_time = os::GetTimeStampRaw() + delay;
 
-    if (lv_display_get_screen_loading(m_lvgl_display))
+    if (lv_display_get_screen_loading(m_lvgl_display) ||
+        // Half a second of activity on input (for animations)
+        lv_display_get_inactive_time(m_lvgl_display) < 500)
     {
         return milliseconds(delay);
     }
