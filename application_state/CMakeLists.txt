@@ -1,8 +1,15 @@
-include(../external/libmaelir/cmake/generate_application_state.cmake)
+set(TOP ${CMAKE_CURRENT_LIST_DIR}/../)
+include(${TOP}/external/libmaelir/cmake/generate_application_state.cmake)
 
-generate_application_state(radbuzz_application_state
-    "${CMAKE_CURRENT_LIST_DIR}/parameters.yml;${CMAKE_CURRENT_LIST_DIR}/../external/libmaelir/application_state/parameters_common.yml;${CMAKE_CURRENT_LIST_DIR}/application_state.yml"
+set(RADBUZZ_APPLICATION_STATE
+    "${TOP}/application_state/parameters.yml"
+    "${TOP}/external/libmaelir/application_state/parameters_common.yml"
+    "${TOP}/application_state/application_state.yml"
 )
+list(JOIN RADBUZZ_APPLICATION_STATE ";" RADBUZZ_APPLICATION_STATE_STR)
+
+generate_application_state(radbuzz_application_state "${RADBUZZ_APPLICATION_STATE_STR}")
+
 
 target_link_libraries(radbuzz_application_state
 PUBLIC

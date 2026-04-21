@@ -17,9 +17,12 @@ set(TOP ${CMAKE_CURRENT_LIST_DIR}/../../)
 add_subdirectory(${TOP} radbuzz)
 add_subdirectory(${TOP}/external/libmaelir/test/unittest libmaelir_unittests)
 
-generate_application_state(radbuzz_unittest_application_state
-    "${TOP}/application_state/parameters.yml;${TOP}/application_state/application_state.yml;${CMAKE_CURRENT_SOURCE_DIR}/unittest_parameters.yml"
+set(RADBUZZ_UNITTEST_APPLICATION_STATE
+    "${RADBUZZ_APPLICATION_STATE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/unittest_parameters.yml"
 )
+list(JOIN RADBUZZ_UNITTEST_APPLICATION_STATE ";" RADBUZZ_UNITTEST_APPLICATION_STATE_STR)
+generate_application_state(radbuzz_unittest_application_state "${RADBUZZ_UNITTEST_APPLICATION_STATE_STR}")
 target_link_libraries(radbuzz_unittest_application_state
 PUBLIC
     radbuzz_application_state
