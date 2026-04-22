@@ -10,8 +10,18 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     auto& main = m_menu_screen->GetMainPage();
     auto ro = m_parent.m_state.CheckoutReadonly();
 
+    auto& settings_page = main.AddSubPage("Settings");
+    settings_page.AddNumericEntry("Max speed", 25, 120, [this](lv_event_t* e) {
+        auto roller = static_cast<lv_obj_t*>(lv_event_get_target(e));
+        auto selected = lv_roller_get_selected(roller);
+        printf("TODO: Set max speed to %d km/h\n", selected + 25);
+    });
+    settings_page.AddNumericEntry("Battery cell series", 1, 36, [this](lv_event_t* e) {
+        auto roller = static_cast<lv_obj_t*>(lv_event_get_target(e));
+        auto selected = lv_roller_get_selected(roller);
+        printf("TODO: Set battery cell series to %d\n", selected + 1);
+    });
 
-    main.AddSubPage("Settings");
     main.AddSeparator();
     main.AddEntry("Reset trip", [](lv_event_t*) { printf("Resetting trip, but NYI\n"); });
     main.AddSeparator();
@@ -32,4 +42,5 @@ void
 SettingsMenuScreen::HandleInput(hal::IInput::EventType event)
 {
     lv_indev_read(m_parent.m_lvgl_input_dev);
+    m_menu_screen->BumpExitTimer();
 }
