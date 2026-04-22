@@ -1,6 +1,7 @@
 # This is the list of all possible parameters
 cpp_includes:
   - "wgs84_to_osm_point.hh"
+  - "configuration_settings.hh"
 
 
 parameters:
@@ -32,9 +33,8 @@ parameters:
   battery_soc:
     type: uint8_t
 
-  # Number of battery cells in series, used to calculate cell voltage from millivolts (14s3p etc)
-  battery_series:
-    type: uint8_t
+  configuration:
+    type: struct ConfigurationSettings
 
   current_power_w:
     type: uint16_t

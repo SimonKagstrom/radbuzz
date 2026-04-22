@@ -18,8 +18,10 @@ constexpr auto kMillivoltSocTable = std::array {std::pair<uint16_t, uint8_t> {32
                                                 std::pair<uint16_t, uint8_t> {4200, 100}};
 
 uint8_t
-InterpolateSoc(uint16_t millivolts)
+InterpolateSoc(uint16_t millivolts, uint8_t battery_series)
 {
+    millivolts /= battery_series;
+
     if (millivolts <= kMillivoltSocTable.front().first)
     {
         return kMillivoltSocTable.front().second;
@@ -48,7 +50,7 @@ InterpolateSoc(uint16_t millivolts)
 
 TripComputer::TripComputer(ApplicationState& app_state)
     : m_state(app_state)
-    , m_state_listener(m_state.AttachListener<AS::battery_series>(GetSemaphore()))
+    , m_state_listener(m_state.AttachListener<AS::configuration>(GetSemaphore()))
 {
     m_soc_timer = StartTimer(250ms, [this]() {
         auto mv = m_state.CheckoutReadonly().Get<AS::battery_millivolts>();
@@ -63,9 +65,18 @@ TripComputer::TripComputer(ApplicationState& app_state)
 void
 TripComputer::UpdateSoc(uint16_t millivolts)
 {
+    auto battery_cell_series =
+        m_state.CheckoutReadonly().Get<AS::configuration>()->battery_cell_series;
+    if (battery_cell_series == 0)
+    {
+        // Invalid / incomplete configuration
+        return;
+    }
+
     if (m_millivolt_history.empty())
     {
-        m_state.CheckoutReadWrite().Set<AS::battery_soc>(InterpolateSoc(millivolts));
+        m_state.CheckoutReadWrite().Set<AS::battery_soc>(
+            InterpolateSoc(millivolts, battery_cell_series));
     }
 
     auto ro = m_state.CheckoutReadonly();
@@ -81,7 +92,8 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     {
         auto soc = InterpolateSoc(
             std::accumulate(m_millivolt_history.begin(), m_millivolt_history.end(), 0u) /
-            m_millivolt_history.size());
+                m_millivolt_history.size(),
+            battery_cell_series);
 
         m_state.CheckoutReadWrite().Set<AS::battery_soc>(soc);
         // Discard the oldest

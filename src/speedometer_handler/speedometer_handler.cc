@@ -1,14 +1,12 @@
 #include "speedometer_handler.hh"
 
-constexpr uint8_t kMaxSpeed = 60; // At max steps we use 60km/h
-
 SpeedometerHandler::SpeedometerHandler(hal::IStepperMotor& motor,
                                        ApplicationState& app_state,
                                        int32_t zero_to_max_steps)
     : m_motor(motor)
     , m_state(app_state)
     , m_zero_to_max_steps(zero_to_max_steps)
-    , m_state_listener(m_state.AttachListener<AS::speed>(GetSemaphore()))
+    , m_state_listener(m_state.AttachListener<AS::speed, AS::configuration>(GetSemaphore()))
 {
 }
 
@@ -28,9 +26,18 @@ SpeedometerHandler::OnActivation()
         return 100ms - (now - m_last_step_time);
     }
 
-    const int32_t target_speed = std::min(m_state.CheckoutReadonly().Get<AS::speed>(), kMaxSpeed);
+    auto ro = m_state.CheckoutReadonly();
+    auto conf = ro.Get<AS::configuration>();
+
+    if (conf->max_speed == 0)
+    {
+        // Configuration not valid yet
+        return std::nullopt;
+    }
+
+    const int32_t target_speed = std::min(ro.Get<AS::speed>(), conf->max_speed);
     const auto target_position =
-        (target_speed * m_zero_to_max_steps + (kMaxSpeed / 2u)) / kMaxSpeed;
+        (target_speed * m_zero_to_max_steps + (conf->max_speed / 2u)) / conf->max_speed;
 
     if (const auto delta = target_position - m_position; delta != 0)
     {
