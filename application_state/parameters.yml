@@ -1,6 +1,5 @@
 # This is the list of all possible parameters
 cpp_includes:
-  - "gps_data.hh"
   - "wgs84_to_osm_point.hh"
 
 
@@ -49,9 +48,6 @@ parameters:
   # In meters
   distance_traveled:
     type: uint32_t
-
-  position:
-    type: struct GpsData
 
   pixel_position:
     type: struct Point
