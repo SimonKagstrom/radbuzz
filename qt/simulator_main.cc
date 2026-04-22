@@ -11,6 +11,7 @@
 #include "speedometer_handler.hh"
 #include "tile_cache.hh"
 #include "time.hh"
+#include "trip_computer.hh"
 #include "user_interface.hh"
 #include "wgs84_to_osm_point.hh"
 
@@ -52,7 +53,7 @@ main(int argc, char* argv[])
 
     rw.Set<AS::wifi_connected>(true);
     rw.Set<AS::demo_mode>(true);
-    rw.Set<AS::configuration>(ConfigurationSettings{.battery_cell_series = 14, .max_speed = 60});
+    rw.Set<AS::configuration>(ConfigurationSettings {.battery_cell_series = 14, .max_speed = 60});
 
     MainWindow window(application_state);
 
@@ -66,6 +67,7 @@ main(int argc, char* argv[])
     auto pm = std::make_unique<PmHost>();
 
     // Threads
+    auto trip_computer = std::make_unique<TripComputer>(application_state);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
@@ -82,6 +84,7 @@ main(int argc, char* argv[])
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
 
+    trip_computer->Start("trip_computer");
     ble_handler->Start("ble_handler");
     buzz_handler->Start("buzz_handler");
     tile_cache->Start("tile_cache");

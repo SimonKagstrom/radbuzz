@@ -26,9 +26,9 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     connect(m_ui->centerButton, &QPushButton::pressed, [this]() { m_on_event(Ev::kButtonDown); });
     connect(m_ui->centerButton, &QPushButton::released, [this]() { m_on_event(Ev::kButtonUp); });
 
-    m_application_state.CheckoutReadWrite().Set<AS::battery_soc>(m_ui->socSlider->value());
+    m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(m_ui->socSlider->value());
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
-        m_application_state.CheckoutReadWrite().Set<AS::battery_soc>(value);
+        m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(value);
     });
 
     m_speedometer = std::make_unique<SpeedometerQt>(m_ui->speedometerGraphicsView);
