@@ -159,9 +159,11 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
                 qw.Set<AS::max_speed>(std::max(ro.Get<AS::max_speed>(), speed));
             }
             break;
-            case vesc_setup_value_index_t::SETUP_VALUE_INPUT_VOLTAGE_FILTERED:
-                qw.Set<AS::battery_millivolts>(vesc_buffer_get_float16(data, 1e3f, &index) * 1000);
-                break;
+            case vesc_setup_value_index_t::SETUP_VALUE_INPUT_VOLTAGE_FILTERED: {
+                auto mv = vesc_buffer_get_float16(data, 0.01f, &index);
+                qw.Set<AS::battery_millivolts>(mv);
+            }
+            break;
             case vesc_setup_value_index_t::SETUP_VALUE_BATTERY_LEVEL:
                 break;
             case vesc_setup_value_index_t::SETUP_VALUE_AH_TOT:

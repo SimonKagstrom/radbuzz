@@ -442,7 +442,7 @@ app_main(void)
 
     // FIXME! Remove
     auto rw = application_state.CheckoutReadWrite();
-    rw.Set<AS::battery_series>(7); // Nominal at 3.7*7 =~ 26V
+    rw.Set<AS::configuration>(ConfigurationSettings {.battery_cell_series = 7, .max_speed = 60});
 
     auto trip_computer = std::make_unique<TripComputer>(application_state);
 
