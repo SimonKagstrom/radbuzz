@@ -59,6 +59,7 @@ target_link_libraries(radbuzz_qt
     lvgl
     opportunistic_semaphore
     gpio_host
+    nvm_host
     pm_host
     buzz_handler
     can_bus_handler
