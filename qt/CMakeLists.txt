@@ -67,5 +67,6 @@ target_link_libraries(radbuzz_qt
     trip_computer
     speedometer_handler
     gps_reader
+    storage
     Qt6::Widgets
 )

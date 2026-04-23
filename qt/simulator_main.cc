@@ -5,10 +5,12 @@
 #include "filesystem.hh"
 #include "gps_reader.hh"
 #include "httpd_client.hh"
+#include "nvm_host.hh"
 #include "opportunistic_scheduler.hh"
 #include "pm_host.hh"
 #include "simulator_mainwindow.hh"
 #include "speedometer_handler.hh"
+#include "storage.hh"
 #include "tile_cache.hh"
 #include "time.hh"
 #include "trip_computer.hh"
@@ -65,8 +67,10 @@ main(int argc, char* argv[])
     auto filesystem = std::make_unique<Filesystem>("./app_data");
     auto httpd_client = std::make_unique<HttpdClient>();
     auto pm = std::make_unique<PmHost>();
+    auto nvm_host = std::make_unique<NvmHost>("nvm.txt");
 
     // Threads
+    auto storage = std::make_unique<Storage>(application_state, *nvm_host);
     auto trip_computer = std::make_unique<TripComputer>(application_state);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto tile_cache = std::make_unique<TileCache>(
@@ -84,6 +88,7 @@ main(int argc, char* argv[])
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
 
+    storage->Start("storage");
     trip_computer->Start("trip_computer");
     ble_handler->Start("ble_handler");
     buzz_handler->Start("buzz_handler");
