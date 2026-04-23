@@ -18,6 +18,7 @@
 #include "sdkconfig.h"
 #include "speedometer_handler.hh"
 #include "stepper_motor_esp32.hh"
+#include "storage.hh"
 #include "trip_computer.hh"
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
@@ -416,6 +417,8 @@ app_main(void)
     auto stepper_motor =
         std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
 
+    auto nvm = std::make_unique<NvmTarget>();
+
     stepper_motor->Start();
 
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
@@ -426,6 +429,7 @@ app_main(void)
     auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder);
 
     // Threads
+    auto storage = std::make_unique<Storage>(application_state, *nvm);
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     //auto ble_server = std::make_unique<BleServerEsp32>();
@@ -440,10 +444,6 @@ app_main(void)
 
     constexpr auto kFullRotation = 2400;
 
-    // FIXME! Remove
-    auto rw = application_state.CheckoutReadWrite();
-    rw.Set<AS::configuration>(ConfigurationSettings {.battery_cell_series = 7, .max_speed = 60});
-
     auto trip_computer = std::make_unique<TripComputer>(application_state);
 
     auto speedometer_handler =
@@ -453,6 +453,7 @@ app_main(void)
         *display, pm->CreateFullPowerLock(), *input, application_state, *image_cache, *tile_cache);
 
 
+    storage->Start("storage");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);

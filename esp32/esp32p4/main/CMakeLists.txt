@@ -28,6 +28,7 @@ target_link_libraries(${COMPONENT_TARGET}
     uart_esp32
     buzz_handler
     tile_cache
+    storage
     user_interface
     speedometer_handler
     trip_computer

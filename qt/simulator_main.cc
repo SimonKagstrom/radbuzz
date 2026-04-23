@@ -55,7 +55,6 @@ main(int argc, char* argv[])
 
     rw.Set<AS::wifi_connected>(true);
     rw.Set<AS::demo_mode>(true);
-    rw.Set<AS::configuration>(ConfigurationSettings {.battery_cell_series = 14, .max_speed = 60});
 
     MainWindow window(application_state);
 
