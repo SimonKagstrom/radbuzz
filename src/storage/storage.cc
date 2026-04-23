@@ -26,12 +26,9 @@ Storage::OnStartup()
 std::optional<milliseconds>
 Storage::OnActivation()
 {
-    auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration>();
-    auto& conf = ps.GetWritableReference<AS::configuration>();
+    auto& co = m_state_cache.Pull();
 
-    auto &co = m_state_cache.Pull();
-
-    co.OnChangedValue<AS::configuration>([this, &conf](auto& old_conf, auto& new_conf) {
+    co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
         if (old_conf.max_speed != new_conf.max_speed)
         {
             m_nvm.Set<uint8_t>(kMaxSpeedKey, new_conf.max_speed);
