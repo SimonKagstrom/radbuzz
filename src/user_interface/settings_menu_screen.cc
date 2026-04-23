@@ -11,25 +11,26 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     auto ro = m_parent.m_state.CheckoutReadonly();
 
     auto& settings_page = main.AddSubPage("Settings");
-    settings_page.AddNumericEntry("Max speed", 25, 120, [this](lv_event_t* e) {
-        auto roller = static_cast<lv_obj_t*>(lv_event_get_target(e));
-        auto selected = lv_roller_get_selected(roller);
-        printf("TODO: Set max speed to %d km/h\n", selected + 25);
-    });
-    settings_page.AddNumericEntry("Battery cell series", 1, 36, [this](lv_event_t* e) {
-        auto roller = static_cast<lv_obj_t*>(lv_event_get_target(e));
-        auto selected = lv_roller_get_selected(roller);
-        printf("TODO: Set battery cell series to %d\n", selected + 1);
-    });
+    settings_page.AddNumericEntry(
+        "Max speed", {25, 120, 5}, ro.Get<AS::configuration>()->max_speed, [this](auto value) {
+            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                .GetWritableReference<AS::configuration>()
+                .max_speed = value;
+        });
+    settings_page.AddNumericEntry("Battery cell series",
+                                  {1, 36, 1},
+                                  ro.Get<AS::configuration>()->battery_cell_series,
+                                  [this](auto value) {
+                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                          .GetWritableReference<AS::configuration>()
+                                          .battery_cell_series = value;
+                                  });
 
     main.AddSeparator();
-    main.AddEntry("Reset trip", [](lv_event_t*) { printf("Resetting trip, but NYI\n"); });
+    main.AddEntry("Reset trip", []() { printf("Resetting trip, but NYI\n"); });
     main.AddSeparator();
-    main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](lv_event_t* e) {
-        auto sw = static_cast<lv_obj_t*>(lv_event_get_target(e));
-        auto checked = lv_obj_has_state(sw, LV_STATE_CHECKED);
-
-        m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(checked);
+    main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
+        m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(value);
     });
 }
 
