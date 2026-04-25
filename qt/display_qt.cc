@@ -15,17 +15,17 @@ DisplayQt::GetFrameBuffer(hal::IDisplay::Owner owner)
 {
     if (owner == hal::IDisplay::Owner::kHardware)
     {
-        // Single buffer
-        return nullptr;
+        return m_frame_buffers[!m_current_update_frame].data();
     }
 
-    return m_frame_buffer.data();
+    return m_frame_buffers[m_current_update_frame].data();
 }
 
 void
 DisplayQt::Flip()
 {
     emit DoFlip();
+    m_current_update_frame = !m_current_update_frame;
 }
 
 void
@@ -41,7 +41,7 @@ DisplayQt::UpdateScreen()
     {
         for (int x = 0; x < hal::kDisplayWidth; ++x)
         {
-            auto rgb565 = m_frame_buffer[y * hal::kDisplayWidth + x];
+            auto rgb565 = m_frame_buffers[m_current_update_frame][y * hal::kDisplayWidth + x];
             auto r = (rgb565 >> 11) & 0x1F;
             auto g = (rgb565 >> 5) & 0x3F;
             auto b = rgb565 & 0x1F;

@@ -31,5 +31,6 @@ private:
     QImage m_circle_mask;
     QGraphicsPixmapItem* m_pixmap;
 
-    std::array<uint16_t, hal::kDisplayWidth * hal::kDisplayHeight> m_frame_buffer;
+    std::atomic<uint8_t> m_current_update_frame {0};
+    std::array<std::array<uint16_t, hal::kDisplayWidth * hal::kDisplayHeight>, 2> m_frame_buffers;
 };
