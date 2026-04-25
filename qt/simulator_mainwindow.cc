@@ -10,7 +10,8 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     m_ui->setupUi(this);
 
     m_scene = std::make_unique<QGraphicsScene>();
-    m_display = std::make_unique<DisplayQt>(m_scene.get());
+    m_display =
+        std::make_unique<DisplayQt>(m_scene.get(), hal::kDisplayHeight == hal::kDisplayWidth);
     m_ui->displayGraphicsView->setScene(m_scene.get());
 
     // TODO: This is a thread race

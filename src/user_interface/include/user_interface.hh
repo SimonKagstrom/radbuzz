@@ -29,7 +29,7 @@ public:
     class ScreenBase
     {
     public:
-        explicit ScreenBase(UserInterface& parent, lv_obj_t *screen)
+        explicit ScreenBase(UserInterface& parent, lv_obj_t* screen)
             : m_parent(parent)
             , m_screen(screen)
         {

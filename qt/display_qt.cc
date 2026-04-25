@@ -1,12 +1,23 @@
 #include "display_qt.hh"
 
-#include <QPainter>
+#include "lvgl.h"
 
-DisplayQt::DisplayQt(QGraphicsScene* scene)
-    : m_screen(
+#include <QPainter>
+#include <cstdlib>
+
+DisplayQt::DisplayQt(QGraphicsScene* scene, bool is_round)
+    : m_is_round(is_round)
+    , m_screen(
           std::make_unique<QImage>(hal::kDisplayWidth, hal::kDisplayHeight, QImage::Format_RGB32))
     , m_pixmap(scene->addPixmap(QPixmap::fromImage(*m_screen)))
 {
+    for (auto i = 0; i < 3; ++i)
+    {
+        posix_memalign((void**)&m_frame_buffers[i],
+                       LV_DRAW_BUF_ALIGN,
+                       hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t));
+    }
+
     connect(this, SIGNAL(DoFlip()), this, SLOT(UpdateScreen()));
 }
 
@@ -15,10 +26,10 @@ DisplayQt::GetFrameBuffer(hal::IDisplay::Owner owner)
 {
     if (owner == hal::IDisplay::Owner::kHardware)
     {
-        return m_frame_buffers[!m_current_update_frame].data();
+        return m_frame_buffers[!m_current_update_frame];
     }
 
-    return m_frame_buffers[m_current_update_frame].data();
+    return m_frame_buffers[m_current_update_frame];
 }
 
 void
@@ -57,29 +68,32 @@ DisplayQt::UpdateScreen()
     }
 
 
-    // (from copilot)
-    QPixmap pixmap = QPixmap::fromImage(*m_screen);
+    if (m_is_round)
+    {
+        // (from copilot)
+        QPixmap pixmap = QPixmap::fromImage(*m_screen);
 
-    // Create a QPainter to draw on the pixmap
-    QPainter painter(&pixmap);
+        // Create a QPainter to draw on the pixmap
+        QPainter painter(&pixmap);
 
-    // Set the pen and brush for drawing
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(Qt::black);
+        // Set the pen and brush for drawing
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(Qt::black);
 
-    // Calculate the center and radius of the circle
-    int width = pixmap.width();
-    int height = pixmap.height();
+        // Calculate the center and radius of the circle
+        int width = pixmap.width();
+        int height = pixmap.height();
 
-    // Create a mask region
-    QRegion maskRegion(0, 0, width, height);
-    QRegion circleRegion(0, 0, width - 1, height - 1, QRegion::Ellipse);
-    maskRegion = maskRegion.subtracted(circleRegion);
+        // Create a mask region
+        QRegion maskRegion(0, 0, width, height);
+        QRegion circleRegion(0, 0, width - 1, height - 1, QRegion::Ellipse);
+        maskRegion = maskRegion.subtracted(circleRegion);
 
-    // Fill the masked area with black
-    painter.setClipRegion(maskRegion);
-    painter.fillRect(0, 0, width, height, Qt::black);
+        // Fill the masked area with black
+        painter.setClipRegion(maskRegion);
+        painter.fillRect(0, 0, width, height, Qt::black);
 
-    // Set the modified pixmap to the label
-    m_pixmap->setPixmap(pixmap);
+        // Set the modified pixmap to the label
+        m_pixmap->setPixmap(pixmap);
+    }
 }

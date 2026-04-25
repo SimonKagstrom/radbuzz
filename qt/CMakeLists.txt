@@ -47,6 +47,7 @@ add_executable(radbuzz_qt
     simulator_mainwindow.ui
     simulator_mainwindow.cc
     speedometer_qt.cc
+    display_qt.cc
 )
 
 target_link_libraries(radbuzz_qt
