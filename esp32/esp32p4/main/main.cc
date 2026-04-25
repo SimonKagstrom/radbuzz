@@ -59,18 +59,16 @@ constexpr auto kButtonGpio = GPIO_NUM_47;
 constexpr auto kRotaryEncoderPinA = GPIO_NUM_52;
 constexpr auto kRotaryEncoderPinB = GPIO_NUM_48;
 
+constexpr auto kSdPwrCtrlLdoIoId = 4;
 
-#define TEST_LCD_BIT_PER_PIXEL (GPIO_NUM_16)
-#define TEST_PIN_NUM_LCD_RST   (GPIO_NUM_27)
-#define TEST_PIN_NUM_BK_LIGHT  (GPIO_NUM_26) // set to -1 if not used
-#define TEST_MIPI_DSI_LANE_NUM (GPIO_NUM_4)
+constexpr auto kLcdResetPin = GPIO_NUM_27;
+constexpr auto kBacklightPin = GPIO_NUM_26; // set to -1 if not used
+constexpr auto kMipiDsiLaneNum = 4;
 
-#define TEST_MIPI_DPI_PX_FORMAT (LCD_COLOR_FMT_RGB565)
+constexpr auto kMipiDpiPxFormat = LCD_COLOR_FMT_RGB565;
 
-#define TEST_DELAY_TIME_MS (3000)
-
-#define TEST_MIPI_DSI_PHY_PWR_LDO_CHAN       (3)
-#define TEST_MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV (2500)
+constexpr auto kMipiDsiPhyPwrLdoChan = 3;
+constexpr auto kMipiDsiPhyPwrLdoVoltageMv = 2500;
 
 constexpr jd9365_lcd_init_cmd_t lcd_init_cmds[] = {
     {0xE0, (uint8_t[]) {0x00}, 1, 0},
@@ -208,8 +206,8 @@ CreateDisplay()
     static esp_lcd_panel_io_handle_t mipi_dbi_io = nullptr;
 
     esp_ldo_channel_config_t ldo_mipi_phy_config = {
-        .chan_id = TEST_MIPI_DSI_PHY_PWR_LDO_CHAN,
-        .voltage_mv = TEST_MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV,
+        .chan_id = kMipiDsiPhyPwrLdoChan,
+        .voltage_mv = kMipiDsiPhyPwrLdoVoltageMv,
         .flags = {},
     };
     ESP_ERROR_CHECK(esp_ldo_acquire_channel(&ldo_mipi_phy_config, &ldo_mipi_phy));
@@ -260,14 +258,14 @@ CreateDisplay()
             {
                 .dsi_bus = mipi_dsi_bus,
                 .dpi_config = &dpi_config,
-                .lane_num = TEST_MIPI_DSI_LANE_NUM,
+                .lane_num = kMipiDsiLaneNum,
             },
     };
     static const esp_lcd_panel_dev_config_t panel_config = {
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
-        .bits_per_pixel = TEST_LCD_BIT_PER_PIXEL,
-        .reset_gpio_num = TEST_PIN_NUM_LCD_RST,
+        .bits_per_pixel = 16,
+        .reset_gpio_num = kLcdResetPin,
         .vendor_config = &vendor_config,
         .flags =
             {
@@ -315,7 +313,7 @@ app_main(void)
 
     auto display = CreateDisplay();
 
-    // Create before SD
+    // Create before SD card (see below)
     auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
 
     sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
@@ -327,9 +325,8 @@ app_main(void)
     sd_mmc_host_config.deinit = []() { return ESP_OK; };
     sd_mmc_host_config.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
 
-#define CONFIG_EXAMPLE_SD_PWR_CTRL_LDO_IO_ID 4
     sd_pwr_ctrl_ldo_config_t ldo_config = {
-        .ldo_chan_id = CONFIG_EXAMPLE_SD_PWR_CTRL_LDO_IO_ID,
+        .ldo_chan_id = kSdPwrCtrlLdoIoId,
     };
     sd_pwr_ctrl_handle_t pwr_ctrl_handle = NULL;
 
@@ -372,13 +369,6 @@ app_main(void)
     // Devices / helper classes
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
-
-    left_buzzer_gpio->SetState(true);
-    right_buzzer_gpio->SetState(true);
-    os::Sleep(500ms);
-    left_buzzer_gpio->SetState(false);
-    right_buzzer_gpio->SetState(false);
-
     auto image_cache = std::make_unique<ImageCache>();
     //    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
     //                                              9600,
