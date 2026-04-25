@@ -2,6 +2,8 @@
 
 #include "user_interface.hh"
 
+#include <etl/vector.h>
+
 class MapScreen : public UserInterface::ScreenBase
 {
 public:
@@ -20,6 +22,11 @@ private:
     lv_obj_t* m_distance_left_label {nullptr};
 
     lv_obj_t* m_soc_label {nullptr};
+
+    static constexpr int kNumTilesX = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
+    static constexpr int kNumTilesY = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
+
+    etl::vector<hal::BlitOperation, kNumTilesX * kNumTilesY> m_blit_ops;
 
     // Maybe TMP
     std::unique_ptr<uint8_t[]> m_static_map_buffer;

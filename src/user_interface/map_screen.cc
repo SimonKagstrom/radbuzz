@@ -73,18 +73,12 @@ MapScreen::Update()
     int start_x = pixel_position.x - display_cx;
     int start_y = pixel_position.y - display_cy;
 
-    // Calculate how many tiles are needed to cover the display
-    constexpr int num_tiles_x = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
-    constexpr int num_tiles_y = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
-
     // For each tile, calculate its top-left position in display coordinates and blit it
-    constexpr auto kMaxTiles = num_tiles_x * num_tiles_y;
-    std::array<hal::BlitOperation, kMaxTiles> blit_ops {};
-    size_t op_count = 0;
-
-    for (int y = 0; y < num_tiles_y; ++y)
+    m_blit_ops.clear();
+    auto dst_data = reinterpret_cast<uint16_t*>(m_static_map_buffer.get());
+    for (int y = 0; y < kNumTilesY; ++y)
     {
-        for (int x = 0; x < num_tiles_x; ++x)
+        for (int x = 0; x < kNumTilesX; ++x)
         {
             int tile_x = (start_x / kTileSize) + x;
             int tile_y = (start_y / kTileSize) + y;
@@ -95,10 +89,12 @@ MapScreen::Update()
             int16_t dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
             int16_t dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
 
-            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, kDefaultZoom}));
+            auto tile =
+                m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, kDefaultZoom}));
 
-            blit_ops[op_count++] = hal::BlitOperation {
+            m_blit_ops.push_back(hal::BlitOperation {
                 .src_data = tile.Data16().data(),
+                .dst_data = dst_data,
                 .src_width = static_cast<int16_t>(tile.Width()),
                 .src_height = static_cast<int16_t>(tile.Height()),
                 .src_offset_x = 0,
@@ -108,13 +104,12 @@ MapScreen::Update()
                 .width = static_cast<int16_t>(tile.Width()),
                 .height = static_cast<int16_t>(tile.Height()),
                 .rotation = hal::Rotation::k0,
-            };
+            });
         }
     }
 
-    m_parent.m_blitter.BlitOperations(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
-                                      std::span<const hal::BlitOperation> {
-                                          blit_ops.data(), op_count});
+    m_parent.m_blitter.BlitOperations(
+        std::span<const hal::BlitOperation> {m_blit_ops.data(), m_blit_ops.size()});
 
     lv_label_set_text(m_soc_label, std::format("{}%", ro.Get<AS::battery_soc>()).c_str());
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());

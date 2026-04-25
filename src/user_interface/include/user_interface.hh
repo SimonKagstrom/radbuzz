@@ -80,6 +80,7 @@ private:
 
     hal::IDisplay& m_display;
     hal::IBlitter& m_blitter;
+
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     hal::IInput& m_input;
 
@@ -92,6 +93,8 @@ private:
 
     lv_display_t* m_lvgl_display {nullptr};
     uint32_t m_next_redraw_time {0};
+
+    std::array<hal::BlitOperation, 2> m_rotation_blit_operations;
 
 
     etl::queue_spsc_atomic<hal::IInput::EventType, 4> m_input_queue;

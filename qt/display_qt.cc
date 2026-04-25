@@ -5,17 +5,17 @@
 #include <QPainter>
 #include <cstdlib>
 
-DisplayQt::DisplayQt(QGraphicsScene* scene, bool is_round)
-    : m_is_round(is_round)
-    , m_screen(
-          std::make_unique<QImage>(hal::kDisplayWidth, hal::kDisplayHeight, QImage::Format_RGB32))
+DisplayQt::DisplayQt(QGraphicsScene* scene, uint16_t display_width, uint16_t display_height)
+    : m_display_width(display_width)
+    , m_display_height(display_height)
+    , m_screen(std::make_unique<QImage>(m_display_width, m_display_height, QImage::Format_RGB32))
     , m_pixmap(scene->addPixmap(QPixmap::fromImage(*m_screen)))
 {
     for (auto i = 0; i < 3; ++i)
     {
         posix_memalign((void**)&m_frame_buffers[i],
                        LV_DRAW_BUF_ALIGN,
-                       hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t));
+                       m_display_width * m_display_height * sizeof(uint16_t));
     }
 
     connect(this, SIGNAL(DoFlip()), this, SLOT(UpdateScreen()));
@@ -28,6 +28,10 @@ DisplayQt::GetFrameBuffer(hal::IDisplay::Owner owner)
     {
         return m_frame_buffers[!m_current_update_frame];
     }
+    if (owner == hal::IDisplay::Owner::kRotationBuffer)
+    {
+        return m_frame_buffers[2];
+    }
 
     return m_frame_buffers[m_current_update_frame];
 }
@@ -35,6 +39,8 @@ DisplayQt::GetFrameBuffer(hal::IDisplay::Owner owner)
 void
 DisplayQt::Flip()
 {
+    // Capture the frame to display before advancing the index.
+    m_display_frame = m_current_update_frame.load();
     emit DoFlip();
     m_current_update_frame = !m_current_update_frame;
 }
@@ -48,11 +54,26 @@ DisplayQt::SetActive(bool)
 void
 DisplayQt::UpdateScreen()
 {
-    for (int y = 0; y < hal::kDisplayHeight; ++y)
+    // If rotation is active the final pixels are in the rotation buffer (physical layout).
+    // Otherwise they are in whichever LVGL buffer was active at Flip() time.
+    uint16_t* src;
+    int src_stride;
+    if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
     {
-        for (int x = 0; x < hal::kDisplayWidth; ++x)
+        src = m_frame_buffers[2];
+        src_stride = m_display_width; // physical width (e.g. 480 for a 480x800 panel)
+    }
+    else
+    {
+        src = m_frame_buffers[m_display_frame];
+        src_stride = m_display_width;
+    }
+
+    for (int y = 0; y < m_display_height; ++y)
+    {
+        for (int x = 0; x < m_display_width; ++x)
         {
-            auto rgb565 = m_frame_buffers[m_current_update_frame][y * hal::kDisplayWidth + x];
+            auto rgb565 = src[y * src_stride + x];
             auto r = (rgb565 >> 11) & 0x1F;
             auto g = (rgb565 >> 5) & 0x3F;
             auto b = rgb565 & 0x1F;
@@ -68,11 +89,11 @@ DisplayQt::UpdateScreen()
     }
 
 
-    if (m_is_round)
-    {
-        // (from copilot)
-        QPixmap pixmap = QPixmap::fromImage(*m_screen);
+    // (from copilot)
+    QPixmap pixmap = QPixmap::fromImage(*m_screen);
 
+    if (m_display_width == m_display_height)
+    {
         // Create a QPainter to draw on the pixmap
         QPainter painter(&pixmap);
 
@@ -92,8 +113,30 @@ DisplayQt::UpdateScreen()
         // Fill the masked area with black
         painter.setClipRegion(maskRegion);
         painter.fillRect(0, 0, width, height, Qt::black);
-
-        // Set the modified pixmap to the label
-        m_pixmap->setPixmap(pixmap);
     }
+
+
+    // If it's rotated, rotate the image back to run the code, but get usable output
+    if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
+    {
+        QTransform transform;
+        switch (hal::kDisplayRotation)
+        {
+        case hal::Rotation::k90:
+            transform.rotate(-90);
+            break;
+        case hal::Rotation::k180:
+            transform.rotate(-180);
+            break;
+        case hal::Rotation::k270:
+            transform.rotate(-270);
+            break;
+        default:
+            break;
+        }
+        pixmap = pixmap.transformed(transform);
+    }
+
+    // Set the modified pixmap to the label
+    m_pixmap->setPixmap(pixmap);
 }

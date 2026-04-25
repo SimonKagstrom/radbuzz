@@ -9,9 +9,16 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
 {
     m_ui->setupUi(this);
 
+    auto display_w = hal::kDisplayWidth;
+    auto display_h = hal::kDisplayHeight;
+
+    if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
+    {
+        std::swap(display_w, display_h);
+    }
+
     m_scene = std::make_unique<QGraphicsScene>();
-    m_display =
-        std::make_unique<DisplayQt>(m_scene.get(), hal::kDisplayHeight == hal::kDisplayWidth);
+    m_display = std::make_unique<DisplayQt>(m_scene.get(), display_w, display_h);
     m_ui->displayGraphicsView->setScene(m_scene.get());
 
     // TODO: This is a thread race

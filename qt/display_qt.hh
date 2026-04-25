@@ -12,7 +12,7 @@ class DisplayQt : public QObject, public hal::IDisplay
     Q_OBJECT
 
 public:
-    DisplayQt(QGraphicsScene* scene, bool is_round);
+    DisplayQt(QGraphicsScene* scene, uint16_t display_width, uint16_t display_height);
 
     uint16_t* GetFrameBuffer(hal::IDisplay::Owner owner) final;
     void Flip() final;
@@ -27,11 +27,13 @@ private slots:
 private:
     void SetActive(bool active) final;
 
-    const bool m_is_round;
+    const uint16_t m_display_width;
+    const uint16_t m_display_height;
     std::unique_ptr<QImage> m_screen;
     QImage m_circle_mask;
     QGraphicsPixmapItem* m_pixmap;
 
     std::atomic<uint8_t> m_current_update_frame {0};
+    std::atomic<uint8_t> m_display_frame {0};
     std::array<uint16_t *, 3> m_frame_buffers;
 };
