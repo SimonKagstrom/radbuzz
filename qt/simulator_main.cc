@@ -1,6 +1,7 @@
 #include "app_simulator.hh"
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
+#include "blitter_host.hh"
 #include "buzz_handler.hh"
 #include "filesystem.hh"
 #include "gps_reader.hh"
@@ -67,6 +68,7 @@ main(int argc, char* argv[])
     auto httpd_client = std::make_unique<HttpdClient>();
     auto pm = std::make_unique<PmHost>();
     auto nvm_host = std::make_unique<NvmHost>("nvm.txt");
+    auto blitter = std::make_unique<BlitterHost>();
 
     // Threads
     auto storage = std::make_unique<Storage>(application_state, *nvm_host);
@@ -78,6 +80,7 @@ main(int argc, char* argv[])
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
+                                                          *blitter,
                                                           pm->CreateFullPowerLock(),
                                                           window, // IInput
                                                           application_state,

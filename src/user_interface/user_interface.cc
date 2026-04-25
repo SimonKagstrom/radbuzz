@@ -8,12 +8,14 @@
 #include <radbuzz_font_22.h>
 
 UserInterface::UserInterface(hal::IDisplay& display,
+                             hal::IBlitter& blitter,
                              std::unique_ptr<hal::IPm::ILock> pm_lock,
                              hal::IInput& input,
                              ApplicationState& state,
                              ImageCache& cache,
                              TileCache& tile_cache)
     : m_display(display)
+    , m_blitter(blitter)
     , m_pm_lock(std::move(pm_lock))
     , m_input(input)
     , m_state(state)
@@ -148,6 +150,7 @@ UserInterface::OnActivation()
     {
         return milliseconds(delay);
     }
+        return milliseconds(delay);
 
     return std::nullopt;
 }

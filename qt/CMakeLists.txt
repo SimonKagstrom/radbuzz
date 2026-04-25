@@ -54,6 +54,7 @@ target_link_libraries(radbuzz_qt
     os_qt
     app_simulator
     user_interface
+    blitter_host
     ble_handler
     ble_server_host
     lvgl

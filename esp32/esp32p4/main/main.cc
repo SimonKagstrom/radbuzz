@@ -1,6 +1,7 @@
 #include "app_simulator.hh"
 #include "ble_handler.hh"
 #include "ble_server_esp32.hh"
+#include "blitter_esp32.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
 #include "can_bus_handler.hh"
@@ -403,10 +404,9 @@ app_main(void)
 
     auto httpd_client = std::make_unique<HttpdClient>();
 
+    auto blitter = std::make_unique<BlitterEsp32>();
     auto pm = std::make_unique<PmEsp32>();
-
     auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
-
     auto stepper_sleep_gpio =
         std::make_unique<TargetGpio>(kPinStepperSleepGpio, TargetGpio::Polarity::kActiveHigh);
     auto stepper_dir_gpio =
@@ -449,8 +449,13 @@ app_main(void)
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
 
-    auto user_interface = std::make_unique<UserInterface>(
-        *display, pm->CreateFullPowerLock(), *input, application_state, *image_cache, *tile_cache);
+    auto user_interface = std::make_unique<UserInterface>(*display,
+                                                          *blitter,
+                                                          pm->CreateFullPowerLock(),
+                                                          *input,
+                                                          application_state,
+                                                          *image_cache,
+                                                          *tile_cache);
 
 
     storage->Start("storage");

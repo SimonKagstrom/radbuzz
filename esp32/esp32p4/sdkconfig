@@ -575,6 +575,8 @@ CONFIG_SOC_MCPWM_SUPPORT_SLEEP_RETENTION=y
 # default:
 CONFIG_SOC_USB_OTG_PERIPH_NUM=2
 # default:
+CONFIG_SOC_USB_FSLS_PHY_NUM=1
+# default:
 CONFIG_SOC_USB_UTMI_PHY_NUM=1
 # default:
 CONFIG_SOC_USB_UTMI_PHY_NO_POWER_OFF_ISO=y
@@ -939,6 +941,8 @@ CONFIG_SOC_JPEG_DECODE_SUPPORTED=y
 # default:
 CONFIG_SOC_JPEG_ENCODE_SUPPORTED=y
 # default:
+CONFIG_SOC_H264_ENCODER_SUPPORTED=y
+# default:
 CONFIG_SOC_LCDCAM_CAM_SUPPORT_RGB_YUV_CONV=y
 # default:
 CONFIG_SOC_LCDCAM_LCD_SUPPORT_SLEEP_RETENTION=y
@@ -1131,8 +1135,6 @@ CONFIG_ESP_ROM_HAS_RVFPLIB=y
 CONFIG_ESP_ROM_HAS_HAL_WDT=y
 # default:
 CONFIG_ESP_ROM_HAS_HAL_SYSTIMER=y
-# default:
-CONFIG_ESP_ROM_SYSTIMER_INIT_PATCH=y
 # default:
 CONFIG_ESP_ROM_HAS_LAYOUT_TABLE=y
 # default:
@@ -1564,14 +1566,25 @@ CONFIG_BT_SMP_CRYPTO_STACK_TINYCRYPT=y
 # CONFIG_BT_SMP_CRYPTO_STACK_MBEDTLS is not set
 
 #
-# BLE Log
+# BT Logs
 #
-# CONFIG_BLE_LOG_ENABLED is not set
-# end of BLE Log
 
-# CONFIG_BT_BLE_LOG_SPI_OUT_ENABLED is not set
+#
+# Log Sources
+#
+# end of Log Sources
+
 # default:
-# CONFIG_BT_BLE_LOG_UHCI_OUT_ENABLED is not set
+# CONFIG_BT_LOG_CRITICAL_ONLY is not set
+# CONFIG_BLE_LOG_ENABLED is not set
+
+#
+# Legacy SPI Log Output (Deprecated - use BT Log Async Output instead)
+#
+# CONFIG_BT_BLE_LOG_SPI_OUT_ENABLED is not set
+# end of Legacy SPI Log Output (Deprecated - use BT Log Async Output instead)
+# end of BT Logs
+
 # CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED is not set
 # end of Common Options
 

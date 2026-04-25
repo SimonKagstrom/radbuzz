@@ -2,6 +2,7 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
+#include "hal/i_blitter.hh"
 #include "hal/i_display.hh"
 #include "hal/i_gpio.hh"
 #include "hal/i_input.hh"
@@ -59,6 +60,7 @@ public:
     };
 
     UserInterface(hal::IDisplay& display,
+                  hal::IBlitter& blitter,
                   std::unique_ptr<hal::IPm::ILock> pm_lock,
                   hal::IInput& input,
                   ApplicationState& state,
@@ -77,6 +79,7 @@ private:
     }
 
     hal::IDisplay& m_display;
+    hal::IBlitter& m_blitter;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     hal::IInput& m_input;
 

@@ -1,7 +1,6 @@
 #include "map_screen.hh"
 
-#include "painter.hh"
-
+#include <array>
 #include <radbuzz_font_22.h>
 
 MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache)
@@ -80,6 +79,8 @@ MapScreen::Update()
 
     // For each tile, calculate its top-left position in display coordinates and blit it
     constexpr auto kMaxTiles = num_tiles_x * num_tiles_y;
+    std::array<hal::BlitOperation, kMaxTiles> blit_ops {};
+    size_t op_count = 0;
 
     for (int y = 0; y < num_tiles_y; ++y)
     {
@@ -95,11 +96,25 @@ MapScreen::Update()
             int16_t dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
 
             auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, kDefaultZoom}));
-            painter::Blit(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
-                          tile,
-                          painter::Rect {dst_x, dst_y});
+
+            blit_ops[op_count++] = hal::BlitOperation {
+                .src_data = tile.Data16().data(),
+                .src_width = static_cast<int16_t>(tile.Width()),
+                .src_height = static_cast<int16_t>(tile.Height()),
+                .src_offset_x = 0,
+                .src_offset_y = 0,
+                .dst_offset_x = dst_x,
+                .dst_offset_y = dst_y,
+                .width = static_cast<int16_t>(tile.Width()),
+                .height = static_cast<int16_t>(tile.Height()),
+                .rotation = hal::Rotation::k0,
+            };
         }
     }
+
+    m_parent.m_blitter.BlitOperations(reinterpret_cast<uint16_t*>(m_static_map_buffer.get()),
+                                      std::span<const hal::BlitOperation> {
+                                          blit_ops.data(), op_count});
 
     lv_label_set_text(m_soc_label, std::format("{}%", ro.Get<AS::battery_soc>()).c_str());
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
