@@ -2,6 +2,8 @@
 dependencies:
   espressif/esp_lcd_jd9365:
     version: "^2.0.2"
+  espressif/esp_lcd_st7701:
+    version: "^2.0.2"
   espressif/esp_wifi_remote:
     version: "^1.5.0"
   espressif/network_provisioning:
