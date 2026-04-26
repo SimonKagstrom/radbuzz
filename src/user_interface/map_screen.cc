@@ -1,24 +1,35 @@
 #include "map_screen.hh"
-#include "painter.hh"
 
 #include <algorithm>
-#include <array>
 #include <radbuzz_font_22.h>
 
 MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache)
-    : ScreenBase(parent, lv_image_create(nullptr))
+    : ScreenBase(parent, lv_obj_create(nullptr))
     , m_image_cache(image_cache)
     , m_tile_cache(tile_cache)
 {
-    m_static_map_buffer = std::unique_ptr<uint8_t[]>(static_cast<uint8_t*>(
-        aligned_alloc(64, hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t))));
-    m_static_map_image = std::make_unique<Image>(
-        std::span<const uint8_t> {m_static_map_buffer.get(),
-                                  hal::kDisplayWidth * hal::kDisplayHeight * sizeof(uint16_t)},
-        hal::kDisplayWidth,
-        hal::kDisplayHeight);
+    lv_obj_set_style_bg_opa(m_screen, LV_OPA_TRANSP, 0);
 
-    lv_image_set_src(m_screen, &m_static_map_image->lv_image_dsc);
+    /*
+     * Tiles are blitted directly into the LVGL render buffer during LV_EVENT_DRAW_MAIN,
+     * eliminating the intermediate static_map_buffer and its associated software copy.
+     */
+    lv_obj_add_event_cb(
+        m_screen,
+        [](lv_event_t* e) {
+            auto* self = static_cast<MapScreen*>(lv_event_get_user_data(e));
+            auto* dst_data =
+                static_cast<uint16_t*>(static_cast<void*>(lv_event_get_layer(e)->draw_buf->data));
+            for (auto& op : self->m_blit_ops)
+            {
+                op.dst_data = dst_data;
+            }
+            self->m_parent.m_blitter.BlitOperations(
+                std::span<const hal::BlitOperation> {self->m_blit_ops.data(),
+                                                     self->m_blit_ops.size()});
+        },
+        LV_EVENT_DRAW_MAIN,
+        this);
 
     m_current_icon = lv_image_create(m_screen);
     lv_obj_center(m_current_icon);
@@ -29,7 +40,6 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
     lv_obj_align(m_soc_label, LV_ALIGN_TOP_MID, 0, 10);
     lv_obj_set_style_text_font(m_soc_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_soc_label, LV_OPA_TRANSP, LV_PART_MAIN);
-
 
     auto label_box = lv_obj_create(m_screen);
     lv_obj_set_size(label_box, 400, 100);
@@ -65,8 +75,6 @@ MapScreen::Update()
 
     auto pixel_position = *ro.Get<AS::pixel_position>();
 
-    auto t = ToTile(pixel_position);
-
     // Calculate the center of the display
     int display_cx = hal::kDisplayWidth / 2;
     int display_cy = hal::kDisplayHeight / 2;
@@ -75,15 +83,13 @@ MapScreen::Update()
     int start_x = pixel_position.x - display_cx;
     int start_y = pixel_position.y - display_cy;
 
-    // For each tile, calculate its top-left position in display coordinates and blit it
+    // Build blit ops; dst_data is filled in by the LV_EVENT_DRAW_MAIN callback at render time.
     m_blit_ops.clear();
-    auto dst_data = reinterpret_cast<uint16_t*>(m_static_map_buffer.get());
+
     for (int y = 0; y < kNumTilesY; ++y)
     {
         for (int x = 0; x < kNumTilesX; ++x)
         {
-            constexpr auto kSoftwareBlitLimit = 2048;
-
             int tile_x = (start_x / kTileSize) + x;
             int tile_y = (start_y / kTileSize) + y;
 
@@ -103,7 +109,6 @@ MapScreen::Update()
             auto clipped_width = static_cast<int32_t>(tile.Width());
             auto clipped_height = static_cast<int32_t>(tile.Height());
 
-            // Clip the tile against the visible screen area and shift the source region accordingly.
             if (dst_offset_x < 0)
             {
                 src_offset_x = -dst_offset_x;
@@ -127,31 +132,23 @@ MapScreen::Update()
                 continue;
             }
 
-            if (clipped_width * clipped_height < kSoftwareBlitLimit)
-            {
-                painter::Blit(dst_data, tile, {dst_offset_x, dst_offset_y, clipped_width, clipped_height});
-            }
-            else
-            {
-                m_blit_ops.push_back(hal::BlitOperation {
-                    .src_data = tile.Data16().data(),
-                    .dst_data = dst_data,
-                    .src_width = static_cast<int16_t>(tile.Width()),
-                    .src_height = static_cast<int16_t>(tile.Height()),
-                    .src_offset_x = static_cast<int16_t>(src_offset_x),
-                    .src_offset_y = static_cast<int16_t>(src_offset_y),
-                    .dst_offset_x = static_cast<int16_t>(dst_offset_x),
-                    .dst_offset_y = static_cast<int16_t>(dst_offset_y),
-                    .width = static_cast<int16_t>(clipped_width),
-                    .height = static_cast<int16_t>(clipped_height),
-                    .rotation = hal::Rotation::k0,
-                });
-            }
+            m_blit_ops.push_back(hal::BlitOperation {
+                .src_data = tile.Data16().data(),
+                .dst_data = nullptr,
+                .src_width = static_cast<int16_t>(tile.Width()),
+                .src_height = static_cast<int16_t>(tile.Height()),
+                .src_offset_x = static_cast<int16_t>(src_offset_x),
+                .src_offset_y = static_cast<int16_t>(src_offset_y),
+                .dst_offset_x = static_cast<int16_t>(dst_offset_x),
+                .dst_offset_y = static_cast<int16_t>(dst_offset_y),
+                .width = static_cast<int16_t>(clipped_width),
+                .height = static_cast<int16_t>(clipped_height),
+                .rotation = hal::Rotation::k0,
+            });
         }
     }
 
-    m_parent.m_blitter.BlitOperations(
-        std::span<const hal::BlitOperation> {m_blit_ops.data(), m_blit_ops.size()});
+    lv_obj_invalidate(m_screen);
 
     lv_label_set_text(m_soc_label, std::format("{}%", ro.Get<AS::battery_soc>()).c_str());
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());

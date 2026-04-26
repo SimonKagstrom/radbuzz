@@ -27,8 +27,4 @@ private:
     static constexpr int kNumTilesY = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
 
     etl::vector<hal::BlitOperation, kNumTilesX * kNumTilesY> m_blit_ops;
-
-    // Maybe TMP
-    std::unique_ptr<uint8_t[]> m_static_map_buffer;
-    std::unique_ptr<Image> m_static_map_image;
 };

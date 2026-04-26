@@ -68,25 +68,11 @@ UserInterface::OnStartup()
         .rotation = hal::kDisplayRotation,
     };
 
-    m_rotation_blit_operations[1] = hal::BlitOperation {
-        .src_data = f_rotate,
-        .dst_data = nullptr,
-        .src_width = static_cast<int16_t>(hal::kDisplayWidth),
-        .src_height = static_cast<int16_t>(hal::kDisplayHeight),
-        .src_offset_x = 0,
-        .src_offset_y = 0,
-        .dst_offset_x = 0,
-        .dst_offset_y = 0,
-        .width = static_cast<int16_t>(hal::kDisplayWidth),
-        .height = static_cast<int16_t>(hal::kDisplayHeight),
-        .rotation = hal::Rotation::k0,
-    };
-
     lv_display_set_buffers(m_lvgl_display,
                            f1,
                            f2,
                            sizeof(uint16_t) * hal::kDisplayWidth * hal::kDisplayHeight,
-                           lv_display_render_mode_t::LV_DISPLAY_RENDER_MODE_FULL);
+                           lv_display_render_mode_t::LV_DISPLAY_RENDER_MODE_DIRECT);
     lv_display_set_user_data(m_lvgl_display, this);
     lv_display_set_flush_cb(
         m_lvgl_display,
@@ -94,21 +80,20 @@ UserInterface::OnStartup()
             if (lv_display_flush_is_last(display))
             {
                 auto p = static_cast<UserInterface*>(lv_display_get_user_data(display));
+                auto frame_buffer = reinterpret_cast<uint16_t*>(px_map);
 
                 if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
                 {
-                    auto frame_buffer = reinterpret_cast<uint16_t*>(px_map);
 
                     p->m_rotation_blit_operations[0].src_data = frame_buffer;
-                    p->m_rotation_blit_operations[1].dst_data = frame_buffer;
 
                     p->m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
-                        p->m_rotation_blit_operations.data(), 2});
+                        p->m_rotation_blit_operations.data(), 1});
                 }
 
                 p->m_display.Flip();
-                lv_display_flush_ready(display);
             }
+            lv_display_flush_ready(display);
         });
 
     m_lvgl_input_dev = lv_indev_create();
