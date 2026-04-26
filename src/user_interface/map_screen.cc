@@ -1,5 +1,7 @@
 #include "map_screen.hh"
+#include "painter.hh"
 
+#include <algorithm>
 #include <array>
 #include <radbuzz_font_22.h>
 
@@ -80,31 +82,71 @@ MapScreen::Update()
     {
         for (int x = 0; x < kNumTilesX; ++x)
         {
+            constexpr auto kSoftwareBlitLimit = 2048;
+
             int tile_x = (start_x / kTileSize) + x;
             int tile_y = (start_y / kTileSize) + y;
 
             int tile_pixel_x = tile_x * kTileSize;
             int tile_pixel_y = tile_y * kTileSize;
 
-            int16_t dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
-            int16_t dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
+            auto dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
+            auto dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
 
             auto tile =
                 m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, kDefaultZoom}));
 
-            m_blit_ops.push_back(hal::BlitOperation {
-                .src_data = tile.Data16().data(),
-                .dst_data = dst_data,
-                .src_width = static_cast<int16_t>(tile.Width()),
-                .src_height = static_cast<int16_t>(tile.Height()),
-                .src_offset_x = 0,
-                .src_offset_y = 0,
-                .dst_offset_x = dst_x,
-                .dst_offset_y = dst_y,
-                .width = static_cast<int16_t>(tile.Width()),
-                .height = static_cast<int16_t>(tile.Height()),
-                .rotation = hal::Rotation::k0,
-            });
+            int32_t src_offset_x = 0;
+            int32_t src_offset_y = 0;
+            int32_t dst_offset_x = dst_x;
+            int32_t dst_offset_y = dst_y;
+            auto clipped_width = static_cast<int32_t>(tile.Width());
+            auto clipped_height = static_cast<int32_t>(tile.Height());
+
+            // Clip the tile against the visible screen area and shift the source region accordingly.
+            if (dst_offset_x < 0)
+            {
+                src_offset_x = -dst_offset_x;
+                clipped_width += dst_offset_x;
+                dst_offset_x = 0;
+            }
+            if (dst_offset_y < 0)
+            {
+                src_offset_y = -dst_offset_y;
+                clipped_height += dst_offset_y;
+                dst_offset_y = 0;
+            }
+
+            clipped_width =
+                std::min(clipped_width, static_cast<int32_t>(hal::kDisplayWidth) - dst_offset_x);
+            clipped_height =
+                std::min(clipped_height, static_cast<int32_t>(hal::kDisplayHeight) - dst_offset_y);
+
+            if (clipped_width <= 0 || clipped_height <= 0)
+            {
+                continue;
+            }
+
+            if (clipped_width * clipped_height < kSoftwareBlitLimit)
+            {
+                painter::Blit(dst_data, tile, {dst_offset_x, dst_offset_y, clipped_width, clipped_height});
+            }
+            else
+            {
+                m_blit_ops.push_back(hal::BlitOperation {
+                    .src_data = tile.Data16().data(),
+                    .dst_data = dst_data,
+                    .src_width = static_cast<int16_t>(tile.Width()),
+                    .src_height = static_cast<int16_t>(tile.Height()),
+                    .src_offset_x = static_cast<int16_t>(src_offset_x),
+                    .src_offset_y = static_cast<int16_t>(src_offset_y),
+                    .dst_offset_x = static_cast<int16_t>(dst_offset_x),
+                    .dst_offset_y = static_cast<int16_t>(dst_offset_y),
+                    .width = static_cast<int16_t>(clipped_width),
+                    .height = static_cast<int16_t>(clipped_height),
+                    .rotation = hal::Rotation::k0,
+                });
+            }
         }
     }
 
