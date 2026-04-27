@@ -68,6 +68,14 @@ public:
                   TileCache& tile_cache);
 
 private:
+    struct InputEvent
+    {
+        hal::IInput::EventType type;
+        uint16_t x;
+        uint16_t y;
+    };
+
+
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
@@ -97,7 +105,7 @@ private:
     std::array<hal::BlitOperation, 1> m_rotation_blit_operations;
 
 
-    etl::queue_spsc_atomic<hal::IInput::EventType, 4> m_input_queue;
+    etl::queue_spsc_atomic<InputEvent, 8> m_input_queue;
     int16_t m_enc_diff {0};
     lv_indev_state_t m_button_state {LV_INDEV_STATE_RELEASED};
 

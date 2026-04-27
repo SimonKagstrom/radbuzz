@@ -9,7 +9,7 @@ PUBLIC
 
 target_link_libraries(input
 PUBLIC
+    base_thread
     radbuzz_interface
-    gpio_esp32
     rotary_encoder
 )

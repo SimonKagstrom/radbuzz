@@ -6,6 +6,7 @@
 #include "filesystem.hh"
 #include "gps_reader.hh"
 #include "httpd_client.hh"
+#include "input.hh"
 #include "nvm_host.hh"
 #include "opportunistic_scheduler.hh"
 #include "pm_host.hh"
@@ -72,6 +73,7 @@ main(int argc, char* argv[])
 
     // Threads
     auto storage = std::make_unique<Storage>(application_state, *nvm_host);
+    auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto tile_cache = std::make_unique<TileCache>(
@@ -82,7 +84,7 @@ main(int argc, char* argv[])
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),
-                                                          window, // IInput
+                                                          *input, // IInput
                                                           application_state,
                                                           *image_cache,
                                                           *tile_cache);
@@ -91,6 +93,7 @@ main(int argc, char* argv[])
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
 
     storage->Start("storage");
+    input->Start("input");
     trip_computer->Start("trip_computer");
     ble_handler->Start("ble_handler");
     buzz_handler->Start("buzz_handler");

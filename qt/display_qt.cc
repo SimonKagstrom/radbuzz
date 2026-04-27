@@ -10,6 +10,7 @@ DisplayQt::DisplayQt(QGraphicsScene* scene, uint16_t display_width, uint16_t dis
     , m_display_height(display_height)
     , m_screen(std::make_unique<QImage>(m_display_width, m_display_height, QImage::Format_RGB32))
     , m_pixmap(scene->addPixmap(QPixmap::fromImage(*m_screen)))
+    , m_scene(scene)
 {
     for (auto i = 0; i < 3; ++i)
     {
@@ -19,6 +20,58 @@ DisplayQt::DisplayQt(QGraphicsScene* scene, uint16_t display_width, uint16_t dis
     }
 
     connect(this, SIGNAL(DoFlip()), this, SLOT(UpdateScreen()));
+    scene->installEventFilter(this);
+}
+
+bool
+DisplayQt::eventFilter(QObject* watched, QEvent* event)
+{
+    if (watched != m_scene)
+    {
+        return false;
+    }
+
+    switch (event->type())
+    {
+    case QEvent::GraphicsSceneMousePress: {
+        auto* mouse_event = static_cast<QGraphicsSceneMouseEvent*>(event);
+        hal::ITouch::Data touch_data {};
+        touch_data.x = static_cast<uint16_t>(mouse_event->scenePos().toPoint().x());
+        touch_data.y = static_cast<uint16_t>(mouse_event->scenePos().toPoint().y());
+        touch_data.pressed = true;
+        touch_data.was_pressed = false;
+        m_touch_data_queue.push(touch_data);
+        m_on_state_changed();
+        return false;
+    }
+    case QEvent::GraphicsSceneMouseMove: {
+        auto* mouse_event = static_cast<QGraphicsSceneMouseEvent*>(event);
+        if (mouse_event->buttons() & Qt::LeftButton)
+        {
+            hal::ITouch::Data touch_data {};
+            touch_data.x = static_cast<uint16_t>(mouse_event->scenePos().toPoint().x());
+            touch_data.y = static_cast<uint16_t>(mouse_event->scenePos().toPoint().y());
+            touch_data.pressed = true;
+            touch_data.was_pressed = true;
+            m_touch_data_queue.push(touch_data);
+            m_on_state_changed();
+        }
+        return false;
+    }
+    case QEvent::GraphicsSceneMouseRelease: {
+        auto* mouse_event = static_cast<QGraphicsSceneMouseEvent*>(event);
+        hal::ITouch::Data touch_data {};
+        touch_data.x = static_cast<uint16_t>(mouse_event->scenePos().toPoint().x());
+        touch_data.y = static_cast<uint16_t>(mouse_event->scenePos().toPoint().y());
+        touch_data.was_pressed = true;
+        touch_data.pressed = false;
+        m_touch_data_queue.push(touch_data);
+        m_on_state_changed();
+        return false;
+    }
+    default:
+        return false;
+    }
 }
 
 uint16_t*
@@ -139,4 +192,24 @@ DisplayQt::UpdateScreen()
 
     // Set the modified pixmap to the label
     m_pixmap->setPixmap(pixmap);
+}
+
+std::unique_ptr<ListenerCookie>
+DisplayQt::AttachIrqListener(std::function<void()> on_state_changed)
+{
+    return std::make_unique<ListenerCookie>([this, on_state_changed]() { m_on_state_changed(); });
+}
+
+std::span<const hal::ITouch::Data>
+DisplayQt::GetActiveTouchData()
+{
+    m_data_vector.clear();
+
+    hal::ITouch::Data data;
+    while (m_touch_data_queue.pop(data))
+    {
+        m_data_vector.push_back(data);
+    }
+
+    return m_data_vector;
 }

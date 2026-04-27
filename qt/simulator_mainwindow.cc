@@ -2,8 +2,12 @@
 
 #include "ui_simulator_mainwindow.h"
 
+GpioHost MainWindow::m_pin_a;
+GpioHost MainWindow::m_pin_b;
+
 MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     : QMainWindow(parent)
+    , RotaryEncoder(m_pin_a, m_pin_b)
     , m_application_state(application_state)
     , m_ui(new Ui::MainWindow)
 {
@@ -27,12 +31,12 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     m_right_buzzer_cookie = m_right_buzzer.AttachIrqListener(
         [this](bool state) { m_ui->rightBuzzer->setText(state ? "Buzz!" : "No buzz"); });
 
-    using Ev = hal::IInput::EventType;
+    using Dir = RotaryEncoder::Direction;
 
-    connect(m_ui->leftButton, &QPushButton::clicked, [this]() { m_on_event(Ev::kLeft); });
-    connect(m_ui->rightButton, &QPushButton::clicked, [this]() { m_on_event(Ev::kRight); });
-    connect(m_ui->centerButton, &QPushButton::pressed, [this]() { m_on_event(Ev::kButtonDown); });
-    connect(m_ui->centerButton, &QPushButton::released, [this]() { m_on_event(Ev::kButtonUp); });
+    connect(m_ui->leftButton, &QPushButton::clicked, [this]() { m_on_rotation(Dir::kLeft); });
+    connect(m_ui->rightButton, &QPushButton::clicked, [this]() { m_on_rotation(Dir::kRight); });
+    connect(m_ui->centerButton, &QPushButton::pressed, [this]() { m_button.SetState(true); });
+    connect(m_ui->centerButton, &QPushButton::released, [this]() { m_button.SetState(false); });
 
     m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(m_ui->socSlider->value());
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
@@ -53,11 +57,23 @@ MainWindow::GetDisplay()
     return *m_display;
 }
 
+
+hal::ITouch&
+MainWindow::GetTouch()
+{
+    return *m_display;
+}
+
 hal::IStepperMotor&
 MainWindow::GetStepperMotor()
 {
     return *m_speedometer;
 }
+
+hal::IGpio& MainWindow::GetButtonGpio()
+{
+    return m_button;
+}    
 
 hal::IGpio&
 MainWindow::GetLeftBuzzer()
@@ -71,9 +87,9 @@ MainWindow::GetRightBuzzer()
 }
 
 std::unique_ptr<ListenerCookie>
-MainWindow::AttachListener(std::function<void(EventType)> on_event)
+MainWindow::AttachIrqListener(std::function<void(RotaryEncoder::Direction)> on_rotation)
 {
-    m_on_event = std::move(on_event);
+    m_on_rotation = std::move(on_rotation);
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_event = [](auto) {}; });
+    return std::make_unique<ListenerCookie>([this]() { m_on_rotation = [](auto) {}; });
 }

@@ -34,8 +34,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
 
     // Context: Interrupt/anoteher thread
-    m_input_listener = m_input.AttachListener([this](auto event) {
-        m_input_queue.push(event);
+    m_input_listener = m_input.AttachListener([this](auto event, auto x, auto y) {
+        m_input_queue.push({event, x, y});
         Awake();
     });
 }
@@ -117,11 +117,15 @@ UserInterface::OnStartup()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
-    hal::IInput::EventType event;
+    InputEvent input_event;
 
-    while (m_input_queue.pop(event))
+    while (m_input_queue.pop(input_event))
     {
-        printf("VOBB : Processing input event %d\n", static_cast<int>(event));
+        auto event = input_event.type;
+        auto x = input_event.x;
+        auto y = input_event.y;
+
+        printf("VOBB : Processing input event %d at %u,%u\n", static_cast<int>(event), x, y);
 
         m_enc_diff = 0;
 

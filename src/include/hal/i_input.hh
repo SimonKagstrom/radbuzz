@@ -20,6 +20,10 @@ public:
         kLeft,
         kRight,
 
+        kTouchDown,
+        kTouchUp,
+        kTouchMove,
+
         kValueCount,
     };
 
@@ -27,7 +31,7 @@ public:
     virtual ~IInput() = default;
 
     virtual std::unique_ptr<ListenerCookie>
-    AttachListener(std::function<void(EventType)> on_event) = 0;
+    AttachListener(std::function<void(EventType, uint16_t, uint16_t)> on_event) = 0;
 };
 
 } // namespace hal

@@ -62,6 +62,7 @@ target_link_libraries(radbuzz_qt
     opportunistic_semaphore
     gpio_host
     nvm_host
+    input
     pm_host
     buzz_handler
     can_bus_handler
