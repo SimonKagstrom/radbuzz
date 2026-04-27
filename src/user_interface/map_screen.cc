@@ -24,9 +24,8 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
             {
                 op.dst_data = dst_data;
             }
-            self->m_parent.m_blitter.BlitOperations(
-                std::span<const hal::BlitOperation> {self->m_blit_ops.data(),
-                                                     self->m_blit_ops.size()});
+            self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
+                self->m_blit_ops.data(), self->m_blit_ops.size()});
         },
         LV_EVENT_DRAW_MAIN,
         this);
@@ -88,7 +87,13 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
 
     m_position_dot_obj = lv_image_create(m_screen);
     lv_image_set_src(m_position_dot_obj, &m_position_dot.lv_image_dsc);
-    lv_obj_align(m_position_dot_obj, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_align(m_position_dot_obj, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(m_position_dot_obj,
+                   hal::kDisplayWidth / 2 - static_cast<int>(m_position_dot.Width()) / 2,
+                   hal::kDisplayHeight / 2 - static_cast<int>(m_position_dot.Height()) / 2);
+
+
+    m_current_view_center = *m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>();
 }
 
 void
@@ -108,13 +113,22 @@ MapScreen::Update()
 
     auto pixel_position = *ro.Get<AS::pixel_position>();
 
+    // Keep the view centered on the bike for now.
+    m_current_view_center = pixel_position;
+
     // Calculate the center of the display
     int display_cx = hal::kDisplayWidth / 2;
     int display_cy = hal::kDisplayHeight / 2;
 
     // Calculate the top-left pixel in OSM coordinates that should be at (0,0) on the display
-    int start_x = pixel_position.x - display_cx;
-    int start_y = pixel_position.y - display_cy;
+    int start_x = m_current_view_center.x - display_cx;
+    int start_y = m_current_view_center.y - display_cy;
+
+    const int dot_center_x = display_cx + (pixel_position.x - m_current_view_center.x);
+    const int dot_center_y = display_cy + (pixel_position.y - m_current_view_center.y);
+    lv_obj_set_pos(m_position_dot_obj,
+                   dot_center_x - static_cast<int>(m_position_dot.Width()) / 2,
+                   dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);
 
     // Build blit ops; dst_data is filled in by the LV_EVENT_DRAW_MAIN callback at render time.
     m_blit_ops.clear();

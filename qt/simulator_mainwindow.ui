@@ -113,11 +113,11 @@
       <height>25</height>
      </rect>
     </property>
-    <property name="maximum">
-     <number>59000</number>
-    </property>
     <property name="minimum">
      <number>44800</number>
+    </property>
+    <property name="maximum">
+     <number>59000</number>
     </property>
     <property name="value">
      <number>52000</number>
@@ -131,12 +131,12 @@
      <rect>
       <x>1160</x>
       <y>360</y>
-      <width>58</width>
+      <width>81</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>SoC%</string>
+     <string>Battery mV</string>
     </property>
    </widget>
    <widget class="QGraphicsView" name="speedometerGraphicsView">
@@ -156,7 +156,7 @@
      <x>0</x>
      <y>0</y>
      <width>1291</width>
-     <height>30</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>
