@@ -56,6 +56,39 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
+
+    auto* position_dot_canvas = lv_canvas_create(nullptr);
+    lv_canvas_set_buffer(position_dot_canvas,
+                         static_cast<void*>(m_position_dot.WritableData16()),
+                         m_position_dot.Width(),
+                         m_position_dot.Height(),
+                         LV_COLOR_FORMAT_ARGB8888);
+    lv_canvas_fill_bg(position_dot_canvas, lv_color_black(), LV_OPA_TRANSP);
+
+    lv_layer_t layer;
+    lv_canvas_init_layer(position_dot_canvas, &layer);
+
+    lv_draw_rect_dsc_t rect_dsc;
+    lv_draw_rect_dsc_init(&rect_dsc);
+    rect_dsc.bg_color = lv_palette_main(LV_PALETTE_ORANGE);
+    rect_dsc.bg_opa = LV_OPA_60;
+    rect_dsc.border_width = 0;
+    rect_dsc.radius = LV_RADIUS_CIRCLE;
+
+    constexpr int radius = 16;
+    constexpr int diameter = radius * 2;
+    const int x1 = (static_cast<int>(m_position_dot.Width()) - diameter) / 2;
+    const int y1 = (static_cast<int>(m_position_dot.Height()) - diameter) / 2;
+    const lv_area_t dot_area {.x1 = x1, .y1 = y1, .x2 = x1 + diameter - 1, .y2 = y1 + diameter - 1};
+
+    lv_draw_rect(&layer, &rect_dsc, &dot_area);
+    lv_canvas_finish_layer(position_dot_canvas, &layer);
+
+    lv_obj_delete(position_dot_canvas);
+
+    m_position_dot_obj = lv_image_create(m_screen);
+    lv_image_set_src(m_position_dot_obj, &m_position_dot.lv_image_dsc);
+    lv_obj_align(m_position_dot_obj, LV_ALIGN_CENTER, 0, 0);
 }
 
 void

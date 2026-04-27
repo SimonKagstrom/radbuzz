@@ -1,6 +1,7 @@
 #pragma once
 
 #include "user_interface.hh"
+#include "painter.hh"
 
 #include <etl/vector.h>
 
@@ -22,6 +23,9 @@ private:
     lv_obj_t* m_distance_left_label {nullptr};
 
     lv_obj_t* m_soc_label {nullptr};
+
+    BlankAlphaImage m_position_dot {32, 32};
+    lv_obj_t* m_position_dot_obj {nullptr};
 
     static constexpr int kNumTilesX = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
     static constexpr int kNumTilesY = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
