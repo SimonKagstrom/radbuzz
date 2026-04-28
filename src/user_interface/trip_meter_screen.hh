@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-
 #include "user_interface.hh"
+
+#include <vector>
 
 class TripMeterScreen : public UserInterface::ScreenBase
 {
@@ -32,11 +32,11 @@ private:
     };
 
     void Update() final;
-    void HandleInput(hal::IInput::EventType event) final;
+    void HandleInput(Input::Event event) final;
 
     std::vector<StatRow> m_stat_rows;
 
-     lv_style_t m_style_bar_bg;
-     lv_style_t m_style_bar_indicator;
+    lv_style_t m_style_bar_bg;
+    lv_style_t m_style_bar_indicator;
     lv_obj_t* m_consumption_bar {nullptr};
 };

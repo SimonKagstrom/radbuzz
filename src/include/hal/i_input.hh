@@ -27,11 +27,16 @@ public:
         kValueCount,
     };
 
+    struct Event
+    {
+        EventType type;
+        uint16_t x;
+        uint16_t y;
+    };
 
     virtual ~IInput() = default;
 
-    virtual std::unique_ptr<ListenerCookie>
-    AttachListener(std::function<void(EventType, uint16_t, uint16_t)> on_event) = 0;
+    virtual std::unique_ptr<ListenerCookie> AttachListener(std::function<void(Event)> on_event) = 0;
 };
 
 } // namespace hal

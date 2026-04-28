@@ -211,9 +211,9 @@ MapScreen::Update()
 }
 
 void
-MapScreen::HandleInput(hal::IInput::EventType event)
+MapScreen::HandleInput(Input::Event event)
 {
-    switch (event)
+    switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
         [[fallthrough]]; // For now

@@ -40,7 +40,7 @@ SettingsMenuScreen::Update()
 }
 
 void
-SettingsMenuScreen::HandleInput(hal::IInput::EventType event)
+SettingsMenuScreen::HandleInput(Input::Event event)
 {
     lv_indev_read(m_parent.m_lvgl_input_dev);
     m_menu_screen->BumpExitTimer();

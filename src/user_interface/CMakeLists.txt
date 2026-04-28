@@ -32,6 +32,7 @@ PUBLIC
     base_thread
     image_cache
     lvgl
+    input
     tile_cache
     radbuzz_font_22_library
     radbuzz_font_big_library

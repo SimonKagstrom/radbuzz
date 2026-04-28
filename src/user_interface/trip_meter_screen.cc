@@ -192,9 +192,9 @@ TripMeterScreen::Update()
 }
 
 void
-TripMeterScreen::HandleInput(hal::IInput::EventType event)
+TripMeterScreen::HandleInput(Input::Event event)
 {
-    switch (event)
+    switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
         [[fallthrough]]; // For now

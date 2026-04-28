@@ -12,7 +12,7 @@ public:
 
 private:
     void Update() final;
-    void HandleInput(hal::IInput::EventType event) final;
+    void HandleInput(Input::Event event) final;
 
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;

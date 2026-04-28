@@ -34,8 +34,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
 
     // Context: Interrupt/anoteher thread
-    m_input_listener = m_input.AttachListener([this](auto event, auto x, auto y) {
-        m_input_queue.push({event, x, y});
+    m_input_listener = m_input.AttachListener([this](auto event) {
+        m_input_queue.push(event);
         Awake();
     });
 }
@@ -117,7 +117,7 @@ UserInterface::OnStartup()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
-    InputEvent input_event;
+    Input::Event input_event;
 
     while (m_input_queue.pop(input_event))
     {
@@ -147,7 +147,7 @@ UserInterface::OnActivation()
             break;
         }
 
-        m_current_screen->HandleInput(event);
+        m_current_screen->HandleInput(input_event);
     }
 
     // Set the pixel position (since the UI can move it around in the future)
