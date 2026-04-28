@@ -3,13 +3,23 @@
 Input::Input(hal::IGpio& button, RotaryEncoder& rotary_encoder, hal::ITouch& touch)
     : m_touch(touch)
 {
-    m_button_listener_cookie =
-        button.AttachIrqListener([this](bool state) { m_button_queue.push(state); });
+    m_button_listener_cookie = button.AttachIrqListener([this](bool state) {
+        m_button_queue.push(state);
+        Awake();
+    });
 
-    m_rotary_listener_cookie = rotary_encoder.AttachIrqListener(
-        [this](RotaryEncoder::Direction direction) { m_encoder_queue.push(direction); });
+    m_rotary_listener_cookie =
+        rotary_encoder.AttachIrqListener([this](RotaryEncoder::Direction direction) {
+            m_encoder_queue.push(direction);
+            Awake();
+        });
 
     m_touch_listener_cookie = touch.AttachIrqListener([this]() { Awake(); });
+    if (!m_touch_listener_cookie)
+    {
+        // If the touch doesn't support IRQ listeners, we'll just poll it in the main loop
+        m_poll_interval = 50ms;
+    }
 }
 
 std::unique_ptr<ListenerCookie>
@@ -47,5 +57,5 @@ Input::OnActivation()
                     data.y});
     }
 
-    return 50ms;
+    return m_poll_interval;
 }

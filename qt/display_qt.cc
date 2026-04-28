@@ -197,7 +197,8 @@ DisplayQt::UpdateScreen()
 std::unique_ptr<ListenerCookie>
 DisplayQt::AttachIrqListener(std::function<void()> on_state_changed)
 {
-    return std::make_unique<ListenerCookie>([this, on_state_changed]() { m_on_state_changed(); });
+    return std::make_unique<ListenerCookie>(
+        [this, on_state_changed]() { m_on_state_changed = []() {}; });
 }
 
 std::span<const hal::ITouch::Data>
