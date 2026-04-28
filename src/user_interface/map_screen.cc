@@ -7,6 +7,7 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
     : ScreenBase(parent, lv_obj_create(nullptr))
     , m_image_cache(image_cache)
     , m_tile_cache(tile_cache)
+    , m_touch_timer(m_parent.StartTimer(0ms))
 {
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_TRANSP, 0);
 
@@ -113,8 +114,10 @@ MapScreen::Update()
 
     auto pixel_position = *ro.Get<AS::pixel_position>();
 
-    // Keep the view centered on the bike for now.
-    m_current_view_center = pixel_position;
+    if (!m_touch_timer || m_touch_timer->IsExpired())
+    {
+        m_current_view_center = pixel_position;
+    }
 
     // Calculate the center of the display
     int display_cx = hal::kDisplayWidth / 2;
@@ -211,7 +214,7 @@ MapScreen::Update()
 }
 
 void
-MapScreen::HandleInput(const Input::Event &event)
+MapScreen::HandleInput(const Input::Event& event)
 {
     switch (event.type)
     {
@@ -223,6 +226,23 @@ MapScreen::HandleInput(const Input::Event &event)
     case hal::IInput::EventType::kButtonDown:
         m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
         break;
+
+    case hal::IInput::EventType::kTouchDown: {
+        m_touch_timer = m_parent.StartTimer(3s);
+        m_last_touch_x = event.x;
+        m_last_touch_y = event.y;
+        break;
+    }
+    case hal::IInput::EventType::kTouchMove: {
+        m_touch_timer = m_parent.StartTimer(3s);
+
+        m_current_view_center.x -= event.x - m_last_touch_x;
+        m_current_view_center.y -= event.y - m_last_touch_y;
+        m_last_touch_x = event.x;
+        m_last_touch_y = event.y;
+    }
+    break;
+
     default:
         break;
     }

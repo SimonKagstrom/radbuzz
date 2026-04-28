@@ -12,7 +12,7 @@ public:
 
 private:
     void Update() final;
-    void HandleInput(const Input::Event &event) final;
+    void HandleInput(const Input::Event& event) final;
 
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;
@@ -28,6 +28,11 @@ private:
     lv_obj_t* m_position_dot_obj {nullptr};
 
     Point m_current_view_center {0, 0, kDefaultZoom};
+    os::TimerHandle m_touch_timer;
+
+    int32_t m_last_touch_x {0};
+    int32_t m_last_touch_y {0};
+
 
     static constexpr int kNumTilesX = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
     static constexpr int kNumTilesY = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;

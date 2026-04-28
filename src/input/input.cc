@@ -51,10 +51,20 @@ Input::OnActivation()
     auto touch_data = m_touch.GetActiveTouchData();
     for (const auto& data : touch_data)
     {
-        m_on_event({data.pressed ? EventType::kTouchDown
-                                 : (data.was_pressed ? EventType::kTouchUp : EventType::kTouchMove),
-                    data.x,
-                    data.y});
+        EventType touch_event_type;
+        if (!data.pressed)
+        {
+            touch_event_type = EventType::kTouchUp;
+        }
+        else if (data.was_pressed)
+        {
+            touch_event_type = EventType::kTouchMove;
+        }
+        else
+        {
+            touch_event_type = EventType::kTouchDown;
+        }
+        m_on_event({touch_event_type, data.x, data.y});
     }
 
     return m_poll_interval;
