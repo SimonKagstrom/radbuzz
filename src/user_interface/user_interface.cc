@@ -43,6 +43,9 @@ UserInterface::UserInterface(hal::IDisplay& display,
 void
 UserInterface::OnStartup()
 {
+    auto stockholm = Wgs84ToOsmPoint({59.3293, 18.0686}, kDefaultZoom);
+    m_state.CheckoutReadWrite().Set<AS::pixel_position>(*stockholm);
+
     assert(m_lvgl_display == nullptr);
 
     lv_init();
@@ -124,8 +127,6 @@ UserInterface::OnActivation()
         auto event = input_event.type;
         auto x = input_event.x;
         auto y = input_event.y;
-
-        printf("VOBB : Processing input event %d at %u,%u\n", static_cast<int>(event), x, y);
 
         m_enc_diff = 0;
 
