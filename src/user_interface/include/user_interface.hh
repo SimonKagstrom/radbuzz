@@ -47,7 +47,7 @@ public:
             lv_screen_load(m_screen);
         }
 
-        virtual void HandleInput(Input::Event event) = 0;
+        virtual void HandleInput(const Input::Event &event) = 0;
 
         lv_obj_t* GetLvglObj()
         {

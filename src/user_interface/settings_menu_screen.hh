@@ -10,6 +10,6 @@ public:
 
 private:
     void Update() final;
-    void HandleInput(Input::Event event) final;
+    void HandleInput(const Input::Event &event) final;
     std::unique_ptr<MenuScreen> m_menu_screen;
 };

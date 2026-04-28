@@ -192,7 +192,7 @@ TripMeterScreen::Update()
 }
 
 void
-TripMeterScreen::HandleInput(Input::Event event)
+TripMeterScreen::HandleInput(const Input::Event &event)
 {
     switch (event.type)
     {

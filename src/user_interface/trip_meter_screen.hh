@@ -32,7 +32,7 @@ private:
     };
 
     void Update() final;
-    void HandleInput(Input::Event event) final;
+    void HandleInput(const Input::Event &event) final;
 
     std::vector<StatRow> m_stat_rows;
 

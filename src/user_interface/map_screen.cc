@@ -211,7 +211,7 @@ MapScreen::Update()
 }
 
 void
-MapScreen::HandleInput(Input::Event event)
+MapScreen::HandleInput(const Input::Event &event)
 {
     switch (event.type)
     {
