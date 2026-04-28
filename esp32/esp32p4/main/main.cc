@@ -20,6 +20,7 @@
 #include "speedometer_handler.hh"
 #include "stepper_motor_esp32.hh"
 #include "storage.hh"
+#include "touch_esp32.hh"
 #include "trip_computer.hh"
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
@@ -27,6 +28,7 @@
 #include "wifi_client_esp32.hh"
 
 #include <driver/sdmmc_host.h>
+#include <esp_lcd_touch_gt911.h>
 #include <esp_ldo_regulator.h>
 #include <esp_partition.h>
 #include <esp_random.h>
@@ -366,6 +368,67 @@ app_main(void)
         sdmmc_card_print_info(stdout, card);
     }
 
+    const i2c_master_bus_config_t i2c_mst_config = {
+        .i2c_port = I2C_NUM_1,
+        .sda_io_num = static_cast<gpio_num_t>(kI2cSdaPin),
+        .scl_io_num = static_cast<gpio_num_t>(kI2cSclPin),
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .intr_priority = 0,
+        .trans_queue_depth = 0,
+        .flags =
+            {
+                .enable_internal_pullup = true,
+                .allow_pd = false,
+            },
+    };
+
+    i2c_master_bus_handle_t i2c_handle;
+    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &i2c_handle));
+    esp_lcd_panel_io_i2c_config_t io_config = {.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS,
+                                               .scl_speed_hz = 100000,
+                                               .control_phase_bytes = 1,
+                                               .dc_bit_offset = 0,
+                                               .lcd_cmd_bits = 16,
+                                               .lcd_param_bits = 0,
+                                               .on_color_trans_done = nullptr,
+                                               .user_ctx = nullptr,
+                                               .flags = {
+                                                   .dc_low_on_data = 0,
+                                                   .disable_control_phase = 1,
+                                               }};
+
+
+    esp_lcd_touch_io_gt911_config_t tp_gt911_config = {
+        .dev_addr = static_cast<uint8_t>(io_config.dev_addr),
+    };
+
+    const esp_lcd_touch_config_t tp_cfg = {
+        .x_max = hal::kDisplayWidth,
+        .y_max = hal::kDisplayHeight,
+        .rst_gpio_num = GPIO_NUM_NC,
+        .int_gpio_num = GPIO_NUM_NC,
+        .levels =
+            {
+                .reset = 0,
+                .interrupt = 0,
+            },
+        .flags =
+            {
+                .swap_xy = 0,
+                .mirror_x = 0,
+                .mirror_y = 0,
+            },
+        .process_coordinates = nullptr,
+        .interrupt_callback = nullptr,
+        .user_data = nullptr,
+        .driver_data = &tp_gt911_config,
+    };
+    esp_lcd_panel_io_handle_t tp_io_handle = nullptr;
+    esp_lcd_touch_handle_t tp;
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(i2c_handle, &io_config, &tp_io_handle));
+    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &tp));
+
     // Devices / helper classes
     auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
@@ -376,7 +439,7 @@ app_main(void)
     //                                              GPIO_NUM_43); // TX
     //
 
-    auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
+    //auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
     //auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
 
@@ -411,12 +474,13 @@ app_main(void)
 
     stepper_motor->Start();
 
+    auto touch = std::make_unique<TouchEsp32>(tp);
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
     auto button_debouncer = std::make_unique<ButtonDebouncer>();
     auto debounced_button = button_debouncer->AddButton(
         std::make_unique<TargetGpio>(kButtonGpio, TargetGpio::Polarity::kActiveLow));
 
-    auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder);
+    auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder, *touch);
 
     // Threads
     auto storage = std::make_unique<Storage>(application_state, *nvm);
@@ -427,7 +491,7 @@ app_main(void)
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x6f);
 
-    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    //auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
@@ -449,6 +513,7 @@ app_main(void)
 
 
     storage->Start("storage");
+    input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);
@@ -457,7 +522,7 @@ app_main(void)
     speedometer_handler->Start("speedometer_handler");
     trip_computer->Start("trip_computer");
 
-    gps_reader->Start("gps_reader");
+    //gps_reader->Start("gps_reader");
     tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
 

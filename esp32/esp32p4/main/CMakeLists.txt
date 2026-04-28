@@ -9,6 +9,7 @@ target_link_libraries(${COMPONENT_TARGET}
     idf::vfs
     idf::fatfs
     idf::sdmmc
+    idf::espressif__esp_lcd_touch_gt911
     wifi_client_esp32
     blitter_esp32
     ble_handler
@@ -25,6 +26,7 @@ target_link_libraries(${COMPONENT_TARGET}
     nvm_esp32
     os_esp32
     pm_esp32
+    touch_esp32
     input
     uart_esp32
     buzz_handler
