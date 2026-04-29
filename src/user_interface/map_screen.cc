@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <radbuzz_font_22.h>
+#include <radbuzz_font_big.h>
 
 MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache)
     : ScreenBase(parent, lv_obj_create(nullptr))
@@ -92,6 +93,62 @@ MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& 
     lv_obj_set_pos(m_position_dot_obj,
                    hal::kDisplayWidth / 2 - static_cast<int>(m_position_dot.Width()) / 2,
                    hal::kDisplayHeight / 2 - static_cast<int>(m_position_dot.Height()) / 2);
+
+    auto* speed_triangle_canvas = lv_canvas_create(nullptr);
+    lv_canvas_set_buffer(speed_triangle_canvas,
+                         static_cast<void*>(m_speed_triangle.WritableData16()),
+                         m_speed_triangle.Width(),
+                         m_speed_triangle.Height(),
+                         LV_COLOR_FORMAT_ARGB8888);
+    lv_canvas_fill_bg(speed_triangle_canvas, lv_color_black(), LV_OPA_TRANSP);
+
+    lv_layer_t speed_layer;
+    lv_canvas_init_layer(speed_triangle_canvas, &speed_layer);
+
+    lv_draw_rect_dsc_t speed_panel_dsc;
+    lv_draw_rect_dsc_init(&speed_panel_dsc);
+    speed_panel_dsc.bg_color = lv_color_black();
+    speed_panel_dsc.bg_opa = LV_OPA_COVER;
+    speed_panel_dsc.border_width = 0;
+    speed_panel_dsc.radius = 24;
+
+    const int speed_w = static_cast<int>(m_speed_triangle.Width());
+    const int speed_h = static_cast<int>(m_speed_triangle.Height());
+
+    const lv_area_t rounded_panel {
+        .x1 = 0,
+        .y1 = 0,
+        .x2 = speed_w - 1,
+        .y2 = speed_h - 1,
+    };
+    lv_draw_rect(&speed_layer, &speed_panel_dsc, &rounded_panel);
+
+    // Restore square corners for all but lower-right.
+    const int r = speed_panel_dsc.radius;
+    const lv_area_t top_left_corner {.x1 = 0, .y1 = 0, .x2 = r - 1, .y2 = r - 1};
+    const lv_area_t top_right_corner {.x1 = speed_w - r, .y1 = 0, .x2 = speed_w - 1, .y2 = r - 1};
+    const lv_area_t bottom_left_corner {.x1 = 0, .y1 = speed_h - r, .x2 = r - 1, .y2 = speed_h - 1};
+
+    speed_panel_dsc.radius = 0;
+    lv_draw_rect(&speed_layer, &speed_panel_dsc, &top_left_corner);
+    lv_draw_rect(&speed_layer, &speed_panel_dsc, &top_right_corner);
+    lv_draw_rect(&speed_layer, &speed_panel_dsc, &bottom_left_corner);
+
+    lv_canvas_finish_layer(speed_triangle_canvas, &speed_layer);
+    lv_obj_delete(speed_triangle_canvas);
+
+    m_speed_triangle_obj = lv_image_create(m_screen);
+    lv_image_set_src(m_speed_triangle_obj, &m_speed_triangle.lv_image_dsc);
+    lv_obj_set_align(m_speed_triangle_obj, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(m_speed_triangle_obj, 0, 0);
+
+    m_speed_digits_label = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_big, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_speed_digits_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_speed_digits_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_align(m_speed_digits_label, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(m_speed_digits_label, 18, 12);
+    lv_label_set_text(m_speed_digits_label, "0");
 
 
     m_current_view_center = *m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>();
@@ -204,6 +261,7 @@ MapScreen::Update()
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
                       std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
+    lv_label_set_text(m_speed_digits_label, std::format("{}", ro.Get<AS::speed>()).c_str());
 
     // TMP!
     lv_label_set_text(m_description_label,

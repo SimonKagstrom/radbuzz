@@ -26,6 +26,9 @@ private:
 
     BlankAlphaImage m_position_dot {32, 32};
     lv_obj_t* m_position_dot_obj {nullptr};
+    BlankAlphaImage m_speed_triangle {128, 128};
+    lv_obj_t* m_speed_triangle_obj {nullptr};
+    lv_obj_t* m_speed_digits_label {nullptr};
 
     Point m_current_view_center {0, 0, kDefaultZoom};
     os::TimerHandle m_touch_timer;
