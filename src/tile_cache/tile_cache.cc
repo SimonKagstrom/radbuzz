@@ -87,19 +87,21 @@ TileCache::TileCache(ApplicationState& application_state,
 void
 TileCache::OnStartup()
 {
-    for (auto zoom : {kDefaultZoom, kDefaultZoom - 2})
+    for (auto zoom : {kDefaultZoom, kCityZoom})
     {
         auto pending_city_tile_data =
             m_filesystem.ReadFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName));
 
-        if (pending_city_tile_data && pending_city_tile_data->size() % (2 * sizeof(int32_t)) == 0)
+        if (pending_city_tile_data && pending_city_tile_data->size() % (3 * sizeof(int32_t)) == 0)
         {
             auto count = pending_city_tile_data->size() / sizeof(int32_t);
             auto ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
+            printf("Loaded pending city tiles for zoom %d from FS. %d\n", zoom, count);
 
-            for (auto i = 0u; i < count; i += 2)
+            for (auto i = 0u; i < count; i += 3)
             {
                 uint8_t tile_zoom = static_cast<uint8_t>(ptr[i + 2] & 0xff);
+                printf("  %d,%d,%d\n", ptr[i], ptr[i + 1], tile_zoom);
                 m_pending_city_tiles_by_zoom[tile_zoom].insert(
                     Tile {ptr[i], ptr[i + 1], tile_zoom});
             }

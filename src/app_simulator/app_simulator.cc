@@ -256,11 +256,11 @@ AppSimulator::AppSimulator(ApplicationState& app_state, BleServerHost& ble_serve
     , m_current_point(*Wgs84ToOsmPoint(
           {
               // Stockholm
-              //59.34443143179733,
-              //18.04792142012441,
+              59.34443143179733,
+              18.04792142012441,
 
               // Enköping
-              59.646331787827336, 17.07769480747484,
+              //59.646331787827336, 17.07769480747484,
           },
           kDefaultZoom))
     , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))

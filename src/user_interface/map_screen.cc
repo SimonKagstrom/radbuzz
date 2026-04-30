@@ -159,6 +159,13 @@ MapScreen::MapScreen(UserInterface& parent,
 }
 
 void
+MapScreen::SetZoom(uint8_t zoom)
+{
+    m_zoom = zoom;
+}
+
+
+void
 MapScreen::Update()
 {
     auto ro = m_parent.m_state.CheckoutReadonly();
@@ -280,9 +287,20 @@ MapScreen::HandleInput(const Input::Event& event)
     switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
-        [[fallthrough]]; // For now
+        if (m_zoom == kDefaultZoom)
+        {
+            SetZoom(kCityZoom);
+        }
+        break;
     case hal::IInput::EventType::kRight:
-        m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
+        if (m_zoom == kCityZoom)
+        {
+            SetZoom(kDefaultZoom);
+        }
+        else
+        {
+            m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
+        }
         break;
     case hal::IInput::EventType::kButtonDown:
         m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);

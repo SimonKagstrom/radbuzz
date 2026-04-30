@@ -158,8 +158,6 @@ UserInterface::OnActivation()
         if (auto pixel_pos = Wgs84ToOsmPoint(gps_data.position, kDefaultZoom); pixel_pos)
         {
             m_state.CheckoutReadWrite().Set<AS::pixel_position>(*pixel_pos);
-            auto overview_point = OsmPointToPoint(*pixel_pos, kDefaultZoom - 2);
-            m_tile_cache.GetTile(ToTile(overview_point));
         }
     });
 
