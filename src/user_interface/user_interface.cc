@@ -110,7 +110,7 @@ UserInterface::OnStartup()
         data->enc_diff = p->m_enc_diff;
     });
 
-    m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache);
+    m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache, kDefaultZoom);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
 

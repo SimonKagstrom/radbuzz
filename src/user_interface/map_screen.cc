@@ -4,10 +4,14 @@
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_big.h>
 
-MapScreen::MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache)
+MapScreen::MapScreen(UserInterface& parent,
+                     ImageCache& image_cache,
+                     TileCache& tile_cache,
+                     uint8_t zoom)
     : ScreenBase(parent, lv_obj_create(nullptr))
     , m_image_cache(image_cache)
     , m_tile_cache(tile_cache)
+    , m_zoom(zoom)
     , m_touch_timer(m_parent.StartTimer(0ms))
 {
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_TRANSP, 0);
@@ -169,9 +173,9 @@ MapScreen::Update()
         }
     }
 
-    auto pixel_position = *ro.Get<AS::pixel_position>();
+    auto pixel_position = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
 
-    if (!m_touch_timer || m_touch_timer->IsExpired())
+    if (m_touch_timer->IsExpired())
     {
         m_current_view_center = pixel_position;
     }
@@ -206,8 +210,7 @@ MapScreen::Update()
             auto dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
             auto dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
 
-            auto tile =
-                m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, kDefaultZoom}));
+            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
 
             int32_t src_offset_x = 0;
             int32_t src_offset_y = 0;

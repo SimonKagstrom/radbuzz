@@ -8,7 +8,7 @@
 class MapScreen : public UserInterface::ScreenBase
 {
 public:
-    MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache);
+    MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache, uint8_t zoom);
 
 private:
     void Update() final;
@@ -16,6 +16,7 @@ private:
 
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;
+    uint8_t m_zoom;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
     lv_obj_t* m_current_icon {nullptr};
@@ -30,7 +31,7 @@ private:
     lv_obj_t* m_speed_triangle_obj {nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};
 
-    Point m_current_view_center {0, 0, kDefaultZoom};
+    Point m_current_view_center {0, 0, m_zoom};
     os::TimerHandle m_touch_timer;
 
     int32_t m_last_touch_x {0};
