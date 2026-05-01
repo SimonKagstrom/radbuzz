@@ -31,7 +31,7 @@ DrawBatteryIndicator(BlankAlphaImage& battery_indicator, uint8_t soc)
     lv_draw_rect_dsc_init(&outline_dsc);
     outline_dsc.bg_color = lv_color_white();
     outline_dsc.bg_opa = LV_OPA_COVER;
-    outline_dsc.border_color = lv_color_white();
+    outline_dsc.border_color = lv_color_white(); // lv_palette_main(LV_PALETTE_GREY);
     outline_dsc.border_opa = LV_OPA_COVER;
     outline_dsc.border_width = kBorder;
     outline_dsc.radius = 0;

@@ -13,6 +13,8 @@ PUBLIC
     base_thread
     image_cache
     application_state
+PRIVATE
+    radbuzz_interface
 )
 
 # For unit tests

@@ -11,4 +11,6 @@ target_link_libraries(storage
 PUBLIC
     base_thread
     application_state
+PRIVATE
+    radbuzz_interface
 )

@@ -101,6 +101,14 @@ main(int argc, char* argv[])
     user_interface->Start("user_interface");
     speedometer_handler->Start("speedometer_handler");
 
+    // Silly setup of the wifi networks
+    {
+        auto ps = application_state.CheckoutPartialSnapshot<AS::configuration>();
+        auto& conf = ps.GetWritableReference<AS::configuration>();
+        conf.wifi_ssid_data.networks.push_back({"TestSSID", "TestPassword"});
+        conf.wifi_ssid_data.networks.push_back({"Sifod", "fjalkdf"});
+    }
+
     os::Sleep(10ms);
     app_simulator->Start("app_simulator");
 

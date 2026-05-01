@@ -1,7 +1,10 @@
 #include "storage.hh"
 
+#include "split_string.hh"
+
 constexpr auto kMaxSpeedKey = "M";
 constexpr auto kBatterySeriesKey = "B";
+constexpr auto kWifiNetworks = "W";
 
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
@@ -20,6 +23,26 @@ Storage::OnStartup()
     conf.max_speed = m_nvm.Get<uint8_t>(kMaxSpeedKey).value_or(30);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(kBatterySeriesKey).value_or(7);
 
+    auto networks = m_nvm.Get<std::string>(kWifiNetworks);
+    if (networks)
+    {
+        auto networks_str_list = SplitString(*networks, "^");
+
+        WifiSsidData wifi_data;
+        for (const auto& network : networks_str_list)
+        {
+            auto ssid_pass = SplitString(network, "@");
+            if (ssid_pass.size() != 2)
+            {
+                continue;
+            }
+
+            auto [ssid, password] = std::tuple(ssid_pass[0], ssid_pass[1]);
+            wifi_data.networks.push_back({ssid, password});
+        }
+        conf.wifi_ssid_data = wifi_data;
+    }
+
     m_state_cache.Pull();
 }
 
@@ -36,6 +59,20 @@ Storage::OnActivation()
         if (old_conf.battery_cell_series != new_conf.battery_cell_series)
         {
             m_nvm.Set<uint8_t>(kBatterySeriesKey, new_conf.battery_cell_series);
+        }
+
+        if (old_conf.wifi_ssid_data != new_conf.wifi_ssid_data)
+        {
+            std::string networks;
+            for (const auto& network : new_conf.wifi_ssid_data.networks)
+            {
+                if (!networks.empty())
+                {
+                    networks += "^";
+                }
+                networks += network.ssid + "@" + network.password;
+            }
+            m_nvm.Set<std::string>(kWifiNetworks, networks);
         }
 
         m_nvm.Commit();
