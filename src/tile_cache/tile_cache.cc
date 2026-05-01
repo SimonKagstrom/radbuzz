@@ -90,13 +90,12 @@ TileCache::OnStartup()
     for (auto zoom : {kDefaultZoom, kCityZoom})
     {
         auto pending_city_tile_data =
-            m_filesystem.ReadFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName));
+            m_filesystem.ReadFile(std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName));
 
         if (pending_city_tile_data && pending_city_tile_data->size() % (3 * sizeof(int32_t)) == 0)
         {
             auto count = pending_city_tile_data->size() / sizeof(int32_t);
             auto ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
-            printf("Loaded pending city tiles for zoom %d from FS. %d\n", zoom, count);
 
             for (auto i = 0u; i < count; i += 3)
             {
@@ -120,7 +119,7 @@ TileCache::OnActivation()
     const auto& co = m_pixel_state_cache.Pull();
 
     co.OnNewValue<AS::pixel_position>([&](const auto& pixel_position) {
-        auto zoomed_out_position = OsmPointToPoint({pixel_position.x, pixel_position.y}, pixel_position.zoom - 2);
+        auto zoomed_out_position = OsmPointToPoint(pixel_position, kCityZoom);
         auto city_tile = ToCityTile(pixel_position);
         auto zoomed_out_city_tile = ToCityTile(zoomed_out_position);
 
@@ -361,7 +360,7 @@ TileCache::SavePendingCityTiles()
             *ptr++ = tile.zoom;
         }
 
-        m_filesystem.WriteFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName), data);
+        m_filesystem.WriteFile(std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName), data);
     }
 }
 
