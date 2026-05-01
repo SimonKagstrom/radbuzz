@@ -264,7 +264,7 @@ TileCache::FillFromServer()
         return;
     }
 
-    while (!m_get_from_server.empty() && !m_get_from_server_background.empty())
+    while (!m_get_from_server.empty() || !m_get_from_server_background.empty())
     {
         Tile t;
 
