@@ -7,7 +7,6 @@
 #include <unordered_map>
 
 constexpr auto kTileSize = 256;
-constexpr auto kCityTileFactor = 30;
 
 constexpr auto kDefaultZoom = 15;
 constexpr auto kCityZoom = 13;
@@ -54,14 +53,6 @@ inline auto
 ToTile(const Point& point)
 {
     return Tile {point.x / kTileSize, point.y / kTileSize, point.zoom};
-}
-
-inline auto
-ToCityTile(const Point& point)
-{
-    return Tile {(point.x / kTileSize / kCityTileFactor) * kCityTileFactor,
-                 (point.y / kTileSize / kCityTileFactor) * kCityTileFactor,
-                 point.zoom};
 }
 
 inline bool

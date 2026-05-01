@@ -6,7 +6,18 @@
 namespace
 {
 
+constexpr auto kCityTileFactor = 30;
+constexpr auto kCityTileFactorZoomedOut = 15;
+
 constexpr auto kPendingCityTilesFileName = "pending.bin";
+
+inline auto
+ToCityTile(const Point& point)
+{
+    return Tile {(point.x / kTileSize / kCityTileFactor) * kCityTileFactor,
+                 (point.y / kTileSize / kCityTileFactor) * kCityTileFactor,
+                 point.zoom};
+}
 
 struct DecodeHelper
 {
@@ -89,8 +100,8 @@ TileCache::OnStartup()
 {
     for (auto zoom : {kDefaultZoom, kCityZoom})
     {
-        auto pending_city_tile_data =
-            m_filesystem.ReadFile(std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName));
+        auto pending_city_tile_data = m_filesystem.ReadFile(
+            std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName));
 
         if (pending_city_tile_data && pending_city_tile_data->size() % (3 * sizeof(int32_t)) == 0)
         {
@@ -244,9 +255,11 @@ TileCache::FillFromColdStore()
 void
 TileCache::RefreshCityTiles(const Tile& center)
 {
-    for (int dx = -kCityTileFactor; dx <= kCityTileFactor; ++dx)
+    auto factor = center.zoom == kDefaultZoom ? kCityTileFactor : kCityTileFactorZoomedOut;
+
+    for (int dx = -factor; dx <= factor; ++dx)
     {
-        for (int dy = -kCityTileFactor; dy <= kCityTileFactor; ++dy)
+        for (int dy = -factor; dy <= factor; ++dy)
         {
             Tile t {center.x + dx, center.y + dy, center.zoom};
 
@@ -360,7 +373,8 @@ TileCache::SavePendingCityTiles()
             *ptr++ = tile.zoom;
         }
 
-        m_filesystem.WriteFile(std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName), data);
+        m_filesystem.WriteFile(std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName),
+                               data);
     }
 }
 
