@@ -210,6 +210,9 @@ DisplayQt::GetActiveTouchData()
     hal::ITouch::Data data;
     while (m_touch_data_queue.pop(data))
     {
+
+        data.x = std::clamp(data.x, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_width - 1));
+        data.y = std::clamp(data.y, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_height - 1));
         m_data_vector.push_back(data);
     }
 
