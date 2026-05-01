@@ -32,6 +32,9 @@ private:
     BlankAlphaImage m_speed_triangle {128, 128};
     lv_obj_t* m_speed_triangle_obj {nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};
+    BlankAlphaImage m_battery_indicator {24, 80};
+    lv_obj_t* m_battery_indicator_obj {nullptr};
+    uint8_t m_last_battery_soc {255};
 
     Point m_current_view_center {0, 0, m_zoom};
     os::TimerHandle m_touch_timer;

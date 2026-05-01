@@ -1,8 +1,107 @@
 #include "map_screen.hh"
 
 #include <algorithm>
+#include <cstdio>
+#include <radbuzz_font_16.h>
 #include <radbuzz_font_22.h>
-#include <radbuzz_font_big.h>
+#include <radbuzz_font_60.h>
+
+namespace
+{
+void
+DrawBatteryIndicator(BlankAlphaImage& battery_indicator, uint8_t soc)
+{
+    constexpr int kBorder = 3;
+
+    const int w = static_cast<int>(battery_indicator.Width());
+    const int h = static_cast<int>(battery_indicator.Height());
+
+    auto* battery_canvas = lv_canvas_create(nullptr);
+    lv_canvas_set_buffer(battery_canvas,
+                         static_cast<void*>(battery_indicator.WritableData16()),
+                         battery_indicator.Width(),
+                         battery_indicator.Height(),
+                         LV_COLOR_FORMAT_ARGB8888);
+    lv_canvas_fill_bg(battery_canvas, lv_color_black(), LV_OPA_COVER);
+
+    lv_layer_t battery_layer;
+    lv_canvas_init_layer(battery_canvas, &battery_layer);
+
+    lv_draw_rect_dsc_t outline_dsc;
+    lv_draw_rect_dsc_init(&outline_dsc);
+    outline_dsc.bg_color = lv_color_white();
+    outline_dsc.bg_opa = LV_OPA_COVER;
+    outline_dsc.border_color = lv_color_white();
+    outline_dsc.border_opa = LV_OPA_COVER;
+    outline_dsc.border_width = kBorder;
+    outline_dsc.radius = 0;
+
+    const lv_area_t body_area {.x1 = 0, .y1 = 0, .x2 = w - 1, .y2 = h - 1};
+    lv_draw_rect(&battery_layer, &outline_dsc, &body_area);
+
+    const int inner_x1 = kBorder;
+    const int inner_y1 = kBorder;
+    const int inner_x2 = w - kBorder - 1;
+    const int inner_y2 = h - kBorder - 1;
+    const int inner_h = std::max(0, inner_y2 - inner_y1 + 1);
+
+    const uint8_t soc_clamped = std::min<uint8_t>(soc, 100);
+    const int fill_h = (inner_h * static_cast<int>(soc_clamped) + 99) / 100;
+
+    auto color = LV_PALETTE_GREEN;
+
+    if (soc_clamped < 20)
+    {
+        color = LV_PALETTE_RED;
+    }
+    else if (soc_clamped < 50)
+    {
+        color = LV_PALETTE_ORANGE;
+    }
+
+    if (fill_h > 0)
+    {
+        lv_draw_rect_dsc_t fill_dsc;
+        lv_draw_rect_dsc_init(&fill_dsc);
+        fill_dsc.bg_color = lv_palette_main(color);
+        fill_dsc.bg_opa = LV_OPA_COVER;
+        fill_dsc.border_width = 0;
+        fill_dsc.radius = 0;
+
+        const lv_area_t fill_area {
+            .x1 = inner_x1,
+            .y1 = inner_y2 - fill_h + 1,
+            .x2 = inner_x2,
+            .y2 = inner_y2,
+        };
+        lv_draw_rect(&battery_layer, &fill_dsc, &fill_area);
+    }
+
+    if (soc_clamped < 30)
+    {
+        char soc_text[5] = {};
+        std::snprintf(soc_text, sizeof(soc_text), "%u", static_cast<unsigned>(soc_clamped));
+
+        lv_draw_label_dsc_t label_dsc;
+        lv_draw_label_dsc_init(&label_dsc);
+        label_dsc.text = soc_text;
+        label_dsc.color = lv_color_black();
+        label_dsc.font = &radbuzz_font_16;
+        label_dsc.align = LV_TEXT_ALIGN_LEFT;
+
+        const lv_area_t text_area {
+            .x1 = 2,
+            .y1 = 2,
+            .x2 = w - 3,
+            .y2 = h - 3,
+        };
+        lv_draw_label(&battery_layer, &label_dsc, &text_area);
+    }
+
+    lv_canvas_finish_layer(battery_canvas, &battery_layer);
+    lv_obj_delete(battery_canvas);
+}
+} // namespace
 
 MapScreen::MapScreen(UserInterface& parent,
                      ImageCache& image_cache,
@@ -147,12 +246,24 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_pos(m_speed_triangle_obj, 0, 0);
 
     m_speed_digits_label = lv_label_create(m_screen);
-    lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_big, LV_PART_MAIN);
+    lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_60, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speed_digits_label, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_speed_digits_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_align(m_speed_digits_label, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(m_speed_digits_label, 18, 12);
     lv_label_set_text(m_speed_digits_label, "0");
+
+    const uint8_t battery_soc =
+        std::min<uint8_t>(m_parent.m_state.CheckoutReadonly().Get<AS::battery_soc>(), 100);
+    DrawBatteryIndicator(m_battery_indicator, battery_soc);
+    m_last_battery_soc = battery_soc;
+
+    m_battery_indicator_obj = lv_image_create(m_screen);
+    lv_image_set_src(m_battery_indicator_obj, &m_battery_indicator.lv_image_dsc);
+    lv_obj_set_align(m_battery_indicator_obj, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(m_battery_indicator_obj,
+                   hal::kDisplayWidth - static_cast<int>(m_battery_indicator.Width()) - 4,
+                   4);
 
 
     m_current_view_center = *m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>();
@@ -272,6 +383,14 @@ MapScreen::Update()
     lv_label_set_text(m_distance_left_label,
                       std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
     lv_label_set_text(m_speed_digits_label, std::format("{}", ro.Get<AS::speed>()).c_str());
+
+    const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
+    if (battery_soc != m_last_battery_soc)
+    {
+        DrawBatteryIndicator(m_battery_indicator, battery_soc);
+        m_last_battery_soc = battery_soc;
+        lv_obj_invalidate(m_battery_indicator_obj);
+    }
 
     // TMP!
     lv_label_set_text(m_description_label,

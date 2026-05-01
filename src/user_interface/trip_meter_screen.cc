@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <format>
 #include <radbuzz_font_22.h>
-#include <radbuzz_font_big.h>
+#include <radbuzz_font_60.h>
 
 constexpr int kValueRightXOffset = 120;
 constexpr int kLabelColumnWidth = 220;
@@ -15,14 +15,14 @@ constexpr int kUnitColumnWidth = 130;
 constexpr int kLabelToValueGap = 24;
 constexpr int kValueToUnitGap = 5;
 constexpr int kFirstRowYOffset = 100;
-constexpr int kRowSpacing = kPixelSize_radbuzz_font_big + 10;
+constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
 
 namespace
 {
 auto
 GetSideTextBaselineYOffset()
 {
-    return radbuzz_font_22.base_line - radbuzz_font_big.base_line;
+    return radbuzz_font_22.base_line - radbuzz_font_60.base_line;
 }
 } // namespace
 
@@ -50,7 +50,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
         const int y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
 
         row.value = lv_label_create(m_screen);
-        lv_obj_set_style_text_font(row.value, &radbuzz_font_big, LV_PART_MAIN);
+        lv_obj_set_style_text_font(row.value, &radbuzz_font_60, LV_PART_MAIN);
         lv_obj_set_width(row.value, kValueColumnWidth);
         lv_obj_set_style_text_align(row.value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
         lv_label_set_text(row.value, "0");

@@ -6,12 +6,20 @@ convert_font(radbuzz_font_22
     "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜ"
 )
 
-# Big font with numbers only
-convert_font(radbuzz_font_big
+# Big font with numbers plus a few extras
+convert_font(radbuzz_font_60
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
     60
     0x20,0x30-0x39
     "%.°CVWh"
+)
+
+# Small font with numbers
+convert_font(radbuzz_font_16
+    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    16
+    0x20,0x30-0x39
+    "%"
 )
 
 add_library(user_interface EXCLUDE_FROM_ALL
@@ -34,7 +42,8 @@ PUBLIC
     lvgl
     input
     tile_cache
+    radbuzz_font_16_library
     radbuzz_font_22_library
-    radbuzz_font_big_library
+    radbuzz_font_60_library
     ui_menu
 )
