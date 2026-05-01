@@ -1,5 +1,7 @@
 #include "trip_meter_screen.hh"
 
+#include "map_screen.hh"
+
 #include <algorithm>
 #include <cstddef>
 #include <format>
@@ -192,13 +194,19 @@ TripMeterScreen::Update()
 }
 
 void
-TripMeterScreen::HandleInput(const Input::Event &event)
+TripMeterScreen::HandleInput(const Input::Event& event)
 {
+    // Ugly
+    auto map_screen = static_cast<MapScreen*>(m_parent.m_map_screen.get());
+
     switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
-        [[fallthrough]]; // For now
+        map_screen->SetZoom(kDefaultZoom);
+        m_parent.ActivateScreen(*m_parent.m_map_screen);
+        break;
     case hal::IInput::EventType::kRight:
+        map_screen->SetZoom(kCityZoom);
         m_parent.ActivateScreen(*m_parent.m_map_screen);
         break;
     case hal::IInput::EventType::kButtonDown:

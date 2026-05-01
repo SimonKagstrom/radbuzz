@@ -291,6 +291,10 @@ MapScreen::HandleInput(const Input::Event& event)
         {
             SetZoom(kCityZoom);
         }
+        else
+        {
+            m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
+        }
         break;
     case hal::IInput::EventType::kRight:
         if (m_zoom == kCityZoom)
