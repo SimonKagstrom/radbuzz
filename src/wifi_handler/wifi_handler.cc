@@ -21,12 +21,23 @@ WifiHandler::OnStartup()
     if (ssid_data)
     {
         std::stringstream ssid_stream(reinterpret_cast<const char*>(ssid_data->data()));
-        std::string ssid, password;
 
-        std::getline(ssid_stream, ssid);
-        std::getline(ssid_stream, password);
+        while (true)
+        {
+            std::string ssid, password;
+            std::getline(ssid_stream, ssid);
+            if (ssid == "")
+            {
+                break;
+            }
+            std::getline(ssid_stream, password);
+            if (password == "")
+            {
+                break;
+            }
 
-        parsed_ssid_data.networks.push_back({ssid, password});
+            parsed_ssid_data.networks.push_back({ssid, password});
+        }
     }
     auto conf = m_state.CheckoutReadonly().Get<AS::configuration>();
     if (!std::ranges::equal(parsed_ssid_data.networks, conf->wifi_ssid_data.networks))
