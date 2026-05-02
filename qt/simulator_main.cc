@@ -18,6 +18,8 @@
 #include "trip_computer.hh"
 #include "user_interface.hh"
 #include "wgs84_to_osm_point.hh"
+#include "wifi_client_host.hh"
+#include "wifi_handler.hh"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -70,9 +72,11 @@ main(int argc, char* argv[])
     auto pm = std::make_unique<PmHost>();
     auto nvm_host = std::make_unique<NvmHost>("nvm.txt");
     auto blitter = std::make_unique<BlitterHost>();
+    auto wifi_client = std::make_unique<WifiClientHost>();
 
     // Threads
     auto storage = std::make_unique<Storage>(application_state, *nvm_host);
+    auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
@@ -93,6 +97,7 @@ main(int argc, char* argv[])
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
 
     storage->Start("storage");
+    wifi_handler->Start("wifi_handler");
     input->Start("input");
     trip_computer->Start("trip_computer");
     ble_handler->Start("ble_handler");
@@ -100,14 +105,6 @@ main(int argc, char* argv[])
     tile_cache->Start("tile_cache");
     user_interface->Start("user_interface");
     speedometer_handler->Start("speedometer_handler");
-
-    // Silly setup of the wifi networks
-    {
-        auto ps = application_state.CheckoutPartialSnapshot<AS::configuration>();
-        auto& conf = ps.GetWritableReference<AS::configuration>();
-        conf.wifi_ssid_data.networks.push_back({"TestSSID", "TestPassword"});
-        conf.wifi_ssid_data.networks.push_back({"Sifod", "fjalkdf"});
-    }
 
     os::Sleep(10ms);
     app_simulator->Start("app_simulator");

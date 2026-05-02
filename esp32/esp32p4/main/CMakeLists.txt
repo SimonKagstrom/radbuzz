@@ -36,5 +36,6 @@ target_link_libraries(${COMPONENT_TARGET}
     speedometer_handler
     trip_computer
     jd9365_display_esp32
+    wifi_handler
     gps_reader
 )

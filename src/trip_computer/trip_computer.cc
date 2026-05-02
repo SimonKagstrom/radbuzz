@@ -81,6 +81,11 @@ TripComputer::UpdateSoc(uint16_t millivolts)
 
     auto ro = m_state.CheckoutReadonly();
 
+    auto distance_now = ro.Get<AS::distance_traveled>();
+    m_state.CheckoutReadWrite().Set<AS::is_moving>(distance_now - m_current_distance > 10);
+    m_current_distance = distance_now;
+
+
     if (ro.Get<AS::current_power_w>() > 300)
     {
         // Limit SOC updates on high power

@@ -6,6 +6,7 @@ application_state:
   current_icon_hash: kInvalidIconHash
   distance_to_next: 0
   next_street: ""
+  is_moving: false
   speed: 0
   max_speed: 0
   controller_temperature: 0

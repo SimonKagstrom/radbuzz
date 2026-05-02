@@ -36,6 +36,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 
 add_subdirectory(.. radbuzz)
 add_subdirectory(../external/libmaelir/qt libradbuzz_qt)
+add_subdirectory(wifi_client_host)
 
 
 add_library(filesystem_implementation ALIAS std_filesystem)
@@ -71,5 +72,7 @@ target_link_libraries(radbuzz_qt
     speedometer_handler
     gps_reader
     storage
+    wifi_handler
+    wifi_client_host
     Qt6::Widgets
 )

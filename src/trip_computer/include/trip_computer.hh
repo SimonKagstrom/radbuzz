@@ -21,4 +21,6 @@ private:
     os::TimerHandle m_soc_timer;
 
     etl::circular_buffer<uint16_t, 10> m_millivolt_history;
+
+    uint32_t m_current_distance {0};
 };

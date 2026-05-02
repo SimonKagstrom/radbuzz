@@ -26,6 +26,7 @@
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
 #include "wifi_client_esp32.hh"
+#include "wifi_handler.hh"
 
 #include <driver/sdmmc_host.h>
 #include <esp_lcd_touch_gt911.h>
@@ -316,7 +317,7 @@ app_main(void)
     auto display = CreateDisplay();
 
     // Create before SD card (see below)
-    auto wifi_client = std::make_unique<WifiClientEsp32>(application_state);
+    auto wifi_client = std::make_unique<WifiClientEsp32>();
 
     sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
@@ -443,18 +444,6 @@ app_main(void)
     //auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
 
-    auto ssid_data = filesystem->ReadFile("SSID.TXT");
-    if (ssid_data)
-    {
-        std::stringstream ssid_stream(reinterpret_cast<const char*>(ssid_data->data()));
-        std::string ssid, password;
-
-        std::getline(ssid_stream, ssid);
-        std::getline(ssid_stream, password);
-
-        wifi_client->Start(ssid.c_str(), password.c_str());
-    }
-
     auto httpd_client = std::make_unique<HttpdClient>();
 
     auto blitter = std::make_unique<BlitterEsp32>();
@@ -483,6 +472,7 @@ app_main(void)
     auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder, *touch);
 
     // Threads
+    auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto storage = std::make_unique<Storage>(application_state, *nvm);
     auto buzz_handler =
         std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
@@ -519,6 +509,7 @@ app_main(void)
     app_simulator->Start("app_simulator", 8192);
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
+    wifi_handler->Start("wifi_handler", 8192);
     speedometer_handler->Start("speedometer_handler");
     trip_computer->Start("trip_computer");
 

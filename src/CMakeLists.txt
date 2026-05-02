@@ -12,6 +12,7 @@ add_subdirectory(tile_cache)
 add_subdirectory(trip_computer)
 add_subdirectory(user_interface)
 add_subdirectory(wgs84_to_osm_point)
+add_subdirectory(wifi_handler)
 
 add_library(radbuzz_interface INTERFACE)
 

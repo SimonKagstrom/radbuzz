@@ -1,13 +1,13 @@
 // See https://github.com/espressif/esp-idf/blob/v5.5/examples/wifi/getting_started/station/main/station_example_main.c
 #include "wifi_client_esp32.hh"
 
+#include <cstring>
 #include <esp_wifi.h>
 
 static const char* TAG = "wifi station";
 
 
-WifiClientEsp32::WifiClientEsp32(ApplicationState& app_state)
-    : m_app_state(app_state)
+WifiClientEsp32::WifiClientEsp32()
 {
     // Wifi
     wifi_init_config_t wifi_config = WIFI_INIT_CONFIG_DEFAULT();
@@ -24,8 +24,31 @@ WifiClientEsp32::WifiClientEsp32(ApplicationState& app_state)
         IP_EVENT, IP_EVENT_STA_GOT_IP, &EventHandler, static_cast<void*>(this), &m_ip_event_data));
 }
 
+std::vector<std::string>
+WifiClientEsp32::Scan()
+{
+    std::vector<std::string> ssids;
+
+    auto res = esp_wifi_scan_start(nullptr, true);
+    if (res == ESP_OK)
+    {
+        uint16_t ap_count = 0;
+        ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+
+        std::vector<wifi_ap_record_t> ap_records(ap_count);
+        ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_count, ap_records.data()));
+
+        for (const auto& record : ap_records)
+        {
+            ssids.emplace_back(reinterpret_cast<const char*>(record.ssid));
+        }
+    }
+
+    return ssids;
+}
+
 void
-WifiClientEsp32::Start(const char* ssid, const char* password)
+WifiClientEsp32::Connect(const char* ssid, const char* password)
 {
     wifi_config_t sta_config = {};
 
@@ -42,10 +65,18 @@ WifiClientEsp32::Start(const char* ssid, const char* password)
 }
 
 void
-WifiClientEsp32::Stop()
+WifiClientEsp32::Disconnect()
 {
+    // NYI
 }
 
+std::unique_ptr<ListenerCookie>
+WifiClientEsp32::AttachListener(std::function<void(Event)> on_event)
+{
+    m_on_event = on_event;
+
+    return std::make_unique<ListenerCookie>([this]() { m_on_event = [](auto) { /* NOP */ }; });
+}
 
 void
 WifiClientEsp32::EventHandler(void* arg,
@@ -56,7 +87,6 @@ WifiClientEsp32::EventHandler(void* arg,
     static int s_retry_num = 0;
 
     auto p = static_cast<WifiClientEsp32*>(arg);
-    auto state = p->m_app_state.CheckoutReadWrite();
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
@@ -64,7 +94,7 @@ WifiClientEsp32::EventHandler(void* arg,
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
-        state.Set<AS::wifi_connected>(false);
+        p->m_on_event(hal::IWifiClient::Event::kDisconnected);
 
         if (s_retry_num < 5)
         {
@@ -77,6 +107,6 @@ WifiClientEsp32::EventHandler(void* arg,
         ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
         s_retry_num = 0;
 
-        state.Set<AS::wifi_connected>(true);
+        p->m_on_event(hal::IWifiClient::Event::kConnected);
     }
 }

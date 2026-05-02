@@ -11,5 +11,5 @@ target_link_libraries(wifi_client_esp32
 PUBLIC
     idf::esp_wifi
     idf::nvs_flash
-    application_state
+    radbuzz_interface
 )

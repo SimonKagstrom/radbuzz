@@ -14,6 +14,9 @@ parameters:
   next_street:
     type: std::string
 
+  is_moving:
+    type: bool
+
   speed:
     type: uint8_t
 
