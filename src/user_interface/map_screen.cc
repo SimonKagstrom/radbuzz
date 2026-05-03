@@ -103,6 +103,53 @@ DrawBatteryIndicator(BlankAlphaImage& battery_indicator, uint8_t soc)
 }
 } // namespace
 
+void
+MapScreen::DrawRangeCircle(lv_layer_t* layer)
+{
+    if (m_zoom != kLandscapeZoom)
+    {
+        return;
+    }
+
+    const int center_x =
+        lv_obj_get_x(m_position_dot_obj) + static_cast<int>(m_position_dot.Width()) / 2;
+    const int center_y =
+        lv_obj_get_y(m_position_dot_obj) + static_cast<int>(m_position_dot.Height()) / 2;
+
+    auto ro = m_parent.m_state.CheckoutReadonly();
+    const auto conf = ro.Get<AS::configuration>();
+    const uint16_t battery_mah_left = ro.Get<AS::battery_milliamphours_left>();
+    const uint16_t battery_mv = ro.Get<AS::battery_millivolts>();
+    const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
+
+    // mAh * mV gives micro-Wh. Convert to Wh, then to km via Wh/km.
+    const float wh_left =
+        static_cast<float>(battery_mah_left) * static_cast<float>(battery_mv) / 1'000'000.0f;
+    const float estimated_range_km = wh_left / static_cast<float>(wh_per_km);
+
+    constexpr int kMinRangeCircleRadiusPx = 24;
+    const int max_radius = std::min(hal::kDisplayWidth, hal::kDisplayHeight) / 2 - 12;
+    constexpr float kRangeKmAtMaxRadius = 80.0f;
+    const float range_ratio = std::clamp(estimated_range_km / kRangeKmAtMaxRadius, 0.0f, 1.0f);
+    const int radius = kMinRangeCircleRadiusPx +
+                       static_cast<int>((max_radius - kMinRangeCircleRadiusPx) * range_ratio);
+
+    lv_draw_arc_dsc_t arc_dsc;
+    lv_draw_arc_dsc_init(&arc_dsc);
+    arc_dsc.color = lv_color_black();
+    arc_dsc.width = 3;
+    arc_dsc.opa = LV_OPA_COVER;
+    arc_dsc.start_angle = 0;
+    arc_dsc.end_angle = 360;
+    arc_dsc.center = lv_point_t {
+        .x = static_cast<int16_t>(center_x),
+        .y = static_cast<int16_t>(center_y),
+    };
+    arc_dsc.radius = static_cast<uint16_t>(radius);
+    arc_dsc.rounded = 1;
+    lv_draw_arc(layer, &arc_dsc);
+}
+
 MapScreen::MapScreen(UserInterface& parent,
                      ImageCache& image_cache,
                      TileCache& tile_cache,
@@ -123,14 +170,15 @@ MapScreen::MapScreen(UserInterface& parent,
         m_screen,
         [](lv_event_t* e) {
             auto* self = static_cast<MapScreen*>(lv_event_get_user_data(e));
-            auto* dst_data =
-                static_cast<uint16_t*>(static_cast<void*>(lv_event_get_layer(e)->draw_buf->data));
+            auto* layer = lv_event_get_layer(e);
+            auto* dst_data = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
             for (auto& op : self->m_blit_ops)
             {
                 op.dst_data = dst_data;
             }
             self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
                 self->m_blit_ops.data(), self->m_blit_ops.size()});
+            self->DrawRangeCircle(layer);
         },
         LV_EVENT_DRAW_MAIN,
         this);

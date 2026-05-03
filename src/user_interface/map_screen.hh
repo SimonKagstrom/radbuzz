@@ -13,6 +13,8 @@ public:
     void SetZoom(uint8_t zoom);
 
 private:
+    void DrawRangeCircle(lv_layer_t* layer);
+
     void Update() final;
     void HandleInput(const Input::Event& event) final;
 

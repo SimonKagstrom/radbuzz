@@ -31,6 +31,15 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
                 .GetWritableReference<AS::configuration>()
                 .battery_amp_hours = static_cast<uint8_t>(value);
         });
+    settings_page.AddNumericEntry("Wh per km",
+                                  {10, 100},
+                                  ro.Get<AS::configuration>()->wh_per_km_for_range_estimation,
+                                  [this](auto value) {
+                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                          .GetWritableReference<AS::configuration>()
+                                          .wh_per_km_for_range_estimation =
+                                          static_cast<uint8_t>(value);
+                                  });
 
     main.AddSeparator();
     main.AddEntry("Reset trip", []() { printf("Resetting trip, but NYI\n"); });

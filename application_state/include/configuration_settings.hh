@@ -27,6 +27,8 @@ struct ConfigurationSettings
     uint8_t max_speed;
     /// @brief Battery capacity in ampere-hours (e.g., 20Ah)
     uint8_t battery_amp_hours;
+    /// @brief Average watt-hours per kilometer for range estimation
+    uint8_t wh_per_km_for_range_estimation;
 
     // Configuration from the filesystem
     WifiSsidData wifi_ssid_data;
