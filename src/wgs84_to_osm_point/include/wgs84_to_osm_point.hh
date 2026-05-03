@@ -39,7 +39,7 @@ constexpr auto kInvalidTile = Tile {-1, -1, 0};
 
 struct Point
 {
-    int32_t x;
+     int32_t x;
     int32_t y;
     uint8_t zoom;
 };
@@ -77,4 +77,4 @@ GpsPosition OsmPointToWgs84(const Point& point);
 
 Point OsmPointToPoint(const Point& point, uint8_t next_zoom);
 
-float MetersPerPixelAtZoom(const uint8_t zoom);
+float MetersPerPixelAtPoint(const Point& point);

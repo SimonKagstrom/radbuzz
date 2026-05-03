@@ -38,7 +38,7 @@ OsmPointToPoint(const Point& point, uint8_t next_zoom)
 }
 
 float
-MetersPerPixelAtZoom(const Point& point)
+MetersPerPixelAtPoint(const Point& point)
 {
     const auto pos = OsmPointToWgs84(point);
     const float n = std::powf(2.0f, point.zoom);
