@@ -5,6 +5,7 @@
 constexpr auto kMaxSpeedKey = "M";
 constexpr auto kBatterySeriesKey = "B";
 constexpr auto kWifiNetworks = "W";
+constexpr auto kBatteryAmpHoursKey = "A";
 
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
@@ -22,6 +23,7 @@ Storage::OnStartup()
 
     conf.max_speed = m_nvm.Get<uint8_t>(kMaxSpeedKey).value_or(30);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(kBatterySeriesKey).value_or(7);
+    conf.battery_amp_hours = m_nvm.Get<uint8_t>(kBatteryAmpHoursKey).value_or(20);
 
     auto networks = m_nvm.Get<std::string>(kWifiNetworks);
     if (networks)
@@ -60,7 +62,10 @@ Storage::OnActivation()
         {
             m_nvm.Set<uint8_t>(kBatterySeriesKey, new_conf.battery_cell_series);
         }
-
+        if (old_conf.battery_amp_hours != new_conf.battery_amp_hours)
+        {
+            m_nvm.Set<uint8_t>(kBatteryAmpHoursKey, new_conf.battery_amp_hours);
+        }
         if (old_conf.wifi_ssid_data != new_conf.wifi_ssid_data)
         {
             std::string networks;

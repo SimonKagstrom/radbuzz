@@ -18,13 +18,19 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
                 .max_speed = value;
         });
     settings_page.AddNumericEntry("Battery cell series",
-                                  {1, 36, 1},
+                                  {1, 36},
                                   ro.Get<AS::configuration>()->battery_cell_series,
                                   [this](auto value) {
                                       m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                                           .GetWritableReference<AS::configuration>()
-                                          .battery_cell_series = value;
+                                          .battery_cell_series = static_cast<uint8_t>(value);
                                   });
+    settings_page.AddNumericEntry(
+        "Battery Ah", {1, 100}, ro.Get<AS::configuration>()->battery_amp_hours, [this](auto value) {
+            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                .GetWritableReference<AS::configuration>()
+                .battery_amp_hours = static_cast<uint8_t>(value);
+        });
 
     main.AddSeparator();
     main.AddEntry("Reset trip", []() { printf("Resetting trip, but NYI\n"); });
@@ -40,7 +46,7 @@ SettingsMenuScreen::Update()
 }
 
 void
-SettingsMenuScreen::HandleInput(const Input::Event &event)
+SettingsMenuScreen::HandleInput(const Input::Event& event)
 {
     lv_indev_read(m_parent.m_lvgl_input_dev);
     m_menu_screen->BumpExitTimer();
