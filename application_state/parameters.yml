@@ -36,6 +36,10 @@ parameters:
   battery_soc:
     type: uint8_t
 
+  # Milliamphours left in the battery
+  battery_milliamphours_left:
+    type: uint16_t
+
   configuration:
     type: struct ConfigurationSettings
 

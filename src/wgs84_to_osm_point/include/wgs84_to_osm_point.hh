@@ -10,6 +10,7 @@ constexpr auto kTileSize = 256;
 
 constexpr auto kDefaultZoom = 15;
 constexpr auto kCityZoom = 13;
+constexpr auto kLandscapeZoom = 11;
 
 struct Tile
 {

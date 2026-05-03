@@ -206,7 +206,7 @@ TripMeterScreen::HandleInput(const Input::Event& event)
         m_parent.ActivateScreen(*m_parent.m_map_screen);
         break;
     case hal::IInput::EventType::kRight:
-        map_screen->SetZoom(kCityZoom);
+        map_screen->SetZoom(kLandscapeZoom);
         m_parent.ActivateScreen(*m_parent.m_map_screen);
         break;
     case hal::IInput::EventType::kButtonDown:

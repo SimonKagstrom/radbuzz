@@ -406,9 +406,14 @@ MapScreen::HandleInput(const Input::Event& event)
     switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
+        // Ugly
         if (m_zoom == kDefaultZoom)
         {
             SetZoom(kCityZoom);
+        }
+        else if (m_zoom == kCityZoom)
+        {
+            SetZoom(kLandscapeZoom);
         }
         else
         {
@@ -416,7 +421,11 @@ MapScreen::HandleInput(const Input::Event& event)
         }
         break;
     case hal::IInput::EventType::kRight:
-        if (m_zoom == kCityZoom)
+        if (m_zoom == kLandscapeZoom)
+        {
+            SetZoom(kCityZoom);
+        }
+        else if (m_zoom == kCityZoom)
         {
             SetZoom(kDefaultZoom);
         }

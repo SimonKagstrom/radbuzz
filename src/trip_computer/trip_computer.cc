@@ -82,7 +82,11 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     auto ro = m_state.CheckoutReadonly();
 
     auto distance_now = ro.Get<AS::distance_traveled>();
-    m_state.CheckoutReadWrite().Set<AS::is_moving>(distance_now - m_current_distance > 10);
+    auto qw =
+        m_state
+            .CheckoutQueuedWriter<AS::is_moving, AS::battery_soc, AS::battery_milliamphours_left>();
+
+    qw.Set<AS::is_moving>(distance_now - m_current_distance > 10);
     m_current_distance = distance_now;
 
 
@@ -100,7 +104,11 @@ TripComputer::UpdateSoc(uint16_t millivolts)
                 m_millivolt_history.size(),
             battery_cell_series);
 
-        m_state.CheckoutReadWrite().Set<AS::battery_soc>(soc);
+        qw.Set<AS::battery_soc>(soc);
+        // Convert Ah to mAh and apply SOC
+        qw.Set<AS::battery_milliamphours_left>(ro.Get<AS::configuration>()->battery_amp_hours *
+                                               1000 * soc / 100);
+
         // Discard the oldest
         m_millivolt_history.pop();
     }

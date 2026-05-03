@@ -8,6 +8,7 @@ namespace
 
 constexpr auto kCityTileFactor = 30;
 constexpr auto kCityTileFactorZoomedOut = 15;
+constexpr auto kLandscapeTileFactorZoomedOut = 5;
 
 constexpr auto kPendingCityTilesFileName = "pending.bin";
 
@@ -130,11 +131,14 @@ TileCache::OnActivation()
     const auto& co = m_pixel_state_cache.Pull();
 
     co.OnNewValue<AS::pixel_position>([&](const auto& pixel_position) {
-        auto zoomed_out_position = OsmPointToPoint(pixel_position, kCityZoom);
-        auto city_tile = ToCityTile(pixel_position);
-        auto zoomed_out_city_tile = ToCityTile(zoomed_out_position);
+        auto city_point = OsmPointToPoint(pixel_position, kCityZoom);
+        auto landscape_point = OsmPointToPoint(pixel_position, kLandscapeZoom);
 
-        for (auto tile : {city_tile, zoomed_out_city_tile})
+        auto default_tile = ToCityTile(pixel_position);
+        auto city_tile = ToCityTile(city_point);
+        auto land_tile = ToCityTile(landscape_point);
+
+        for (auto tile : {default_tile, city_tile, land_tile})
         {
             if (m_pending_city_tiles_by_zoom[tile.zoom].find(tile) ==
                 m_pending_city_tiles_by_zoom[tile.zoom].end())
@@ -143,12 +147,12 @@ TileCache::OnActivation()
                 SavePendingCityTiles();
             }
         }
-        if (AppState().Get<AS::wifi_connected>() && city_tile != m_current_city_tile)
+        if (AppState().Get<AS::wifi_connected>() && default_tile != m_current_city_tile)
         {
-            m_current_city_tile = city_tile;
+            m_current_city_tile = default_tile;
 
             auto center_tile = ToTile(pixel_position);
-            auto center_tile_zoomed_out = ToTile(zoomed_out_position);
+            auto center_tile_zoomed_out = ToTile(city_point);
 
             RefreshCityTiles(center_tile);
             RefreshCityTiles(center_tile_zoomed_out);
@@ -255,7 +259,16 @@ TileCache::FillFromColdStore()
 void
 TileCache::RefreshCityTiles(const Tile& center)
 {
-    auto factor = center.zoom == kDefaultZoom ? kCityTileFactor : kCityTileFactorZoomedOut;
+    auto factor = kDefaultZoom;
+
+    if (center.zoom == kCityZoom)
+    {
+        factor = kCityTileFactorZoomedOut;
+    }
+    else if (center.zoom == kLandscapeZoom)
+    {
+        factor = kLandscapeTileFactorZoomedOut;
+    }
 
     for (int dx = -factor; dx <= factor; ++dx)
     {
