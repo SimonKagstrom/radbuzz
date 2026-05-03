@@ -7,6 +7,8 @@
 namespace
 {
 
+constexpr float kEarthCircumferenceMeters = 40075016.686f;
+
 inline float
 deg2rad(float deg)
 {
@@ -33,6 +35,17 @@ OsmPointToPoint(const Point& point, uint8_t next_zoom)
     float scale = std::powf(2.0f, static_cast<int>(next_zoom) - static_cast<int>(point.zoom));
     return Point {
         static_cast<int32_t>(point.x * scale), static_cast<int32_t>(point.y * scale), next_zoom};
+}
+
+float
+MetersPerPixelAtZoom(const Point& point)
+{
+    const auto pos = OsmPointToWgs84(point);
+    const float n = std::powf(2.0f, point.zoom);
+    const float lat_rad = deg2rad(pos.latitude);
+    const float meters_per_pixel =
+        (std::cosf(lat_rad) * kEarthCircumferenceMeters) / (kTileSize * n);
+    return std::max(meters_per_pixel, 0.001f);
 }
 
 GpsPosition

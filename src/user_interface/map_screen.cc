@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <limits>
 #include <radbuzz_font_16.h>
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_60.h>
@@ -118,21 +119,24 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer)
 
     auto ro = m_parent.m_state.CheckoutReadonly();
     const auto conf = ro.Get<AS::configuration>();
-    const uint16_t battery_mah_left = ro.Get<AS::battery_milliamphours_left>();
-    const uint16_t battery_mv = ro.Get<AS::battery_millivolts>();
+    const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
     const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
+    const auto vehicle_point = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
 
-    // mAh * mV gives micro-Wh. Convert to Wh, then to km via Wh/km.
-    const float wh_left =
-        static_cast<float>(battery_mah_left) * static_cast<float>(battery_mv) / 1'000'000.0f;
+    // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
+    constexpr float kNominalCellVoltageV = 3.7f;
+    const float pack_nominal_voltage_v =
+        static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
+    const float full_pack_wh = static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
+    const float wh_left = full_pack_wh * (static_cast<float>(battery_soc) / 100.0f);
     const float estimated_range_km = wh_left / static_cast<float>(wh_per_km);
 
     constexpr int kMinRangeCircleRadiusPx = 24;
-    const int max_radius = std::min(hal::kDisplayWidth, hal::kDisplayHeight) / 2 - 12;
-    constexpr float kRangeKmAtMaxRadius = 80.0f;
-    const float range_ratio = std::clamp(estimated_range_km / kRangeKmAtMaxRadius, 0.0f, 1.0f);
-    const int radius = kMinRangeCircleRadiusPx +
-                       static_cast<int>((max_radius - kMinRangeCircleRadiusPx) * range_ratio);
+    const float meters_per_pixel = MetersPerPixelAtPoint(vehicle_point);
+    const float radius_px_float = (estimated_range_km * 1000.0f) / meters_per_pixel;
+    const int radius = std::clamp(static_cast<int>(radius_px_float),
+                                  kMinRangeCircleRadiusPx,
+                                  static_cast<int>(std::numeric_limits<uint16_t>::max()));
 
     lv_draw_arc_dsc_t arc_dsc;
     lv_draw_arc_dsc_init(&arc_dsc);

@@ -10,7 +10,7 @@ constexpr auto kTileSize = 256;
 
 constexpr auto kDefaultZoom = 15;
 constexpr auto kCityZoom = 13;
-constexpr auto kLandscapeZoom = 11;
+constexpr auto kLandscapeZoom = 10;
 
 struct Tile
 {
@@ -76,3 +76,5 @@ std::optional<Point> Wgs84ToOsmPoint(const GpsPosition& position, uint8_t zoom);
 GpsPosition OsmPointToWgs84(const Point& point);
 
 Point OsmPointToPoint(const Point& point, uint8_t next_zoom);
+
+float MetersPerPixelAtZoom(const uint8_t zoom);
