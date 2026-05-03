@@ -101,8 +101,8 @@ TileCache::OnStartup()
 {
     for (auto zoom : {kDefaultZoom, kCityZoom})
     {
-        auto pending_city_tile_data = m_filesystem.ReadFile(
-            std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName));
+        auto pending_city_tile_data =
+            m_filesystem.ReadFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName));
 
         if (pending_city_tile_data && pending_city_tile_data->size() % (3 * sizeof(int32_t)) == 0)
         {
@@ -386,8 +386,7 @@ TileCache::SavePendingCityTiles()
             *ptr++ = tile.zoom;
         }
 
-        m_filesystem.WriteFile(std::format("pending_tiles/{}/{}", zoom, kPendingCityTilesFileName),
-                               data);
+        m_filesystem.WriteFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName), data);
     }
 }
 
