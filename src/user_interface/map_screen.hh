@@ -13,7 +13,15 @@ public:
     void SetZoom(uint8_t zoom);
 
 private:
-    void DrawRangeCircle(lv_layer_t* layer);
+    enum class RangeCircleType
+    {
+        kFurthest,
+        kRoundTrip,
+
+        kValueCount,
+    };
+
+    void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
 
     void Update() final;
     void HandleInput(const Input::Event& event) final;

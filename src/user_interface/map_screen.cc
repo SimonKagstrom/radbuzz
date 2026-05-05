@@ -105,7 +105,7 @@ DrawBatteryIndicator(BlankAlphaImage& battery_indicator, uint8_t soc)
 } // namespace
 
 void
-MapScreen::DrawRangeCircle(lv_layer_t* layer)
+MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
 {
     if (m_zoom != kLandscapeZoom)
     {
@@ -129,7 +129,9 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer)
         static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
     const float full_pack_wh = static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
     const float wh_left = full_pack_wh * (static_cast<float>(battery_soc) / 100.0f);
-    const float estimated_range_km = wh_left / static_cast<float>(wh_per_km);
+    // Round trip circle is smaller since it represents the distance to the furthest point and back
+    const float estimated_range_km = wh_left / static_cast<float>(wh_per_km) /
+                                     (type == RangeCircleType::kRoundTrip ? 2.0f : 1.0f);
 
     constexpr int kMinRangeCircleRadiusPx = 24;
     const float meters_per_pixel = MetersPerPixelAtPoint(vehicle_point);
@@ -141,7 +143,7 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer)
     lv_draw_arc_dsc_t arc_dsc;
     lv_draw_arc_dsc_init(&arc_dsc);
     arc_dsc.color = lv_color_black();
-    arc_dsc.width = 3;
+    arc_dsc.width = type == RangeCircleType::kFurthest ? 3 : 2;
     arc_dsc.opa = LV_OPA_COVER;
     arc_dsc.start_angle = 0;
     arc_dsc.end_angle = 360;
@@ -182,7 +184,8 @@ MapScreen::MapScreen(UserInterface& parent,
             }
             self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
                 self->m_blit_ops.data(), self->m_blit_ops.size()});
-            self->DrawRangeCircle(layer);
+            self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
+            self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
         },
         LV_EVENT_DRAW_MAIN,
         this);
