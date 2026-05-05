@@ -11,6 +11,7 @@ constexpr auto kCityTileFactorZoomedOut = 15;
 constexpr auto kLandscapeTileFactorZoomedOut = 5;
 
 constexpr auto kPendingCityTilesFileName = "pending.bin";
+constexpr int32_t kPendingTileMagic = 0x43697479;
 
 inline auto
 ToCityTile(const Point& point)
@@ -104,11 +105,18 @@ TileCache::OnStartup()
         auto pending_city_tile_data =
             m_filesystem.ReadFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName));
 
-        if (pending_city_tile_data && pending_city_tile_data->size() % (3 * sizeof(int32_t)) == 0)
+        if (pending_city_tile_data && (pending_city_tile_data->size() - 4) % (3 * sizeof(int32_t)) == 0)
         {
-            auto count = pending_city_tile_data->size() / sizeof(int32_t);
-            auto ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
+            auto *ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
+            auto magic = *ptr;
+            auto count = (pending_city_tile_data->size() - 4) / sizeof(int32_t);
+            ptr++;
 
+            if (magic != kPendingTileMagic)
+            {
+                printf("Invalid pending city tile file for zoom %d\n", zoom);
+                continue;
+            }
             for (auto i = 0u; i < count; i += 3)
             {
                 uint8_t tile_zoom = static_cast<uint8_t>(ptr[i + 2] & 0xff);
@@ -377,8 +385,10 @@ TileCache::SavePendingCityTiles()
     std::vector<std::byte> data;
     for (const auto& [zoom, tiles] : m_pending_city_tiles_by_zoom)
     {
-        data.resize(tiles.size() * sizeof(Tile));
+        data.resize(tiles.size() * sizeof(Tile) + sizeof(int32_t));
         auto ptr = reinterpret_cast<int32_t*>(data.data());
+        *ptr++ = kPendingTileMagic;
+
         for (const auto& tile : tiles)
         {
             *ptr++ = tile.x;
