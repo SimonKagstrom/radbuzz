@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "hal/i_gps.hh"
+
 struct WifiSsidNetwork
 {
     std::string ssid;
@@ -32,6 +34,9 @@ struct ConfigurationSettings
 
     // Configuration from the filesystem
     WifiSsidData wifi_ssid_data;
+
+    // @brief the home position
+    GpsPosition home_position;
 
     bool operator==(const ConfigurationSettings& other) const = default;
 };

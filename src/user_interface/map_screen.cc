@@ -455,6 +455,21 @@ MapScreen::Update()
                           .c_str());
 }
 
+os::TimerHandle
+MapScreen::StartHomeHoldTimer()
+{
+    return m_parent.StartTimer(2s, [this]() {
+        auto position = OsmPointToWgs84(m_current_view_center);
+        printf("Home position set to lat: %f, lon: %f\n", position.latitude, position.longitude);
+
+        m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+            .GetWritableReference<AS::configuration>()
+            .home_position = position;
+
+        return std::nullopt;
+    });
+}
+
 void
 MapScreen::HandleInput(const Input::Event& event)
 {
@@ -493,14 +508,16 @@ MapScreen::HandleInput(const Input::Event& event)
         m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
         break;
 
-    case hal::IInput::EventType::kTouchDown: {
+    case hal::IInput::EventType::kTouchDown:
         m_touch_timer = m_parent.StartTimer(3s);
+        m_home_hold_timer = StartHomeHoldTimer();
+
         m_last_touch_x = event.x;
         m_last_touch_y = event.y;
         break;
-    }
     case hal::IInput::EventType::kTouchMove: {
         m_touch_timer = m_parent.StartTimer(3s);
+        m_home_hold_timer = StartHomeHoldTimer();
 
         m_current_view_center.x -= event.x - m_last_touch_x;
         m_current_view_center.y -= event.y - m_last_touch_y;
@@ -508,6 +525,9 @@ MapScreen::HandleInput(const Input::Event& event)
         m_last_touch_y = event.y;
     }
     break;
+    case hal::IInput::EventType::kTouchUp:
+        m_home_hold_timer = nullptr;
+        break;
 
     default:
         break;

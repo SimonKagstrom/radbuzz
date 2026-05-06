@@ -22,6 +22,7 @@ private:
     };
 
     void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
+    os::TimerHandle StartHomeHoldTimer();
 
     void Update() final;
     void HandleInput(const Input::Event& event) final;
@@ -48,6 +49,7 @@ private:
 
     Point m_current_view_center {0, 0, m_zoom};
     os::TimerHandle m_touch_timer;
+    os::TimerHandle m_home_hold_timer;
 
     int32_t m_last_touch_x {0};
     int32_t m_last_touch_y {0};
