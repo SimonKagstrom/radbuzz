@@ -10,6 +10,8 @@ dependencies:
     version: "^1.5.0"
   espressif/network_provisioning:
     version: "^1.1.0"
+  espressif/esp_hosted:
+    version: "^2.12.6"
 
   ## Required IDF version
   idf:
