@@ -1,0 +1,42 @@
+# Register the component
+idf_component_register(SRCS "main.cc" INCLUDE_DIRS "")
+
+# ... but use regular CMake for the rest
+target_link_libraries(${COMPONENT_TARGET}
+    idf::freertos
+    idf::spi_flash
+    idf::esp_partition
+    idf::vfs
+    idf::fatfs
+    idf::sdmmc
+    idf::esp_driver_ledc
+    idf::espressif__esp_lcd_touch_gt911
+    wifi_client_esp32
+    blitter_esp32
+    ble_handler
+    ble_server_esp32
+    button_debouncer
+    can_esp32
+    can_bus_handler
+    rotary_encoder
+    gpio_esp32
+    app_simulator
+    uart_gps_esp32
+    i2c_gps_esp32
+    stepper_motor_esp32
+    nvm_esp32
+    os_esp32
+    pm_esp32
+    touch_esp32
+    input
+    uart_esp32
+    st7701_display_esp32
+    buzz_handler
+    tile_cache
+    storage
+    user_interface
+    speedometer_handler
+    trip_computer
+    wifi_handler
+    gps_reader
+)

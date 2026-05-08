@@ -1,0 +1,1 @@
+../esp32p4/lv_conf.h

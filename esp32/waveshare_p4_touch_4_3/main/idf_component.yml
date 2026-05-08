@@ -1,0 +1,16 @@
+## IDF Component Manager Manifest File
+dependencies:
+  espressif/esp_lcd_touch_gt911:
+    version: "^1.2.0~2"
+  espressif/esp_lcd_st7701:
+    version: "^2.0.2"
+  espressif/esp_wifi_remote:
+    version: "^1.5.0"
+  espressif/network_provisioning:
+    version: "^1.1.0"
+  espressif/esp_hosted:
+    version: "^2.12.6"
+
+  ## Required IDF version
+  idf:
+    version: ">=6.0.0"
