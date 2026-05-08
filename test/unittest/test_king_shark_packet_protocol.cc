@@ -27,6 +27,8 @@ public:
 
 } // namespace
 
+TEST_SUITE_BEGIN("king_shark");
+
 TEST_CASE_FIXTURE(Fixture, "Invalid king shark header magic is dropped")
 {
     KingSharkPacketProtocol p;
@@ -144,3 +146,5 @@ TEST_CASE_FIXTURE(Fixture, "King shark packets can be serialized")
     REQUIRE(
         std::ranges::equal(*d, PacketData({0x3A, 0x16, 0x19, 0x01, 0x03, 0x33, 0x00, 0x0D, 0x0A})));
 }
+
+TEST_SUITE_END();

@@ -73,6 +73,8 @@ public:
 
 } // namespace
 
+TEST_SUITE_BEGIN("ble_handler");
+
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
 {
@@ -127,7 +129,6 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
         }
     }
 }
-
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle navigation info")
 {
@@ -195,3 +196,6 @@ iconHash=
         }
     }
 }
+
+
+TEST_SUITE_END();

@@ -2,6 +2,8 @@
 #include "semaphore.hh"
 #include "test.hh"
 
+TEST_SUITE_BEGIN("application_state");
+
 TEST_CASE("The application state has default values")
 {
     ApplicationState app_state;
@@ -280,7 +282,6 @@ TEST_CASE("PartialStateCaches can be used to track changes")
     }
 }
 
-
 TEST_CASE("Listeners can be added to the application state")
 {
     ApplicationState app_state;
@@ -339,6 +340,7 @@ TEST_CASE("Listeners can be added to the application state")
         }
     }
 }
+
 
 TEST_CASE("There's a finite number of listeners that can be attached")
 {
@@ -579,3 +581,5 @@ TEST_CASE("A demo of the application state functionality")
         }
     }
 }
+
+TEST_SUITE_END();

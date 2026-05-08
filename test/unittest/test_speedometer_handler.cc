@@ -34,6 +34,8 @@ public:
 } // namespace
 
 
+TEST_SUITE_BEGIN("speedometer");
+
 TEST_CASE_FIXTURE(Fixture, "the speedometer will move to zero once started")
 {
     REQUIRE_CALL(motor, Step(-6000));
@@ -172,3 +174,5 @@ TEST_CASE_FIXTURE(StartedFixture, "the stepper motor position is scaled with spe
     do_set_speed(5);
     REQUIRE(pos == 500);
 }
+
+TEST_SUITE_END();
