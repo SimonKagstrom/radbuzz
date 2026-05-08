@@ -90,7 +90,7 @@ UserInterface::OnStartup()
                            f1,
                            f2,
                            sizeof(uint16_t) * hal::kDisplayWidth * hal::kDisplayHeight,
-                           lv_display_render_mode_t::LV_DISPLAY_RENDER_MODE_DIRECT);
+                           lv_display_render_mode_t::LV_DISPLAY_RENDER_MODE_FULL);
     lv_display_set_user_data(m_lvgl_display, this);
     lv_display_set_flush_cb(
         m_lvgl_display,
