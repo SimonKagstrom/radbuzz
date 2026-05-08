@@ -107,20 +107,8 @@ DisplayQt::SetActive(bool)
 void
 DisplayQt::UpdateScreen()
 {
-    // If rotation is active the final pixels are in the rotation buffer (physical layout).
-    // Otherwise they are in whichever LVGL buffer was active at Flip() time.
-    uint16_t* src;
-    int src_stride;
-    if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
-    {
-        src = m_frame_buffers[2];
-        src_stride = m_display_width; // physical width (e.g. 480 for a 480x800 panel)
-    }
-    else
-    {
-        src = m_frame_buffers[m_display_frame];
-        src_stride = m_display_width;
-    }
+    auto src = m_frame_buffers[m_display_frame];
+    auto src_stride = m_display_width;
 
     for (int y = 0; y < m_display_height; ++y)
     {
@@ -211,8 +199,10 @@ DisplayQt::GetActiveTouchData()
     while (m_touch_data_queue.pop(data))
     {
 
-        data.x = std::clamp(data.x, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_width - 1));
-        data.y = std::clamp(data.y, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_height - 1));
+        data.x = std::clamp(
+            data.x, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_width - 1));
+        data.y = std::clamp(
+            data.y, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_height - 1));
         m_data_vector.push_back(data);
     }
 

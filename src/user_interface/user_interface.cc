@@ -71,6 +71,21 @@ UserInterface::OnStartup()
         .rotation = hal::kDisplayRotation,
     };
 
+    // Blit back to the sw-owned buffer (i.e., no rotation)
+    m_rotation_blit_operations[1] = {
+        .src_data = f_rotate,
+        .dst_data = nullptr, // Set on flush
+        .src_width = static_cast<int16_t>(hal::kDisplayWidth),
+        .src_height = static_cast<int16_t>(hal::kDisplayHeight),
+        .src_offset_x = 0,
+        .src_offset_y = 0,
+        .dst_offset_x = 0,
+        .dst_offset_y = 0,
+        .width = static_cast<int16_t>(hal::kDisplayWidth),
+        .height = static_cast<int16_t>(hal::kDisplayHeight),
+        .rotation = hal::Rotation::k0,
+    };
+
     lv_display_set_buffers(m_lvgl_display,
                            f1,
                            f2,
@@ -87,11 +102,12 @@ UserInterface::OnStartup()
 
                 if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
                 {
-
                     p->m_rotation_blit_operations[0].src_data = frame_buffer;
+                    p->m_rotation_blit_operations[1].dst_data = frame_buffer;
 
-                    p->m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
-                        p->m_rotation_blit_operations.data(), 1});
+                    p->m_blitter.BlitOperations(
+                        std::span<const hal::BlitOperation> {p->m_rotation_blit_operations.data(),
+                                                             p->m_rotation_blit_operations.size()});
                 }
 
                 p->m_display.Flip();
