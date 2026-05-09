@@ -14,7 +14,7 @@ constexpr int kValueColumnWidth = 170;
 constexpr int kUnitColumnWidth = 130;
 constexpr int kLabelToValueGap = 24;
 constexpr int kValueToUnitGap = 5;
-constexpr int kFirstRowYOffset = 100;
+constexpr int kFirstRowYOffset = 20;
 constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
 
 namespace
@@ -35,6 +35,7 @@ GetSideTextBaselineYOffset()
 TripMeterScreen::TripMeterScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
     , m_stat_rows {
+          {"SoC", "%", StatValueKind::kSoc},
           {"Consumed", "Wh", StatValueKind::kConsumedWh},
           {"Regenerated", "Wh", StatValueKind::kRegeneratedWh},
           {"Trip average", "Wh/km", StatValueKind::kTripAverageWhPerKm},
@@ -122,6 +123,9 @@ TripMeterScreen::Update()
         std::string unit_text {row.unit_text};
         switch (row.value_kind)
         {
+        case StatValueKind::kSoc:
+            value_text = std::format("{}", ro.Get<AS::battery_soc>());
+            break;
         case StatValueKind::kConsumedWh:
             value_text = std::format("{}", ro.Get<AS::wh_consumed>());
             break;

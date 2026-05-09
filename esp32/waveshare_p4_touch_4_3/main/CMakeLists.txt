@@ -11,6 +11,7 @@ target_link_libraries(${COMPONENT_TARGET}
     idf::sdmmc
     idf::esp_driver_ledc
     idf::espressif__esp_lcd_touch_gt911
+    idf::espressif__esp_hosted
     wifi_client_esp32
     blitter_esp32
     ble_handler

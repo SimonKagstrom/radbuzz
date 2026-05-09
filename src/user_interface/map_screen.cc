@@ -342,15 +342,15 @@ MapScreen::Update()
     {
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_FULL);
     }
-    else if (battery_soc > 80)
+    else if (battery_soc > 75)
     {
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_3);
     }
-    else if (battery_soc > 60)
+    else if (battery_soc > 50)
     {
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_2);
     }
-    else if (battery_soc > 40)
+    else if (battery_soc > 20)
     {
         lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_ORANGE), LV_PART_MAIN);
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_1);
@@ -360,13 +360,6 @@ MapScreen::Update()
         lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_RED), LV_PART_MAIN);
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_EMPTY);
     }
-
-    // TMP!
-    lv_label_set_text(m_description_label,
-                      std::format("Controller: {}°C, Battery: {:.1f}V",
-                                  ro.Get<AS::controller_temperature>(),
-                                  static_cast<float>(ro.Get<AS::battery_millivolts>()) / 1000.0f)
-                          .c_str());
 
     if (conf->speedometer_type == SpeedometerType::kDigital || conf->speedometer_type == SpeedometerType::kBoth)
     {

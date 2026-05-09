@@ -12,6 +12,7 @@ public:
 private:
     enum class StatValueKind
     {
+        kSoc,
         kConsumedWh,
         kRegeneratedWh,
         kTripAverageWhPerKm,
