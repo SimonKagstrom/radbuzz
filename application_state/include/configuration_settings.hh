@@ -21,6 +21,15 @@ struct WifiSsidData
     bool operator==(const WifiSsidData& other) const = default;
 };
 
+enum class SpeedometerType : uint8_t
+{
+    kAnalog,
+    kDigital,
+    kBoth,
+
+    kValueCount,
+};
+
 struct ConfigurationSettings
 {
     /// @brief Number of battery cells in series, used to calculate cell voltage from millivolts (14s3p etc)
@@ -31,6 +40,8 @@ struct ConfigurationSettings
     uint8_t battery_amp_hours;
     /// @brief Average watt-hours per kilometer for range estimation
     uint8_t wh_per_km_for_range_estimation;
+
+    SpeedometerType speedometer_type;
 
     // Configuration from the filesystem
     WifiSsidData wifi_ssid_data;

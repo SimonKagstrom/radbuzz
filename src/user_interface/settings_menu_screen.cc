@@ -11,6 +11,7 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     auto ro = m_parent.m_state.CheckoutReadonly();
 
     auto& settings_page = main.AddSubPage("Settings");
+    main.AddSeparator();
     settings_page.AddNumericEntry(
         "Max speed", {25, 120, 5}, ro.Get<AS::configuration>()->max_speed, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
@@ -41,7 +42,15 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
                                           static_cast<uint8_t>(value);
                                   });
 
-    main.AddSeparator();
+    // TODO: Make it a roller to support both at the same time
+    settings_page.AddBooleanEntry("Digital speedometer",
+                         ro.Get<AS::configuration>()->speedometer_type == SpeedometerType::kDigital,
+                         [this](auto value) {
+                             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                 .GetWritableReference<AS::configuration>()
+                                 .speedometer_type =
+                                 value ? SpeedometerType::kDigital : SpeedometerType::kAnalog;
+                         });
     main.AddEntry("Reset trip", []() { printf("Resetting trip, but NYI\n"); });
     main.AddSeparator();
     main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {

@@ -234,6 +234,7 @@ MapScreen::Update()
 {
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto state_hash = ro.Get<AS::current_icon_hash>();
+    auto conf = ro.Get<AS::configuration>();
 
     if (m_current_icon_hash != state_hash)
     {
@@ -329,8 +330,6 @@ MapScreen::Update()
         }
     }
 
-    lv_obj_invalidate(m_screen);
-
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
                       std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
@@ -368,6 +367,20 @@ MapScreen::Update()
                                   ro.Get<AS::controller_temperature>(),
                                   static_cast<float>(ro.Get<AS::battery_millivolts>()) / 1000.0f)
                           .c_str());
+
+    if (conf->speedometer_type == SpeedometerType::kDigital || conf->speedometer_type == SpeedometerType::kBoth)
+    {
+        lv_obj_remove_flag(m_speed_triangle_obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_add_flag(m_speed_triangle_obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
+    }
+
+
+    lv_obj_invalidate(m_screen);
 }
 
 os::TimerHandle

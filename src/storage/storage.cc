@@ -7,6 +7,7 @@ constexpr auto kBatterySeriesKey = "B";
 constexpr auto kWifiNetworks = "W";
 constexpr auto kBatteryAmpHoursKey = "A";
 constexpr auto kWhPerKmForRangeEstimationKey = "R";
+constexpr auto kSpeedometerTypeKey = "S";
 
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
@@ -27,6 +28,8 @@ Storage::OnStartup()
     conf.battery_amp_hours = m_nvm.Get<uint8_t>(kBatteryAmpHoursKey).value_or(20);
     conf.wh_per_km_for_range_estimation =
         m_nvm.Get<uint8_t>(kWhPerKmForRangeEstimationKey).value_or(10);
+    conf.speedometer_type = static_cast<SpeedometerType>(
+        m_nvm.Get<uint8_t>(kSpeedometerTypeKey).value_or(std::to_underlying(SpeedometerType::kDigital)));
 
     auto networks = m_nvm.Get<std::string>(kWifiNetworks);
     if (networks)
@@ -73,6 +76,10 @@ Storage::OnActivation()
         {
             m_nvm.Set<uint8_t>(kWhPerKmForRangeEstimationKey,
                                new_conf.wh_per_km_for_range_estimation);
+        }
+        if (old_conf.speedometer_type != new_conf.speedometer_type)
+        {
+            m_nvm.Set<uint8_t>(kSpeedometerTypeKey, static_cast<uint8_t>(new_conf.speedometer_type));
         }
         if (old_conf.wifi_ssid_data != new_conf.wifi_ssid_data)
         {
