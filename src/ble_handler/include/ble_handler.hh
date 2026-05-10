@@ -30,10 +30,14 @@ private:
     void OnChaNav(std::span<const uint8_t> data);
     void OnIcon(std::span<const uint8_t> data);
 
+    void BumpNavigationActive();
+
     os::TimerHandle m_ble_poller;
     hal::IBleServer& m_server;
     ApplicationState& m_state;
     ImageCache& m_image_cache;
 
     std::unique_ptr<ListenerCookie> m_connection_listener;
+
+    os::TimerHandle m_navigation_active_timer;
 };

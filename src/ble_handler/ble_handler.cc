@@ -81,6 +81,16 @@ BleHandler::OnActivation()
 }
 
 void
+BleHandler::BumpNavigationActive()
+{
+    m_state.CheckoutReadWrite().Set<AS::navigation_active>(true);
+    m_navigation_active_timer = StartTimer(10s, [this]() {
+        m_state.CheckoutReadWrite().Set<AS::navigation_active>(false);
+        return std::nullopt;
+    });
+}
+
+void
 BleHandler::OnChaNav(std::span<const uint8_t> data)
 {
     std::string next_street;
@@ -121,7 +131,7 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
             state.Set<AS::next_street>(next_street);
         }
     }
-
+    BumpNavigationActive();
     //    printf("ChaNav: %.*s\n", (int)data.size(), (const char*)data.data());
 }
 
@@ -145,4 +155,5 @@ BleHandler::OnIcon(std::span<const uint8_t> data)
     auto key = StringToKey(data);
 
     m_image_cache.Insert(key, kImageWidth, kImageHeight, data.subspan(11));
+    BumpNavigationActive();
 }

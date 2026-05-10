@@ -124,6 +124,7 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_border_width(m_speedometer_box, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_speedometer_box, LV_OPA_100, LV_PART_MAIN);
     lv_obj_set_style_radius(m_speedometer_box, kPaneCornerRadius, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(m_speedometer_box, 0, LV_PART_MAIN);
 
     m_speed_digits_label = lv_label_create(m_speedometer_box);
     lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_60, LV_PART_MAIN);
