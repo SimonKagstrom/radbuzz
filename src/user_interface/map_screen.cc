@@ -5,6 +5,7 @@
 #include <limits>
 #include <radbuzz_font_16.h>
 #include <radbuzz_font_22.h>
+#include <radbuzz_symbols_40.h>
 #include <radbuzz_font_60.h>
 
 
@@ -100,11 +101,10 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_align(m_current_icon, LV_ALIGN_CENTER, 0, 0);
 
     m_soc_label = lv_label_create(m_screen);
-    lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, 20, 80);
-    lv_obj_set_style_text_font(m_soc_label, &radbuzz_font_60, LV_PART_MAIN);
+    lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -5, 0);
+    lv_obj_set_style_text_font(m_soc_label, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_soc_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
-    lv_obj_set_style_transform_rotation(m_soc_label, -900, LV_PART_MAIN);
 
     auto label_box = lv_obj_create(m_screen);
     lv_obj_set_size(label_box, 400, 100);

@@ -14,6 +14,11 @@ convert_font(radbuzz_font_60
     "%.°CVWh"
 )
 
+convert_symbols(radbuzz_symbols_40
+    40
+    0xf240-0xf244
+)
+
 # Small font with numbers
 convert_font(radbuzz_font_16
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
@@ -44,6 +49,7 @@ PUBLIC
     tile_cache
     radbuzz_font_16_library
     radbuzz_font_22_library
+    radbuzz_symbols_40_library
     radbuzz_font_60_library
     ui_menu
 )
