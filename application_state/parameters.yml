@@ -17,6 +17,10 @@ parameters:
   is_moving:
     type: bool
 
+  # If the phone currently supplies navigation instructions
+  navigation_active:
+    type: bool
+
   speed:
     type: uint8_t
 

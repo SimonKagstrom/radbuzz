@@ -264,6 +264,7 @@ AppSimulator::AppSimulator(ApplicationState& app_state, BleServerHost& ble_serve
           },
           kDefaultZoom))
     , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
+    , m_state_cache(m_application_state)
 {
     SetupStreetOrder();
     Awake();
@@ -289,7 +290,19 @@ AppSimulator::SetupStreetOrder()
 std::optional<milliseconds>
 AppSimulator::OnActivation()
 {
-    if (m_application_state.CheckoutReadonly().Get<AS::demo_mode>() == false)
+    auto& co = m_state_cache.Pull();
+
+    auto demo_active = co.Get<AS::demo_mode>();
+    co.OnChangedValue<AS::demo_mode>([this, &demo_active](auto old, auto now) {
+        if (old == true && now == false)
+        {
+            // Disable navigation
+            printf("Navigation deactivated\n");
+            m_application_state.CheckoutReadWrite().Set<AS::navigation_active>(false);
+        }
+    });
+
+    if (demo_active == false)
     {
         // Wait until demo mode is changed
         return std::nullopt;
@@ -313,6 +326,7 @@ AppSimulator::OnActivation()
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
                                                           AS::speed,
+                                                          AS::navigation_active,
                                                           AS::max_speed>();
 
     auto current_street = m_streets.back();
@@ -339,6 +353,8 @@ iconHash={:08x}32
     }
 
     m_distance_left -= 10;
+    // Always navigating in demo mode
+    ps.Set<AS::navigation_active>(true);
     ps.GetWritableReference<AS::distance_traveled>() += 100;
     ps.GetWritableReference<AS::wh_consumed>() += 2 + (m_random_engine() % 5);
     ps.GetWritableReference<AS::wh_regenerated>() += 1;

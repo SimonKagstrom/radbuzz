@@ -39,4 +39,5 @@ private:
     uint8_t m_target_speed {10};
 
     std::unique_ptr<ListenerCookie> m_state_listener;
+    ApplicationState::PartialReadOnlyCache<AS::demo_mode> m_state_cache;
 };

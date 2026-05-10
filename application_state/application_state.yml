@@ -7,6 +7,7 @@ application_state:
   distance_to_next: 0
   next_street: ""
   is_moving: false
+  navigation_active: false
   speed: 0
   max_speed: 0
   controller_temperature: 0

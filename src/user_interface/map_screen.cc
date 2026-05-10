@@ -5,8 +5,8 @@
 #include <limits>
 #include <radbuzz_font_16.h>
 #include <radbuzz_font_22.h>
-#include <radbuzz_symbols_40.h>
 #include <radbuzz_font_60.h>
+#include <radbuzz_symbols_40.h>
 
 
 void
@@ -95,32 +95,65 @@ MapScreen::MapScreen(UserInterface& parent,
         LV_EVENT_DRAW_MAIN,
         this);
 
-    m_current_icon = lv_image_create(m_screen);
-    lv_obj_center(m_current_icon);
-    lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
-    lv_obj_align(m_current_icon, LV_ALIGN_CENTER, 0, 0);
-
     m_soc_label = lv_label_create(m_screen);
     lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -5, 0);
     lv_obj_set_style_text_font(m_soc_label, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_soc_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
 
-    auto label_box = lv_obj_create(m_screen);
-    lv_obj_set_size(label_box, 400, 100);
-    lv_obj_align(label_box, LV_ALIGN_BOTTOM_MID, 0, -100);
-    lv_obj_set_style_border_width(label_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(label_box, LV_OPA_TRANSP, LV_PART_MAIN);
 
-    m_description_label = lv_label_create(label_box);
+    // Left pane
+    auto left_box = lv_obj_create(m_screen);
+    lv_obj_set_size(left_box, 128 + 10, hal::kDisplayHeight + 10);
+    lv_obj_align(left_box, LV_ALIGN_TOP_LEFT, -10, -10);
+    lv_obj_set_style_bg_opa(left_box, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(left_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(left_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(left_box, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(left_box, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(left_box, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Push left rounded corners off-screen for the navigation pane while keeping right corners.
+    constexpr int kLeftCornerClipPx = 16;
+
+    // Digital speedometer
+    m_speed_triangle_obj = lv_obj_create(left_box);
+    lv_obj_set_size(m_speed_triangle_obj, 128 + 10 + kLeftCornerClipPx, 128 - 10);
+    lv_obj_align(m_speed_triangle_obj, LV_ALIGN_TOP_LEFT, -10 - kLeftCornerClipPx, -10);
+    lv_obj_set_style_border_width(m_speed_triangle_obj, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_speed_triangle_obj, LV_OPA_100, LV_PART_MAIN);
+
+    m_speed_digits_label = lv_label_create(m_speed_triangle_obj);
+    lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_60, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_speed_digits_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_speed_digits_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_align(m_speed_digits_label, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(m_speed_digits_label, 18, 12);
+    lv_label_set_text(m_speed_digits_label, "0");
+    // End of digital speedometer setup
+
+    // Navigation
+    m_navigation_box = lv_obj_create(left_box);
+    lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, hal::kDisplayHeight - 128);
+    lv_obj_align(m_navigation_box, LV_ALIGN_TOP_LEFT, -10 - kLeftCornerClipPx, 128);
+    lv_obj_set_style_border_width(m_navigation_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_navigation_box, LV_OPA_100, LV_PART_MAIN);
+
+    m_current_icon = lv_image_create(m_navigation_box);
+    lv_obj_center(m_current_icon);
+    lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
+    lv_obj_align(m_current_icon, LV_ALIGN_TOP_MID, 0, 0);
+
+    m_description_label = lv_label_create(m_navigation_box);
     lv_obj_align(m_description_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
 
-    m_distance_left_label = lv_label_create(label_box);
+    m_distance_left_label = lv_label_create(m_navigation_box);
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
+    // ... to here
 
     auto* position_dot_canvas = lv_canvas_create(nullptr);
     lv_canvas_set_buffer(position_dot_canvas,
@@ -158,62 +191,6 @@ MapScreen::MapScreen(UserInterface& parent,
                    hal::kDisplayWidth / 2 - static_cast<int>(m_position_dot.Width()) / 2,
                    hal::kDisplayHeight / 2 - static_cast<int>(m_position_dot.Height()) / 2);
 
-    auto* speed_triangle_canvas = lv_canvas_create(nullptr);
-    lv_canvas_set_buffer(speed_triangle_canvas,
-                         static_cast<void*>(m_speed_triangle.WritableData16()),
-                         m_speed_triangle.Width(),
-                         m_speed_triangle.Height(),
-                         LV_COLOR_FORMAT_ARGB8888);
-    lv_canvas_fill_bg(speed_triangle_canvas, lv_color_black(), LV_OPA_TRANSP);
-
-    lv_layer_t speed_layer;
-    lv_canvas_init_layer(speed_triangle_canvas, &speed_layer);
-
-    lv_draw_rect_dsc_t speed_panel_dsc;
-    lv_draw_rect_dsc_init(&speed_panel_dsc);
-    speed_panel_dsc.bg_color = lv_color_black();
-    speed_panel_dsc.bg_opa = LV_OPA_COVER;
-    speed_panel_dsc.border_width = 0;
-    speed_panel_dsc.radius = 24;
-
-    const int speed_w = static_cast<int>(m_speed_triangle.Width());
-    const int speed_h = static_cast<int>(m_speed_triangle.Height());
-
-    const lv_area_t rounded_panel {
-        .x1 = 0,
-        .y1 = 0,
-        .x2 = speed_w - 1,
-        .y2 = speed_h - 1,
-    };
-    lv_draw_rect(&speed_layer, &speed_panel_dsc, &rounded_panel);
-
-    // Restore square corners for all but lower-right.
-    const int r = speed_panel_dsc.radius;
-    const lv_area_t top_left_corner {.x1 = 0, .y1 = 0, .x2 = r - 1, .y2 = r - 1};
-    const lv_area_t top_right_corner {.x1 = speed_w - r, .y1 = 0, .x2 = speed_w - 1, .y2 = r - 1};
-    const lv_area_t bottom_left_corner {.x1 = 0, .y1 = speed_h - r, .x2 = r - 1, .y2 = speed_h - 1};
-
-    speed_panel_dsc.radius = 0;
-    lv_draw_rect(&speed_layer, &speed_panel_dsc, &top_left_corner);
-    lv_draw_rect(&speed_layer, &speed_panel_dsc, &top_right_corner);
-    lv_draw_rect(&speed_layer, &speed_panel_dsc, &bottom_left_corner);
-
-    lv_canvas_finish_layer(speed_triangle_canvas, &speed_layer);
-    lv_obj_delete(speed_triangle_canvas);
-
-    m_speed_triangle_obj = lv_image_create(m_screen);
-    lv_image_set_src(m_speed_triangle_obj, &m_speed_triangle.lv_image_dsc);
-    lv_obj_set_align(m_speed_triangle_obj, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(m_speed_triangle_obj, 0, 0);
-
-    m_speed_digits_label = lv_label_create(m_screen);
-    lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_60, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_speed_digits_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_speed_digits_label, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_align(m_speed_digits_label, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(m_speed_digits_label, 18, 12);
-    lv_label_set_text(m_speed_digits_label, "0");
-
     const uint8_t battery_soc =
         std::min<uint8_t>(m_parent.m_state.CheckoutReadonly().Get<AS::battery_soc>(), 100);
 
@@ -235,6 +212,8 @@ MapScreen::Update()
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto state_hash = ro.Get<AS::current_icon_hash>();
     auto conf = ro.Get<AS::configuration>();
+
+    lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !ro.Get<AS::navigation_active>());
 
     if (m_current_icon_hash != state_hash)
     {
@@ -361,7 +340,8 @@ MapScreen::Update()
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_EMPTY);
     }
 
-    if (conf->speedometer_type == SpeedometerType::kDigital || conf->speedometer_type == SpeedometerType::kBoth)
+    if (conf->speedometer_type == SpeedometerType::kDigital ||
+        conf->speedometer_type == SpeedometerType::kBoth)
     {
         lv_obj_remove_flag(m_speed_triangle_obj, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
