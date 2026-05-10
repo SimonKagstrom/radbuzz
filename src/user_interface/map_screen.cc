@@ -119,8 +119,8 @@ MapScreen::MapScreen(UserInterface& parent,
 
     // Digital speedometer
     m_speedometer_box = lv_obj_create(left_box);
-    lv_obj_set_size(m_speedometer_box, 128, 128 - 10);
-    lv_obj_align(m_speedometer_box, LV_ALIGN_TOP_LEFT, -kLeftCornerClipPx, -10);
+    lv_obj_set_size(m_speedometer_box, 128, 128 - 16);
+    lv_obj_align(m_speedometer_box, LV_ALIGN_TOP_LEFT, -kPaneCornerRadius, -kPaneCornerRadius);
     lv_obj_set_style_border_width(m_speedometer_box, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_speedometer_box, LV_OPA_100, LV_PART_MAIN);
     lv_obj_set_style_radius(m_speedometer_box, kPaneCornerRadius, LV_PART_MAIN);
@@ -144,6 +144,8 @@ MapScreen::MapScreen(UserInterface& parent,
 
     m_current_icon = lv_image_create(m_navigation_box);
     lv_obj_center(m_current_icon);
+    lv_obj_set_style_img_recolor(m_current_icon, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_img_recolor_opa(m_current_icon, LV_OPA_COVER, LV_PART_MAIN);
     lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
     lv_obj_align(m_current_icon, LV_ALIGN_TOP_MID, 0, 0);
 
