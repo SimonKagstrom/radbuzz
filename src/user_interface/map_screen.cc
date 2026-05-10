@@ -118,8 +118,8 @@ MapScreen::MapScreen(UserInterface& parent,
 
     // Digital speedometer
     m_speed_triangle_obj = lv_obj_create(left_box);
-    lv_obj_set_size(m_speed_triangle_obj, 128 + 10 + kLeftCornerClipPx, 128 - 10);
-    lv_obj_align(m_speed_triangle_obj, LV_ALIGN_TOP_LEFT, -10 - kLeftCornerClipPx, -10);
+    lv_obj_set_size(m_speed_triangle_obj, 128, 128 - 10);
+    lv_obj_align(m_speed_triangle_obj, LV_ALIGN_TOP_LEFT, -kLeftCornerClipPx, -10);
     lv_obj_set_style_border_width(m_speed_triangle_obj, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_speed_triangle_obj, LV_OPA_100, LV_PART_MAIN);
 
@@ -134,8 +134,8 @@ MapScreen::MapScreen(UserInterface& parent,
 
     // Navigation
     m_navigation_box = lv_obj_create(left_box);
-    lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, hal::kDisplayHeight - 128);
-    lv_obj_align(m_navigation_box, LV_ALIGN_TOP_LEFT, -10 - kLeftCornerClipPx, 128);
+    lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, 128);
+    lv_obj_align(m_navigation_box, LV_ALIGN_BOTTOM_LEFT, 0 - kLeftCornerClipPx, 0);
     lv_obj_set_style_border_width(m_navigation_box, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_navigation_box, LV_OPA_100, LV_PART_MAIN);
 
@@ -144,16 +144,23 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
     lv_obj_align(m_current_icon, LV_ALIGN_TOP_MID, 0, 0);
 
-    m_description_label = lv_label_create(m_navigation_box);
-    lv_obj_align(m_description_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
-
     m_distance_left_label = lv_label_create(m_navigation_box);
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
     // ... to here
+
+    m_navigation_description_box = lv_obj_create(m_screen);
+    lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, lv_obj_get_width(m_navigation_box), 0);
+    lv_obj_set_size(m_navigation_description_box, hal::kDisplayWidth - lv_obj_get_width(m_navigation_box), 30);
+    lv_obj_set_style_bg_opa(m_navigation_description_box, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_radius(m_navigation_description_box, 0, LV_PART_MAIN);
+
+    m_description_label = lv_label_create(m_navigation_description_box);
+    lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 0, -25);
+    lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
+
 
     auto* position_dot_canvas = lv_canvas_create(nullptr);
     lv_canvas_set_buffer(position_dot_canvas,
@@ -212,8 +219,10 @@ MapScreen::Update()
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto state_hash = ro.Get<AS::current_icon_hash>();
     auto conf = ro.Get<AS::configuration>();
+    auto navigation_active = ro.Get<AS::navigation_active>();
 
-    lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !ro.Get<AS::navigation_active>());
+    lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
+    lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
 
     if (m_current_icon_hash != state_hash)
     {
