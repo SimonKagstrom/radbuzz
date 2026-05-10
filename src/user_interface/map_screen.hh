@@ -44,7 +44,7 @@ private:
     BlankAlphaImage m_position_dot {32, 32};
     lv_obj_t* m_position_dot_obj {nullptr};
 
-    lv_obj_t* m_speed_triangle_obj {nullptr};
+    lv_obj_t* m_speedometer_box {nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};
     uint8_t m_last_battery_soc {255};
 

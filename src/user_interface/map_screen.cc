@@ -115,15 +115,17 @@ MapScreen::MapScreen(UserInterface& parent,
 
     // Push left rounded corners off-screen for the navigation pane while keeping right corners.
     constexpr int kLeftCornerClipPx = 16;
+    constexpr int kPaneCornerRadius = 18;
 
     // Digital speedometer
-    m_speed_triangle_obj = lv_obj_create(left_box);
-    lv_obj_set_size(m_speed_triangle_obj, 128, 128 - 10);
-    lv_obj_align(m_speed_triangle_obj, LV_ALIGN_TOP_LEFT, -kLeftCornerClipPx, -10);
-    lv_obj_set_style_border_width(m_speed_triangle_obj, 0, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_speed_triangle_obj, LV_OPA_100, LV_PART_MAIN);
+    m_speedometer_box = lv_obj_create(left_box);
+    lv_obj_set_size(m_speedometer_box, 128, 128 - 10);
+    lv_obj_align(m_speedometer_box, LV_ALIGN_TOP_LEFT, -kLeftCornerClipPx, -10);
+    lv_obj_set_style_border_width(m_speedometer_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_speedometer_box, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_radius(m_speedometer_box, kPaneCornerRadius, LV_PART_MAIN);
 
-    m_speed_digits_label = lv_label_create(m_speed_triangle_obj);
+    m_speed_digits_label = lv_label_create(m_speedometer_box);
     lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_60, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speed_digits_label, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_speed_digits_label, LV_OPA_TRANSP, LV_PART_MAIN);
@@ -135,9 +137,10 @@ MapScreen::MapScreen(UserInterface& parent,
     // Navigation
     m_navigation_box = lv_obj_create(left_box);
     lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, 128);
-    lv_obj_align(m_navigation_box, LV_ALIGN_BOTTOM_LEFT, 0 - kLeftCornerClipPx, 0);
+    lv_obj_align(m_navigation_box, LV_ALIGN_BOTTOM_LEFT, -32, 32);
     lv_obj_set_style_border_width(m_navigation_box, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_navigation_box, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_radius(m_navigation_box, kPaneCornerRadius, LV_PART_MAIN);
 
     m_current_icon = lv_image_create(m_navigation_box);
     lv_obj_center(m_current_icon);
@@ -151,8 +154,9 @@ MapScreen::MapScreen(UserInterface& parent,
     // ... to here
 
     m_navigation_description_box = lv_obj_create(m_screen);
-    lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, lv_obj_get_width(m_navigation_box), 0);
-    lv_obj_set_size(m_navigation_description_box, hal::kDisplayWidth - lv_obj_get_width(m_navigation_box), 30);
+    lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, 128 - 32, 0);
+    lv_obj_set_size(
+        m_navigation_description_box, hal::kDisplayWidth - lv_obj_get_width(m_navigation_box), 32);
     lv_obj_set_style_bg_opa(m_navigation_description_box, LV_OPA_100, LV_PART_MAIN);
     lv_obj_set_style_radius(m_navigation_description_box, 0, LV_PART_MAIN);
 
@@ -352,12 +356,12 @@ MapScreen::Update()
     if (conf->speedometer_type == SpeedometerType::kDigital ||
         conf->speedometer_type == SpeedometerType::kBoth)
     {
-        lv_obj_remove_flag(m_speed_triangle_obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(m_speedometer_box, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
     }
     else
     {
-        lv_obj_add_flag(m_speed_triangle_obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(m_speedometer_box, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
     }
 
