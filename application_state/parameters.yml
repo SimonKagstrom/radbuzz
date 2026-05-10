@@ -48,7 +48,7 @@ parameters:
     type: struct ConfigurationSettings
 
   current_power_w:
-    type: uint16_t
+    type: int16_t
 
   wh_consumed:
     type: uint32_t

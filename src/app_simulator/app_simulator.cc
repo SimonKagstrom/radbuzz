@@ -326,6 +326,7 @@ AppSimulator::OnActivation()
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
                                                           AS::speed,
+                                                          AS::current_power_w,
                                                           AS::navigation_active,
                                                           AS::max_speed>();
 
@@ -375,6 +376,7 @@ iconHash={:08x}32
     {
         m_target_speed = m_random_engine() % kMaxSpeed;
     }
+    ps.GetWritableReference<AS::current_power_w>() = speed * 10;
 
     GpsData mangled;
 

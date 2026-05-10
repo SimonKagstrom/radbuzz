@@ -48,6 +48,8 @@ private:
     lv_obj_t* m_speed_digits_label {nullptr};
     uint8_t m_last_battery_soc {255};
 
+    lv_obj_t* m_power_bar {nullptr};
+
     Point m_current_view_center {0, 0, m_zoom};
     os::TimerHandle m_touch_timer;
     os::TimerHandle m_home_hold_timer;

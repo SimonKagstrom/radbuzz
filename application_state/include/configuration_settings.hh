@@ -40,6 +40,8 @@ struct ConfigurationSettings
     uint8_t battery_amp_hours;
     /// @brief Average watt-hours per kilometer for range estimation
     uint8_t wh_per_km_for_range_estimation;
+    /// @brief Maximum power in watts
+    uint16_t max_watts;
 
     SpeedometerType speedometer_type;
 

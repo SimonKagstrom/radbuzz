@@ -41,6 +41,12 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
                                           .wh_per_km_for_range_estimation =
                                           static_cast<uint8_t>(value);
                                   });
+    settings_page.AddNumericEntry(
+        "Motor watts", {500, 10000, 100}, ro.Get<AS::configuration>()->max_watts, [this](auto value) {
+            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                .GetWritableReference<AS::configuration>()
+                .max_watts = value;
+        });
 
     // TODO: Make it a roller to support both at the same time
     settings_page.AddBooleanEntry("Digital speedometer",

@@ -102,6 +102,12 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
 
 
+    m_power_bar = lv_obj_create(m_screen);
+    lv_obj_set_size(m_power_bar, 10, 60);
+    lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, -5, 0);
+    lv_obj_set_style_bg_opa(m_power_bar, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+
     // Left pane
     auto left_box = lv_obj_create(m_screen);
     lv_obj_set_size(left_box, 128 + 10, hal::kDisplayHeight + 10);
@@ -165,7 +171,7 @@ MapScreen::MapScreen(UserInterface& parent,
 
     m_description_label = lv_label_create(m_navigation_description_box);
     lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 0, -25);
+    lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 0, -22);
     lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
 
 
@@ -366,6 +372,26 @@ MapScreen::Update()
     {
         lv_obj_add_flag(m_speedometer_box, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
+    }
+
+
+    constexpr int kPixelsAtMaxPower = 100;
+    const auto watts_signed = static_cast<int16_t>(ro.Get<AS::current_power_w>());
+    const int abs_watts = std::abs(watts_signed);
+    const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
+    const int power_bar_size = (abs_watts * kPixelsAtMaxPower) / max_watts;
+    const int clamped_power_bar_size = std::min(power_bar_size, kPixelsAtMaxPower);
+    const int power_bar_x_offset = watts_signed < 0 ? -clamped_power_bar_size : 0;
+    lv_obj_set_size(m_power_bar, 10, clamped_power_bar_size);
+    lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, power_bar_x_offset, 0);
+
+    if (watts_signed > 0)
+    {
+        lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_ORANGE), LV_PART_MAIN);
+    }
+    else
+    {
+        lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
     }
 
 
