@@ -375,14 +375,14 @@ MapScreen::Update()
     }
 
 
-    constexpr int kPixelsAtMaxPower = 100;
+    constexpr int kPixelsAtMaxPower = 200;
     const auto watts_signed = static_cast<int16_t>(ro.Get<AS::current_power_w>());
     const int abs_watts = std::abs(watts_signed);
     const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
     const int power_bar_size = (abs_watts * kPixelsAtMaxPower) / max_watts;
     const int clamped_power_bar_size = std::min(power_bar_size, kPixelsAtMaxPower);
     const int power_bar_x_offset = watts_signed < 0 ? -clamped_power_bar_size : 0;
-    lv_obj_set_size(m_power_bar, 10, clamped_power_bar_size);
+    lv_obj_set_size(m_power_bar, 24, clamped_power_bar_size);
     lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, power_bar_x_offset, 0);
 
     if (watts_signed > 0)
