@@ -27,10 +27,8 @@ private:
     class BackgroundRotationThread : public os::BaseThread
     {
     public:
-        BackgroundRotationThread(UserInterface& parent)
+        explicit BackgroundRotationThread(MapScreen& parent)
             : m_parent(parent)
-            , m_rotation_buffer_0(os::AllocSlowMem<Buffer>(64))
-            , m_rotation_buffer_1(os::AllocSlowMem<Buffer>(64))
         {
         }
 
@@ -46,13 +44,19 @@ private:
         };
 
         void OnStartup() final;
-
         std::optional<milliseconds> OnActivation() final;
 
-        UserInterface& m_parent;
+        void RotateBackground(int32_t angle_deg10);
 
-        os::mem_unique_ptr<Buffer> m_rotation_buffer_0;
-        os::mem_unique_ptr<Buffer> m_rotation_buffer_1;
+        void BlitTilesToBackground();
+
+        MapScreen& m_parent;
+
+        os::mem_unique_ptr<Buffer> m_rotation_buffer_0 {os::AllocSlowMem<Buffer>(64)};
+        os::mem_unique_ptr<Buffer> m_rotation_buffer_1 {os::AllocSlowMem<Buffer>(64)};
+        SingleColorImage m_background {kBgSize, kBgSize, 2, 0x0000}; // Oversized for rotation
+
+        static constexpr int kBgSize = 934; // ceil(sqrt(800² + 480²)) = 933, rounded up to even
     };
 
     void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
