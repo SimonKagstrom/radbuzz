@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base_thread.hh"
 #include "painter.hh"
 #include "user_interface.hh"
 
@@ -19,6 +20,26 @@ private:
         kRoundTrip,
 
         kValueCount,
+    };
+
+
+    class BackgroundRotationThread : public os::BaseThread
+    {
+    public:
+        BackgroundRotationThread(UserInterface &parent)
+            : m_parent(parent)
+        {
+        }
+
+    private:
+        void OnStartup() final;
+
+        std::optional<milliseconds> OnActivation() final;
+
+        UserInterface &m_parent;
+
+        std::unique_ptr<uint16_t[hal::kDisplayWidth * hal::kDisplayHeight]> m_rotation_buffer_0;
+        std::unique_ptr<uint16_t[hal::kDisplayWidth * hal::kDisplayHeight]> m_rotation_buffer_1;
     };
 
     void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
