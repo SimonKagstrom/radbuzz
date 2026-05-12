@@ -31,6 +31,15 @@ private:
     TileCache& m_tile_cache;
     uint8_t m_zoom;
 
+    // Source buffer is the display diagonal squared so any rotation angle fills the screen
+    static constexpr int kBgSize = 934; // ceil(sqrt(800² + 480²)) = 933, rounded up to even
+    SingleColorImage m_background {kBgSize, kBgSize, 2, 0x0000}; // Oversized for rotation
+    SingleColorImage m_background_rotated {
+        hal::kDisplayWidth, hal::kDisplayHeight, 2, 0x0000}; // Rotated view target
+    lv_obj_t* m_background_image {nullptr};
+
+    void RotateBackground(int32_t angle_deg10);
+
     // Related to the navigation
     uint32_t m_current_icon_hash {kInvalidIconHash};
     lv_obj_t* m_navigation_box {nullptr};
@@ -58,8 +67,8 @@ private:
     int32_t m_last_touch_y {0};
 
 
-    static constexpr int kNumTilesX = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
-    static constexpr int kNumTilesY = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
+    static constexpr int kNumTilesX = (kBgSize + kTileSize - 1) / kTileSize + 1;
+    static constexpr int kNumTilesY = (kBgSize + kTileSize - 1) / kTileSize + 1;
 
     etl::vector<hal::BlitOperation, kNumTilesX * kNumTilesY> m_blit_ops;
 };
