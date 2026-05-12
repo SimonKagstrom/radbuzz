@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_thread.hh"
+#include "os/memory.hh"
 #include "painter.hh"
 #include "user_interface.hh"
 
@@ -26,20 +27,32 @@ private:
     class BackgroundRotationThread : public os::BaseThread
     {
     public:
-        BackgroundRotationThread(UserInterface &parent)
+        BackgroundRotationThread(UserInterface& parent)
             : m_parent(parent)
+            , m_rotation_buffer_0(os::AllocSlowMem<Buffer>(64))
+            , m_rotation_buffer_1(os::AllocSlowMem<Buffer>(64))
         {
         }
 
+        uint16_t* Flip()
+        {
+            return nullptr;
+        }
+
     private:
+        struct Buffer
+        {
+            uint16_t data[hal::kDisplayWidth * hal::kDisplayHeight];
+        };
+
         void OnStartup() final;
 
         std::optional<milliseconds> OnActivation() final;
 
-        UserInterface &m_parent;
+        UserInterface& m_parent;
 
-        std::unique_ptr<uint16_t[hal::kDisplayWidth * hal::kDisplayHeight]> m_rotation_buffer_0;
-        std::unique_ptr<uint16_t[hal::kDisplayWidth * hal::kDisplayHeight]> m_rotation_buffer_1;
+        os::mem_unique_ptr<Buffer> m_rotation_buffer_0;
+        os::mem_unique_ptr<Buffer> m_rotation_buffer_1;
     };
 
     void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
