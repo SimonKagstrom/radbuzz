@@ -232,9 +232,9 @@ MapScreen::SetZoom(uint8_t zoom)
 }
 
 void
-MapScreen::RotateBackground(int32_t angle_deg10)
+MapScreen::RotateBackground(int32_t angle_deg)
 {
-    const float angle_rad = static_cast<float>(angle_deg10) * static_cast<float>(M_PI) / 1800.0f;
+    const float angle_rad = static_cast<float>(angle_deg) * static_cast<float>(M_PI) / 180.0f;
     const float cos_a = std::cos(angle_rad);
     const float sin_a = std::sin(angle_rad);
     // Display center in display coords
@@ -359,9 +359,11 @@ MapScreen::Update()
         }
     }
 
-    constexpr int32_t kBackgroundRotationDeg10 = 730;
-    RotateBackground(kBackgroundRotationDeg10);
+    static int32_t kBackgroundRotationDeg = 0;
+    RotateBackground(kBackgroundRotationDeg);
     lv_obj_invalidate(m_background_image);
+
+    kBackgroundRotationDeg = (kBackgroundRotationDeg + 1) % 360;
 
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
