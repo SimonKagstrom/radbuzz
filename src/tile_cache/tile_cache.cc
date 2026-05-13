@@ -100,6 +100,7 @@ TileCache::TileCache(ApplicationState& application_state,
 void
 TileCache::OnStartup()
 {
+    return;
     for (auto zoom : {kDefaultZoom, kCityZoom})
     {
         auto pending_city_tile_data =

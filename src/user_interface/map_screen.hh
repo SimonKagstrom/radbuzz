@@ -56,7 +56,7 @@ private:
         os::mem_unique_ptr<Buffer> m_rotation_buffer_1 {os::AllocSlowMem<Buffer>(64)};
         SingleColorImage m_background {kBgSize, kBgSize, 2, 0x0000}; // Oversized for rotation
 
-        static constexpr int kBgSize = 934; // ceil(sqrt(800² + 480²)) = 933, rounded up to even
+        static constexpr int kBgSize = 936; // >= diagonal and divisible by 8 for cache-line-safe RGB565 buffer size
     };
 
     void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
@@ -70,7 +70,7 @@ private:
     uint8_t m_zoom;
 
     // Source buffer is the display diagonal squared so any rotation angle fills the screen
-    static constexpr int kBgSize = 934; // ceil(sqrt(800² + 480²)) = 933, rounded up to even
+    static constexpr int kBgSize = 960; // >= diagonal and divisible by 8 for cache-line-safe RGB565 buffer size
     SingleColorImage m_background {kBgSize, kBgSize, 2, 0x0000}; // Oversized for rotation
     SingleColorImage m_background_rotated {
         hal::kDisplayWidth, hal::kDisplayHeight, 2, 0x0000}; // Rotated view target
@@ -108,5 +108,5 @@ private:
     static constexpr int kNumTilesX = (kBgSize + kTileSize - 1) / kTileSize + 1;
     static constexpr int kNumTilesY = (kBgSize + kTileSize - 1) / kTileSize + 1;
 
-    etl::vector<hal::BlitOperation, kNumTilesX * kNumTilesY> m_blit_ops;
+    etl::vector<hal::BlitOperation, 48> m_blit_ops;
 };

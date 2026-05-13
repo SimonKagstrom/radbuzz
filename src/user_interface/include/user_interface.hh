@@ -47,7 +47,7 @@ public:
             lv_screen_load(m_screen);
         }
 
-        virtual void HandleInput(const Input::Event &event) = 0;
+        virtual void HandleInput(const Input::Event& event) = 0;
 
         lv_obj_t* GetLvglObj()
         {
@@ -95,7 +95,7 @@ private:
     lv_display_t* m_lvgl_display {nullptr};
     uint32_t m_next_redraw_time {0};
 
-    std::array<hal::BlitOperation, 2> m_rotation_blit_operations;
+    std::array<hal::BlitOperation, 2> m_rotation_blit_operations {};
 
 
     etl::queue_spsc_atomic<Input::Event, 8> m_input_queue;

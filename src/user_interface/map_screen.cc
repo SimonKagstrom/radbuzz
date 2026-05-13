@@ -264,6 +264,7 @@ MapScreen::RotateBackground(int32_t angle_deg)
 void
 MapScreen::Update()
 {
+    printf("Updating map screen\n");
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto state_hash = ro.Get<AS::current_icon_hash>();
     auto conf = ro.Get<AS::configuration>();
@@ -302,10 +303,10 @@ MapScreen::Update()
                    dot_center_x - static_cast<int>(m_position_dot.Width()) / 2,
                    dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);
 
-    // Blit tiles directly into the oversized background buffer using software copy.
-    // The blitter is not used here because it assumes dst stride == kDisplayWidth.
-    std::memset(m_background.WritableData16(), 0, kBgSize * kBgSize * sizeof(uint16_t));
+    // Blit tiles directly into the oversized background buffer.
     uint16_t* bg = m_background.WritableData16();
+
+    m_blit_ops.clear();
 
     for (int y = 0; y < kNumTilesY; ++y)
     {
@@ -348,16 +349,27 @@ MapScreen::Update()
                 continue;
             }
 
-            const uint16_t* src = tile.Data16().data();
-            const int32_t src_stride = static_cast<int32_t>(tile.Width());
-            for (int32_t row = 0; row < clipped_height; ++row)
-            {
-                std::memcpy(bg + (dst_offset_y + row) * kBgSize + dst_offset_x,
-                            src + (src_offset_y + row) * src_stride + src_offset_x,
-                            static_cast<size_t>(clipped_width) * sizeof(uint16_t));
-            }
+            m_blit_ops.push_back(hal::BlitOperation {
+                .src_data = tile.Data16().data(),
+                .dst_data = bg,
+                .src_width = static_cast<int16_t>(tile.Width()),
+                .src_height = static_cast<int16_t>(tile.Height()),
+                .src_stride = static_cast<int16_t>(tile.Width()),
+                .src_offset_x = static_cast<int16_t>(src_offset_x),
+                .src_offset_y = static_cast<int16_t>(src_offset_y),
+                .dst_stride = static_cast<int16_t>(kBgSize),
+                .dst_height = static_cast<int16_t>(kBgSize),
+                .dst_offset_x = static_cast<int16_t>(dst_offset_x),
+                .dst_offset_y = static_cast<int16_t>(dst_offset_y),
+                .width = static_cast<int16_t>(clipped_width),
+                .height = static_cast<int16_t>(clipped_height),
+                .rotation = hal::Rotation::k0,
+            });
         }
     }
+
+    m_parent.m_blitter.BlitOperations(
+        std::span<const hal::BlitOperation> {m_blit_ops.data(), m_blit_ops.size()});
 
     static int32_t kBackgroundRotationDeg = 0;
     RotateBackground(kBackgroundRotationDeg);
