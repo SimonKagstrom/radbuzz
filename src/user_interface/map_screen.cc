@@ -258,10 +258,10 @@ MapScreen::RotateBackground(int32_t angle_deg, uint16_t* dst)
     const float angle_rad = static_cast<float>(angle_deg) * std::numbers::pi_v<float> / 180.0f;
     const float cos_a = std::cosf(angle_rad);
     const float sin_a = std::sinf(angle_rad);
-    // Display center in display coords
-    const int cx = hal::kDisplayWidth / 2;
-    const int cy = hal::kDisplayHeight / 2;
-    // Corresponding center in the oversized source buffer
+    // Rotate around a configurable display pivot (follow anchor in follow mode).
+    const int cx = m_rotation_pivot_x;
+    const int cy = m_rotation_pivot_y;
+    // Always rotate around the loaded view center in source space.
     const int scx = kBgSize / 2;
     const int scy = kBgSize / 2;
     const uint16_t* src = m_background.WritableData16();
@@ -287,23 +287,41 @@ MapScreen::Update()
 
     auto pixel_position = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
 
+    constexpr int kFollowAnchorX = hal::kDisplayWidth / 2;
+    constexpr int kFollowAnchorY = (hal::kDisplayHeight * 2) / 3;
+    constexpr int kDisplayCenterX = hal::kDisplayWidth / 2;
+    constexpr int kDisplayCenterY = hal::kDisplayHeight / 2;
+    const bool follow_mode = m_touch_timer->IsExpired() && (m_zoom == kDefaultZoom);
+
+    m_rotation_pivot_x = kDisplayCenterX;
+    m_rotation_pivot_y = kDisplayCenterY;
     m_rotation = 0;
+
     if (m_touch_timer->IsExpired())
     {
         m_current_view_center = pixel_position;
-        m_rotation = static_cast<uint16_t>(ro.Get<AS::position>()->heading);
+        if (m_zoom == kDefaultZoom)
+        {
+            const float heading = ro.Get<AS::position>()->heading;
+            const float normalized_rotation = std::fmod(heading + 180, 360.0f);
+            m_rotation = static_cast<uint16_t>(std::lround(normalized_rotation));
+            m_rotation_pivot_x = kFollowAnchorX;
+            m_rotation_pivot_y = kFollowAnchorY;
+        }
     }
 
     // Calculate the center of the display
-    int display_cx = hal::kDisplayWidth / 2;
-    int display_cy = hal::kDisplayHeight / 2;
+    int display_cx = kDisplayCenterX;
+    int display_cy = kDisplayCenterY;
 
     // Top-left of the oversized background buffer in OSM pixel coordinates
     int start_x = m_current_view_center.x - kBgSize / 2;
     int start_y = m_current_view_center.y - kBgSize / 2;
 
-    const int dot_center_x = display_cx + (pixel_position.x - m_current_view_center.x);
-    const int dot_center_y = display_cy + (pixel_position.y - m_current_view_center.y);
+    const int dot_center_x =
+        follow_mode ? kFollowAnchorX : (display_cx + (pixel_position.x - m_current_view_center.x));
+    const int dot_center_y =
+        follow_mode ? kFollowAnchorY : (display_cy + (pixel_position.y - m_current_view_center.y));
     lv_obj_set_pos(m_position_dot_obj,
                    dot_center_x - static_cast<int>(m_position_dot.Width()) / 2,
                    dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);

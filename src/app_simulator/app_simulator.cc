@@ -381,7 +381,7 @@ iconHash={:08x}32
     GpsData mangled;
 
     mangled.position = OsmPointToWgs84(m_current_point);
-    mangled.heading = 76;
+    mangled.heading = 45 + (m_random_engine() % 2) - 1;
     mangled.speed = speed;
 
     m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);
