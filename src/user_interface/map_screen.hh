@@ -75,7 +75,7 @@ private:
     SingleColorImage m_background_rotated {
         hal::kDisplayWidth, hal::kDisplayHeight, 2, 0x0000}; // Rotated view target
 
-    void RotateBackground(int32_t angle_deg10);
+    void RotateBackground(int32_t angle_deg10, uint16_t *dst);
 
     // Related to the navigation
     uint32_t m_current_icon_hash {kInvalidIconHash};

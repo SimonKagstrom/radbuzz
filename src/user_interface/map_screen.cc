@@ -11,6 +11,7 @@
 #include <radbuzz_font_60.h>
 #include <radbuzz_symbols_40.h>
 
+static int32_t kBackgroundRotationDeg = 0;
 
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
@@ -102,12 +103,10 @@ MapScreen::MapScreen(UserInterface& parent,
             auto* layer = lv_event_get_layer(e);
             auto* dst_data = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
 
+            self->m_parent.m_blitter.WaitForBlitsDone();
+            self->RotateBackground(kBackgroundRotationDeg, dst_data);
 
-            self->m_copy_blit_op.dst_data = dst_data;
-            self->m_parent.m_blitter.BlitOperations(
-                std::span<const hal::BlitOperation> {&self->m_copy_blit_op, 1});
-            self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
-            self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
+            kBackgroundRotationDeg = (kBackgroundRotationDeg + 1) % 360;
         },
         LV_EVENT_DRAW_MAIN,
         this);
@@ -244,7 +243,7 @@ MapScreen::SetZoom(uint8_t zoom)
 }
 
 void
-MapScreen::RotateBackground(int32_t angle_deg)
+MapScreen::RotateBackground(int32_t angle_deg, uint16_t* dst)
 {
     const float angle_rad = static_cast<float>(angle_deg) * std::numbers::pi_v<float> / 180.0f;
     const float cos_a = std::cosf(angle_rad);
@@ -256,8 +255,6 @@ MapScreen::RotateBackground(int32_t angle_deg)
     const int scx = kBgSize / 2;
     const int scy = kBgSize / 2;
     const uint16_t* src = m_background.WritableData16();
-    uint16_t* dst = m_background_rotated.WritableData16();
-
     for (int dy = 0; dy < hal::kDisplayHeight; ++dy)
     {
         const float fy = static_cast<float>(dy - cy);
@@ -277,21 +274,6 @@ void
 MapScreen::Update()
 {
     auto ro = m_parent.m_state.CheckoutReadonly();
-    auto state_hash = ro.Get<AS::current_icon_hash>();
-    auto conf = ro.Get<AS::configuration>();
-    auto navigation_active = ro.Get<AS::navigation_active>();
-
-    lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
-    lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
-
-    if (m_current_icon_hash != state_hash)
-    {
-        if (auto image = m_image_cache.Lookup(state_hash); image)
-        {
-            m_current_icon_hash = state_hash;
-            lv_image_set_src(m_current_icon, &image->GetDsc());
-        }
-    }
 
     auto pixel_position = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
 
@@ -378,14 +360,24 @@ MapScreen::Update()
             });
         }
     }
-
     m_parent.m_blitter.BlitOperations(
         std::span<const hal::BlitOperation> {m_blit_ops.data(), m_blit_ops.size()});
 
-    static int32_t kBackgroundRotationDeg = 0;
-    RotateBackground(kBackgroundRotationDeg);
+    auto state_hash = ro.Get<AS::current_icon_hash>();
+    auto conf = ro.Get<AS::configuration>();
+    auto navigation_active = ro.Get<AS::navigation_active>();
 
-    kBackgroundRotationDeg = (kBackgroundRotationDeg + 1) % 360;
+    lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
+    lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
+
+    if (m_current_icon_hash != state_hash)
+    {
+        if (auto image = m_image_cache.Lookup(state_hash); image)
+        {
+            m_current_icon_hash = state_hash;
+            lv_image_set_src(m_current_icon, &image->GetDsc());
+        }
+    }
 
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
@@ -449,7 +441,6 @@ MapScreen::Update()
     {
         lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
     }
-
 
     lv_obj_invalidate(m_screen);
 }

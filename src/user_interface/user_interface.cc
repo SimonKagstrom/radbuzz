@@ -105,9 +105,11 @@ UserInterface::OnStartup()
                     p->m_rotation_blit_operations[0].src_data = frame_buffer;
                     p->m_rotation_blit_operations[1].dst_data = frame_buffer;
 
+                    p->m_blitter.WaitForBlitsDone();
                     p->m_blitter.BlitOperations(
                         std::span<const hal::BlitOperation> {p->m_rotation_blit_operations.data(),
                                                              p->m_rotation_blit_operations.size()});
+                    p->m_blitter.WaitForBlitsDone();
                 }
 
                 p->m_display.Flip();
@@ -195,7 +197,7 @@ UserInterface::OnActivation()
     {
         return milliseconds(delay);
     }
-        return milliseconds(delay);
+    return milliseconds(delay);
 
     return std::nullopt;
 }
