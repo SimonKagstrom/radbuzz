@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <limits>
+#include <numbers>
 #include <radbuzz_font_16.h>
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_60.h>
@@ -75,31 +76,42 @@ MapScreen::MapScreen(UserInterface& parent,
 {
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_TRANSP, 0);
 
+
+    m_copy_blit_op = {
+        .src_data = m_background_rotated.WritableData16(),
+        .dst_data = nullptr, // Set on flush
+        .src_width = static_cast<int16_t>(hal::kDisplayWidth),
+        .src_height = static_cast<int16_t>(hal::kDisplayHeight),
+        .src_offset_x = 0,
+        .src_offset_y = 0,
+        .dst_offset_x = 0,
+        .dst_offset_y = 0,
+        .width = static_cast<int16_t>(hal::kDisplayWidth),
+        .height = static_cast<int16_t>(hal::kDisplayHeight),
+        .rotation = hal::Rotation::k0,
+    };
+
     /*
      * Tiles are blitted directly into the LVGL render buffer during LV_EVENT_DRAW_MAIN,
      * eliminating the intermediate static_map_buffer and its associated software copy.
      */
-    //    lv_obj_add_event_cb(
-    //        m_screen,
-    //        [](lv_event_t* e) {
-    //            auto* self = static_cast<MapScreen*>(lv_event_get_user_data(e));
-    //            auto* layer = lv_event_get_layer(e);
-    //            auto* dst_data = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
-    //            for (auto& op : self->m_blit_ops)
-    //            {
-    //                op.dst_data = dst_data;
-    //            }
-    //            self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
-    //                self->m_blit_ops.data(), self->m_blit_ops.size()});
-    //            self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
-    //            self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
-    //        },
-    //        LV_EVENT_DRAW_MAIN,
-    //        this);
+    lv_obj_add_event_cb(
+        m_screen,
+        [](lv_event_t* e) {
+            auto* self = static_cast<MapScreen*>(lv_event_get_user_data(e));
+            auto* layer = lv_event_get_layer(e);
+            auto* dst_data = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
 
-    m_background_image = lv_image_create(m_screen);
-    lv_obj_align(m_background_image, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_image_set_src(m_background_image, &m_background_rotated.lv_image_dsc);
+
+            self->m_copy_blit_op.dst_data = dst_data;
+            self->m_parent.m_blitter.BlitOperations(
+                std::span<const hal::BlitOperation> {&self->m_copy_blit_op, 1});
+            self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
+            self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
+        },
+        LV_EVENT_DRAW_MAIN,
+        this);
+
 
     m_soc_label = lv_label_create(m_screen);
     lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -5, 0);
@@ -234,9 +246,9 @@ MapScreen::SetZoom(uint8_t zoom)
 void
 MapScreen::RotateBackground(int32_t angle_deg)
 {
-    const float angle_rad = static_cast<float>(angle_deg) * static_cast<float>(M_PI) / 180.0f;
-    const float cos_a = std::cos(angle_rad);
-    const float sin_a = std::sin(angle_rad);
+    const float angle_rad = static_cast<float>(angle_deg) * std::numbers::pi_v<float> / 180.0f;
+    const float cos_a = std::cosf(angle_rad);
+    const float sin_a = std::sinf(angle_rad);
     // Display center in display coords
     const int cx = hal::kDisplayWidth / 2;
     const int cy = hal::kDisplayHeight / 2;
@@ -264,7 +276,6 @@ MapScreen::RotateBackground(int32_t angle_deg)
 void
 MapScreen::Update()
 {
-    printf("Updating map screen\n");
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto state_hash = ro.Get<AS::current_icon_hash>();
     auto conf = ro.Get<AS::configuration>();
@@ -373,7 +384,6 @@ MapScreen::Update()
 
     static int32_t kBackgroundRotationDeg = 0;
     RotateBackground(kBackgroundRotationDeg);
-    lv_obj_invalidate(m_background_image);
 
     kBackgroundRotationDeg = (kBackgroundRotationDeg + 1) % 360;
 
