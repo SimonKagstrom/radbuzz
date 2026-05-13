@@ -11,7 +11,6 @@
 #include <radbuzz_font_60.h>
 #include <radbuzz_symbols_40.h>
 
-static int32_t kBackgroundRotationDeg = 0;
 
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
@@ -79,12 +78,15 @@ MapScreen::MapScreen(UserInterface& parent,
 
 
     m_copy_blit_op = {
-        .src_data = m_background_rotated.WritableData16(),
+        .src_data = m_background.WritableData16(),
         .dst_data = nullptr, // Set on flush
-        .src_width = static_cast<int16_t>(hal::kDisplayWidth),
-        .src_height = static_cast<int16_t>(hal::kDisplayHeight),
-        .src_offset_x = 0,
-        .src_offset_y = 0,
+        .src_width = static_cast<int16_t>(kBgSize),
+        .src_height = static_cast<int16_t>(kBgSize),
+        .src_stride = static_cast<int16_t>(kBgSize),
+        .src_offset_x = static_cast<int16_t>((kBgSize - hal::kDisplayWidth) / 2),
+        .src_offset_y = static_cast<int16_t>((kBgSize - hal::kDisplayHeight) / 2),
+        .dst_stride = static_cast<int16_t>(hal::kDisplayWidth),
+        .dst_height = static_cast<int16_t>(hal::kDisplayHeight),
         .dst_offset_x = 0,
         .dst_offset_y = 0,
         .width = static_cast<int16_t>(hal::kDisplayWidth),
@@ -103,10 +105,18 @@ MapScreen::MapScreen(UserInterface& parent,
             auto* layer = lv_event_get_layer(e);
             auto* dst_data = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
 
-            self->m_parent.m_blitter.WaitForBlitsDone();
-            self->RotateBackground(kBackgroundRotationDeg, dst_data);
-
-            kBackgroundRotationDeg = (kBackgroundRotationDeg + 1) % 360;
+            if (self->m_rotation == 0)
+            {
+                self->m_copy_blit_op.dst_data = dst_data;
+                self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation>(
+                    &self->m_copy_blit_op, static_cast<size_t>(1)));
+                self->m_parent.m_blitter.WaitForBlitsDone();
+            }
+            else
+            {
+                self->m_parent.m_blitter.WaitForBlitsDone();
+                self->RotateBackground(self->m_rotation, dst_data);
+            }
         },
         LV_EVENT_DRAW_MAIN,
         this);
@@ -277,9 +287,11 @@ MapScreen::Update()
 
     auto pixel_position = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
 
+    m_rotation = 0;
     if (m_touch_timer->IsExpired())
     {
         m_current_view_center = pixel_position;
+        m_rotation = static_cast<uint16_t>(ro.Get<AS::position>()->heading);
     }
 
     // Calculate the center of the display

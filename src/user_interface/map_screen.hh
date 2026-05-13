@@ -97,6 +97,7 @@ private:
     lv_obj_t* m_power_bar {nullptr};
 
     Point m_current_view_center {0, 0, m_zoom};
+    uint16_t m_rotation {0};
     os::TimerHandle m_touch_timer;
     os::TimerHandle m_home_hold_timer;
 
