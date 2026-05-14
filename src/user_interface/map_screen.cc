@@ -284,6 +284,7 @@ void
 MapScreen::Update()
 {
     auto ro = m_parent.m_state.CheckoutReadonly();
+    auto conf = ro.Get<AS::configuration>();
 
     auto pixel_position = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
 
@@ -291,7 +292,8 @@ MapScreen::Update()
     constexpr int kFollowAnchorY = (hal::kDisplayHeight * 2) / 3;
     constexpr int kDisplayCenterX = hal::kDisplayWidth / 2;
     constexpr int kDisplayCenterY = hal::kDisplayHeight / 2;
-    const bool follow_mode = m_touch_timer->IsExpired() && (m_zoom == kDefaultZoom);
+    const bool follow_mode =
+        m_touch_timer->IsExpired() && (m_zoom == kDefaultZoom) && conf->rotate_map;
 
     m_rotation_pivot_x = kDisplayCenterX;
     m_rotation_pivot_y = kDisplayCenterY;
@@ -300,7 +302,7 @@ MapScreen::Update()
     if (m_touch_timer->IsExpired())
     {
         m_current_view_center = pixel_position;
-        if (m_zoom == kDefaultZoom)
+        if (follow_mode)
         {
             const float heading = ro.Get<AS::position>()->heading;
             const float normalized_rotation = std::fmod(heading + 180, 360.0f);
@@ -394,7 +396,6 @@ MapScreen::Update()
         std::span<const hal::BlitOperation> {m_blit_ops.data(), m_blit_ops.size()});
 
     auto state_hash = ro.Get<AS::current_icon_hash>();
-    auto conf = ro.Get<AS::configuration>();
     auto navigation_active = ro.Get<AS::navigation_active>();
 
     lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);

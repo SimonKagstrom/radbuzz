@@ -1,5 +1,17 @@
 #include "settings_menu_screen.hh"
 
+#include <array>
+#include <string_view>
+
+constexpr auto kSpeedometerTypeOptions = std::to_array<std::string_view>({
+    "Analog",
+    "Digital",
+    "Analog + Digital",
+});
+static_assert(std::to_underlying(SpeedometerType::kAnalog) == 0);
+static_assert(std::to_underlying(SpeedometerType::kDigital) == 1);
+static_assert(std::to_underlying(SpeedometerType::kBoth) == 2);
+
 SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
     , m_menu_screen(std::make_unique<MenuScreen>(
@@ -41,22 +53,31 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
                                           .wh_per_km_for_range_estimation =
                                           static_cast<uint8_t>(value);
                                   });
-    settings_page.AddNumericEntry(
-        "Motor watts", {500, 10000, 100}, ro.Get<AS::configuration>()->max_watts, [this](auto value) {
+    settings_page.AddNumericEntry("Motor watts",
+                                  {500, 10000, 100},
+                                  ro.Get<AS::configuration>()->max_watts,
+                                  [this](auto value) {
+                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                          .GetWritableReference<AS::configuration>()
+                                          .max_watts = value;
+                                  });
+
+
+    settings_page.AddRollerEntry(
+        "Speedometer",
+        std::span<const std::string_view>(kSpeedometerTypeOptions),
+        kSpeedometerTypeOptions[std::to_underlying(ro.Get<AS::configuration>()->speedometer_type)],
+        [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
-                .max_watts = value;
+                .speedometer_type = static_cast<SpeedometerType>(value);
         });
-
-    // TODO: Make it a roller to support both at the same time
-    settings_page.AddBooleanEntry("Digital speedometer",
-                         ro.Get<AS::configuration>()->speedometer_type == SpeedometerType::kDigital,
-                         [this](auto value) {
-                             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                                 .GetWritableReference<AS::configuration>()
-                                 .speedometer_type =
-                                 value ? SpeedometerType::kDigital : SpeedometerType::kAnalog;
-                         });
+    settings_page.AddBooleanEntry(
+        "Rotate map with heading", ro.Get<AS::configuration>()->rotate_map, [this](auto value) {
+            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                .GetWritableReference<AS::configuration>()
+                .rotate_map = value;
+        });
     main.AddEntry("Reset trip", []() { printf("Resetting trip, but NYI\n"); });
     main.AddSeparator();
     main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {

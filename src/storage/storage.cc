@@ -9,6 +9,7 @@ constexpr auto kBatteryAmpHoursKey = "A";
 constexpr auto kWhPerKmForRangeEstimationKey = "R";
 constexpr auto kSpeedometerTypeKey = "S";
 constexpr auto kMaxWattsKey = "P";
+constexpr auto kRotateMapKey = "R";
 
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
@@ -24,6 +25,7 @@ Storage::OnStartup()
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration>();
     auto& conf = ps.GetWritableReference<AS::configuration>();
 
+    conf.rotate_map = m_nvm.Get<bool>(kRotateMapKey).value_or(true);
     conf.max_speed = m_nvm.Get<uint8_t>(kMaxSpeedKey).value_or(30);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(kBatterySeriesKey).value_or(7);
     conf.battery_amp_hours = m_nvm.Get<uint8_t>(kBatteryAmpHoursKey).value_or(20);
@@ -101,6 +103,10 @@ Storage::OnActivation()
                 networks += network.ssid + "@" + network.password;
             }
             m_nvm.Set<std::string>(kWifiNetworks, networks);
+        }
+        if (old_conf.rotate_map != new_conf.rotate_map)
+        {
+            m_nvm.Set<bool>(kRotateMapKey, new_conf.rotate_map);
         }
 
         m_nvm.Commit();
