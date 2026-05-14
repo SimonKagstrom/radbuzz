@@ -379,12 +379,14 @@ iconHash={:08x}32
         m_target_speed = m_random_engine() % kMaxSpeed;
     }
     const int speed_delta = static_cast<int>(speed) - current_speed;
-    constexpr int kWattsPerKmh = 5;
-    const int target_power = speed_delta > 0   ? static_cast<int>(speed) * kWattsPerKmh
-                             : speed_delta < 0 ? -static_cast<int>(speed) * kWattsPerKmh
-                                               : 0;
+    constexpr int kWattsPerKmh = 10;
+    auto target_power = static_cast<int>(speed) * kWattsPerKmh;
 
-    constexpr int kPowerRampStepW = 80;
+    if (speed_delta < 0)
+    {
+        target_power = -target_power;
+    }
+    constexpr int kPowerRampStepW = 20;
     auto& current_power = ps.GetWritableReference<AS::current_power_w>();
     int next_power = static_cast<int>(current_power);
 
