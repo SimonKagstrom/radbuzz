@@ -75,6 +75,8 @@ MapScreen::MapScreen(UserInterface& parent,
     , m_touch_timer(m_parent.StartTimer(0ms))
 {
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_TRANSP, 0);
+    lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
 
     m_copy_blit_op = {
@@ -177,8 +179,16 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, 128);
     lv_obj_align(m_navigation_box, LV_ALIGN_BOTTOM_LEFT, -32, 32);
     lv_obj_set_style_border_width(m_navigation_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_outline_width(m_navigation_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(m_navigation_box, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_navigation_box, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(m_navigation_box, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_image_opa(m_navigation_box, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_dir(m_navigation_box, LV_GRAD_DIR_NONE, LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_opa(m_navigation_box, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_radius(m_navigation_box, kPaneCornerRadius, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(m_navigation_box, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(m_navigation_box, LV_OBJ_FLAG_SCROLLABLE);
 
     m_current_icon = lv_image_create(m_navigation_box);
     lv_obj_center(m_current_icon);
@@ -186,24 +196,36 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_img_recolor_opa(m_current_icon, LV_OPA_COVER, LV_PART_MAIN);
     lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
     lv_obj_align(m_current_icon, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_clear_flag(m_current_icon, LV_OBJ_FLAG_SCROLLABLE);
 
     m_distance_left_label = lv_label_create(m_navigation_box);
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
+    lv_obj_clear_flag(m_distance_left_label, LV_OBJ_FLAG_SCROLLABLE);
     // ... to here
 
     m_navigation_description_box = lv_obj_create(m_screen);
     lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, 128 - 32, 0);
     lv_obj_set_size(
         m_navigation_description_box, hal::kDisplayWidth - lv_obj_get_width(m_navigation_box), 32);
+    lv_obj_set_style_border_width(m_navigation_description_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_outline_width(m_navigation_description_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(m_navigation_description_box, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_navigation_description_box, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(m_navigation_description_box, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_image_opa(m_navigation_description_box, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_dir(m_navigation_description_box, LV_GRAD_DIR_NONE, LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_opa(m_navigation_description_box, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_radius(m_navigation_description_box, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(m_navigation_description_box, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(m_navigation_description_box, LV_OBJ_FLAG_SCROLLABLE);
 
     m_description_label = lv_label_create(m_navigation_description_box);
     lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 0, -22);
+    lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 4, -20);
     lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
+    lv_obj_clear_flag(m_description_label, LV_OBJ_FLAG_SCROLLABLE);
 
 
     auto* position_dot_canvas = lv_canvas_create(nullptr);
