@@ -132,6 +132,9 @@ MapScreen::MapScreen(UserInterface& parent,
     m_power_bar = lv_obj_create(m_screen);
     lv_obj_set_size(m_power_bar, 10, 60);
     lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, -5, 0);
+    lv_obj_set_style_border_width(m_power_bar, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(m_power_bar, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(m_power_bar, 4, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_power_bar, LV_OPA_100, LV_PART_MAIN);
     lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
 
