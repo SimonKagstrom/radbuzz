@@ -9,7 +9,10 @@ public:
     explicit SettingsMenuScreen(UserInterface& parent);
 
 private:
+    void OnActivation() final;
+    void OnDeactivation() final;
     void Update() final;
     void HandleInput(const Input::Event &event) final;
+
     std::unique_ptr<MenuScreen> m_menu_screen;
 };

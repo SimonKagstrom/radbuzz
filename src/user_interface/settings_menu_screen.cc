@@ -14,11 +14,18 @@ static_assert(std::to_underlying(SpeedometerType::kBoth) == 2);
 
 SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
-    , m_menu_screen(std::make_unique<MenuScreen>(
-          parent.GetTimerManager(), m_screen, parent.m_lvgl_input_dev, [this]() {
-              m_parent.ActivateScreen(*m_parent.m_map_screen);
-          }))
 {
+}
+
+void
+SettingsMenuScreen::OnActivation()
+{
+    // Create on activation (since it needs quite a bit of memory)
+    m_menu_screen = std::make_unique<MenuScreen>(
+        m_parent.GetTimerManager(), m_screen, m_parent.m_lvgl_input_dev, [this]() {
+            m_parent.ActivateScreen(*m_parent.m_map_screen);
+        });
+
     auto& main = m_menu_screen->GetMainPage();
     auto ro = m_parent.m_state.CheckoutReadonly();
 
@@ -28,7 +35,7 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
         "Max speed", {25, 120, 5}, ro.Get<AS::configuration>()->max_speed, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
-                .max_speed = value;
+                .max_speed = static_cast<uint8_t>(value);
         });
     settings_page.AddNumericEntry("Battery cell series",
                                   {1, 36},
@@ -86,6 +93,12 @@ SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
 }
 
 void
+SettingsMenuScreen::OnDeactivation()
+{
+    m_menu_screen = nullptr;
+}
+
+void
 SettingsMenuScreen::Update()
 {
 }
@@ -93,6 +106,9 @@ SettingsMenuScreen::Update()
 void
 SettingsMenuScreen::HandleInput(const Input::Event& event)
 {
-    lv_indev_read(m_parent.m_lvgl_input_dev);
-    m_menu_screen->BumpExitTimer();
+    if (m_menu_screen)
+    {
+        m_menu_screen->BumpExitTimer();
+        lv_indev_read(m_parent.m_lvgl_input_dev);
+    }
 }

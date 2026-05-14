@@ -37,8 +37,14 @@ public:
         }
 
         virtual ~ScreenBase() = default;
-
         virtual void Update() = 0;
+        virtual void HandleInput(const Input::Event& event) = 0;
+        virtual void OnActivation()
+        {
+        }
+        virtual void OnDeactivation()
+        {
+        }
 
         void Activate()
         {
@@ -46,8 +52,6 @@ public:
             //lv_screen_load_anim(m_screen, LV_SCREEN_LOAD_ANIM_FADE_OUT, 200, 0, false);
             lv_screen_load(m_screen);
         }
-
-        virtual void HandleInput(const Input::Event& event) = 0;
 
         lv_obj_t* GetLvglObj()
         {
@@ -75,6 +79,11 @@ private:
 
     void ActivateScreen(ScreenBase& screen)
     {
+        if (m_current_screen)
+        {
+            m_current_screen->OnDeactivation();
+        }
+        screen.OnActivation();
         screen.Activate();
         m_current_screen = &screen;
     }
