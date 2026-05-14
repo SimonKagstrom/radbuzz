@@ -361,6 +361,8 @@ iconHash={:08x}32
     ps.GetWritableReference<AS::wh_regenerated>() += 1;
     auto& speed = ps.GetWritableReference<AS::speed>();
 
+    const int current_speed = speed;
+
     // Also simulate the speedometer bottoming out
     constexpr auto kMaxSpeed = 70;
     if (speed != m_target_speed)
@@ -376,7 +378,26 @@ iconHash={:08x}32
     {
         m_target_speed = m_random_engine() % kMaxSpeed;
     }
-    ps.GetWritableReference<AS::current_power_w>() = speed * 10;
+    const int speed_delta = static_cast<int>(speed) - current_speed;
+    constexpr int kWattsPerKmh = 5;
+    const int target_power = speed_delta > 0   ? static_cast<int>(speed) * kWattsPerKmh
+                             : speed_delta < 0 ? -static_cast<int>(speed) * kWattsPerKmh
+                                               : 0;
+
+    constexpr int kPowerRampStepW = 80;
+    auto& current_power = ps.GetWritableReference<AS::current_power_w>();
+    int next_power = static_cast<int>(current_power);
+
+    if (next_power < target_power)
+    {
+        next_power = std::min(next_power + kPowerRampStepW, target_power);
+    }
+    else if (next_power > target_power)
+    {
+        next_power = std::max(next_power - kPowerRampStepW, target_power);
+    }
+
+    current_power = static_cast<int16_t>(next_power);
 
     GpsData mangled;
 

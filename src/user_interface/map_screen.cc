@@ -129,6 +129,7 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
 
 
+    // Power = regen bar
     m_power_bar = lv_obj_create(m_screen);
     lv_obj_set_size(m_power_bar, 10, 60);
     lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, -5, 0);
@@ -463,9 +464,10 @@ MapScreen::Update()
     const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
     const int power_bar_size = (abs_watts * kPixelsAtMaxPower) / max_watts;
     const int clamped_power_bar_size = std::min(power_bar_size, kPixelsAtMaxPower);
-    const int power_bar_x_offset = watts_signed < 0 ? -clamped_power_bar_size : 0;
     lv_obj_set_size(m_power_bar, 24, clamped_power_bar_size);
-    lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, power_bar_x_offset, 0);
+    const int power_bar_y_offset =
+        watts_signed > 0 ? -(clamped_power_bar_size / 2) : (clamped_power_bar_size / 2);
+    lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, -5, power_bar_y_offset);
 
     if (watts_signed > 0)
     {
