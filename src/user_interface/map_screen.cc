@@ -109,10 +109,15 @@ MapScreen::MapScreen(UserInterface& parent,
 
             if (self->m_rotation == 0)
             {
-                self->m_copy_blit_op.dst_data = dst_data;
-                self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation>(
-                    &self->m_copy_blit_op, static_cast<size_t>(1)));
+                for (auto& op : self->m_blit_ops)
+                {
+                    op.dst_data = dst_data;
+                }
+                self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
+                    self->m_blit_ops.data(), self->m_blit_ops.size()});
                 self->m_parent.m_blitter.WaitForBlitsDone();
+                self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
+                self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
             }
             else
             {
@@ -349,10 +354,6 @@ MapScreen::Update()
     int display_cx = kDisplayCenterX;
     int display_cy = kDisplayCenterY;
 
-    // Top-left of the oversized background buffer in OSM pixel coordinates
-    int start_x = m_current_view_center.x - kBgSize / 2;
-    int start_y = m_current_view_center.y - kBgSize / 2;
-
     const int dot_center_x =
         follow_mode ? kFollowAnchorX : (display_cx + (pixel_position.x - m_current_view_center.x));
     const int dot_center_y =
@@ -361,72 +362,14 @@ MapScreen::Update()
                    dot_center_x - static_cast<int>(m_position_dot.Width()) / 2,
                    dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);
 
-    // Blit tiles directly into the oversized background buffer.
-    uint16_t* bg = m_background.WritableData16();
-
-    m_blit_ops.clear();
-
-    for (int y = 0; y < kNumTilesY; ++y)
+    if (conf->rotate_map && m_rotation != 0)
     {
-        for (int x = 0; x < kNumTilesX; ++x)
-        {
-            int tile_x = (start_x / kTileSize) + x;
-            int tile_y = (start_y / kTileSize) + y;
-
-            int tile_pixel_x = tile_x * kTileSize;
-            int tile_pixel_y = tile_y * kTileSize;
-
-            int32_t dst_offset_x = tile_pixel_x - start_x;
-            int32_t dst_offset_y = tile_pixel_y - start_y;
-
-            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
-
-            int32_t src_offset_x = 0;
-            int32_t src_offset_y = 0;
-            auto clipped_width = static_cast<int32_t>(tile.Width());
-            auto clipped_height = static_cast<int32_t>(tile.Height());
-
-            if (dst_offset_x < 0)
-            {
-                src_offset_x = -dst_offset_x;
-                clipped_width += dst_offset_x;
-                dst_offset_x = 0;
-            }
-            if (dst_offset_y < 0)
-            {
-                src_offset_y = -dst_offset_y;
-                clipped_height += dst_offset_y;
-                dst_offset_y = 0;
-            }
-
-            clipped_width = std::min(clipped_width, kBgSize - dst_offset_x);
-            clipped_height = std::min(clipped_height, kBgSize - dst_offset_y);
-
-            if (clipped_width <= 0 || clipped_height <= 0)
-            {
-                continue;
-            }
-
-            m_blit_ops.push_back(hal::BlitOperation {
-                .src_data = tile.Data16().data(),
-                .dst_data = bg,
-                .src_width = static_cast<int16_t>(tile.Width()),
-                .src_height = static_cast<int16_t>(tile.Height()),
-                .src_stride = static_cast<int16_t>(tile.Width()),
-                .src_offset_x = static_cast<int16_t>(src_offset_x),
-                .src_offset_y = static_cast<int16_t>(src_offset_y),
-                .dst_stride = static_cast<int16_t>(kBgSize),
-                .dst_height = static_cast<int16_t>(kBgSize),
-                .dst_offset_x = static_cast<int16_t>(dst_offset_x),
-                .dst_offset_y = static_cast<int16_t>(dst_offset_y),
-                .width = static_cast<int16_t>(clipped_width),
-                .height = static_cast<int16_t>(clipped_height),
-                .rotation = hal::Rotation::k0,
-            });
-        }
+        BlitToRotationBuffer();
     }
-    m_parent.m_blitter.BlitOperations(
-        std::span<const hal::BlitOperation> {m_blit_ops.data(), m_blit_ops.size()});
+    else
+    {
+        PrepareNonRotatedBlits();
+    }
 
     auto state_hash = ro.Get<AS::current_icon_hash>();
     auto navigation_active = ro.Get<AS::navigation_active>();
@@ -510,6 +453,166 @@ MapScreen::Update()
     lv_obj_invalidate(m_screen);
 }
 
+
+void
+MapScreen::PrepareNonRotatedBlits()
+{
+    constexpr auto kNumTilesX = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
+    constexpr auto kNumTilesY = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
+
+    // Calculate the center of the display
+    int display_cx = hal::kDisplayWidth / 2;
+    int display_cy = hal::kDisplayHeight / 2;
+
+    // Calculate the top-left pixel in OSM coordinates that should be at (0,0) on the display
+    int start_x = m_current_view_center.x - display_cx;
+    int start_y = m_current_view_center.y - display_cy;
+
+    // Build blit ops; dst_data is filled in by the LV_EVENT_DRAW_MAIN callback at render time.
+    m_blit_ops.clear();
+
+    for (int y = 0; y < kNumTilesY; ++y)
+    {
+        for (int x = 0; x < kNumTilesX; ++x)
+        {
+            int tile_x = (start_x / kTileSize) + x;
+            int tile_y = (start_y / kTileSize) + y;
+
+            int tile_pixel_x = tile_x * kTileSize;
+            int tile_pixel_y = tile_y * kTileSize;
+
+            auto dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
+            auto dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
+
+            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
+
+            int32_t src_offset_x = 0;
+            int32_t src_offset_y = 0;
+            int32_t dst_offset_x = dst_x;
+            int32_t dst_offset_y = dst_y;
+            auto clipped_width = static_cast<int32_t>(tile.Width());
+            auto clipped_height = static_cast<int32_t>(tile.Height());
+
+            if (dst_offset_x < 0)
+            {
+                src_offset_x = -dst_offset_x;
+                clipped_width += dst_offset_x;
+                dst_offset_x = 0;
+            }
+            if (dst_offset_y < 0)
+            {
+                src_offset_y = -dst_offset_y;
+                clipped_height += dst_offset_y;
+                dst_offset_y = 0;
+            }
+
+            clipped_width =
+                std::min(clipped_width, static_cast<int32_t>(hal::kDisplayWidth) - dst_offset_x);
+            clipped_height =
+                std::min(clipped_height, static_cast<int32_t>(hal::kDisplayHeight) - dst_offset_y);
+
+            if (clipped_width <= 0 || clipped_height <= 0)
+            {
+                continue;
+            }
+
+            m_blit_ops.push_back(hal::BlitOperation {
+                .src_data = tile.Data16().data(),
+                .dst_data = nullptr,
+                .src_width = static_cast<int16_t>(tile.Width()),
+                .src_height = static_cast<int16_t>(tile.Height()),
+                .src_stride = static_cast<int16_t>(tile.Width()),
+                .src_offset_x = static_cast<int16_t>(src_offset_x),
+                .src_offset_y = static_cast<int16_t>(src_offset_y),
+                .dst_stride = static_cast<int16_t>(hal::kDisplayWidth),
+                .dst_offset_x = static_cast<int16_t>(dst_offset_x),
+                .dst_offset_y = static_cast<int16_t>(dst_offset_y),
+                .width = static_cast<int16_t>(clipped_width),
+                .height = static_cast<int16_t>(clipped_height),
+                .rotation = hal::Rotation::k0,
+            });
+        }
+    }
+}
+
+void
+MapScreen::BlitToRotationBuffer()
+{
+    constexpr auto kNumTilesX = kMaxNumTilesX;
+    constexpr auto kNumTilesY = kMaxNumTilesY;
+
+    // Blit tiles directly into the oversized background buffer.
+    uint16_t* bg = m_background.WritableData16();
+
+    // Top-left of the oversized background buffer in OSM pixel coordinates
+    const int start_x = m_current_view_center.x - kBgSize / 2;
+    const int start_y = m_current_view_center.y - kBgSize / 2;
+
+    m_blit_ops.clear();
+
+    for (int y = 0; y < kNumTilesY; ++y)
+    {
+        for (int x = 0; x < kNumTilesX; ++x)
+        {
+            const int tile_x = (start_x / kTileSize) + x;
+            const int tile_y = (start_y / kTileSize) + y;
+
+            const int tile_pixel_x = tile_x * kTileSize;
+            const int tile_pixel_y = tile_y * kTileSize;
+
+            int32_t dst_offset_x = tile_pixel_x - start_x;
+            int32_t dst_offset_y = tile_pixel_y - start_y;
+
+            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
+
+            int32_t src_offset_x = 0;
+            int32_t src_offset_y = 0;
+            auto clipped_width = static_cast<int32_t>(tile.Width());
+            auto clipped_height = static_cast<int32_t>(tile.Height());
+
+            if (dst_offset_x < 0)
+            {
+                src_offset_x = -dst_offset_x;
+                clipped_width += dst_offset_x;
+                dst_offset_x = 0;
+            }
+            if (dst_offset_y < 0)
+            {
+                src_offset_y = -dst_offset_y;
+                clipped_height += dst_offset_y;
+                dst_offset_y = 0;
+            }
+
+            clipped_width = std::min(clipped_width, kBgSize - dst_offset_x);
+            clipped_height = std::min(clipped_height, kBgSize - dst_offset_y);
+
+            if (clipped_width <= 0 || clipped_height <= 0)
+            {
+                continue;
+            }
+
+            m_blit_ops.push_back(hal::BlitOperation {
+                .src_data = tile.Data16().data(),
+                .dst_data = bg,
+                .src_width = static_cast<int16_t>(tile.Width()),
+                .src_height = static_cast<int16_t>(tile.Height()),
+                .src_stride = static_cast<int16_t>(tile.Width()),
+                .src_offset_x = static_cast<int16_t>(src_offset_x),
+                .src_offset_y = static_cast<int16_t>(src_offset_y),
+                .dst_stride = static_cast<int16_t>(kBgSize),
+                .dst_height = static_cast<int16_t>(kBgSize),
+                .dst_offset_x = static_cast<int16_t>(dst_offset_x),
+                .dst_offset_y = static_cast<int16_t>(dst_offset_y),
+                .width = static_cast<int16_t>(clipped_width),
+                .height = static_cast<int16_t>(clipped_height),
+                .rotation = hal::Rotation::k0,
+            });
+        }
+    }
+    m_parent.m_blitter.BlitOperations(
+        std::span<const hal::BlitOperation> {m_blit_ops.data(), m_blit_ops.size()});
+}
+
 os::TimerHandle
 MapScreen::StartHomeHoldTimer()
 {
@@ -586,81 +689,5 @@ MapScreen::HandleInput(const Input::Event& event)
 
     default:
         break;
-    }
-}
-
-
-void
-MapScreen::BackgroundRotationThread::BlitTilesToBackground()
-{
-    // Calculate the center of the display
-    int display_cx = hal::kDisplayWidth / 2;
-    int display_cy = hal::kDisplayHeight / 2;
-
-    // Top-left of the oversized background buffer in OSM pixel coordinates
-    int start_x = m_parent.m_current_view_center.x - kBgSize / 2;
-    int start_y = m_parent.m_current_view_center.y - kBgSize / 2;
-
-    uint16_t* bg = m_background.WritableData16();
-    etl::vector<hal::BlitOperation, 24> blit_ops;
-    for (int y = 0; y < kNumTilesY; ++y)
-    {
-        for (int x = 0; x < kNumTilesX; ++x)
-        {
-            int tile_x = (start_x / kTileSize) + x;
-            int tile_y = (start_y / kTileSize) + y;
-
-            int tile_pixel_x = tile_x * kTileSize;
-            int tile_pixel_y = tile_y * kTileSize;
-
-            int32_t dst_offset_x = tile_pixel_x - start_x;
-            int32_t dst_offset_y = tile_pixel_y - start_y;
-
-            auto tile = m_parent.m_tile_cache.GetTile(
-                ToTile(Point {tile_pixel_x, tile_pixel_y, m_parent.m_zoom}));
-
-            int32_t src_offset_x = 0;
-            int32_t src_offset_y = 0;
-            auto clipped_width = static_cast<int32_t>(tile.Width());
-            auto clipped_height = static_cast<int32_t>(tile.Height());
-
-            if (dst_offset_x < 0)
-            {
-                src_offset_x = -dst_offset_x;
-                clipped_width += dst_offset_x;
-                dst_offset_x = 0;
-            }
-            if (dst_offset_y < 0)
-            {
-                src_offset_y = -dst_offset_y;
-                clipped_height += dst_offset_y;
-                dst_offset_y = 0;
-            }
-
-            clipped_width = std::min(clipped_width, kBgSize - dst_offset_x);
-            clipped_height = std::min(clipped_height, kBgSize - dst_offset_y);
-
-            if (clipped_width <= 0 || clipped_height <= 0)
-            {
-                continue;
-            }
-
-            blit_ops.push_back(hal::BlitOperation {
-                .src_data = tile.Data16().data(),
-                .dst_data = bg,
-                .src_width = static_cast<int16_t>(tile.Width()),
-                .src_height = static_cast<int16_t>(tile.Height()),
-                .src_offset_x = static_cast<int16_t>(src_offset_x),
-                .src_offset_y = static_cast<int16_t>(src_offset_y),
-                .dst_offset_x = static_cast<int16_t>(dst_offset_x),
-                .dst_offset_y = static_cast<int16_t>(dst_offset_y),
-                .width = static_cast<int16_t>(clipped_width),
-                .height = static_cast<int16_t>(clipped_height),
-                .rotation = hal::Rotation::k0,
-            });
-        }
-
-        m_parent.m_parent.m_blitter.BlitOperations(
-            std::span<const hal::BlitOperation> {blit_ops.data(), blit_ops.size()});
     }
 }
