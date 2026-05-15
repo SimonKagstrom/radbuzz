@@ -352,6 +352,16 @@ MapScreen::Update()
         }
     }
 
+
+    if (m_rotation_enabled)
+    {
+        BlitToRotationBuffer();
+    }
+    else
+    {
+        PrepareNonRotatedBlits();
+    }
+
     // Calculate the center of the display
     int display_cx = kDisplayCenterX;
     int display_cy = kDisplayCenterY;
@@ -363,15 +373,6 @@ MapScreen::Update()
     lv_obj_set_pos(m_position_dot_obj,
                    dot_center_x - static_cast<int>(m_position_dot.Width()) / 2,
                    dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);
-
-    if (m_rotation_enabled)
-    {
-        BlitToRotationBuffer();
-    }
-    else
-    {
-        PrepareNonRotatedBlits();
-    }
 
     auto state_hash = ro.Get<AS::current_icon_hash>();
     auto navigation_active = ro.Get<AS::navigation_active>();

@@ -39,7 +39,7 @@ constexpr auto kInvalidTile = Tile {-1, -1, 0};
 
 struct Point
 {
-     int32_t x;
+    int32_t x;
     int32_t y;
     uint8_t zoom;
 };

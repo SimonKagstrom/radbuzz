@@ -78,31 +78,31 @@ constexpr auto kMipiDsiPhyPwrLdoChan = 3;
 constexpr auto kMipiDsiPhyPwrLdoVoltageMv = 2500;
 
 
-#define BSP_LCD_BACKLIGHT     (GPIO_NUM_26)
-#define BSP_LCD_RST           (GPIO_NUM_27)
-#define BSP_LCD_TOUCH_RST     (GPIO_NUM_23)
-#define BSP_LCD_TOUCH_INT     (GPIO_NUM_NC)
-#define BSP_LCD_PIXEL_CLOCK_MHZ     (80)
+#define BSP_LCD_BACKLIGHT       (GPIO_NUM_26)
+#define BSP_LCD_RST             (GPIO_NUM_27)
+#define BSP_LCD_TOUCH_RST       (GPIO_NUM_23)
+#define BSP_LCD_TOUCH_INT       (GPIO_NUM_NC)
+#define BSP_LCD_PIXEL_CLOCK_MHZ (80)
 
 /* LCD display color format */
 #if CONFIG_BSP_LCD_COLOR_FORMAT_RGB888
-#define BSP_LCD_COLOR_FORMAT        (ESP_LCD_COLOR_FORMAT_RGB888)
+#define BSP_LCD_COLOR_FORMAT (ESP_LCD_COLOR_FORMAT_RGB888)
 #else
-#define BSP_LCD_COLOR_FORMAT        (ESP_LCD_COLOR_FORMAT_RGB565)
+#define BSP_LCD_COLOR_FORMAT (ESP_LCD_COLOR_FORMAT_RGB565)
 #endif
 /* LCD display color bytes endianess */
-#define BSP_LCD_BIGENDIAN           (0)
+#define BSP_LCD_BIGENDIAN (0)
 /* LCD display color bits */
-#define BSP_LCD_BITS_PER_PIXEL      (16)
+#define BSP_LCD_BITS_PER_PIXEL (16)
 /* LCD display color space */
-#define BSP_LCD_COLOR_SPACE         (ESP_LCD_COLOR_SPACE_RGB)
+#define BSP_LCD_COLOR_SPACE (ESP_LCD_COLOR_SPACE_RGB)
 
-#define BSP_LCD_H_RES              (480)
-#define BSP_LCD_V_RES              (800)
+#define BSP_LCD_H_RES                      (480)
+#define BSP_LCD_V_RES                      (800)
 #define BSP_LCD_MIPI_DSI_LANE_BITRATE_MBPS (1000)
 
-#define BSP_LCD_MIPI_DSI_LANE_NUM          (2)    // 2 data lanes
-#define BSP_MIPI_DSI_PHY_PWR_LDO_CHAN       (3)  // LDO_VO3 is connected to VDD_MIPI_DPHY
+#define BSP_LCD_MIPI_DSI_LANE_NUM           (2) // 2 data lanes
+#define BSP_MIPI_DSI_PHY_PWR_LDO_CHAN       (3) // LDO_VO3 is connected to VDD_MIPI_DPHY
 #define BSP_MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV (2500)
 
 // Bit number used to represent command and parameter
@@ -329,12 +329,12 @@ app_main(void)
     ApplicationState application_state;
 
     gpio_config_t io_conf = {};
-//
-//    io_conf.mode = GPIO_MODE_OUTPUT;
-//    io_conf.pin_bit_mask = (1ull << kTftBacklight) | (1ull << kPinLeftBuzzer) |
-//                           (1ull << kPinRightBuzzer) | (1ull << kPinStepperSleepGpio) |
-//                           (1ull << kPinStepperDirGpio);
-//    gpio_config(&io_conf);
+    //
+    //    io_conf.mode = GPIO_MODE_OUTPUT;
+    //    io_conf.pin_bit_mask = (1ull << kTftBacklight) | (1ull << kPinLeftBuzzer) |
+    //                           (1ull << kPinRightBuzzer) | (1ull << kPinStepperSleepGpio) |
+    //                           (1ull << kPinStepperDirGpio);
+    //    gpio_config(&io_conf);
 
     io_conf = {};
     io_conf.mode = GPIO_MODE_INPUT;
@@ -492,12 +492,12 @@ app_main(void)
     auto pin_a = std::make_unique<TargetGpio>(kRotaryEncoderPinA);
     auto pin_b = std::make_unique<TargetGpio>(kRotaryEncoderPinB);
 
-//    auto stepper_motor =
-//        std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
-//
+    //    auto stepper_motor =
+    //        std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
+    //
     auto nvm = std::make_unique<NvmTarget>();
 
-//    stepper_motor->Start();
+    //    stepper_motor->Start();
 
     auto touch = std::make_unique<TouchEsp32>(tp);
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
@@ -510,8 +510,8 @@ app_main(void)
     // Threads
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto storage = std::make_unique<Storage>(application_state, *nvm);
-  //  auto buzz_handler =
-  //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
+    //  auto buzz_handler =
+    //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     //auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_server = std::make_unique<BleServerHost>();
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
@@ -524,9 +524,9 @@ app_main(void)
 
     auto trip_computer = std::make_unique<TripComputer>(application_state);
 
-//    constexpr auto kFullRotation = 2400;
-//    auto speedometer_handler =
-//        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
+    //    constexpr auto kFullRotation = 2400;
+    //    auto speedometer_handler =
+    //        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
 
     auto user_interface = std::make_unique<UserInterface>(*display,
                                                           *blitter,
@@ -540,7 +540,7 @@ app_main(void)
     storage->Start("storage");
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
-  //  buzz_handler->Start("buzz_handler", 8192);
+    //  buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
