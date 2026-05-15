@@ -271,7 +271,7 @@ CreateDisplay()
     bus_config.num_data_lanes = BSP_LCD_MIPI_DSI_LANE_NUM;
     // Below esp32p4 v3
     bus_config.phy_clk_src = MIPI_DSI_PHY_PLLREF_CLK_SRC_DEFAULT_LEGACY;
-    bus_config.lane_bit_rate_mbps = BSP_LCD_MIPI_DSI_LANE_BITRATE_MBPS;
+    bus_config.lane_bit_rate_mbps = 1000;
     bus_config.flags.clock_lane_force_hs = false;
 
     ESP_ERROR_CHECK(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus));
@@ -284,7 +284,7 @@ CreateDisplay()
     static esp_lcd_dpi_panel_config_t dpi_config {};
     dpi_config.virtual_channel = 0;
     dpi_config.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
-    dpi_config.dpi_clock_freq_mhz = 30;
+    dpi_config.dpi_clock_freq_mhz = 36;
     dpi_config.in_color_format = LCD_COLOR_FMT_RGB565;
     dpi_config.out_color_format = LCD_COLOR_FMT_RGB565;
     dpi_config.num_fbs = 2;
