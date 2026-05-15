@@ -34,6 +34,11 @@ SpeedometerHandler::OnActivation()
         // Configuration not valid yet
         return std::nullopt;
     }
+    if (conf->speedometer_type == SpeedometerType::kDigital)
+    {
+        // Digital-only speedometer, so just ignore
+        return std::nullopt;
+    }
 
     const int32_t target_speed = std::min(ro.Get<AS::speed>(), conf->max_speed);
     const auto target_position =

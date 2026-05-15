@@ -107,7 +107,7 @@ MapScreen::MapScreen(UserInterface& parent,
             auto* layer = lv_event_get_layer(e);
             auto* dst_data = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
 
-            if (self->m_rotation == 0)
+            if (self->m_rotation_enabled == false)
             {
                 for (auto& op : self->m_blit_ops)
                 {
@@ -333,6 +333,8 @@ MapScreen::Update()
     const bool follow_mode =
         m_touch_timer->IsExpired() && (m_zoom == kDefaultZoom) && conf->rotate_map;
 
+    m_rotation_enabled = conf->rotate_map;
+
     m_rotation_pivot_x = kDisplayCenterX;
     m_rotation_pivot_y = kDisplayCenterY;
     m_rotation = 0;
@@ -362,7 +364,7 @@ MapScreen::Update()
                    dot_center_x - static_cast<int>(m_position_dot.Width()) / 2,
                    dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);
 
-    if (conf->rotate_map && m_rotation != 0)
+    if (m_rotation_enabled)
     {
         BlitToRotationBuffer();
     }

@@ -79,4 +79,6 @@ private:
 
     hal::BlitOperation m_copy_blit_op;
     etl::vector<hal::BlitOperation, kMaxNumTilesX * kMaxNumTilesY> m_blit_ops;
+
+    bool m_rotation_enabled {false};
 };
