@@ -9,7 +9,7 @@ constexpr auto kBatteryAmpHoursKey = "A";
 constexpr auto kWhPerKmForRangeEstimationKey = "R";
 constexpr auto kSpeedometerTypeKey = "S";
 constexpr auto kMaxWattsKey = "P";
-constexpr auto kRotateMapKey = "R";
+constexpr auto kRotateMapKey = "r";
 
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
