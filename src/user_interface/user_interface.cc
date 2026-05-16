@@ -131,7 +131,36 @@ UserInterface::OnStartup()
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
 
+    m_trip_start_initial_timer = StartTimer(50ms, [this]() {
+        std::optional<milliseconds> out = 100ms;
+
+        auto ro = m_state.CheckoutReadonly();
+        auto trip_valid = ro.Get<AS::distance_traveled>() > 0 || ro.Get<AS::wh_consumed>() > 0 ||
+                          ro.Get<AS::wh_regenerated>() > 0;
+
+        // Reset the trip when the first stats come in
+        if (trip_valid)
+        {
+            ResetTrip();
+            out = std::nullopt;
+        }
+
+        return out;
+    });
+
     ActivateScreen(*m_map_screen);
+}
+
+void
+UserInterface::ResetTrip()
+{
+    auto ro = m_state.CheckoutReadonly();
+
+    m_current_trip_start = {
+        ro.Get<AS::distance_traveled>(),
+        ro.Get<AS::wh_consumed>(),
+        ro.Get<AS::wh_regenerated>(),
+    };
 }
 
 std::optional<milliseconds>

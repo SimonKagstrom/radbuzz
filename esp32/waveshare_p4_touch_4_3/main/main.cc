@@ -537,6 +537,8 @@ app_main(void)
                                                           *tile_cache);
 
 
+    application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+
     storage->Start("storage");
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);

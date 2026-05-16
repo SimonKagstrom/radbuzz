@@ -115,6 +115,8 @@ TripMeterScreen::Update()
     auto ro = m_parent.m_state.CheckoutReadonly();
     const int side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
+    auto trip_start = m_parent.m_current_trip_start;
+
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
     {
@@ -127,16 +129,18 @@ TripMeterScreen::Update()
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
             break;
         case StatValueKind::kConsumedWh:
-            value_text = std::format("{}", ro.Get<AS::wh_consumed>());
+            value_text =
+                std::format("{}", ro.Get<AS::wh_consumed>() - trip_start.start_wh_consumed);
             break;
         case StatValueKind::kRegeneratedWh:
-            value_text = std::format("{}", ro.Get<AS::wh_regenerated>());
+            value_text =
+                std::format("{}", ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated);
             break;
         case StatValueKind::kTripMaxSpeed:
             value_text = std::format("{}", ro.Get<AS::max_speed>());
             break;
         case StatValueKind::kTripDistance: {
-            auto distance_m = ro.Get<AS::distance_traveled>();
+            auto distance_m = ro.Get<AS::distance_traveled>() - trip_start.start_distance;
 
             if (distance_m >= 1000)
             {

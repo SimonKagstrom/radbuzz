@@ -85,7 +85,10 @@ SettingsMenuScreen::OnActivation()
                 .GetWritableReference<AS::configuration>()
                 .rotate_map = value;
         });
-    main.AddEntry("Reset trip", []() { printf("Resetting trip, but NYI\n"); });
+    main.AddEntry("Reset trip", [this]() {
+        m_parent.ResetTrip();
+        m_menu_screen->ExitMenu();
+    });
     main.AddSeparator();
     main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
         m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(value);

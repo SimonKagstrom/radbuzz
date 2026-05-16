@@ -73,9 +73,17 @@ public:
                   TileCache& tile_cache);
 
 private:
+    struct CurrentTrip
+    {
+        uint32_t start_distance {0};
+        uint32_t start_wh_consumed {0};
+        uint32_t start_wh_regenerated {0};
+    };
+
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
+    void ResetTrip();
 
     void ActivateScreen(ScreenBase& screen)
     {
@@ -101,6 +109,8 @@ private:
 
     ApplicationState::PartialReadOnlyCache<AS::position> m_state_cache;
 
+    CurrentTrip m_current_trip_start;
+
     lv_display_t* m_lvgl_display {nullptr};
     uint32_t m_next_redraw_time {0};
 
@@ -115,6 +125,7 @@ private:
     std::unique_ptr<ListenerCookie> m_cache_listener;
     std::unique_ptr<ListenerCookie> m_input_listener;
 
+    os::TimerHandle m_trip_start_initial_timer;
     os::TimerHandle m_menu_destructor;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
