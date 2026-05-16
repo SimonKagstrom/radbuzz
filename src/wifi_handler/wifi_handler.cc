@@ -20,7 +20,9 @@ WifiHandler::OnStartup()
     WifiSsidData parsed_ssid_data {};
     if (ssid_data)
     {
-        std::stringstream ssid_stream(reinterpret_cast<const char*>(ssid_data->data()));
+        const std::string ssid_text(reinterpret_cast<const char*>(ssid_data->data()),
+                                    ssid_data->size());
+        std::stringstream ssid_stream(ssid_text);
 
         while (true)
         {
