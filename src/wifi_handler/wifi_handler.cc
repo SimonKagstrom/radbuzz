@@ -41,13 +41,31 @@ WifiHandler::OnStartup()
             parsed_ssid_data.networks.push_back({ssid, password});
         }
     }
+
     auto conf = m_state.CheckoutReadonly().Get<AS::configuration>();
     if (!std::ranges::equal(parsed_ssid_data.networks, conf->wifi_ssid_data.networks))
     {
         // Update the configuration with the new SSID data (invalidate conf)
         conf = nullptr;
         auto ps = m_state.CheckoutPartialSnapshot<AS::configuration>();
-        ps.GetWritableReference<AS::configuration>().wifi_ssid_data = parsed_ssid_data;
+        auto& conf = ps.GetWritableReference<AS::configuration>();
+
+        for (auto& [ssid, password] : parsed_ssid_data.networks)
+        {
+            auto it = std::ranges::find_if(conf.wifi_ssid_data.networks, [&](const auto& network) {
+                return network.ssid == ssid;
+            });
+            if (it != conf.wifi_ssid_data.networks.end())
+            {
+                // Update password (if changed)
+                it->password = password;
+            }
+            else
+            {
+                // Add new
+                conf.wifi_ssid_data.networks.push_back({ssid, password});
+            }
+        }
     }
 
     m_wifi_listener = m_wifi_client.AttachListener([this](auto event) {
