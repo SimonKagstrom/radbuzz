@@ -52,7 +52,7 @@ WifiHandler::OnStartup()
 
         for (auto& [ssid, password] : parsed_ssid_data.networks)
         {
-            auto it = std::ranges::find_if(conf.wifi_ssid_data.networks, [&](const auto& network) {
+            auto it = std::ranges::find_if(conf.wifi_ssid_data.networks, [ssid](const auto& network) {
                 return network.ssid == ssid;
             });
             if (it != conf.wifi_ssid_data.networks.end())
