@@ -128,6 +128,11 @@ Storage::OnActivation()
 {
     auto& co = m_state_cache.Pull();
 
+    if (co.IsChanged<AS::configuration>())
+    {
+        printf("Configuration changed, writing to NVM...\n");
+    }
+
     co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
         if (old_conf.max_speed != new_conf.max_speed)
         {
