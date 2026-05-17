@@ -17,6 +17,8 @@ WifiClientEsp32::WifiClientEsp32()
     esp_netif_create_default_wifi_sta();
 
     ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
         WIFI_EVENT, ESP_EVENT_ANY_ID, &EventHandler, static_cast<void*>(this), &m_event_data));
@@ -58,10 +60,8 @@ WifiClientEsp32::Connect(const char* ssid, const char* password)
     sta_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     sta_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_HUNT_AND_PECK;
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
-
-    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
 void
@@ -90,7 +90,7 @@ WifiClientEsp32::EventHandler(void* arg,
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
-        esp_wifi_connect();
+        // Connect() explicitly initiates association after setting credentials.
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
