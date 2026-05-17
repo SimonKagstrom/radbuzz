@@ -30,6 +30,8 @@
 
 #include <driver/ledc.h>
 #include <driver/sdmmc_host.h>
+#include <esp_app_format.h>
+#include <esp_hosted.h>
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_st7701.h>
@@ -76,6 +78,9 @@ constexpr auto kMipiDpiPxFormat = LCD_COLOR_FMT_RGB565;
 
 constexpr auto kMipiDsiPhyPwrLdoChan = 3;
 constexpr auto kMipiDsiPhyPwrLdoVoltageMv = 2500;
+
+constexpr const char* kC6FwPartitionLabel = "c6fw";
+constexpr size_t kSlaveOtaChunkSize = 1500;
 
 
 #define BSP_LCD_BACKLIGHT       (GPIO_NUM_26)
@@ -253,6 +258,200 @@ constexpr st7701_lcd_init_cmd_t lcd_init_cmds[] = {
     {0x29, (uint8_t[]) {0x00}, 0, 0},
 };
 
+struct PartitionFirmwareInfo
+{
+    size_t image_size {0};
+};
+
+esp_err_t
+CheckPartitionHasData(const esp_partition_t* partition)
+{
+    uint8_t probe[256] {};
+    size_t offset = 0;
+
+    while (offset < 1024 && offset < partition->size)
+    {
+        const size_t remain_probe = static_cast<size_t>(1024) - offset;
+        const size_t remain_part = static_cast<size_t>(partition->size) - offset;
+        const size_t remain = remain_probe < remain_part ? remain_probe : remain_part;
+        const size_t read_len = sizeof(probe) < remain ? sizeof(probe) : remain;
+        const auto ret = esp_partition_read(partition, offset, probe, read_len);
+        if (ret != ESP_OK)
+        {
+            return ret;
+        }
+
+        const bool all_ff = std::all_of(std::begin(probe),
+                                        std::begin(probe) + static_cast<std::ptrdiff_t>(read_len),
+                                        [](uint8_t b) { return b == 0xFF; });
+        if (!all_ff)
+        {
+            return ESP_OK;
+        }
+
+        offset += read_len;
+    }
+
+    return ESP_ERR_NOT_FOUND;
+}
+
+esp_err_t
+ParseFirmwareInfoFromPartition(const esp_partition_t* partition, PartitionFirmwareInfo& info)
+{
+    esp_image_header_t image_header {};
+    auto ret = esp_partition_read(partition, 0, &image_header, sizeof(image_header));
+    if (ret != ESP_OK)
+    {
+        return ret;
+    }
+    if (image_header.magic != ESP_IMAGE_HEADER_MAGIC)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    size_t offset = sizeof(image_header);
+    size_t total_size = sizeof(image_header);
+
+    for (int i = 0; i < image_header.segment_count; ++i)
+    {
+        esp_image_segment_header_t segment_header {};
+        ret = esp_partition_read(partition, offset, &segment_header, sizeof(segment_header));
+        if (ret != ESP_OK)
+        {
+            return ret;
+        }
+
+        total_size += sizeof(segment_header) + segment_header.data_len;
+        offset += sizeof(segment_header) + segment_header.data_len;
+    }
+
+    total_size += (16 - (total_size % 16)) % 16; // image alignment
+    total_size += 1;                             // checksum byte
+    if (image_header.hash_appended == 1)
+    {
+        total_size += (16 - (total_size % 16)) % 16;
+        total_size += 32; // SHA256
+    }
+
+    if (total_size > partition->size)
+    {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    info.image_size = total_size;
+    return ESP_OK;
+}
+
+bool
+PerformC6SlaveOtaFromPartition()
+{
+    const auto* partition = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, kC6FwPartitionLabel);
+    if (partition == nullptr)
+    {
+        printf("C6 OTA: partition '%s' not found\n", kC6FwPartitionLabel);
+        return false;
+    }
+
+    auto ret = CheckPartitionHasData(partition);
+    if (ret != ESP_OK)
+    {
+        printf("C6 OTA: partition '%s' is empty or unreadable (%s)\n",
+               kC6FwPartitionLabel,
+               esp_err_to_name(ret));
+        return false;
+    }
+
+    PartitionFirmwareInfo fw_info {};
+    ret = ParseFirmwareInfoFromPartition(partition, fw_info);
+    if (ret != ESP_OK)
+    {
+        printf("C6 OTA: invalid firmware in partition '%s' (%s)\n",
+               kC6FwPartitionLabel,
+               esp_err_to_name(ret));
+        return false;
+    }
+
+    esp_hosted_coprocessor_fwver_t current_fw {};
+    const int fwver_ret = esp_hosted_get_coprocessor_fwversion(&current_fw);
+    if (fwver_ret != ESP_OK)
+    {
+        printf("C6 OTA: failed to read current C6 fw version (%s)\n", esp_err_to_name(fwver_ret));
+    }
+
+    if (current_fw.major1 == ESP_HOSTED_VERSION_MAJOR_1 &&
+        current_fw.minor1 == ESP_HOSTED_VERSION_MINOR_1 &&
+        current_fw.patch1 == ESP_HOSTED_VERSION_PATCH_1)
+    {
+        printf("C6 OTA: already up to date (%lu.%lu.%lu)\n",
+               current_fw.major1,
+               current_fw.minor1,
+               current_fw.patch1);
+        return false;
+    }
+
+    printf("C6 OTA: update required current=%lu.%lu.%lu target=%u.%u.%u\n",
+           current_fw.major1,
+           current_fw.minor1,
+           current_fw.patch1,
+           ESP_HOSTED_VERSION_MAJOR_1,
+           ESP_HOSTED_VERSION_MINOR_1,
+           ESP_HOSTED_VERSION_PATCH_1);
+
+    ret = esp_hosted_slave_ota_begin();
+    if (ret != ESP_OK)
+    {
+        printf("C6 OTA: begin failed: %s\n", esp_err_to_name(ret));
+        return false;
+    }
+
+    static std::array<uint8_t, kSlaveOtaChunkSize> chunk {};
+    size_t offset = 0;
+    while (offset < fw_info.image_size)
+    {
+        const size_t remaining = fw_info.image_size - offset;
+        const size_t chunk_len = chunk.size() < remaining ? chunk.size() : remaining;
+        ret = esp_partition_read(partition, offset, chunk.data(), chunk_len);
+        if (ret != ESP_OK)
+        {
+            printf("C6 OTA: partition read failed at %u: %s\n",
+                   static_cast<unsigned int>(offset),
+                   esp_err_to_name(ret));
+            esp_hosted_slave_ota_end();
+            return false;
+        }
+
+        ret = esp_hosted_slave_ota_write(chunk.data(), chunk_len);
+        if (ret != ESP_OK)
+        {
+            printf("C6 OTA: write failed at %u: %s\n",
+                   static_cast<unsigned int>(offset),
+                   esp_err_to_name(ret));
+            esp_hosted_slave_ota_end();
+            return false;
+        }
+
+        offset += chunk_len;
+    }
+
+    ret = esp_hosted_slave_ota_end();
+    if (ret != ESP_OK)
+    {
+        printf("C6 OTA: end failed: %s\n", esp_err_to_name(ret));
+        return false;
+    }
+
+    ret = esp_hosted_slave_ota_activate();
+    if (ret != ESP_OK)
+    {
+        printf("C6 OTA: activate failed: %s\n", esp_err_to_name(ret));
+        return false;
+    }
+
+    printf("C6 OTA: update completed and activated\n");
+    return true;
+}
+
 
 auto
 CreateDisplay()
@@ -354,6 +553,13 @@ app_main(void)
 
     // Create before SD card (see below)
     auto wifi_client = std::make_unique<WifiClientEsp32>();
+
+    if (PerformC6SlaveOtaFromPartition())
+    {
+        // Allow remote coprocessor reboot to settle, then restart host to resync transport.
+        os::Sleep(2s);
+        esp_restart();
+    }
 
     sdmmc_host_t sd_mmc_host_config = SDMMC_HOST_DEFAULT();
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
