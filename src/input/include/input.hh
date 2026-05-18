@@ -20,13 +20,13 @@ private:
 
     hal::ITouch& m_touch;
 
+    etl::queue_spsc_atomic<bool, 4> m_button_queue;
+    etl::queue_spsc_atomic<RotaryEncoder::Direction, 4> m_encoder_queue;
+
     std::function<void(Event)> m_on_event {[](auto) { /* NOP */ }};
     std::unique_ptr<ListenerCookie> m_button_listener_cookie;
     std::unique_ptr<ListenerCookie> m_rotary_listener_cookie;
     std::unique_ptr<ListenerCookie> m_touch_listener_cookie;
 
     std::optional<milliseconds> m_poll_interval {std::nullopt};
-
-    etl::queue_spsc_atomic<bool, 4> m_button_queue;
-    etl::queue_spsc_atomic<RotaryEncoder::Direction, 4> m_encoder_queue;
 };

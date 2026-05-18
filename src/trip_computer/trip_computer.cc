@@ -117,5 +117,5 @@ TripComputer::UpdateSoc(uint16_t millivolts)
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
-    return 1s;
+    return std::nullopt;
 }
