@@ -6,12 +6,25 @@
 namespace
 {
 
+struct PendingData
+{
+    uint32_t magic;
+
+    struct TileData
+    {
+        int32_t x;
+        int32_t y;
+        int32_t zoom;
+    } tiles[];
+};
+
 constexpr auto kCityTileFactor = 30;
 constexpr auto kCityTileFactorZoomedOut = 15;
 constexpr auto kLandscapeTileFactorZoomedOut = 5;
 
 constexpr auto kPendingCityTilesFileName = "pending.bin";
-constexpr int32_t kPendingTileMagic = 0x43697479;
+// Bump when format changed
+constexpr int32_t kPendingTileMagic = 0x43697480;
 
 inline auto
 ToCityTile(const Point& point)
@@ -100,30 +113,37 @@ TileCache::TileCache(ApplicationState& application_state,
 void
 TileCache::OnStartup()
 {
-    return;
     for (auto zoom : {kDefaultZoom, kCityZoom})
     {
         auto pending_city_tile_data =
             m_filesystem.ReadFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName));
 
-        if (pending_city_tile_data && (pending_city_tile_data->size() - 4) % (3 * sizeof(int32_t)) == 0)
+        if (!pending_city_tile_data || pending_city_tile_data->size() < sizeof(PendingData::magic))
         {
-            auto *ptr = reinterpret_cast<const int32_t*>(pending_city_tile_data->data());
-            auto magic = *ptr;
-            auto count = (pending_city_tile_data->size() - 4) / sizeof(int32_t);
-            ptr++;
+            continue;
+        }
 
-            if (magic != kPendingTileMagic)
+        auto size = pending_city_tile_data->size() - sizeof(PendingData::magic);
+        if (pending_city_tile_data && (size % (sizeof(PendingData::TileData)) == 0))
+        {
+            auto* data = reinterpret_cast<const PendingData*>(pending_city_tile_data->data());
+            auto count = size / sizeof(PendingData::TileData);
+
+            if (data->magic != kPendingTileMagic)
             {
                 printf("Invalid pending city tile file for zoom %d\n", zoom);
                 continue;
             }
-            for (auto i = 0u; i < count; i += 3)
+            for (auto i = 0u; i < count; i++)
             {
-                uint8_t tile_zoom = static_cast<uint8_t>(ptr[i + 2] & 0xff);
-                printf("  %d,%d,%d\n", ptr[i], ptr[i + 1], tile_zoom);
-                m_pending_city_tiles_by_zoom[tile_zoom].insert(
-                    Tile {ptr[i], ptr[i + 1], tile_zoom});
+                if (data->tiles[i].zoom != zoom)
+                {
+                    printf("Invalid tile zoom in pending city tile file for zoom %d\n", zoom);
+                    continue;
+                }
+
+                m_pending_city_tiles_by_zoom[zoom].insert(
+                    Tile {data->tiles[i].x, data->tiles[i].y, static_cast<uint8_t>(zoom)});
             }
         }
 
