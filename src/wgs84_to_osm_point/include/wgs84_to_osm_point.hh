@@ -3,6 +3,7 @@
 #include "hal/i_gps.hh"
 
 #include <cstdint>
+#include <etl/unordered_set.h>
 #include <optional>
 #include <unordered_map>
 
@@ -26,14 +27,41 @@ struct hash<Tile>
 {
     std::size_t operator()(const Tile& t) const noexcept
     {
-        auto h1 = std::hash<int32_t> {}(t.x);
-        auto h2 = std::hash<int32_t> {}(t.y);
-        auto h3 = std::hash<uint8_t> {}(t.zoom);
-        return h1 ^ (h2 << 1) ^ (h3 << 2);
+        const uint32_t x = static_cast<uint32_t>(t.x);
+        const uint32_t y = static_cast<uint32_t>(t.y);
+
+        // Optimized for 32-bit size_t targets (ESP32): MurmurHash3 finalizer with zoom in low 4 bits.
+        uint32_t h = 0x811C9DC5u;
+        h ^= x * 0x85EBCA6Bu;
+        h = (h << 13) | (h >> 19);
+        h ^= y * 0xC2B2AE35u;
+        h ^= h >> 16;
+        h *= 0x85EBCA6Bu;
+        h ^= h >> 13;
+        h *= 0xC2B2AE35u;
+        h ^= h >> 16;
+
+        // Reserve low 4 bits for zoom (10..15 in practice).
+        h = (h & ~uint32_t {0x0F}) | (static_cast<uint32_t>(t.zoom) & 0x0F);
+        return static_cast<std::size_t>(h);
     }
 };
 
 } // namespace std
+
+namespace etl
+{
+
+template <>
+struct hash<Tile>
+{
+    std::size_t operator()(const Tile& t) const noexcept
+    {
+        return std::hash<Tile> {}(t);
+    }
+};
+
+} // namespace etl
 
 constexpr auto kInvalidTile = Tile {-1, -1, 0};
 
