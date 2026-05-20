@@ -12,6 +12,7 @@
 #include <atomic>
 #include <deque>
 #include <etl/queue_spsc_atomic.h>
+#include <etl/unordered_set.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -68,7 +69,7 @@ public:
               Filesystem& filesystem,
               HttpdClient& httpd_client);
 
-    // Context: Another thread
+    // Context: Another thread (the user interface)
     const Image& GetTile(const Tile& at);
 
 private:
@@ -82,6 +83,11 @@ private:
     uint8_t EvictTile();
 
     bool DecodePng(std::span<const std::byte> png_data, TileImage& out);
+
+    uint32_t TileId(const Tile &t) const
+    {
+        return std::hash<Tile> {}(t);
+    }
 
     // helpers
     ApplicationState::ReadOnly AppState() const
@@ -105,14 +111,17 @@ private:
 
     SingleColorImage m_black_tile {kTileSize, kTileSize, 2, 0x0000}; // Black tile
 
-    std::array<Tile, kTileCacheSize> m_tiles;
     std::array<TileImage, kTileCacheSize> m_image_cache;
+    std::array<uint32_t, kTileCacheSize> m_tiles;
 
     etl::queue_spsc_atomic<Tile, kTileCacheSize> m_get_from_coldstore;
     std::vector<Tile> m_get_from_server;
     std::vector<Tile> m_get_from_server_background;
     std::vector<Tile> m_reload_tiles_from_server;
     Tile m_current_city_tile {kInvalidTile};
+
+    // Context: Used by the user interface thread
+    etl::unordered_set<uint32_t, kTileCacheSize> m_pending_tiles;
 
     std::unordered_map<uint8_t, std::unordered_set<Tile>> m_pending_city_tiles_by_zoom;
 };

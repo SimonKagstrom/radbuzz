@@ -107,7 +107,7 @@ TileCache::TileCache(ApplicationState& application_state,
     , m_state_listener(m_application_state.AttachListener<AS::pixel_position>(GetSemaphore()))
     , m_pixel_state_cache(m_application_state)
 {
-    std::ranges::fill(m_tiles, kInvalidTile);
+    std::ranges::fill(m_tiles, 0);
 }
 
 void
@@ -245,7 +245,8 @@ TileCache::FillFromColdStore()
 
     while (m_get_from_coldstore.pop(t))
     {
-        auto cached = std::ranges::find(m_tiles, t);
+        auto tile_id = TileId(t);
+        auto cached = std::ranges::find(m_tiles, tile_id);
         if (cached != m_tiles.end())
         {
             // Already cached
@@ -264,11 +265,11 @@ TileCache::FillFromColdStore()
             if (DecodePng(*data, m_image_cache[index]))
             {
                 // Successfully decoded, otherwise the evicted tile remains evicted
-                m_tiles[index] = t;
+                m_tiles[index] = tile_id;
             }
             else
             {
-                m_tiles[index] = kInvalidTile;
+                m_tiles[index] = 0;
                 m_image_cache[index].SetUseCount(0);
 
                 // Reload it from the server
@@ -452,20 +453,31 @@ TileCache::EvictTile()
 const Image&
 TileCache::GetTile(const Tile& at)
 {
-    auto cached = std::ranges::find(m_tiles, at);
+    auto id = TileId(at);
+    auto cached = std::ranges::find(m_tiles, id);
 
     if (cached != m_tiles.end())
     {
         auto& tile = m_image_cache[cached - m_tiles.begin()];
 
         tile.BumpUseCount();
+        m_pending_tiles.erase(id);
 
         return tile;
     }
-    else
+    else if (m_pending_tiles.find(id) == m_pending_tiles.end())
     {
-        m_get_from_coldstore.push(at);
-        Awake();
+        if (m_pending_tiles.insert(id).second)
+        {
+            if (m_get_from_coldstore.push(at))
+            {
+                Awake();
+            }
+            else
+            {
+                m_pending_tiles.erase(id);
+            }
+        }
     }
 
     return m_black_tile;
