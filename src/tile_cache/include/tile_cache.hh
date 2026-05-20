@@ -114,14 +114,11 @@ private:
     std::array<TileImage, kTileCacheSize> m_image_cache;
     std::array<uint32_t, kTileCacheSize> m_tiles;
 
-    etl::queue_spsc_atomic<Tile, kTileCacheSize> m_get_from_coldstore;
+    etl::queue_spsc_atomic<Tile, 8> m_get_from_coldstore;
     std::vector<Tile> m_get_from_server;
     std::vector<Tile> m_get_from_server_background;
     std::vector<Tile> m_reload_tiles_from_server;
     Tile m_current_city_tile {kInvalidTile};
-
-    // Context: Used by the user interface thread
-    etl::unordered_set<uint32_t, kTileCacheSize> m_pending_tiles;
 
     std::unordered_map<uint8_t, std::unordered_set<Tile>> m_pending_city_tiles_by_zoom;
 };

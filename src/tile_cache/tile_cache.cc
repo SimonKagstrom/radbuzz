@@ -461,22 +461,14 @@ TileCache::GetTile(const Tile& at)
         auto& tile = m_image_cache[cached - m_tiles.begin()];
 
         tile.BumpUseCount();
-        m_pending_tiles.erase(id);
 
         return tile;
     }
-    else if (m_pending_tiles.find(id) == m_pending_tiles.end())
+    else
     {
-        if (m_pending_tiles.insert(id).second)
+        if (m_get_from_coldstore.push(at))
         {
-            if (m_get_from_coldstore.push(at))
-            {
-                Awake();
-            }
-            else
-            {
-                m_pending_tiles.erase(id);
-            }
+            Awake();
         }
     }
 
