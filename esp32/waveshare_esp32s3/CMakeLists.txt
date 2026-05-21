@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.21)
 
+set(CCACHE_ENABLE ON CACHE BOOL "Enable ccache for ESP-IDF builds" FORCE)
+
 include_directories(../lvgl_setup)
 add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 

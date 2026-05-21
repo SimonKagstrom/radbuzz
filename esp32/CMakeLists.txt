@@ -1,6 +1,3 @@
-set(CCACHE_ENABLE 1)
-set(ENV{CCACHE_ENABLE} ${CCACHE_ENABLE})
-
 add_compile_options(-Wdouble-promotion)
 
 add_subdirectory(ble_server_esp32)
