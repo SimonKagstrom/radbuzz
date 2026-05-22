@@ -106,6 +106,7 @@ TileCache::TileCache(ApplicationState& application_state,
     , m_httpd_client(httpd_client)
     , m_state_listener(m_application_state.AttachListener<AS::pixel_position>(GetSemaphore()))
     , m_pixel_state_cache(m_application_state)
+    , m_web_thread(std::make_unique<WebThread>(*this))
 {
     std::ranges::fill(m_tiles, 0);
 }
@@ -152,6 +153,8 @@ TileCache::OnStartup()
             RefreshCityTiles(city_tile);
         }
     }
+
+    m_web_thread->Start("web_tile_fetcher", 4096);
 }
 
 std::optional<milliseconds>
@@ -348,15 +351,7 @@ TileCache::FillFromServer()
             // Already got it, probably from being requested by the UI
             continue;
         }
-
-        printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
-        auto data = m_httpd_client.Get(GetTileUrl(t));
-
-        if (data)
-        {
-            m_filesystem.WriteFile(path, {data->data(), data->size()});
-        }
-        break;
+        m_web_thread->FetchTile(t);
     }
 
     while (!m_reload_tiles_from_server.empty())
@@ -370,29 +365,8 @@ TileCache::FillFromServer()
             continue;
         }
 
-        auto path = GetTilePath(t);
-
-        printf("TileCache: Need to reload tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
-        auto data = m_httpd_client.Get(GetTileUrl(t));
-
-        if (data)
-        {
-            m_filesystem.WriteFile(path, {data->data(), data->size()});
-        }
-        break;
+        m_web_thread->FetchTile(t);
     }
-}
-
-std::string
-TileCache::GetTileUrl(const Tile& t) const
-{
-    constexpr auto kOsmApiKey = OSM_API_KEY;
-
-    return std::format("https://tile.thunderforest.com/cycle/{}/{}/{}.png?apikey={}",
-                       t.zoom,
-                       t.x,
-                       t.y,
-                       kOsmApiKey);
 }
 
 std::string
@@ -473,4 +447,56 @@ TileCache::GetTile(const Tile& at)
     }
 
     return m_black_tile;
+}
+
+
+// The tile fetcher thread
+TileCache::WebThread::WebThread(TileCache& parent)
+    : m_parent(parent)
+{
+}
+
+void
+TileCache::WebThread::FetchTile(const Tile& t)
+{
+    if (m_in_queue.push(t))
+    {
+        Awake();
+    }
+}
+
+std::string
+TileCache::WebThread::GetTileUrl(const Tile& t) const
+{
+    constexpr auto kOsmApiKey = OSM_API_KEY;
+
+    return std::format("https://tile.thunderforest.com/cycle/{}/{}/{}.png?apikey={}",
+                       t.zoom,
+                       t.x,
+                       t.y,
+                       kOsmApiKey);
+}
+
+std::optional<milliseconds>
+TileCache::WebThread::OnActivation()
+{
+    Tile t;
+
+    while (m_in_queue.pop(t))
+    {
+        auto url = GetTileUrl(t);
+        auto path = m_parent.GetTilePath(t);
+        auto tmp_path = path + ".tmp";
+
+        printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
+        auto data = m_parent.m_httpd_client.Get(url);
+
+        if (data)
+        {
+            m_parent.m_filesystem.WriteFile(tmp_path, {data->data(), data->size()});
+            m_parent.m_filesystem.Move(tmp_path, path);
+        }
+    }
+
+    return std::nullopt;
 }

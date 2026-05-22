@@ -73,6 +73,24 @@ public:
     const Image& GetTile(const Tile& at);
 
 private:
+    class WebThread : public os::BaseThread
+    {
+    public:
+        WebThread(TileCache& parent);
+
+        ~WebThread() final = default;
+
+        void FetchTile(const Tile& t);
+
+    private:
+        std::string GetTileUrl(const Tile& t) const;
+
+        std::optional<milliseconds> OnActivation() final;
+
+        TileCache& m_parent;
+        etl::queue_spsc_atomic<Tile, 8> m_in_queue;
+    };
+
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
@@ -84,7 +102,7 @@ private:
 
     bool DecodePng(std::span<const std::byte> png_data, TileImage& out);
 
-    uint32_t TileId(const Tile &t) const
+    uint32_t TileId(const Tile& t) const
     {
         return std::hash<Tile> {}(t);
     }
@@ -94,8 +112,6 @@ private:
     {
         return m_application_state.CheckoutReadonly();
     }
-
-    std::string GetTileUrl(const Tile& t) const;
 
     std::string GetTilePath(const Tile& t) const;
 
@@ -121,4 +137,6 @@ private:
     Tile m_current_city_tile {kInvalidTile};
 
     std::unordered_map<uint8_t, std::unordered_set<Tile>> m_pending_city_tiles_by_zoom;
+
+    std::unique_ptr<WebThread> m_web_thread;
 };
