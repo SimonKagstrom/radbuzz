@@ -11,6 +11,12 @@ class Fixture : public ThreadFixture
 public:
     Fixture()
     {
+        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+        auto& ref = ps.GetWritableReference<AS::configuration>();
+
+        ref.speedometer_type = SpeedometerType::kAnalog;
+        ref.max_speed = 60;
+
         SetThread(&speedo);
     }
 
@@ -48,22 +54,21 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
 {
     auto rw = state.CheckoutReadWrite();
 
-    WHEN("non-speed-related application state changes")
+    WHEN("The digital-only speedometer is used")
     {
         auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
-
-        rw.Set<AS::battery_millivolts>(3000);
-        rw.Set<AS::controller_temperature>(45);
-        rw.Set<AS::next_street>("Tunavägen");
-        rw.Set<AS::distance_traveled>(100);
+        auto ps = state.CheckoutPartialSnapshot<AS::configuration>()
+                      .GetWritableReference<AS::configuration>()
+                      .speedometer_type = SpeedometerType::kDigital;
+        rw.Set<AS::speed>(17);
 
         auto ran = DoRunLoop();
 
-        THEN("the stepper motor is untouched")
+        THEN("the stepper motor is not moved")
         {
             r_no_step = nullptr;
 
-            REQUIRE_FALSE(ran);
+            REQUIRE(ran);
         }
     }
 
@@ -97,6 +102,25 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
             {
                 r_no_step = nullptr;
                 REQUIRE(ran);
+            }
+        }
+
+        WHEN("non-speed-related application state changes")
+        {
+            auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
+
+            rw.Set<AS::battery_millivolts>(3000);
+            rw.Set<AS::controller_temperature>(45);
+            rw.Set<AS::next_street>("Tunavägen");
+            rw.Set<AS::distance_traveled>(100);
+
+            auto ran = DoRunLoop();
+
+            THEN("the stepper motor is untouched")
+            {
+                r_no_step = nullptr;
+
+                REQUIRE_FALSE(ran);
             }
         }
     }
