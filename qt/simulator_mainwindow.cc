@@ -40,6 +40,7 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
 
     m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(m_ui->socSlider->value());
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
+        printf("Setting millivolts to %d\n", value);
         m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(value);
     });
 

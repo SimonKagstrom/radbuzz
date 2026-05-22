@@ -405,7 +405,7 @@ MapScreen::Update()
     {
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_3);
     }
-    else if (battery_soc > 50)
+    else if (battery_soc >= 40)
     {
         lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_2);
     }
