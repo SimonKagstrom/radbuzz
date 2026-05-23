@@ -80,6 +80,11 @@ private:
 
         ~WebThread() final = default;
 
+        bool CanFetchTile() const
+        {
+            return !m_in_queue.full();
+        }
+
         void FetchTile(const Tile& t);
 
     private:

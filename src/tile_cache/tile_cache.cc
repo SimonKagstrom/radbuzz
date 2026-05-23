@@ -323,7 +323,7 @@ TileCache::FillFromServer()
         return;
     }
 
-    while (!m_get_from_server.empty() || !m_get_from_server_background.empty())
+    while ((!m_get_from_server.empty() || !m_get_from_server_background.empty()) && m_web_thread->CanFetchTile())
     {
         Tile t;
 
@@ -354,18 +354,19 @@ TileCache::FillFromServer()
         m_web_thread->FetchTile(t);
     }
 
-    while (!m_reload_tiles_from_server.empty())
+    while (!m_reload_tiles_from_server.empty() && m_web_thread->CanFetchTile())
     {
         auto t = m_reload_tiles_from_server.back();
-        m_reload_tiles_from_server.pop_back();
 
         // Invalid tile
         if (t.x < 0 || t.y < 0)
         {
+            m_reload_tiles_from_server.pop_back();
             continue;
         }
 
         m_web_thread->FetchTile(t);
+        m_reload_tiles_from_server.pop_back();
     }
 }
 
