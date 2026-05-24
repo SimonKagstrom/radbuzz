@@ -292,6 +292,8 @@ app_main(void)
 
     ApplicationState application_state;
 
+    application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+
     gpio_config_t io_conf = {};
 
     io_conf.mode = GPIO_MODE_OUTPUT;
@@ -448,7 +450,7 @@ app_main(void)
 
     auto blitter = std::make_unique<BlitterEsp32>();
     auto pm = std::make_unique<PmEsp32>();
-    auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
+    //auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
     auto stepper_sleep_gpio =
         std::make_unique<TargetGpio>(kPinStepperSleepGpio, TargetGpio::Polarity::kActiveHigh);
     auto stepper_dir_gpio =
@@ -479,7 +481,7 @@ app_main(void)
     //auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_server = std::make_unique<BleServerHost>();
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
-    auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x6f);
+    //auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x6f);
 
     //auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
@@ -507,7 +509,7 @@ app_main(void)
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);
-    can_bus_handler->Start("can_bus_handler", 4096);
+    //can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);
     speedometer_handler->Start("speedometer_handler");
