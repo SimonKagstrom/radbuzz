@@ -130,11 +130,11 @@ TripMeterScreen::Update()
             break;
         case StatValueKind::kConsumedWh:
             value_text =
-                std::format("{}", ro.Get<AS::wh_consumed>() - trip_start.start_wh_consumed);
+                std::format("{:.1f}", ro.Get<AS::wh_consumed>() - trip_start.start_wh_consumed);
             break;
         case StatValueKind::kRegeneratedWh:
-            value_text =
-                std::format("{}", ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated);
+            value_text = std::format(
+                "{:.1f}", ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated);
             break;
         case StatValueKind::kTripMaxSpeed:
             value_text = std::format("{}", ro.Get<AS::max_speed>());
@@ -157,13 +157,10 @@ TripMeterScreen::Update()
         break;
         case StatValueKind::kTripAverageWhPerKm: {
             const uint32_t distance_traveled = ro.Get<AS::distance_traveled>();
-            const uint32_t wh_consumed = ro.Get<AS::wh_consumed>();
-            const uint64_t average_consumption =
-                distance_traveled > 0
-                    ? (static_cast<uint64_t>(wh_consumed) * 1000ULL) / distance_traveled
-                    : 0ULL;
-            value_text = std::format(
-                "{}", static_cast<uint32_t>(std::min<uint64_t>(average_consumption, 60ULL)));
+            const float wh_consumed = ro.Get<AS::wh_consumed>();
+            const float average_consumption =
+                distance_traveled > 0 ? (wh_consumed * 1000.0f) / distance_traveled : 0.0f;
+            value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
             break;
         }
         case StatValueKind::kValueCount:
@@ -190,15 +187,6 @@ TripMeterScreen::Update()
 
         ++row_index;
     }
-
-    //    const uint32_t distance_traveled = ro.Get<AS::distance_traveled>();
-    //    const uint32_t wh_consumed = ro.Get<AS::wh_consumed>();
-    //    const uint64_t average_consumption =
-    //        distance_traveled > 0 ? (static_cast<uint64_t>(wh_consumed) * 1000ULL) / distance_traveled
-    //                              : 0ULL;
-    //    const auto average_consumption_i32 =
-    //        static_cast<int32_t>(std::min<uint64_t>(average_consumption, 60ULL));
-    //    lv_bar_set_value(m_consumption_bar, average_consumption_i32, LV_ANIM_ON);
 }
 
 void

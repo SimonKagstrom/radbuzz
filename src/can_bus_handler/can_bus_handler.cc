@@ -93,8 +93,8 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         vesc_status_msg_3_t status;
         if (vesc_parse_status_msg_3(data, len, &status))
         {
-            qw.Set<AS::wh_consumed>(static_cast<uint32_t>(status.watt_hours));
-            qw.Set<AS::wh_regenerated>(static_cast<uint32_t>(status.watt_hours_charged));
+            qw.Set<AS::wh_consumed>(status.watt_hours);
+            qw.Set<AS::wh_regenerated>(status.watt_hours_charged);
         }
     }
     else if (command == CAN_PACKET_STATUS_4)
