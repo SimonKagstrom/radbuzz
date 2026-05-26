@@ -128,14 +128,33 @@ TripMeterScreen::Update()
         case StatValueKind::kSoc:
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
             break;
-        case StatValueKind::kConsumedWh:
-            value_text =
-                std::format("{:.1f}", ro.Get<AS::wh_consumed>() - trip_start.start_wh_consumed);
+        case StatValueKind::kConsumedWh: {
+            const auto consumed_wh = ro.Get<AS::wh_consumed>() - trip_start.start_wh_consumed;
+            if (consumed_wh >= 1000)
+            {
+                unit_text = "kWh";
+                value_text = std::format("{:.1f}", static_cast<float>(consumed_wh) / 1000.0f);
+            }
+            else
+            {
+                value_text = std::format("{}", consumed_wh);
+            }
             break;
-        case StatValueKind::kRegeneratedWh:
-            value_text = std::format(
-                "{:.1f}", ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated);
+        }
+        case StatValueKind::kRegeneratedWh: {
+            const auto regenerated_wh =
+                ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated;
+            if (regenerated_wh >= 1000)
+            {
+                unit_text = "kWh";
+                value_text = std::format("{:.1f}", static_cast<float>(regenerated_wh) / 1000.0f);
+            }
+            else
+            {
+                value_text = std::format("{}", regenerated_wh);
+            }
             break;
+        }
         case StatValueKind::kTripMaxSpeed:
             value_text = std::format("{}", ro.Get<AS::max_speed>());
             break;
