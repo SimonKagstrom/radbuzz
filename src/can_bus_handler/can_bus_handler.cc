@@ -127,11 +127,7 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         vesc_values_setup_t status;
         if (vesc_parse_get_values_setup(data, len, &status))
         {
-            printf("VESC#%d Setup Values: Speed: %.2f km/h. Odometer: %d. uptime: %d\n",
-                   controller_id,
-                   status.speed,
-                   status.odometer,
-                   status.system_time_ms);
+            // For now nothing
         }
     }
     else if (command == COMM_GET_VALUES_SETUP_SELECTIVE &&
