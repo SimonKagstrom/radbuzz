@@ -15,11 +15,6 @@
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
 {
-    if (m_zoom != kLandscapeZoom)
-    {
-        return;
-    }
-
     const int center_x =
         lv_obj_get_x(m_position_dot_obj) + static_cast<int>(m_position_dot.Width()) / 2;
     const int center_y =
@@ -78,24 +73,6 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
-
-    m_copy_blit_op = {
-        .src_data = m_background.WritableData16(),
-        .dst_data = nullptr, // Set on flush
-        .src_width = static_cast<int16_t>(kBgSize),
-        .src_height = static_cast<int16_t>(kBgSize),
-        .src_stride = static_cast<int16_t>(kBgSize),
-        .src_offset_x = static_cast<int16_t>((kBgSize - hal::kDisplayWidth) / 2),
-        .src_offset_y = static_cast<int16_t>((kBgSize - hal::kDisplayHeight) / 2),
-        .dst_stride = static_cast<int16_t>(hal::kDisplayWidth),
-        .dst_height = static_cast<int16_t>(hal::kDisplayHeight),
-        .dst_offset_x = 0,
-        .dst_offset_y = 0,
-        .width = static_cast<int16_t>(hal::kDisplayWidth),
-        .height = static_cast<int16_t>(hal::kDisplayHeight),
-        .rotation = hal::Rotation::k0,
-    };
-
     /*
      * Tiles are blitted directly into the LVGL render buffer during LV_EVENT_DRAW_MAIN,
      * eliminating the intermediate static_map_buffer and its associated software copy.
@@ -116,8 +93,13 @@ MapScreen::MapScreen(UserInterface& parent,
                 self->m_parent.m_blitter.BlitOperations(std::span<const hal::BlitOperation> {
                     self->m_blit_ops.data(), self->m_blit_ops.size()});
                 self->m_parent.m_blitter.WaitForBlitsDone();
-                self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
-                self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
+
+                // Only for the most zoomed out map, because of our insane range
+                if (self->m_zoom == kLandscapeZoom)
+                {
+                    self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
+                    self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
+                }
             }
             else
             {
@@ -278,8 +260,6 @@ MapScreen::MapScreen(UserInterface& parent,
 
     const uint8_t battery_soc =
         std::min<uint8_t>(m_parent.m_state.CheckoutReadonly().Get<AS::battery_soc>(), 100);
-
-    m_last_battery_soc = battery_soc;
 
     m_current_view_center = *m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>();
 }
