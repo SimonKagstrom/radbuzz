@@ -107,11 +107,6 @@ private:
 
     bool DecodePng(std::span<const std::byte> png_data, TileImage& out);
 
-    uint32_t TileId(const Tile& t) const
-    {
-        return std::hash<Tile> {}(t);
-    }
-
     // helpers
     ApplicationState::ReadOnly AppState() const
     {

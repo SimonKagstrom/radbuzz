@@ -63,7 +63,9 @@ struct hash<Tile>
 
 } // namespace etl
 
-constexpr auto kInvalidTile = Tile {-1, -1, 0};
+constexpr auto kInvalidTile = Tile {std::numeric_limits<decltype(Tile::x)>::max(),
+                                    std::numeric_limits<decltype(Tile::y)>::max(),
+                                    0};
 
 struct Point
 {
@@ -81,7 +83,23 @@ ToPoint(const Tile& tile)
 inline auto
 ToTile(const Point& point)
 {
-    return Tile {point.x / kTileSize, point.y / kTileSize, point.zoom};
+    return Tile {static_cast<decltype(Tile::x)>(point.x / kTileSize),
+                 static_cast<decltype(Tile::y)>(point.y / kTileSize),
+                 point.zoom};
+}
+
+inline auto
+TileId(const Tile &tile)
+{
+    // Lowermost two bits the unique value of 10,13,15 zooms
+    uint32_t out = (tile.zoom >> 1) & 0b11;
+
+    // At zoom 15, the global maximum tile value is 32767, which fits in 15 bits, so x and y
+    // can be safely packed in the remaining 30 bits.
+    out |= (static_cast<uint32_t>(tile.x) << 17);
+    out |= static_cast<uint32_t>(tile.y) << 2;
+
+    return out;
 }
 
 inline bool
