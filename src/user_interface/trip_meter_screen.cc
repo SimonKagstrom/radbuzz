@@ -137,7 +137,7 @@ TripMeterScreen::Update()
             }
             else
             {
-                value_text = std::format("{}", consumed_wh);
+                value_text = std::format("{:.1f}", consumed_wh);
             }
             break;
         }
@@ -151,7 +151,7 @@ TripMeterScreen::Update()
             }
             else
             {
-                value_text = std::format("{}", regenerated_wh);
+                value_text = std::format("{:.1f}", regenerated_wh);
             }
             break;
         }
