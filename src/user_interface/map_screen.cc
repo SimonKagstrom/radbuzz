@@ -462,7 +462,7 @@ MapScreen::PrepareNonRotatedBlits()
         int32_t dst_offset_y = dst_y;
 
         int32_t src_offset_y = 0;
-        auto clipped_height = kTileSize;
+        int32_t clipped_height = kTileSize;
 
         if (dst_offset_y < 0)
         {
@@ -487,7 +487,7 @@ MapScreen::PrepareNonRotatedBlits()
 
             int32_t src_offset_x = 0;
             int32_t dst_offset_x = dst_x;
-            auto clipped_width = kTileSize;
+            int32_t clipped_width = kTileSize;
 
             if (dst_offset_x < 0)
             {
@@ -547,7 +547,7 @@ MapScreen::BlitToRotationBuffer()
         int32_t dst_offset_y = tile_pixel_y - start_y;
         int32_t src_offset_y = 0;
 
-        auto clipped_height = kTileSize;
+        int32_t clipped_height = kTileSize;
         clipped_height = std::min(clipped_height, kBgSize - dst_offset_y);
 
         if (dst_offset_y < 0)
@@ -567,7 +567,7 @@ MapScreen::BlitToRotationBuffer()
             const int tile_pixel_x = tile_x * kTileSize;
             int32_t dst_offset_x = tile_pixel_x - start_x;
             int32_t src_offset_x = 0;
-            auto clipped_width = kTileSize;
+            int32_t clipped_width = kTileSize;
 
             if (dst_offset_x < 0)
             {

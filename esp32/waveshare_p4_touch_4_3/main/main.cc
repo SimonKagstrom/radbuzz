@@ -104,7 +104,7 @@ constexpr size_t kSlaveOtaChunkSize = 1500;
 
 #define BSP_LCD_H_RES                      (480)
 #define BSP_LCD_V_RES                      (800)
-#define BSP_LCD_MIPI_DSI_LANE_BITRATE_MBPS (1000)
+#define BSP_LCD_MIPI_DSI_LANE_BITRATE_MBPS (1500)
 
 #define BSP_LCD_MIPI_DSI_LANE_NUM           (2) // 2 data lanes
 #define BSP_MIPI_DSI_PHY_PWR_LDO_CHAN       (3) // LDO_VO3 is connected to VDD_MIPI_DPHY
@@ -494,7 +494,7 @@ CreateDisplay()
     dpi_config.video_timing.hsync_front_porch = 42;
     dpi_config.video_timing.vsync_pulse_width = 8;
     dpi_config.video_timing.vsync_back_porch = 2;
-    dpi_config.video_timing.vsync_front_porch = 60;
+    dpi_config.video_timing.vsync_front_porch = 12;
     dpi_config.flags.disable_lp = false;
 
     static st7701_vendor_config_t vendor_config {};
