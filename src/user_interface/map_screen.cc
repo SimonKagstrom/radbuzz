@@ -456,25 +456,38 @@ MapScreen::PrepareNonRotatedBlits()
 
     for (int y = 0; y < kNumTilesY; ++y)
     {
+        int tile_y = (start_y / kTileSize) + y;
+        int tile_pixel_y = tile_y * kTileSize;
+        auto dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
+        int32_t dst_offset_y = dst_y;
+
+        int32_t src_offset_y = 0;
+        auto clipped_height = kTileSize;
+
+        if (dst_offset_y < 0)
+        {
+            src_offset_y = -dst_offset_y;
+            clipped_height += dst_offset_y;
+            dst_offset_y = 0;
+        }
+
+        clipped_height =
+            std::min(clipped_height, static_cast<int32_t>(hal::kDisplayHeight) - dst_offset_y);
+
+        if (clipped_height <= 0)
+        {
+            continue;
+        }
+
         for (int x = 0; x < kNumTilesX; ++x)
         {
             int tile_x = (start_x / kTileSize) + x;
-            int tile_y = (start_y / kTileSize) + y;
-
             int tile_pixel_x = tile_x * kTileSize;
-            int tile_pixel_y = tile_y * kTileSize;
-
             auto dst_x = static_cast<int16_t>(tile_pixel_x - start_x);
-            auto dst_y = static_cast<int16_t>(tile_pixel_y - start_y);
-
-            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
 
             int32_t src_offset_x = 0;
-            int32_t src_offset_y = 0;
             int32_t dst_offset_x = dst_x;
-            int32_t dst_offset_y = dst_y;
-            auto clipped_width = static_cast<int32_t>(tile.Width());
-            auto clipped_height = static_cast<int32_t>(tile.Height());
+            auto clipped_width = kTileSize;
 
             if (dst_offset_x < 0)
             {
@@ -482,22 +495,16 @@ MapScreen::PrepareNonRotatedBlits()
                 clipped_width += dst_offset_x;
                 dst_offset_x = 0;
             }
-            if (dst_offset_y < 0)
-            {
-                src_offset_y = -dst_offset_y;
-                clipped_height += dst_offset_y;
-                dst_offset_y = 0;
-            }
 
             clipped_width =
                 std::min(clipped_width, static_cast<int32_t>(hal::kDisplayWidth) - dst_offset_x);
-            clipped_height =
-                std::min(clipped_height, static_cast<int32_t>(hal::kDisplayHeight) - dst_offset_y);
 
-            if (clipped_width <= 0 || clipped_height <= 0)
+            if (clipped_width <= 0)
             {
                 continue;
             }
+
+            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
 
             m_blit_ops.push_back(hal::BlitOperation {
                 .src_data = tile.Data16().data(),
@@ -535,23 +542,32 @@ MapScreen::BlitToRotationBuffer()
 
     for (int y = 0; y < kNumTilesY; ++y)
     {
+        const int tile_y = (start_y / kTileSize) + y;
+        const int tile_pixel_y = tile_y * kTileSize;
+        int32_t dst_offset_y = tile_pixel_y - start_y;
+        int32_t src_offset_y = 0;
+
+        auto clipped_height = kTileSize;
+        clipped_height = std::min(clipped_height, kBgSize - dst_offset_y);
+
+        if (dst_offset_y < 0)
+        {
+            src_offset_y = -dst_offset_y;
+            clipped_height += dst_offset_y;
+            dst_offset_y = 0;
+        }
+        if (clipped_height <= 0)
+        {
+            continue;
+        }
+
         for (int x = 0; x < kNumTilesX; ++x)
         {
             const int tile_x = (start_x / kTileSize) + x;
-            const int tile_y = (start_y / kTileSize) + y;
-
             const int tile_pixel_x = tile_x * kTileSize;
-            const int tile_pixel_y = tile_y * kTileSize;
-
             int32_t dst_offset_x = tile_pixel_x - start_x;
-            int32_t dst_offset_y = tile_pixel_y - start_y;
-
-            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
-
             int32_t src_offset_x = 0;
-            int32_t src_offset_y = 0;
-            auto clipped_width = static_cast<int32_t>(tile.Width());
-            auto clipped_height = static_cast<int32_t>(tile.Height());
+            auto clipped_width = kTileSize;
 
             if (dst_offset_x < 0)
             {
@@ -559,20 +575,14 @@ MapScreen::BlitToRotationBuffer()
                 clipped_width += dst_offset_x;
                 dst_offset_x = 0;
             }
-            if (dst_offset_y < 0)
-            {
-                src_offset_y = -dst_offset_y;
-                clipped_height += dst_offset_y;
-                dst_offset_y = 0;
-            }
-
             clipped_width = std::min(clipped_width, kBgSize - dst_offset_x);
-            clipped_height = std::min(clipped_height, kBgSize - dst_offset_y);
 
-            if (clipped_width <= 0 || clipped_height <= 0)
+            if (clipped_width <= 0)
             {
                 continue;
             }
+
+            auto tile = m_tile_cache.GetTile(ToTile(Point {tile_pixel_x, tile_pixel_y, m_zoom}));
 
             m_blit_ops.push_back(hal::BlitOperation {
                 .src_data = tile.Data16().data(),
