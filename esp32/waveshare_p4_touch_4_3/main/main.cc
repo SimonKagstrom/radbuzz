@@ -58,8 +58,8 @@ constexpr auto kPinStepperSleepGpio = GPIO_NUM_30;
 constexpr auto kPinStepperDirGpio = GPIO_NUM_46;
 constexpr auto kPinStepGpio = GPIO_NUM_31;
 
-constexpr auto kCanBusTxPin = GPIO_NUM_48;
-constexpr auto kCanBusRxPin = GPIO_NUM_47;
+constexpr auto kCanBusTxPin = GPIO_NUM_47;
+constexpr auto kCanBusRxPin = GPIO_NUM_48;
 
 constexpr auto kI2cSdaPin = GPIO_NUM_7;
 constexpr auto kI2cSclPin = GPIO_NUM_8;
@@ -67,9 +67,9 @@ constexpr auto kI2cSclPin = GPIO_NUM_8;
 constexpr auto kGpsUartTxPin = GPIO_NUM_46;
 constexpr auto kGpsUartRxPin = GPIO_NUM_32;
 
-constexpr auto kButtonGpio = GPIO_NUM_48;
-constexpr auto kRotaryEncoderPinA = GPIO_NUM_52;
-constexpr auto kRotaryEncoderPinB = GPIO_NUM_47;
+constexpr auto kButtonGpio = GPIO_NUM_52;
+constexpr auto kRotaryEncoderPinA = GPIO_NUM_51;
+constexpr auto kRotaryEncoderPinB = GPIO_NUM_50;
 
 constexpr auto kSdPwrCtrlLdoIoId = 4;
 
@@ -743,7 +743,7 @@ app_main(void)
                                                           *tile_cache);
 
 
-    application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+    //application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
 
     storage->Start("storage");
     input->Start("input");
