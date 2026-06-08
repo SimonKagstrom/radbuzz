@@ -22,3 +22,4 @@ application_state:
   distance_traveled: 0
   position: {}
   pixel_position: {}
+  reset_trip: {}

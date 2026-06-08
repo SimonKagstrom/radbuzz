@@ -58,11 +58,14 @@ constexpr auto kPinStepperSleepGpio = GPIO_NUM_30;
 constexpr auto kPinStepperDirGpio = GPIO_NUM_46;
 constexpr auto kPinStepGpio = GPIO_NUM_31;
 
-constexpr auto kCanBusTxPin = GPIO_NUM_22;
-constexpr auto kCanBusRxPin = GPIO_NUM_29;
+constexpr auto kCanBusTxPin = GPIO_NUM_48;
+constexpr auto kCanBusRxPin = GPIO_NUM_47;
 
 constexpr auto kI2cSdaPin = GPIO_NUM_7;
 constexpr auto kI2cSclPin = GPIO_NUM_8;
+
+constexpr auto kGpsUartTxPin = GPIO_NUM_46;
+constexpr auto kGpsUartRxPin = GPIO_NUM_32;
 
 constexpr auto kButtonGpio = GPIO_NUM_48;
 constexpr auto kRotaryEncoderPinA = GPIO_NUM_52;
@@ -676,14 +679,11 @@ app_main(void)
     //auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
     //auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
     auto image_cache = std::make_unique<ImageCache>();
-    //    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
-    //                                              9600,
-    //                                              GPIO_NUM_44,  // RX
-    //                                              GPIO_NUM_43); // TX
-    //
-
-    //auto gps = std::make_unique<I2cGps>(kI2cSclPin, kI2cSdaPin);
-    //auto uart_gps = std::make_unique<UartGps>(*uart1);
+    auto uart_gps = std::make_unique<TargetUart>(UART_NUM_2,
+                                                 9600,
+                                                 kGpsUartRxPin,  // RX
+                                                 kGpsUartTxPin); // TX
+    auto gps = std::make_unique<UartGps>(*uart_gps);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
 
     auto httpd_client = std::make_unique<HttpdClient>();
@@ -723,7 +723,7 @@ app_main(void)
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x6f);
 
-    //auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
@@ -759,10 +759,8 @@ app_main(void)
     //gps_reader->Start("gps_reader");
     tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
+    gps_reader->Start("gps_reader");
 
-    // TMP!
-    os::Sleep(2s);
-    //ble_server->ScanForService(hal::Uuid16(0x61c9), [](auto peer) { printf("Found peer\n"); });
 
     while (true)
     {
