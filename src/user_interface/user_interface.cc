@@ -154,6 +154,8 @@ UserInterface::OnStartup()
 void
 UserInterface::ResetTrip()
 {
+    m_state.CheckoutReadWrite().Post<AS::reset_trip>();
+
     auto ro = m_state.CheckoutReadonly();
 
     m_current_trip_start = {
