@@ -13,6 +13,7 @@ PUBLIC
     ble_server_host
     base_thread
     wgs84_to_osm_point
+    bresenham
 PRIVATE
     ble_handler
 )

@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <array>
 
-constexpr auto kPoints = std::array {
+constexpr auto kDemoPoints = std::array {
     GpsPosition {59.34448824397194f, 18.048003048806464f},
     GpsPosition {59.34492700020055f, 18.047580470732395f},
     GpsPosition {59.34303874112165f, 18.040212245710048f},
@@ -266,19 +266,23 @@ constexpr auto kImages = std::array {
 AppSimulator::AppSimulator(ApplicationState& app_state, BleServerHost& ble_server)
     : m_application_state(app_state)
     , m_ble_server(ble_server)
-    , m_current_point(*Wgs84ToOsmPoint(
-          {
-              // Stockholm
-              59.34443143179733,
-              18.04792142012441,
-
-              // Enköping
-              //59.646331787827336, 17.07769480747484,
-          },
-          kDefaultZoom))
     , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
     , m_state_cache(m_application_state)
+    , m_bresenham(*Wgs84ToOsmPoint(kDemoPoints[0], kDefaultZoom),
+                  *Wgs84ToOsmPoint(kDemoPoints[1], kDefaultZoom))
+    , m_bresenham_iterator(m_bresenham.begin())
+    , m_target_heading(m_bresenham.GetHeading())
+    , m_heading(m_target_heading)
 {
+    static_assert(kDemoPoints.size() >= 2, "At least two points are required for the demo route");
+    for (auto& point : kDemoPoints)
+    {
+        m_demo_route.push_back(*Wgs84ToOsmPoint(point, kDefaultZoom));
+    }
+    auto it = m_demo_route.begin();
+    m_current_point = *it;
+    m_next_point = ++it;
+
     SetupStreetOrder();
     Awake();
 }
@@ -321,8 +325,25 @@ AppSimulator::OnActivation()
         return std::nullopt;
     }
 
-    m_current_point.x++;
-    m_current_point.y++;
+    if (m_bresenham_iterator != m_bresenham.end())
+    {
+        m_current_point = *m_bresenham_iterator;
+        ++m_bresenham_iterator;
+    }
+    else
+    {
+        if (m_next_point == m_demo_route.end())
+        {
+            m_next_point = m_demo_route.begin();
+        }
+        else
+        {
+            ++m_next_point;
+        }
+        m_bresenham = Bresenham<Point>(m_current_point, *m_next_point);
+        m_bresenham_iterator = m_bresenham.begin();
+        m_target_heading = m_bresenham.GetHeading();
+    }
 
     if (m_distance_left <= 0)
     {
@@ -412,12 +433,20 @@ iconHash={:08x}32
         next_power = std::max(next_power - kPowerRampStepW, target_power);
     }
 
+    if (m_heading != m_target_heading)
+    {
+        auto sign = (m_heading < m_target_heading) ? 1 : -1;
+        m_heading += sign * std::min(static_cast<uint16_t>(std::abs(m_heading - m_target_heading)),
+                                     static_cast<uint16_t>(1));
+    }
+
+
     current_power = static_cast<int16_t>(next_power);
 
     GpsData mangled;
 
     mangled.position = OsmPointToWgs84(m_current_point);
-    mangled.heading = 45 + (m_random_engine() % 2) - 1;
+    mangled.heading = m_heading;
     mangled.speed = speed;
 
     m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);

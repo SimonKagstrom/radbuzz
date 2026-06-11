@@ -3,6 +3,7 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "ble_server_host.hh"
+#include "bresenham.hh"
 #include "hal/i_gps.hh"
 #include "wgs84_to_osm_point.hh"
 
@@ -34,10 +35,18 @@ private:
 
     std::unordered_set<uint32_t> m_cached_images;
 
-    Point m_current_point {0, 0, kDefaultZoom};
-
     uint8_t m_target_speed {10};
 
     std::unique_ptr<ListenerCookie> m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::demo_mode> m_state_cache;
+
+    std::vector<Point> m_demo_route;
+    Point m_current_point {0, 0, kDefaultZoom};
+    std::vector<Point>::iterator m_next_point;
+
+    Bresenham<Point> m_bresenham;
+    Bresenham<Point>::Iterator m_bresenham_iterator;
+
+    uint16_t m_target_heading;
+    uint16_t m_heading;
 };
