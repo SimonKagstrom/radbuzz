@@ -124,3 +124,5 @@ GpsPosition OsmPointToWgs84(const Point& point);
 Point OsmPointToPoint(const Point& point, uint8_t next_zoom);
 
 float MetersPerPixelAtPoint(const Point& point);
+
+uint32_t MetersBetweenPoints(const Point& p1, const Point& p2);

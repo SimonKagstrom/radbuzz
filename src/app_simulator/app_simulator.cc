@@ -343,18 +343,15 @@ AppSimulator::OnActivation()
         m_bresenham = Bresenham<Point>(m_current_point, *m_next_point);
         m_bresenham_iterator = m_bresenham.begin();
         m_target_heading = m_bresenham.GetHeading();
-    }
 
-    if (m_distance_left <= 0)
-    {
-        m_distance_left = 100 + (m_random_engine() % 90) * 10;
         m_streets.pop_back();
         m_current_image = m_random_engine() % kImages.size();
+        if (m_streets.empty())
+        {
+            SetupStreetOrder();
+        }
     }
-    if (m_streets.empty())
-    {
-        SetupStreetOrder();
-    }
+    m_distance_left = MetersBetweenPoints(m_current_point, *m_next_point);
 
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::distance_traveled,
                                                           AS::wh_consumed,
