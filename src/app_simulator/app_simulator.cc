@@ -332,14 +332,12 @@ AppSimulator::OnActivation()
     }
     else
     {
+        ++m_next_point;
         if (m_next_point == m_demo_route.end())
         {
             m_next_point = m_demo_route.begin();
         }
-        else
-        {
-            ++m_next_point;
-        }
+
         m_bresenham = Bresenham<Point>(m_current_point, *m_next_point);
         m_bresenham_iterator = m_bresenham.begin();
         m_target_heading = m_bresenham.GetHeading();
