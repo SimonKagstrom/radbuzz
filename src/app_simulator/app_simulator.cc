@@ -446,5 +446,6 @@ iconHash={:08x}32
 
     m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);
 
-    return 250ms;
+    return 50ms +
+           milliseconds(150 - static_cast<uint32_t>(speed / static_cast<float>(kMaxSpeed) * 150));
 }
