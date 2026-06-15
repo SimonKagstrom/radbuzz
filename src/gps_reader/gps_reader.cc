@@ -7,7 +7,7 @@
 #include <span>
 
 
-GpsReader::GpsReader(ApplicationState &application_state, hal::IGps& gps)
+GpsReader::GpsReader(ApplicationState& application_state, hal::IGps& gps)
     : m_application_state(application_state)
     , m_gps(gps)
 {
@@ -43,10 +43,21 @@ GpsReader::OnActivation()
     mangled.heading = *m_heading;
     mangled.speed = *m_speed;
 
+    auto rw = m_application_state.CheckoutReadWrite();
     if (m_application_state.CheckoutReadonly().Get<AS::demo_mode>() == false)
     {
-        m_application_state.CheckoutReadWrite().Set<AS::position>(mangled);
+        rw.Set<AS::position>(mangled);
+        rw.Set<AS::gps_position_valid>(true);
     }
+    else
+    {
+        rw.Set<AS::gps_position_valid>(false);
+    }
+
+    m_gps_timeout_timer = StartTimer(10s, [this]() {
+        m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(false);
+        return std::nullopt;
+    });
     Reset();
 
     return std::nullopt;

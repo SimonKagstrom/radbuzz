@@ -2,6 +2,7 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
+#include "os/memory.hh"
 
 #include <etl/circular_buffer.h>
 
@@ -33,5 +34,5 @@ private:
     uint32_t m_current_distance {0};
 
     etl::circular_buffer<uint16_t, 10> m_millivolt_history;
-    std::unique_ptr<etl::circular_buffer<TripLogEntry, kNumberOfTripLogEntries>> m_trip_log;
+    os::mem_unique_ptr<etl::circular_buffer<TripLogEntry, kNumberOfTripLogEntries>> m_trip_log;
 };

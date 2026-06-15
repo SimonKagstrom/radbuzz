@@ -27,4 +27,6 @@ private:
     std::optional<GpsPosition> m_position;
     std::optional<float> m_speed;
     std::optional<float> m_heading;
+
+    os::TimerHandle m_gps_timeout_timer;
 };
