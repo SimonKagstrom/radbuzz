@@ -253,8 +253,8 @@ app_main(void)
     }
 
     // Devices / helper classes
-    auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
-    auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
+    auto left_buzzer_gpio = std::make_unique<GpioEsp32>(kPinLeftBuzzer);
+    auto right_buzzer_gpio = std::make_unique<GpioEsp32>(kPinRightBuzzer);
 
 
     left_buzzer_gpio->SetState(true);
@@ -264,7 +264,7 @@ app_main(void)
     right_buzzer_gpio->SetState(false);
 
     auto image_cache = std::make_unique<ImageCache>();
-    //    auto uart1 = std::make_unique<TargetUart>(UART_NUM_1,
+    //    auto uart1 = std::make_unique<UartEsp32>(UART_NUM_1,
     //                                              9600,
     //                                              GPIO_NUM_44,  // RX
     //                                              GPIO_NUM_43); // TX

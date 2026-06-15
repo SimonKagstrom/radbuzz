@@ -677,10 +677,10 @@ app_main(void)
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &tp));
 
     // Devices / helper classes
-    //auto left_buzzer_gpio = std::make_unique<TargetGpio>(kPinLeftBuzzer);
-    //auto right_buzzer_gpio = std::make_unique<TargetGpio>(kPinRightBuzzer);
+    //auto left_buzzer_gpio = std::make_unique<GpioEsp32>(kPinLeftBuzzer);
+    //auto right_buzzer_gpio = std::make_unique<GpioEsp32>(kPinRightBuzzer);
     auto image_cache = std::make_unique<ImageCache>();
-    auto uart_gps = std::make_unique<TargetUart>(UART_NUM_2,
+    auto uart_gps = std::make_unique<UartEsp32>(UART_NUM_2,
                                                  9600,
                                                  kGpsUartRxPin,  // RX
                                                  kGpsUartTxPin); // TX
@@ -693,16 +693,16 @@ app_main(void)
     auto pm = std::make_unique<PmEsp32>();
     auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
     //auto stepper_sleep_gpio =
-    //    std::make_unique<TargetGpio>(kPinStepperSleepGpio, TargetGpio::Polarity::kActiveHigh);
+    //    std::make_unique<GpioEsp32>(kPinStepperSleepGpio, GpioEsp32::Polarity::kActiveHigh);
     //auto stepper_dir_gpio =
-    //    std::make_unique<TargetGpio>(kPinStepperDirGpio, TargetGpio::Polarity::kActiveLow);
-    auto pin_a = std::make_unique<TargetGpio>(kRotaryEncoderPinA);
-    auto pin_b = std::make_unique<TargetGpio>(kRotaryEncoderPinB);
+    //    std::make_unique<GpioEsp32>(kPinStepperDirGpio, GpioEsp32::Polarity::kActiveLow);
+    auto pin_a = std::make_unique<GpioEsp32>(kRotaryEncoderPinA);
+    auto pin_b = std::make_unique<GpioEsp32>(kRotaryEncoderPinB);
 
     //    auto stepper_motor =
     //        std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
     //
-    auto nvm = std::make_unique<NvmTarget>();
+    auto nvm = std::make_unique<Nvm32>();
 
     //    stepper_motor->Start();
 
@@ -710,7 +710,7 @@ app_main(void)
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
     auto button_debouncer = std::make_unique<ButtonDebouncer>();
     auto debounced_button = button_debouncer->AddButton(
-        std::make_unique<TargetGpio>(kButtonGpio, TargetGpio::Polarity::kActiveLow));
+        std::make_unique<GpioEsp32>(kButtonGpio, GpioEsp32::Polarity::kActiveLow));
 
     auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder, *touch);
 
