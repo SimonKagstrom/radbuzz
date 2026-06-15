@@ -67,9 +67,9 @@ constexpr auto kI2cSclPin = GPIO_NUM_8;
 constexpr auto kGpsUartTxPin = GPIO_NUM_46;
 constexpr auto kGpsUartRxPin = GPIO_NUM_32;
 
-constexpr auto kButtonGpio = GPIO_NUM_52;
+constexpr auto kButtonGpio = GPIO_NUM_50;
 constexpr auto kRotaryEncoderPinA = GPIO_NUM_51;
-constexpr auto kRotaryEncoderPinB = GPIO_NUM_50;
+constexpr auto kRotaryEncoderPinB = GPIO_NUM_52;
 
 constexpr auto kSdPwrCtrlLdoIoId = 4;
 
