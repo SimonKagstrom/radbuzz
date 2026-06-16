@@ -91,7 +91,8 @@ main(int argc, char* argv[])
                                                           *input, // IInput
                                                           application_state,
                                                           *image_cache,
-                                                          *tile_cache);
+                                                          *tile_cache,
+                                                          *trip_computer);
 
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);

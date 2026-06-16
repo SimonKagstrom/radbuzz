@@ -116,16 +116,24 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     }
 }
 
+std::pair<std::unique_lock<etl::mutex>, TripComputer::TripLog&>
+TripComputer::GetLog()
+{
+    auto lock = std::unique_lock(m_log_mutex);
+    return {std::move(lock), *m_trip_log};
+}
+
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
     auto ro = m_state.CheckoutReadonly();
 
-    if (!ro.Get<AS::gps_position_valid>() || ro.Get<AS::demo_mode>())
+    if (!ro.Get<AS::gps_position_valid>())
     {
         return std::nullopt;
     }
 
+    auto lock = std::lock_guard(m_log_mutex);
     auto position = *ro.Get<AS::pixel_position>();
     auto now = os::GetTimeStamp();
     if (m_trip_log->empty())
@@ -135,8 +143,16 @@ TripComputer::OnActivation()
     else
     {
         const auto& last = m_trip_log->back();
-        if (std::abs(position.x - last.position.x) > 5 ||
-            std::abs(position.y - last.position.y) > 5)
+        auto max_diff = std::max(std::abs(position.x - last.position.x),
+                                 std::abs(position.y - last.position.y));
+
+        if (max_diff > 500)
+        {
+            // GPS jump
+            m_trip_log->clear();
+            m_trip_log->push(TripLogEntry {position, now, ro.Get<AS::current_power_w>()});
+        }
+        else if (max_diff > 5)
         {
             m_trip_log->push(TripLogEntry {position, now, ro.Get<AS::current_power_w>()});
         }

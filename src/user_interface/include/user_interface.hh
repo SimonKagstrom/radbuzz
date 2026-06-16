@@ -11,6 +11,7 @@
 #include "input.hh"
 #include "menu_screen.hh"
 #include "tile_cache.hh"
+#include "trip_computer.hh"
 #include "wgs84_to_osm_point.hh"
 
 #include <etl/queue_spsc_atomic.h>
@@ -70,7 +71,8 @@ public:
                   hal::IInput& input,
                   ApplicationState& state,
                   ImageCache& cache,
-                  TileCache& tile_cache);
+                  TileCache& tile_cache,
+                  TripComputer& trip_computer);
 
 private:
     struct CurrentTrip
@@ -106,6 +108,7 @@ private:
 
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;
+    TripComputer& m_trip_computer;
 
     ApplicationState::PartialReadOnlyCache<AS::position> m_state_cache;
 

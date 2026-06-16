@@ -501,7 +501,8 @@ app_main(void)
                                                           *input,
                                                           application_state,
                                                           *image_cache,
-                                                          *tile_cache);
+                                                          *tile_cache,
+                                                          *trip_computer);
 
 
     storage->Start("storage");

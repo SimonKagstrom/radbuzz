@@ -741,7 +741,8 @@ app_main(void)
                                                           *input,
                                                           application_state,
                                                           *image_cache,
-                                                          *tile_cache);
+                                                          *tile_cache,
+                                                          *trip_computer);
 
 
     //application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);

@@ -1,5 +1,8 @@
 #include "map_screen.hh"
 
+#include "bresenham.hh"
+#include "cohen_sutherland.hh"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -59,6 +62,68 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
     lv_draw_arc(layer, &arc_dsc);
 }
 
+void
+MapScreen::DrawTripLines(lv_layer_t* layer)
+{
+    auto p = m_parent.m_trip_computer.GetLog();
+    auto& log = p.second;
+
+    if (log.size() < 2)
+    {
+        return;
+    }
+
+    auto it = log.begin();
+    auto last = it;
+    constexpr int kDisplayCenterX = hal::kDisplayWidth / 2;
+    constexpr int kDisplayCenterY = hal::kDisplayHeight / 2;
+
+    auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
+    for (++it; it != log.end(); ++it, ++last)
+    {
+        auto last_position = OsmPointToPoint(last->position, m_zoom);
+        auto current_position = OsmPointToPoint(it->position, m_zoom);
+
+        // Transform from map-world coordinates to display coordinates.
+        last_position.x = (last_position.x - m_current_view_center.x) + kDisplayCenterX;
+        last_position.y = (last_position.y - m_current_view_center.y) + kDisplayCenterY;
+        current_position.x = (current_position.x - m_current_view_center.x) + kDisplayCenterX;
+        current_position.y = (current_position.y - m_current_view_center.y) + kDisplayCenterY;
+
+        if (!cs::ClipLineToDisplay(
+                last_position.x, last_position.y, current_position.x, current_position.y))
+        {
+            continue;
+        }
+
+        auto bresenham = Bresenham<Point>({last_position.x, last_position.y},
+                                          {current_position.x, current_position.y});
+
+        auto dx = 3;
+        auto dy = 1;
+
+        if (bresenham.IsMostlyVerticalSlope())
+        {
+            std::swap(dx, dy);
+        }
+
+        auto color = lv_color_to_u16(lv_palette_main(LV_PALETTE_RED));
+        for (auto& cur : bresenham)
+        {
+            for (auto x = cur.x; x < cur.x + dx; ++x)
+            {
+                for (auto y = cur.y; y < cur.y + dy; ++y)
+                {
+                    if (x >= 0 && x < hal::kDisplayWidth && y >= 0 && y < hal::kDisplayHeight)
+                    {
+                        dst[y * hal::kDisplayWidth + x] = color;
+                    }
+                }
+            }
+        }
+    }
+}
+
 MapScreen::MapScreen(UserInterface& parent,
                      ImageCache& image_cache,
                      TileCache& tile_cache,
@@ -100,6 +165,7 @@ MapScreen::MapScreen(UserInterface& parent,
                     self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
                     self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
                 }
+                self->DrawTripLines(layer);
             }
             else
             {

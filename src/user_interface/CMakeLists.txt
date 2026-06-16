@@ -47,9 +47,13 @@ PUBLIC
     lvgl
     input
     tile_cache
+    trip_computer
     radbuzz_font_16_library
     radbuzz_font_22_library
     radbuzz_symbols_40_library
     radbuzz_font_60_library
     ui_menu
+PRIVATE
+    bresenham
+    cohen_sutherland
 )

@@ -13,7 +13,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
                              hal::IInput& input,
                              ApplicationState& state,
                              ImageCache& cache,
-                             TileCache& tile_cache)
+                             TileCache& tile_cache,
+                             TripComputer& trip_computer)
     : m_display(display)
     , m_blitter(blitter)
     , m_pm_lock(std::move(pm_lock))
@@ -22,6 +23,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
     , m_state_cache(m_state)
+    , m_trip_computer(trip_computer)
 {
     m_state_listener = m_state.AttachListener<AS::position,
                                               AS::battery_soc,

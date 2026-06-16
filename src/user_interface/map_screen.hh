@@ -10,7 +10,10 @@
 class MapScreen : public UserInterface::ScreenBase
 {
 public:
-    MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache, uint8_t zoom);
+    MapScreen(UserInterface& parent,
+              ImageCache& image_cache,
+              TileCache& tile_cache,
+              uint8_t zoom);
 
     void SetZoom(uint8_t zoom);
 
@@ -24,6 +27,8 @@ private:
     };
 
     void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
+    void DrawTripLines(lv_layer_t* layer);
+
     os::TimerHandle StartHomeHoldTimer();
     void BlitToRotationBuffer();
     void PrepareNonRotatedBlits();
