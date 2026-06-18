@@ -4,7 +4,7 @@
 #include "base_thread.hh"
 #include "filesystem.hh"
 #include "hal/i_pm.hh"
-#include "httpd_client.hh"
+#include "https_client.hh"
 #include "image.hh"
 #include "wgs84_to_osm_point.hh"
 
@@ -67,7 +67,7 @@ public:
     TileCache(ApplicationState& application_state,
               std::unique_ptr<hal::IPm::ILock> pm_lock,
               Filesystem& filesystem,
-              HttpdClient& httpd_client);
+              HttpsClient& https_client);
 
     // Context: Another thread (the user interface)
     const Image& GetTile(const Tile& at);
@@ -120,7 +120,7 @@ private:
     ApplicationState& m_application_state;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     Filesystem& m_filesystem;
-    HttpdClient& m_httpd_client;
+    HttpsClient& m_https_client;
 
     std::unique_ptr<ListenerCookie> m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::pixel_position> m_pixel_state_cache;

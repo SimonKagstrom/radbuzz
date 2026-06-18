@@ -446,7 +446,7 @@ app_main(void)
     //auto uart_gps = std::make_unique<UartGps>(*uart1);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
 
-    auto httpd_client = std::make_unique<HttpdClient>();
+    auto https_client = std::make_unique<HttpsClient>();
 
     auto blitter = std::make_unique<BlitterEsp32>();
     auto pm = std::make_unique<PmEsp32>();
@@ -485,7 +485,7 @@ app_main(void)
 
     //auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
-        application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
+        application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
 
     constexpr auto kFullRotation = 2400;

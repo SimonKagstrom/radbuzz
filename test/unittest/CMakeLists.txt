@@ -33,7 +33,7 @@ PUBLIC
 
 
 add_library(filesystem_implementation ALIAS mock_filesystem)
-add_library(httpd_client_implementation ALIAS mock_httpd_client)
+add_library(https_client_implementation ALIAS mock_https_client)
 add_library(display_properties ALIAS display_800x800)
 add_library(generated_application_state ALIAS radbuzz_unittest_application_state)
 

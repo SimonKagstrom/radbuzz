@@ -15,7 +15,7 @@ PUBLIC
 
 target_link_libraries(tile_cache
 PUBLIC
-    httpd_client
+    https_client
     base_thread
     application_state
     painter

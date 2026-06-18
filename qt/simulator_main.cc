@@ -5,7 +5,7 @@
 #include "buzz_handler.hh"
 #include "filesystem.hh"
 #include "gps_reader.hh"
-#include "httpd_client.hh"
+#include "https_client.hh"
 #include "input.hh"
 #include "nvm_host.hh"
 #include "opportunistic_scheduler.hh"
@@ -68,7 +68,7 @@ main(int argc, char* argv[])
     auto ble_server = std::make_unique<BleServerHost>();
     auto image_cache = std::make_unique<ImageCache>();
     auto filesystem = std::make_unique<Filesystem>("./app_data");
-    auto httpd_client = std::make_unique<HttpdClient>();
+    auto https_client = std::make_unique<HttpsClient>();
     auto pm = std::make_unique<PmHost>();
     auto nvm_host = std::make_unique<NvmHost>("nvm.txt");
     auto blitter = std::make_unique<BlitterHost>();
@@ -81,7 +81,7 @@ main(int argc, char* argv[])
     auto trip_computer = std::make_unique<TripComputer>(application_state);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto tile_cache = std::make_unique<TileCache>(
-        application_state, pm->CreateFullPowerLock(), *filesystem, *httpd_client);
+        application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);

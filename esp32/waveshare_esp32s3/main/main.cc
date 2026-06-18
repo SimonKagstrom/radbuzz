@@ -287,7 +287,7 @@ app_main(void)
         wifi_client->Start(ssid.c_str(), password.c_str());
     }
 
-    auto httpd_client = std::make_unique<HttpdClient>();
+    auto https_client = std::make_unique<HttpsClient>();
 
     auto pm = std::make_unique<PmEsp32>();
 
@@ -302,7 +302,7 @@ app_main(void)
                                                   pm->CreateFullPowerLock(),
                                                   gps_reader->AttachListener(),
                                                   *filesystem,
-                                                  *httpd_client);
+                                                  *https_client);
     auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
     auto user_interface = std::make_unique<UserInterface>(*display,
                                                           pm->CreateFullPowerLock(),

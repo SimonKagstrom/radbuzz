@@ -99,11 +99,11 @@ private:
 TileCache::TileCache(ApplicationState& application_state,
                      std::unique_ptr<hal::IPm::ILock> pm_lock,
                      Filesystem& filesystem,
-                     HttpdClient& httpd_client)
+                     HttpsClient& https_client)
     : m_application_state(application_state)
     , m_pm_lock(std::move(pm_lock))
     , m_filesystem(filesystem)
-    , m_httpd_client(httpd_client)
+    , m_https_client(https_client)
     , m_state_listener(m_application_state.AttachListener<AS::pixel_position>(GetSemaphore()))
     , m_pixel_state_cache(m_application_state)
     , m_web_thread(std::make_unique<WebThread>(*this))
@@ -489,7 +489,7 @@ TileCache::WebThread::OnActivation()
         auto tmp_path = path + ".tmp";
 
         printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
-        auto data = m_parent.m_httpd_client.Get(url);
+        auto data = m_parent.m_https_client.Get(url);
 
         if (data)
         {
