@@ -38,7 +38,7 @@ CanBusHandler::OnStartup()
         vesc_get_values_setup_selective(m_controller_id,
                                         SETUP_VALUE_SPEED | SETUP_VALUE_ODOMETER |
                                             SETUP_VALUE_INPUT_VOLTAGE_FILTERED);
-        return 500ms;
+        return 144ms;
     });
 }
 
