@@ -41,8 +41,8 @@ float
 MetersPerPixelAtPoint(const Point& point)
 {
     const auto pos = OsmPointToWgs84(point);
-    const float n = std::powf(2.0f, point.zoom);
-    const float lat_rad = deg2rad(pos.latitude);
+    const auto n = std::powf(2.0f, point.zoom);
+    const auto lat_rad = deg2rad(pos.latitude);
     const float meters_per_pixel =
         (std::cosf(lat_rad) * kEarthCircumferenceMeters) / (kTileSize * n);
     return std::max(meters_per_pixel, 0.001f);
@@ -52,8 +52,8 @@ uint32_t
 MetersBetweenPoints(const Point& p1, const Point& p2)
 {
     float meters_per_pixel = MetersPerPixelAtPoint(p1);
-    float dx = static_cast<float>(p2.x - p1.x);
-    float dy = static_cast<float>(p2.y - p1.y);
+    auto dx = static_cast<float>(p2.x - p1.x);
+    auto dy = static_cast<float>(p2.y - p1.y);
 
     return static_cast<uint32_t>(std::sqrtf(dx * dx + dy * dy) * meters_per_pixel);
 }
