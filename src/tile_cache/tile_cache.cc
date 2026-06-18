@@ -176,7 +176,7 @@ TileCache::OnActivation()
                 m_pending_city_tiles_by_zoom[tile.zoom].end())
             {
                 m_pending_city_tiles_by_zoom[tile.zoom].insert(tile);
-                //SavePendingCityTiles();
+                SavePendingCityTiles();
             }
         }
         if (AppState().Get<AS::wifi_connected>() && default_tile != m_current_city_tile)
@@ -343,7 +343,6 @@ TileCache::FillFromServer()
         {
             continue;
         }
-
 
         auto path = GetTilePath(t);
         if (m_filesystem.FileExists(path))
