@@ -55,7 +55,7 @@ CanBusHandler::OnActivation()
 }
 
 void
-CanBusHandler::VescResponseCallback(uint8_t controller_id,
+CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
                                     uint8_t command,
                                     const uint8_t* data,
                                     uint8_t len)
@@ -72,24 +72,18 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         return;
     }
 
-    auto qw = m_state.CheckoutQueuedWriter<AS::wh_consumed,
-                                           AS::wh_regenerated,
-                                           AS::distance_traveled,
-                                           AS::current_power_w,
-                                           AS::battery_millivolts,
-                                           AS::controller_temperature,
-                                           AS::motor_temperature,
-                                           AS::speed,
-                                           AS::max_speed>(); // Millivolts is temporary
+    auto qw = m_state.CheckoutQueuedWriter<
+        AS::wh_consumed,
+        AS::wh_regenerated,
+        AS::distance_traveled,
+        AS::current_power_w,
+        AS::battery_millivolts, // Millivolts is temporary until the bms reader is done
+        AS::controller_temperature,
+        AS::motor_temperature,
+        AS::speed,
+        AS::max_speed>();
 
-    if (command == CAN_PACKET_STATUS)
-    {
-        vesc_status_msg_1_t status;
-        if (vesc_parse_status_msg_1(data, len, &status))
-        {
-        }
-    }
-    else if (command == CAN_PACKET_STATUS_3)
+    if (command == CAN_PACKET_STATUS_3)
     {
         vesc_status_msg_3_t status;
         if (vesc_parse_status_msg_3(data, len, &status))
@@ -140,18 +134,6 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
         {
             switch (1 << i)
             {
-            case vesc_setup_value_index_t::SETUP_VALUE_TEMP_FET_FILTERED:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_TEMP_MOTOR_FILTERED:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_CURRENT_TOT:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_CURRENT_IN_TOT:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_DUTY_CYCLE_NOW:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_RPM:
-                break;
             case vesc_setup_value_index_t::SETUP_VALUE_SPEED: {
                 auto meters_per_second = vesc_buffer_get_float32(data, 1e3f, &index);
                 auto km_per_hour = meters_per_second * 3.6f;
@@ -166,34 +148,11 @@ CanBusHandler::VescResponseCallback(uint8_t controller_id,
                 qw.Set<AS::battery_millivolts>(mv);
             }
             break;
-            case vesc_setup_value_index_t::SETUP_VALUE_BATTERY_LEVEL:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_AH_TOT:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_AH_CHARGE_TOT:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_WH_TOT:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_WH_CHARGE_TOT:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_DISTANCE:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_DISTANCE_ABS:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_PID_POS_NOW:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_FAULT:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_SECOND_MOTOR_CONTROLLER_ID:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_NUM_VESCS:
-                break;
-            case vesc_setup_value_index_t::SETUP_VALUE_WH_BATT_LEFT:
-                break;
             case vesc_setup_value_index_t::SETUP_VALUE_ODOMETER:
                 qw.Set<AS::distance_traveled>(vesc_buffer_get_uint32(data, &index));
                 break;
-            case vesc_setup_value_index_t::SETUP_VALUE_SYSTEM_TIME_MS:
+
+            default:
                 break;
             }
         }
