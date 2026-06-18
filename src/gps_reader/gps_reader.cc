@@ -43,21 +43,19 @@ GpsReader::OnActivation()
     mangled.heading = *m_heading;
     mangled.speed = *m_speed;
 
+    // Disable, and restart again (for demo mode, it will be disabled completely)
+    m_gps_timeout_timer = nullptr;
     auto rw = m_application_state.CheckoutReadWrite();
     if (rw.Get<AS::demo_mode>() == false)
     {
         rw.Set<AS::position>(mangled);
         rw.Set<AS::gps_position_valid>(true);
-    }
 
-    m_gps_timeout_timer = StartTimer(10s, [this]() {
-        auto rw = m_application_state.CheckoutReadWrite();
-        if (rw.Get<AS::demo_mode>() == false)
-        {
-            rw.Set<AS::gps_position_valid>(false);
-        }
-        return std::nullopt;
-    });
+        m_gps_timeout_timer = StartTimer(10s, [this]() {
+            m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(false);
+            return std::nullopt;
+        });
+    }
     Reset();
 
     return std::nullopt;
