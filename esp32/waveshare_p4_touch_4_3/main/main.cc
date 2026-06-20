@@ -35,7 +35,6 @@
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_st7701.h>
-#include <esp_lcd_touch_gt911.h>
 #include <esp_ldo_regulator.h>
 #include <esp_partition.h>
 #include <esp_random.h>
@@ -630,60 +629,14 @@ app_main(void)
             },
     };
 
-    i2c_master_bus_handle_t i2c_handle;
-    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &i2c_handle));
-    esp_lcd_panel_io_i2c_config_t io_config = {.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS,
-                                               .scl_speed_hz = 100000,
-                                               .control_phase_bytes = 1,
-                                               .dc_bit_offset = 0,
-                                               .lcd_cmd_bits = 16,
-                                               .lcd_param_bits = 0,
-                                               .on_color_trans_done = nullptr,
-                                               .user_ctx = nullptr,
-                                               .flags = {
-                                                   .dc_low_on_data = 0,
-                                                   .disable_control_phase = 1,
-                                               }};
-
-
-    esp_lcd_touch_io_gt911_config_t tp_gt911_config = {
-        .dev_addr = static_cast<uint8_t>(io_config.dev_addr),
-    };
-
-    const esp_lcd_touch_config_t tp_cfg = {
-        .x_max = hal::kDisplayWidth,
-        .y_max = hal::kDisplayHeight,
-        .rst_gpio_num = GPIO_NUM_NC,
-        .int_gpio_num = GPIO_NUM_NC,
-        .levels =
-            {
-                .reset = 0,
-                .interrupt = 0,
-            },
-        .flags =
-            {
-                .swap_xy = 1,
-                .mirror_x = 0,
-                .mirror_y = 1,
-            },
-        .process_coordinates = nullptr,
-        .interrupt_callback = nullptr,
-        .user_data = nullptr,
-        .driver_data = &tp_gt911_config,
-    };
-    esp_lcd_panel_io_handle_t tp_io_handle = nullptr;
-    esp_lcd_touch_handle_t tp;
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(i2c_handle, &io_config, &tp_io_handle));
-    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &tp));
-
     // Devices / helper classes
     //auto left_buzzer_gpio = std::make_unique<GpioEsp32>(kPinLeftBuzzer);
     //auto right_buzzer_gpio = std::make_unique<GpioEsp32>(kPinRightBuzzer);
     auto image_cache = std::make_unique<ImageCache>();
     auto uart_gps = std::make_unique<UartEsp32>(UART_NUM_2,
-                                                 9600,
-                                                 kGpsUartRxPin,  // RX
-                                                 kGpsUartTxPin); // TX
+                                                9600,
+                                                kGpsUartRxPin,  // RX
+                                                kGpsUartTxPin); // TX
     auto gps = std::make_unique<UartGps>(*uart_gps);
     auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
 
@@ -706,7 +659,7 @@ app_main(void)
 
     //    stepper_motor->Start();
 
-    auto touch = std::make_unique<TouchEsp32>(tp);
+    auto touch = std::make_unique<TouchEsp32>(i2c_mst_config, GPIO_NUM_NC);
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
     auto button_debouncer = std::make_unique<ButtonDebouncer>();
     auto debounced_button = button_debouncer->AddButton(
