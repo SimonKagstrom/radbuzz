@@ -49,8 +49,12 @@ private:
         uint32_t triangle_area;
         LogHandle handle;
 
-        auto operator<(const LogQueueEntry& other) const
+        int operator<(const LogQueueEntry& other) const
         {
+            if (triangle_area == other.triangle_area)
+            {
+                return rand() % 2; // Randomize order of entries with the same area to avoid bias
+            }
             // We want the entry with the smallest triangle area to be popped first, so we invert the comparison here
             return triangle_area > other.triangle_area;
         }
