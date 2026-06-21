@@ -32,11 +32,11 @@ public:
 
     // x MB of trip log entries
     static constexpr auto kNumberOfTripLogEntries = (1 * 1024 * 1024) / sizeof(TripLogEntry);
-    using TripLog = etl::circular_buffer<TripLogEntry, kNumberOfTripLogEntries>;
+    static constexpr auto kNumberOfDisplayLogEntries = 64;
 
     explicit TripComputer(ApplicationState& app_state);
 
-    std::pair<std::unique_lock<etl::mutex>, TripLog&> GetLog();
+    std::pair<std::unique_lock<etl::mutex>, std::span<const DisplayTripLogEntry>> GetLog();
 
     const TripLogEntry& Entry(LogHandle handle) const
     {
@@ -64,6 +64,7 @@ private:
     std::optional<LogHandle> AllocateLogEntry();
     void FreeLogEntry(LogHandle handle);
     uint32_t TriangleArea(const Point& a, const Point& b, const Point& c) const;
+    uint32_t TriangleArea(const TripLogEntry& entry) const;
 
 
     TripLogEntry& WritableEntry(LogHandle handle)
@@ -80,13 +81,14 @@ private:
     uint32_t m_current_distance {0};
 
     etl::circular_buffer<uint16_t, 10> m_millivolt_history;
-    os::mem_unique_ptr<TripLog> m_trip_log;
 
-    os::mem_unique_ptr<std::array<TripLogEntry, kNumberOfTripLogEntries>> m_trip_log_storage;
+    std::unique_ptr<std::array<TripLogEntry, kNumberOfTripLogEntries>> m_trip_log_storage;
     std::vector<LogHandle> m_free_log_entries;
-    etl::priority_queue<LogQueueEntry, 64> m_log_queue;
-
+    etl::priority_queue<LogQueueEntry, kNumberOfDisplayLogEntries> m_log_queue;
     std::optional<LogQueueEntry> m_pending_log_entry;
+
+    std::array<std::vector<DisplayTripLogEntry>, 2> m_display_logs;
+    std::atomic_bool m_current_display_log {0};
 
     etl::mutex m_log_mutex;
 };

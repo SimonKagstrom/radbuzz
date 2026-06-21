@@ -60,8 +60,7 @@ TripComputer::TripComputer(ApplicationState& app_state)
     : m_state(app_state)
     , m_state_listener(
           m_state.AttachListener<AS::configuration, AS::pixel_position>(GetSemaphore()))
-    , m_trip_log(os::AllocSlowMem<etl::circular_buffer<TripLogEntry, kNumberOfTripLogEntries>>())
-    , m_trip_log_storage(os::AllocSlowMem<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
+    , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
 }
 
@@ -69,7 +68,10 @@ void
 TripComputer::OnStartup()
 {
     m_free_log_entries.reserve(kNumberOfTripLogEntries);
-    etl::ranges::iota(m_free_log_entries, 0);
+    for (auto i = 0; i < kNumberOfTripLogEntries; i++)
+    {
+        m_free_log_entries.push_back(i);
+    }
 
     m_soc_timer = StartTimer(250ms, [this]() {
         auto mv = m_state.CheckoutReadonly().Get<AS::battery_millivolts>();
@@ -133,11 +135,11 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     }
 }
 
-std::pair<std::unique_lock<etl::mutex>, TripComputer::TripLog&>
+std::pair<std::unique_lock<etl::mutex>, std::span<const TripComputer::DisplayTripLogEntry>>
 TripComputer::GetLog()
 {
     auto lock = std::unique_lock(m_log_mutex);
-    return {std::move(lock), *m_trip_log};
+    return {std::move(lock), m_display_logs[m_current_display_log]};
 }
 
 std::optional<TripComputer::LogHandle>
@@ -167,8 +169,22 @@ TripComputer::TriangleArea(const Point& a, const Point& b, const Point& c) const
 {
     debug_assert(a.zoom == kDefaultZoom && b.zoom == kDefaultZoom && c.zoom == kDefaultZoom);
 
-    // Using the shoelace formula for area of triangle given by coordinates
-    return std::abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2;
+    // Only the relation is important, not the absolute area
+    const auto doubled_area = (a.x) * (b.y - c.y) + (b.x) * (c.y - a.y) + (c.x) * (a.y - b.y);
+    return std::abs(doubled_area);
+}
+
+uint32_t
+TripComputer::TriangleArea(const TripLogEntry& entry) const
+{
+    if (entry.predecessor == kInvalidLogHandle)
+    {
+        return std::numeric_limits<uint32_t>::max();
+    }
+    debug_assert(entry.successor != kInvalidLogHandle);
+
+    return TriangleArea(
+        Entry(entry.predecessor).position, entry.position, Entry(entry.successor).position);
 }
 
 std::optional<milliseconds>
@@ -181,8 +197,16 @@ TripComputer::OnActivation()
         return std::nullopt;
     }
 
-    auto lock = std::lock_guard(m_log_mutex);
     auto position = *ro.Get<AS::pixel_position>();
+
+    if (m_pending_log_entry &&
+        std::abs(position.x - Entry(m_pending_log_entry->handle).position.x) < 5 &&
+        std::abs(position.y - Entry(m_pending_log_entry->handle).position.y) < 5)
+    {
+        // Wait for a position further away
+        return std::nullopt;
+    }
+
     auto now = os::GetTimeStamp();
 
     auto handle = AllocateLogEntry();
@@ -201,17 +225,16 @@ TripComputer::OnActivation()
         auto& last_entry = WritableEntry(m_pending_log_entry->handle);
         last_entry.successor = *handle;
         new_entry.predecessor = m_pending_log_entry->handle;
-
+        m_pending_log_entry->triangle_area = TriangleArea(last_entry);
 
         if (m_log_queue.full())
         {
             const auto& to_remove = m_log_queue.top();
 
             auto& entry_to_remove = Entry(to_remove.handle);
-            if (entry_to_remove.predecessor != kInvalidLogHandle)
-            {
-                WritableEntry(entry_to_remove.predecessor).successor = entry_to_remove.successor;
-            }
+            debug_assert(entry_to_remove.predecessor != kInvalidLogHandle &&
+                         "Can't remove the first entry");
+            WritableEntry(entry_to_remove.predecessor).successor = entry_to_remove.successor;
             if (entry_to_remove.successor != kInvalidLogHandle)
             {
                 WritableEntry(entry_to_remove.successor).predecessor = entry_to_remove.predecessor;
@@ -222,42 +245,31 @@ TripComputer::OnActivation()
         }
 
         m_log_queue.push(*m_pending_log_entry);
-        m_pending_log_entry = LogQueueEntry {
-            TriangleArea(position, last_entry.position, Entry(last_entry.successor).position),
-            *handle};
+        m_pending_log_entry = LogQueueEntry {0, *handle};
+
+
+        auto lock = std::lock_guard(m_log_mutex);
+        // Swap first, so that this is fresh when the lock is released
+        m_current_display_log = !m_current_display_log;
+        auto& display_log = m_display_logs[m_current_display_log];
+
+        display_log.clear();
+        display_log.push_back(DisplayTripLogEntry {position, ro.Get<AS::current_power_w>()});
+        auto pred_handle = new_entry.predecessor;
+        while (pred_handle != kInvalidLogHandle)
+        {
+            const auto& pred_entry = Entry(pred_handle);
+            display_log.push_back(DisplayTripLogEntry {pred_entry.position, pred_entry.power});
+            pred_handle = pred_entry.predecessor;
+        }
     }
     else
     {
         debug_assert(m_log_queue.empty());
 
-        // This is the first entry, we always want to keep it so use max area
-        m_pending_log_entry = LogQueueEntry {
-            std::numeric_limits<decltype(LogQueueEntry::triangle_area)>::max(), *handle};
+        // This is the first entry, will be fixed up above
+        m_pending_log_entry = LogQueueEntry {0, *handle};
     }
-
-#if 0
-    if (m_trip_log->empty())
-    {
-        m_trip_log->push(TripLogEntry {position, now, ro.Get<AS::current_power_w>()});
-    }
-    else
-    {
-        const auto& last = m_trip_log->back();
-        auto max_diff = std::max(std::abs(position.x - last.position.x),
-                                 std::abs(position.y - last.position.y));
-
-        if (max_diff > 500)
-        {
-            // GPS jump
-            m_trip_log->clear();
-            m_trip_log->push(TripLogEntry {position, now, ro.Get<AS::current_power_w>()});
-        }
-        else if (max_diff > 5)
-        {
-            m_trip_log->push(TripLogEntry {position, now, ro.Get<AS::current_power_w>()});
-        }
-    }
-#endif
 
     return std::nullopt;
 }
