@@ -1,6 +1,14 @@
 #include "trip_computer.hh"
 
+#include "debug_assert.hh"
+
 #include <numeric>
+
+static_assert(TripComputer::kNumberOfTripLogEntries <=
+                  std::numeric_limits<TripComputer::LogHandle>::max(),
+              "Handle type too small for number of entries");
+static constexpr TripComputer::LogHandle kInvalidLogHandle =
+    std::numeric_limits<TripComputer::LogHandle>::max();
 
 namespace
 {
@@ -53,7 +61,16 @@ TripComputer::TripComputer(ApplicationState& app_state)
     , m_state_listener(
           m_state.AttachListener<AS::configuration, AS::pixel_position>(GetSemaphore()))
     , m_trip_log(os::AllocSlowMem<etl::circular_buffer<TripLogEntry, kNumberOfTripLogEntries>>())
+    , m_trip_log_storage(os::AllocSlowMem<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
+}
+
+void
+TripComputer::OnStartup()
+{
+    m_free_log_entries.reserve(kNumberOfTripLogEntries);
+    etl::ranges::iota(m_free_log_entries, 0);
+
     m_soc_timer = StartTimer(250ms, [this]() {
         auto mv = m_state.CheckoutReadonly().Get<AS::battery_millivolts>();
         if (mv != 0)
@@ -123,6 +140,37 @@ TripComputer::GetLog()
     return {std::move(lock), *m_trip_log};
 }
 
+std::optional<TripComputer::LogHandle>
+TripComputer::AllocateLogEntry()
+{
+    if (m_free_log_entries.empty())
+    {
+        return std::nullopt;
+    }
+
+    auto handle = m_free_log_entries.back();
+    m_free_log_entries.pop_back();
+
+    return handle;
+}
+
+void
+TripComputer::FreeLogEntry(LogHandle handle)
+{
+    debug_assert(handle != kInvalidLogHandle);
+
+    m_free_log_entries.push_back(handle);
+}
+
+uint32_t
+TripComputer::TriangleArea(const Point& a, const Point& b, const Point& c) const
+{
+    debug_assert(a.zoom == kDefaultZoom && b.zoom == kDefaultZoom && c.zoom == kDefaultZoom);
+
+    // Using the shoelace formula for area of triangle given by coordinates
+    return std::abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2;
+}
+
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
@@ -136,6 +184,64 @@ TripComputer::OnActivation()
     auto lock = std::lock_guard(m_log_mutex);
     auto position = *ro.Get<AS::pixel_position>();
     auto now = os::GetTimeStamp();
+
+    auto handle = AllocateLogEntry();
+    if (!handle)
+    {
+        // TODO: Free a handle
+    }
+    else
+    {
+        auto& new_entry = WritableEntry(*handle);
+
+        new_entry = TripLogEntry {
+            position, now, ro.Get<AS::current_power_w>(), kInvalidLogHandle, kInvalidLogHandle};
+
+        if (m_pending_log_entry)
+        {
+            // Update the successor of the current pending entry
+            auto& current_entry = WritableEntry(m_pending_log_entry->handle);
+            current_entry.successor = *handle;
+            new_entry.predecessor = m_pending_log_entry->handle;
+
+
+            if (m_log_queue.full())
+            {
+                const auto& to_remove = m_log_queue.top();
+
+                auto& entry_to_remove = Entry(to_remove.handle);
+                if (entry_to_remove.predecessor != kInvalidLogHandle)
+                {
+                    WritableEntry(entry_to_remove.predecessor).successor =
+                        entry_to_remove.successor;
+                }
+                if (entry_to_remove.successor != kInvalidLogHandle)
+                {
+                    WritableEntry(entry_to_remove.successor).predecessor =
+                        entry_to_remove.predecessor;
+                }
+
+                m_free_log_entries.push_back(to_remove.handle);
+                m_log_queue.pop();
+            }
+
+            m_log_queue.push(*m_pending_log_entry);
+            m_pending_log_entry = LogQueueEntry {
+                TriangleArea(
+                    position, current_entry.position, Entry(current_entry.successor).position),
+                *handle};
+        }
+        else
+        {
+            debug_assert(m_log_queue.empty());
+
+            // This is the first entry, we always want to keep it so use max area
+            m_pending_log_entry = LogQueueEntry {
+                std::numeric_limits<decltype(LogQueueEntry::triangle_area)>::max(), *handle};
+        }
+    }
+
+#if 0
     if (m_trip_log->empty())
     {
         m_trip_log->push(TripLogEntry {position, now, ro.Get<AS::current_power_w>()});
@@ -157,6 +263,7 @@ TripComputer::OnActivation()
             m_trip_log->push(TripLogEntry {position, now, ro.Get<AS::current_power_w>()});
         }
     }
+#endif
 
     return std::nullopt;
 }
