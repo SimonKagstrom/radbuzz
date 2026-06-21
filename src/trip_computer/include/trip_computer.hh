@@ -23,6 +23,12 @@ public:
         LogHandle successor;
     };
 
+    struct DisplayTripLogEntry
+    {
+        Point position;
+        int16_t power;
+    };
+
 
     // x MB of trip log entries
     static constexpr auto kNumberOfTripLogEntries = (1 * 1024 * 1024) / sizeof(TripLogEntry);

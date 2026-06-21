@@ -186,59 +186,53 @@ TripComputer::OnActivation()
     auto now = os::GetTimeStamp();
 
     auto handle = AllocateLogEntry();
-    if (!handle)
+
+    // We should have enough entries, so for now just assert
+    debug_assert(handle);
+
+    auto& new_entry = WritableEntry(*handle);
+
+    new_entry = TripLogEntry {
+        position, now, ro.Get<AS::current_power_w>(), kInvalidLogHandle, kInvalidLogHandle};
+
+    if (m_pending_log_entry)
     {
-        // TODO: Free a handle
+        // Update the successor of the current pending entry
+        auto& last_entry = WritableEntry(m_pending_log_entry->handle);
+        last_entry.successor = *handle;
+        new_entry.predecessor = m_pending_log_entry->handle;
+
+
+        if (m_log_queue.full())
+        {
+            const auto& to_remove = m_log_queue.top();
+
+            auto& entry_to_remove = Entry(to_remove.handle);
+            if (entry_to_remove.predecessor != kInvalidLogHandle)
+            {
+                WritableEntry(entry_to_remove.predecessor).successor = entry_to_remove.successor;
+            }
+            if (entry_to_remove.successor != kInvalidLogHandle)
+            {
+                WritableEntry(entry_to_remove.successor).predecessor = entry_to_remove.predecessor;
+            }
+
+            m_free_log_entries.push_back(to_remove.handle);
+            m_log_queue.pop();
+        }
+
+        m_log_queue.push(*m_pending_log_entry);
+        m_pending_log_entry = LogQueueEntry {
+            TriangleArea(position, last_entry.position, Entry(last_entry.successor).position),
+            *handle};
     }
     else
     {
-        auto& new_entry = WritableEntry(*handle);
+        debug_assert(m_log_queue.empty());
 
-        new_entry = TripLogEntry {
-            position, now, ro.Get<AS::current_power_w>(), kInvalidLogHandle, kInvalidLogHandle};
-
-        if (m_pending_log_entry)
-        {
-            // Update the successor of the current pending entry
-            auto& current_entry = WritableEntry(m_pending_log_entry->handle);
-            current_entry.successor = *handle;
-            new_entry.predecessor = m_pending_log_entry->handle;
-
-
-            if (m_log_queue.full())
-            {
-                const auto& to_remove = m_log_queue.top();
-
-                auto& entry_to_remove = Entry(to_remove.handle);
-                if (entry_to_remove.predecessor != kInvalidLogHandle)
-                {
-                    WritableEntry(entry_to_remove.predecessor).successor =
-                        entry_to_remove.successor;
-                }
-                if (entry_to_remove.successor != kInvalidLogHandle)
-                {
-                    WritableEntry(entry_to_remove.successor).predecessor =
-                        entry_to_remove.predecessor;
-                }
-
-                m_free_log_entries.push_back(to_remove.handle);
-                m_log_queue.pop();
-            }
-
-            m_log_queue.push(*m_pending_log_entry);
-            m_pending_log_entry = LogQueueEntry {
-                TriangleArea(
-                    position, current_entry.position, Entry(current_entry.successor).position),
-                *handle};
-        }
-        else
-        {
-            debug_assert(m_log_queue.empty());
-
-            // This is the first entry, we always want to keep it so use max area
-            m_pending_log_entry = LogQueueEntry {
-                std::numeric_limits<decltype(LogQueueEntry::triangle_area)>::max(), *handle};
-        }
+        // This is the first entry, we always want to keep it so use max area
+        m_pending_log_entry = LogQueueEntry {
+            std::numeric_limits<decltype(LogQueueEntry::triangle_area)>::max(), *handle};
     }
 
 #if 0
