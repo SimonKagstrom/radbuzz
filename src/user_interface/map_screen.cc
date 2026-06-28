@@ -78,6 +78,12 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
     constexpr int kDisplayCenterX = hal::kDisplayWidth / 2;
     constexpr int kDisplayCenterY = hal::kDisplayHeight / 2;
 
+    const auto kLowPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
+    const auto kMidPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_AMBER));
+    const auto kHighPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_RED));
+
+    const auto kMaxPower = m_parent.m_state.CheckoutReadonly().Get<AS::configuration>()->max_watts;
+
     auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
     for (++it; it != log.end(); ++it, ++last)
     {
@@ -96,31 +102,21 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
             continue;
         }
 
-        auto bresenham = Bresenham<Point>({last_position.x, last_position.y},
-                                          {current_position.x, current_position.y});
-
-        auto dx = 3;
-        auto dy = 1;
-
-        if (bresenham.IsMostlyVerticalSlope())
+        auto color = kHighPowerColor;
+        if (it->power < kMaxPower / 3)
         {
-            std::swap(dx, dy);
+            color = kLowPowerColor;
+        }
+        else if (it->power < 2 * kMaxPower / 3)
+        {
+            color = kMidPowerColor;
         }
 
-        auto color = lv_color_to_u16(lv_palette_main(LV_PALETTE_RED));
-        for (auto& cur : bresenham)
-        {
-            for (auto x = cur.x; x < cur.x + dx; ++x)
-            {
-                for (auto y = cur.y; y < cur.y + dy; ++y)
-                {
-                    if (x >= 0 && x < hal::kDisplayWidth && y >= 0 && y < hal::kDisplayHeight)
-                    {
-                        dst[y * hal::kDisplayWidth + x] = color;
-                    }
-                }
-            }
-        }
+        painter::DrawClippedLine<Point>(dst,
+                                        {last_position.x, last_position.y},
+                                        {current_position.x, current_position.y},
+                                        5,
+                                        color);
     }
 }
 
