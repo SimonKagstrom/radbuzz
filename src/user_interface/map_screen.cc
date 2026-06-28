@@ -330,6 +330,10 @@ void
 MapScreen::SetZoom(uint8_t zoom)
 {
     m_zoom = zoom;
+
+    // Setup the view center according to the zoom when changing
+    m_current_view_center =
+        OsmPointToPoint(*m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>(), m_zoom);
 }
 
 void
@@ -381,7 +385,7 @@ MapScreen::Update()
     m_rotation_pivot_y = kDisplayCenterY;
     m_rotation = 0;
 
-    if (m_touch_timer->IsExpired())
+    if (m_touch_timer->IsExpired() && m_zoom == kDefaultZoom)
     {
         m_current_view_center = pixel_position;
         if (follow_mode)
