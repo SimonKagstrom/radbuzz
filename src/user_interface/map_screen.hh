@@ -10,10 +10,7 @@
 class MapScreen : public UserInterface::ScreenBase
 {
 public:
-    MapScreen(UserInterface& parent,
-              ImageCache& image_cache,
-              TileCache& tile_cache,
-              uint8_t zoom);
+    MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache, uint8_t zoom);
 
     void SetZoom(uint8_t zoom);
 
@@ -71,6 +68,7 @@ private:
     lv_obj_t* m_power_bar {nullptr};
 
     Point m_current_view_center {0, 0, kDefaultZoom};
+    Point m_current_range_circle_center {0, 0, kDefaultZoom};
     int32_t m_rotation_pivot_x {hal::kDisplayWidth / 2};
     int32_t m_rotation_pivot_y {hal::kDisplayHeight / 2};
     uint16_t m_rotation {0};

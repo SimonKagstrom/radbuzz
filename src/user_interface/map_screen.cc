@@ -18,16 +18,14 @@
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
 {
-    const int center_x =
-        lv_obj_get_x(m_position_dot_obj) + static_cast<int>(m_position_dot.Width()) / 2;
-    const int center_y =
-        lv_obj_get_y(m_position_dot_obj) + static_cast<int>(m_position_dot.Height()) / 2;
+    constexpr auto center_x = hal::kDisplayWidth / 2;
+    constexpr auto center_y = hal::kDisplayHeight / 2;
 
     auto ro = m_parent.m_state.CheckoutReadonly();
     const auto conf = ro.Get<AS::configuration>();
     const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
     const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
-    const auto vehicle_point = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
+    const auto vehicle_point = OsmPointToPoint(m_current_range_circle_center, m_zoom);
 
     // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
     constexpr float kNominalCellVoltageV = 3.7f;
@@ -323,7 +321,7 @@ MapScreen::MapScreen(UserInterface& parent,
     const uint8_t battery_soc =
         std::min<uint8_t>(m_parent.m_state.CheckoutReadonly().Get<AS::battery_soc>(), 100);
 
-    m_current_view_center = *m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>();
+    SetZoom(m_zoom);
 }
 
 void
@@ -331,9 +329,12 @@ MapScreen::SetZoom(uint8_t zoom)
 {
     m_zoom = zoom;
 
+    auto pixel_position = m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>();
+
     // Setup the view center according to the zoom when changing
-    m_current_view_center =
-        OsmPointToPoint(*m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>(), m_zoom);
+    m_current_view_center = OsmPointToPoint(*pixel_position, m_zoom);
+    // And store the center of the range circle
+    m_current_range_circle_center = m_current_view_center;
 }
 
 void
