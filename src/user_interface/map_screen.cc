@@ -63,7 +63,7 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
 void
 MapScreen::DrawTripLines(lv_layer_t* layer)
 {
-    auto p = m_parent.m_trip_computer.GetLog();
+    auto p = m_parent.m_trip_computer.GetDisplayLog();
     auto& log = p.second;
 
     if (log.size() < 2)

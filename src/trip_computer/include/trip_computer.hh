@@ -36,7 +36,7 @@ public:
 
     explicit TripComputer(ApplicationState& app_state);
 
-    std::pair<std::unique_lock<etl::mutex>, std::span<const DisplayTripLogEntry>> GetLog();
+    std::pair<std::unique_lock<etl::mutex>, std::span<const DisplayTripLogEntry>> GetDisplayLog();
 
     const TripLogEntry& Entry(LogHandle handle) const
     {
@@ -44,20 +44,42 @@ public:
     }
 
 private:
-    struct LogQueueEntry
+    template <size_t Entries>
+    class Log
     {
-        uint32_t triangle_area;
-        LogHandle handle;
-
-        int operator<(const LogQueueEntry& other) const
+    public:
+        Log(TripComputer& parent)
+            : m_parent(parent)
         {
-            if (triangle_area == other.triangle_area)
-            {
-                return rand() % 2; // Randomize order of entries with the same area to avoid bias
-            }
-            // We want the entry with the smallest triangle area to be popped first, so we invert the comparison here
-            return triangle_area > other.triangle_area;
         }
+
+        struct LogQueueEntry
+        {
+            uint32_t triangle_area;
+            LogHandle handle;
+
+            int operator<(const LogQueueEntry& other) const
+            {
+                if (triangle_area == other.triangle_area)
+                {
+                    return rand() %
+                           2; // Randomize order of entries with the same area to avoid bias
+                }
+                // We want the entry with the smallest triangle area to be popped first, so we invert the comparison here
+                return triangle_area > other.triangle_area;
+            }
+        };
+
+        std::optional<LogHandle>
+        AddEntry(const Point& position, milliseconds timestamp, int16_t power);
+
+    private:
+        uint32_t TriangleArea(const TripLogEntry& entry) const;
+
+        TripComputer& m_parent;
+
+        etl::priority_queue<LogQueueEntry, Entries> m_log_queue;
+        std::optional<LogQueueEntry> m_pending_log_entry;
     };
 
     void OnStartup() final;
@@ -67,8 +89,6 @@ private:
 
     std::optional<LogHandle> AllocateLogEntry();
     void FreeLogEntry(LogHandle handle);
-    uint32_t TriangleArea(const Point& a, const Point& b, const Point& c) const;
-    uint32_t TriangleArea(const TripLogEntry& entry) const;
 
 
     TripLogEntry& WritableEntry(LogHandle handle)
@@ -88,11 +108,11 @@ private:
 
     std::unique_ptr<std::array<TripLogEntry, kNumberOfTripLogEntries>> m_trip_log_storage;
     std::vector<LogHandle> m_free_log_entries;
-    etl::priority_queue<LogQueueEntry, kNumberOfDisplayLogEntries> m_log_queue;
-    std::optional<LogQueueEntry> m_pending_log_entry;
+
+    Log<kNumberOfDisplayLogEntries> m_display_log {*this};
 
     std::array<std::vector<DisplayTripLogEntry>, 2> m_display_logs;
-    std::atomic_bool m_current_display_log {0};
+    std::atomic<uint8_t> m_current_display_log {0};
 
     etl::mutex m_log_mutex;
 };
