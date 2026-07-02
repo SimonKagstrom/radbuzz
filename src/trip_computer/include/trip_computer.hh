@@ -31,8 +31,10 @@ public:
 
 
     // x MB of trip log entries
-    static constexpr auto kNumberOfTripLogEntries = (1 * 1024 * 1024) / sizeof(TripLogEntry);
+    static constexpr auto kNumberOfTripLogEntries = (128 * 1024) / sizeof(TripLogEntry);
     static constexpr auto kNumberOfDisplayLogEntries = 64;
+    static constexpr auto kNumberOfExportLogEntries =
+        kNumberOfTripLogEntries - kNumberOfDisplayLogEntries - 2;
 
     explicit TripComputer(ApplicationState& app_state);
 
@@ -73,6 +75,16 @@ private:
         std::optional<LogHandle>
         AddEntry(const Point& position, milliseconds timestamp, int16_t power);
 
+        std::optional<LogHandle> GetLastHandle() const
+        {
+            if (m_pending_log_entry)
+            {
+                return m_pending_log_entry->handle;
+            }
+
+            return std::nullopt;
+        }
+
     private:
         uint32_t TriangleArea(const TripLogEntry& entry) const;
 
@@ -110,6 +122,7 @@ private:
     std::vector<LogHandle> m_free_log_entries;
 
     Log<kNumberOfDisplayLogEntries> m_display_log {*this};
+    Log<kNumberOfExportLogEntries> m_export_log {*this};
 
     std::array<std::vector<DisplayTripLogEntry>, 2> m_display_logs;
     std::atomic<uint8_t> m_current_display_log {0};
