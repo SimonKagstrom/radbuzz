@@ -13,6 +13,7 @@
 #include <optional>
 #include <services/gap/ble_svc_gap.h>
 #include <services/gatt/ble_svc_gatt.h>
+#include <unordered_map>
 #include <vector>
 
 class BleServerEsp32 : public hal::IBleServer, public hal::IBleClient
@@ -30,14 +31,20 @@ public:
                                      std::function<void(std::span<const uint8_t>)> data) final;
 
 
-    void ScanForService(hal::Uuid16 service_uuid,
+    void ScanForService(hal::Uuid128Span service_uuid,
                         const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
 
     void Start() final;
 
     void PollEvents() final;
 
-    bool WriteToPeerFfe1(std::span<const uint8_t> data);
+    bool WritePeerCharacteristic(uint16_t conn_handle,
+                                 uint16_t value_handle,
+                                 std::span<const uint8_t> data);
+    bool EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_handle);
+    void RegisterNotificationCallback(uint16_t value_handle,
+                                      std::function<void(std::span<const uint8_t>)> cb);
+    void UnregisterNotificationCallback(uint16_t value_handle);
 
 private:
     struct WriteCharacteristic
@@ -73,12 +80,15 @@ private:
 
     std::vector<std::unique_ptr<WriteCharacteristic>> m_characteristics;
 
-    std::optional<hal::Uuid16> m_peer_service_uuid;
+    std::optional<hal::Uuid128> m_peer_service_uuid;
     std::function<void(std::unique_ptr<IPeer>)> m_peer_found_cb {[](auto x) {}};
+    std::unordered_map<uint16_t, std::function<void(std::span<const uint8_t>)>>
+        m_notification_callbacks;
 
     uint16_t m_peer_conn_handle {BLE_HS_CONN_HANDLE_NONE};
     uint16_t m_peer_svc_start_handle {0};
     uint16_t m_peer_svc_end_handle {0};
+    std::optional<hal::Uuid128> m_peer_char_uuid;
     uint16_t m_peer_chr_val_handle {0};
     uint16_t m_peer_cccd_handle {0};
 

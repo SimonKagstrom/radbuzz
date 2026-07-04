@@ -2,6 +2,7 @@
 #include "ble_server_esp32.hh"
 //#include <esp_nimble_hci.h>
 
+#include <algorithm>
 #include <esp_err.h>
 extern "C" {
 #include <services/ans/ble_svc_ans.h>
@@ -9,89 +10,215 @@ extern "C" {
 namespace
 {
 
+constexpr auto kBluetoothBaseUuid =
+    hal::detail::StringToUuid128("00000000-0000-1000-8000-00805f9b34fb");
+
+constexpr hal::Uuid128
+UuidFrom16(uint16_t value)
+{
+    auto uuid = kBluetoothBaseUuid;
+    uuid[12] = static_cast<uint8_t>(value & 0xff);
+    uuid[13] = static_cast<uint8_t>((value >> 8) & 0xff);
+    return uuid;
+}
+
+constexpr hal::Uuid128
+UuidFrom32(uint32_t value)
+{
+    auto uuid = kBluetoothBaseUuid;
+    uuid[12] = static_cast<uint8_t>(value & 0xff);
+    uuid[13] = static_cast<uint8_t>((value >> 8) & 0xff);
+    uuid[14] = static_cast<uint8_t>((value >> 16) & 0xff);
+    uuid[15] = static_cast<uint8_t>((value >> 24) & 0xff);
+    return uuid;
+}
+
+constexpr hal::Uuid128
+UuidFromBle(const ble_uuid_t& uuid)
+{
+    switch (uuid.type)
+    {
+    case BLE_UUID_TYPE_16:
+        return UuidFrom16(reinterpret_cast<const ble_uuid16_t&>(uuid).value);
+    case BLE_UUID_TYPE_32:
+        return UuidFrom32(reinterpret_cast<const ble_uuid32_t&>(uuid).value);
+    case BLE_UUID_TYPE_128: {
+        hal::Uuid128 result {};
+        std::copy(std::begin(reinterpret_cast<const ble_uuid128_t&>(uuid).value),
+                  std::end(reinterpret_cast<const ble_uuid128_t&>(uuid).value),
+                  result.begin());
+        return result;
+    }
+    default:
+        return {};
+    }
+}
+
+constexpr bool
+UuidEquals(const hal::Uuid128& lhs, const hal::Uuid128& rhs)
+{
+    return std::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+
+void
+PrintUuid(const hal::Uuid128& uuid)
+{
+    printf("Service UUID: ");
+    for (auto byte : uuid)
+    {
+        printf("%02x", byte);
+    }
+    printf("\n");
+}
+
+class Characteristic : public hal::IBleClient::ICharacteristic
+{
+public:
+    Characteristic(BleServerEsp32& parent,
+                   uint16_t conn_handle,
+                   hal::Uuid128 uuid,
+                   uint16_t value_handle,
+                   uint16_t cccd_handle)
+        : m_parent(parent)
+        , m_conn_handle(conn_handle)
+        , m_uuid(uuid)
+        , m_value_handle(value_handle)
+        , m_cccd_handle(cccd_handle)
+    {
+    }
+
+    hal::Uuid128 GetUuid() const final
+    {
+        return m_uuid;
+    }
+
+    bool Write(std::span<const uint8_t> data) final
+    {
+        return m_parent.WritePeerCharacteristic(m_conn_handle, m_value_handle, data);
+    }
+
+    bool Read(DataCallback) final
+    {
+        return false;
+    }
+
+    bool Subscribe(DataCallback cb) final
+    {
+        if (m_cccd_handle == 0)
+        {
+            return false;
+        }
+
+        m_parent.RegisterNotificationCallback(m_value_handle, std::move(cb));
+        return m_parent.EnablePeerNotifications(m_conn_handle, m_cccd_handle);
+    }
+
+    void Unsubscribe() final
+    {
+        m_parent.UnregisterNotificationCallback(m_value_handle);
+
+        if (m_cccd_handle == 0 || m_conn_handle == BLE_HS_CONN_HANDLE_NONE)
+        {
+            return;
+        }
+
+        uint8_t notify_disable[2] = {0x00, 0x00};
+        ble_gattc_write_flat(
+            m_conn_handle,
+            m_cccd_handle,
+            notify_disable,
+            sizeof(notify_disable),
+            [](uint16_t, const struct ble_gatt_error*, struct ble_gatt_attr*, void*) { return 0; },
+            nullptr);
+    }
+
+private:
+    BleServerEsp32& m_parent;
+    const uint16_t m_conn_handle;
+    const hal::Uuid128 m_uuid;
+    const uint16_t m_value_handle;
+    const uint16_t m_cccd_handle;
+};
+
 class Service : public hal::IBleClient::IService
 {
 public:
-    explicit Service(const ble_gatt_svc& svc)
-        : m_svc(svc)
+    Service(hal::Uuid128 uuid, std::vector<std::unique_ptr<Characteristic>> characteristics)
+        : m_uuid(uuid)
+        , m_characteristics(std::move(characteristics))
     {
     }
 
-    uint16_t GetUuid() const final
+    hal::Uuid128 GetUuid() const final
     {
-        if (m_svc.uuid.u.type == BLE_UUID_TYPE_16)
+        return m_uuid;
+    }
+
+    std::vector<hal::IBleClient::ICharacteristic*> GetCharacteristics() final
+    {
+        std::vector<hal::IBleClient::ICharacteristic*> characteristics;
+        characteristics.reserve(m_characteristics.size());
+
+        for (auto& characteristic : m_characteristics)
         {
-            return reinterpret_cast<const ble_uuid16_t&>(m_svc.uuid).value;
+            characteristics.push_back(characteristic.get());
         }
 
-        // For now only support 16-bit UUIDs for peer services
-        assert(false);
-        return 0;
+        return characteristics;
     }
 
-    virtual std::vector<hal::IBleClient::ICharacteristic&> GetCharacteristics() = 0;
-
 private:
-    const ble_gatt_svc& m_svc;
+    const hal::Uuid128 m_uuid;
+    std::vector<std::unique_ptr<Characteristic>> m_characteristics;
 };
 
 
 class Peer : public hal::IBleClient::IPeer
 {
 public:
-    Peer(uint16_t conn_handle, BleServerEsp32& parent)
+    Peer(uint16_t conn_handle, BleServerEsp32& parent, std::unique_ptr<Service> service)
         : m_conn_handle(conn_handle)
         , m_parent(parent)
+        , m_services()
     {
+        m_services.push_back(std::move(service));
+    }
+
+    bool IsConnected() const final
+    {
+        return m_conn_handle != BLE_HS_CONN_HANDLE_NONE;
+    }
+
+    void Disconnect() final
+    {
+        if (m_conn_handle != BLE_HS_CONN_HANDLE_NONE)
+        {
+            ble_gap_terminate(m_conn_handle, BLE_ERR_REM_USER_CONN_TERM);
+        }
+    }
+
+    std::vector<hal::IBleClient::IService*> GetServices() final
+    {
+        std::vector<hal::IBleClient::IService*> services;
+        services.reserve(m_services.size());
+
+        for (auto& service : m_services)
+        {
+            services.push_back(service.get());
+        }
+
+        return services;
     }
 
 private:
     const uint16_t m_conn_handle;
     BleServerEsp32& m_parent;
+    std::vector<std::unique_ptr<Service>> m_services;
 };
 
 
 BleServerEsp32* g_server;
 
-constexpr uint16_t kPeerServiceUuidFfe0 = 0xFFE0;
-constexpr uint16_t kPeerCharUuidFfe1 = 0xFFE1;
-
-void
-PrintUuid(const ble_uuid_any_t& uuid)
-{
-    switch (uuid.u.type)
-    {
-    case BLE_UUID_TYPE_16:
-        printf("Service16 discovered: 0x%04x\n", reinterpret_cast<const ble_uuid16_t&>(uuid).value);
-        break;
-    case BLE_UUID_TYPE_32:
-        printf("Service32 discovered: 0x%08x\n", reinterpret_cast<const ble_uuid32_t&>(uuid).value);
-        break;
-    case BLE_UUID_TYPE_128:
-        printf("Service128 discovered: "
-               "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[15],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[14],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[13],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[12],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[11],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[10],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[9],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[8],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[7],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[6],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[5],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[4],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[3],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[2],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[1],
-               reinterpret_cast<const ble_uuid128_t&>(uuid).value[0]);
-        break;
-    default:
-        printf("Service discovered: <unknown uuid type %d>\n", uuid.u.type);
-        break;
-    }
-}
 } // namespace
 
 BleServerEsp32::BleServerEsp32()
@@ -106,16 +233,18 @@ BleServerEsp32::~BleServerEsp32()
 }
 
 bool
-BleServerEsp32::WriteToPeerFfe1(std::span<const uint8_t> data)
+BleServerEsp32::WritePeerCharacteristic(uint16_t conn_handle,
+                                        uint16_t value_handle,
+                                        std::span<const uint8_t> data)
 {
-    if (m_peer_conn_handle == BLE_HS_CONN_HANDLE_NONE || m_peer_chr_val_handle == 0)
+    if (conn_handle == BLE_HS_CONN_HANDLE_NONE || value_handle == 0)
     {
         return false;
     }
 
     auto rc = ble_gattc_write_flat(
-        m_peer_conn_handle,
-        m_peer_chr_val_handle,
+        conn_handle,
+        value_handle,
         data.data(),
         data.size(),
         [](uint16_t conn_handle,
@@ -124,6 +253,42 @@ BleServerEsp32::WriteToPeerFfe1(std::span<const uint8_t> data)
            void* arg) {
             auto p = reinterpret_cast<BleServerEsp32*>(arg);
             return p->PeerWriteComplete(conn_handle, error, attr);
+        },
+        this);
+
+    return rc == 0;
+}
+
+void
+BleServerEsp32::RegisterNotificationCallback(uint16_t value_handle,
+                                             std::function<void(std::span<const uint8_t>)> cb)
+{
+    m_notification_callbacks[value_handle] = std::move(cb);
+}
+
+void
+BleServerEsp32::UnregisterNotificationCallback(uint16_t value_handle)
+{
+    m_notification_callbacks.erase(value_handle);
+}
+
+bool
+BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_handle)
+{
+    if (conn_handle == BLE_HS_CONN_HANDLE_NONE || cccd_handle == 0)
+    {
+        return false;
+    }
+
+    uint8_t notify_enable[2] = {0x01, 0x00};
+    auto rc = ble_gattc_write_flat(
+        conn_handle,
+        cccd_handle,
+        notify_enable,
+        sizeof(notify_enable),
+        [](uint16_t ch, const struct ble_gatt_error* error, struct ble_gatt_attr* attr, void* arg) {
+            auto p = reinterpret_cast<BleServerEsp32*>(arg);
+            return p->PeerWriteComplete(ch, error, attr);
         },
         this);
 
@@ -169,7 +334,9 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
 
         if (rv == 0)
         {
-            p->cb(std::span<const uint8_t> {flattened.get(), out_sz});
+            auto payload_span = std::span<const uint8_t> {
+                reinterpret_cast<const uint8_t*>(flattened.get()), static_cast<size_t>(out_sz)};
+            p->cb(payload_span);
         }
         ble_gatts_chr_updated(attr_handle);
 
@@ -181,10 +348,11 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
 
 
 void
-BleServerEsp32::ScanForService(hal::Uuid16 service_uuid,
+BleServerEsp32::ScanForService(hal::Uuid128Span service_uuid,
                                const std::function<void(std::unique_ptr<IPeer>)>& cb)
 {
-    m_peer_service_uuid = service_uuid;
+    m_peer_service_uuid = hal::Uuid128 {};
+    std::copy(service_uuid.begin(), service_uuid.end(), m_peer_service_uuid->begin());
     m_peer_found_cb = cb;
 
     uint8_t own_addr_type;
@@ -342,7 +510,8 @@ BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
     for (auto i = 0; i < fields.num_uuids16; i++)
     {
         printf("Found service UUID: %04x\n", fields.uuids16[i].value);
-        if (fields.uuids16[i].value == m_peer_service_uuid)
+        if (m_peer_service_uuid &&
+            UuidEquals(*m_peer_service_uuid, UuidFromBle(fields.uuids16[i].u)))
         {
             return true;
         }
@@ -356,6 +525,11 @@ BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
 
     for (auto i = 0; i < fields.num_uuids128; i++)
     {
+        auto uuid = UuidFromBle(fields.uuids128[i].u);
+        if (m_peer_service_uuid && UuidEquals(*m_peer_service_uuid, uuid))
+        {
+            return true;
+        }
         printf("Found service UUID: "
                "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                fields.uuids128[i].value[15],
@@ -376,6 +550,16 @@ BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
                fields.uuids128[i].value[0]);
     }
 
+    for (auto i = 0; i < fields.num_uuids32; i++)
+    {
+        printf("Found service UUID: %08x\n", fields.uuids32[i].value);
+        if (m_peer_service_uuid &&
+            UuidEquals(*m_peer_service_uuid, UuidFromBle(fields.uuids32[i].u)))
+        {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -389,9 +573,7 @@ BleServerEsp32::PeerSvcDisced(uint16_t conn_handle,
     switch (error->status)
     {
     case 0:
-        PrintUuid(service->uuid);
-        if (service->uuid.u.type == BLE_UUID_TYPE_16 &&
-            reinterpret_cast<const ble_uuid16_t&>(service->uuid).value == kPeerServiceUuidFfe0)
+        if (m_peer_service_uuid && UuidEquals(*m_peer_service_uuid, UuidFromBle(service->uuid.u)))
         {
             m_peer_svc_start_handle = service->start_handle;
             m_peer_svc_end_handle = service->end_handle;
@@ -442,10 +624,9 @@ BleServerEsp32::PeerChrDisced(uint16_t conn_handle,
     switch (error->status)
     {
     case 0:
-        PrintUuid(chr->uuid);
-        if (chr->uuid.u.type == BLE_UUID_TYPE_16 &&
-            reinterpret_cast<const ble_uuid16_t&>(chr->uuid).value == kPeerCharUuidFfe1)
+        if (m_peer_chr_val_handle == 0)
         {
+            m_peer_char_uuid = UuidFromBle(chr->uuid.u);
             m_peer_chr_val_handle = chr->val_handle;
         }
         rc = 0;
@@ -486,11 +667,7 @@ BleServerEsp32::PeerDscDisced(uint16_t conn_handle,
         if (dsc_uuid == BLE_GATT_DSC_CLT_CFG_UUID16)
         {
             m_peer_cccd_handle = dsc->handle;
-            rc = EnablePeerNotifications(conn_handle);
-            if (rc != 0)
-            {
-                MODLOG_DFLT(ERROR, "Failed to enable notifications; rc=%d\n", rc);
-            }
+            rc = 0;
         }
         else
         {
@@ -501,6 +678,16 @@ BleServerEsp32::PeerDscDisced(uint16_t conn_handle,
 
     case BLE_HS_EDONE:
         printf("Descriptor discovery done\n");
+        if (m_peer_service_uuid && m_peer_char_uuid && m_peer_chr_val_handle != 0)
+        {
+            std::vector<std::unique_ptr<Characteristic>> characteristics;
+            characteristics.push_back(std::make_unique<Characteristic>(
+                *this, conn_handle, *m_peer_char_uuid, m_peer_chr_val_handle, m_peer_cccd_handle));
+
+            auto service =
+                std::make_unique<Service>(*m_peer_service_uuid, std::move(characteristics));
+            m_peer_found_cb(std::make_unique<Peer>(conn_handle, *this, std::move(service)));
+        }
         rc = 0;
         break;
 
@@ -530,10 +717,12 @@ BleServerEsp32::PeerWriteComplete(uint16_t conn_handle,
 int
 BleServerEsp32::StartPeerSvcDiscovery(uint16_t conn_handle)
 {
-    ble_uuid16_t svc_uuid {.u = {.type = BLE_UUID_TYPE_16}, .value = kPeerServiceUuidFfe0};
+    ble_uuid128_t svc_uuid {.u = {.type = BLE_UUID_TYPE_128}, .value = {}};
+    std::copy(m_peer_service_uuid->begin(), m_peer_service_uuid->end(), svc_uuid.value);
 
     m_peer_svc_start_handle = 0;
     m_peer_svc_end_handle = 0;
+    m_peer_char_uuid.reset();
     m_peer_chr_val_handle = 0;
     m_peer_cccd_handle = 0;
 
@@ -558,13 +747,10 @@ BleServerEsp32::StartPeerChrDiscovery(uint16_t conn_handle)
         return 0;
     }
 
-    ble_uuid16_t chr_uuid {.u = {.type = BLE_UUID_TYPE_16}, .value = kPeerCharUuidFfe1};
-
-    return ble_gattc_disc_chrs_by_uuid(
+    return ble_gattc_disc_all_chrs(
         conn_handle,
         m_peer_svc_start_handle,
         m_peer_svc_end_handle,
-        &chr_uuid.u,
         [](uint16_t ch,
            const struct ble_gatt_error* error,
            const struct ble_gatt_chr* chr,
@@ -600,27 +786,6 @@ BleServerEsp32::StartPeerDscDiscovery(uint16_t conn_handle)
            void* arg) {
             auto p = reinterpret_cast<BleServerEsp32*>(arg);
             return p->PeerDscDisced(ch, error, chr_val_handle, dsc);
-        },
-        this);
-}
-
-int
-BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle)
-{
-    if (m_peer_cccd_handle == 0)
-    {
-        return 0;
-    }
-
-    uint8_t notify_enable[2] = {0x01, 0x00};
-    return ble_gattc_write_flat(
-        conn_handle,
-        m_peer_cccd_handle,
-        notify_enable,
-        sizeof(notify_enable),
-        [](uint16_t ch, const struct ble_gatt_error* error, struct ble_gatt_attr* attr, void* arg) {
-            auto p = reinterpret_cast<BleServerEsp32*>(arg);
-            return p->PeerWriteComplete(ch, error, attr);
         },
         this);
 }
@@ -682,10 +847,11 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         if (event->connect.status == 0)
         {
             m_peer_conn_handle = event->connect.conn_handle;
+            m_notification_callbacks.clear();
             auto rc = StartPeerSvcDiscovery(event->connect.conn_handle);
             if (rc != 0)
             {
-                MODLOG_DFLT(ERROR, "Failed to start FFE0 service discovery; rc=%d\n", rc);
+                MODLOG_DFLT(ERROR, "Failed to start peer service discovery; rc=%d\n", rc);
                 return rc;
             }
         }
@@ -693,10 +859,13 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
     case BLE_GAP_EVENT_DISCONNECT:
         ESP_LOGI("GAP", "BLE GAP EVENT DISCONNECT %d", event->disconnect.reason);
         m_peer_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+        m_peer_service_uuid.reset();
         m_peer_svc_start_handle = 0;
         m_peer_svc_end_handle = 0;
+        m_peer_char_uuid.reset();
         m_peer_chr_val_handle = 0;
         m_peer_cccd_handle = 0;
+        m_notification_callbacks.clear();
         AppAdvertise();
         break;
 
@@ -707,12 +876,23 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         auto rv = ble_hs_mbuf_to_flat(event->notify_rx.om, flattened.get(), data_size, &out_sz);
         if (rv == 0)
         {
-            printf("Notify (%u bytes): ", out_sz);
-            for (uint16_t i = 0; i < out_sz; ++i)
+            auto handle = event->notify_rx.attr_handle;
+            auto cb_it = m_notification_callbacks.find(handle);
+            if (cb_it != m_notification_callbacks.end())
             {
-                printf("%02x", flattened[i]);
+                auto payload_span = std::span<const uint8_t> {
+                    reinterpret_cast<const uint8_t*>(flattened.get()), static_cast<size_t>(out_sz)};
+                cb_it->second(payload_span);
             }
-            printf("\n");
+            else
+            {
+                printf("Notify (%u bytes) on unhandled handle %u: ", out_sz, handle);
+                for (uint16_t i = 0; i < out_sz; ++i)
+                {
+                    printf("%02x", flattened[i]);
+                }
+                printf("\n");
+            }
         }
         break;
     }

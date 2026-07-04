@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace hal
 {
@@ -16,6 +17,17 @@ using Uuid128Span = std::span<const uint8_t, 16>;
 namespace detail
 {
 
+constexpr char
+LowerAscii(char c)
+{
+    if (c >= 'A' && c <= 'Z')
+    {
+        return static_cast<char>(c - 'A' + 'a');
+    }
+
+    return c;
+}
+
 /// Converts a UUID string to a 16-byte array in little-endian format.
 /// @param uuid_string UUID string in format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 /// @return 16-byte array representation of the UUID
@@ -25,7 +37,7 @@ StringToUuid128(std::string_view uuid_string)
     Uuid128 result = {};
 
     auto hex_char_to_value = [](char c) constexpr -> uint8_t {
-        c = std::tolower(c);
+        c = LowerAscii(c);
         if (c >= '0' && c <= '9')
             return c - '0';
         if (c >= 'a' && c <= 'f')
