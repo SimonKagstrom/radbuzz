@@ -13,6 +13,7 @@ enum class Key
     kSpeedometerType,
     kMaxWatts,
     kRotateMap,
+    kForceC6Update,
     kWifiNetworks,
 
     kValueCount,
@@ -45,6 +46,10 @@ constexpr auto kKeyToString = std::array {std::pair {
                                           std::pair {
                                               Key::kRotateMap,
                                               "r",
+                                          },
+                                          std::pair {
+                                              Key::kForceC6Update,
+                                              "f",
                                           },
                                           std::pair {
                                               Key::kWifiNetworks,
@@ -81,11 +86,6 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     , m_state_listener(m_application_state.AttachListener<AS::configuration>(GetSemaphore()))
     , m_state_cache(m_application_state)
 {
-}
-
-void
-Storage::OnStartup()
-{
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration>();
     auto& conf = ps.GetWritableReference<AS::configuration>();
 
@@ -99,6 +99,7 @@ Storage::OnStartup()
         static_cast<SpeedometerType>(m_nvm.Get<uint8_t>(KeyToString(Key::kSpeedometerType))
                                          .value_or(std::to_underlying(SpeedometerType::kDigital)));
     conf.max_watts = m_nvm.Get<uint16_t>(KeyToString(Key::kMaxWatts)).value_or(1000);
+    conf.force_c6_update = m_nvm.Get<bool>(KeyToString(Key::kForceC6Update)).value_or(false);
 
     auto networks = m_nvm.Get<std::string>(KeyToString(Key::kWifiNetworks));
     if (networks)
@@ -119,7 +120,11 @@ Storage::OnStartup()
         }
         conf.wifi_ssid_data = wifi_data;
     }
+}
 
+void
+Storage::OnStartup()
+{
     m_state_cache.Pull();
 }
 
@@ -159,6 +164,10 @@ Storage::OnActivation()
         {
             m_nvm.Set<uint8_t>(KeyToString(Key::kSpeedometerType),
                                static_cast<uint8_t>(new_conf.speedometer_type));
+        }
+        if (old_conf.force_c6_update != new_conf.force_c6_update)
+        {
+            m_nvm.Set<bool>(KeyToString(Key::kForceC6Update), new_conf.force_c6_update);
         }
         if (old_conf.wifi_ssid_data != new_conf.wifi_ssid_data)
         {

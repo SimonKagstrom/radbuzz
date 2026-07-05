@@ -345,8 +345,13 @@ ParseFirmwareInfoFromPartition(const esp_partition_t* partition, PartitionFirmwa
 }
 
 bool
-PerformC6SlaveOtaFromPartition()
+PerformC6SlaveOtaFromPartition(bool force)
 {
+    if (force)
+    {
+        printf("C6 OTA: forced update requested\n");
+    }
+
     const auto* partition = esp_partition_find_first(
         ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, kC6FwPartitionLabel);
     if (partition == nullptr)
@@ -389,7 +394,11 @@ PerformC6SlaveOtaFromPartition()
                current_fw.major1,
                current_fw.minor1,
                current_fw.patch1);
-        return false;
+
+        if (!force)
+        {
+            return false;
+        }
     }
 
     printf("C6 OTA: update required current=%lu.%lu.%lu target=%u.%u.%u\n",
@@ -557,7 +566,16 @@ app_main(void)
     // Create before SD card (see below)
     auto wifi_client = std::make_unique<WifiClientEsp32>();
 
-    if (PerformC6SlaveOtaFromPartition())
+    auto nvm = std::make_unique<Nvm32>();
+    auto storage = std::make_unique<Storage>(application_state, *nvm);
+    storage->Start("storage");
+
+    auto force_upgrade =
+        application_state.CheckoutReadonly().Get<AS::configuration>()->force_c6_update;
+    application_state.CheckoutPartialSnapshot<AS::configuration>()
+        .GetWritableReference<AS::configuration>()
+        .force_c6_update = false;
+    if (PerformC6SlaveOtaFromPartition(force_upgrade))
     {
         // Allow remote coprocessor reboot to settle, then restart host to resync transport.
         os::Sleep(2s);
@@ -655,7 +673,6 @@ app_main(void)
     //    auto stepper_motor =
     //        std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
     //
-    auto nvm = std::make_unique<Nvm32>();
 
     //    stepper_motor->Start();
 
@@ -669,12 +686,11 @@ app_main(void)
 
     // Threads
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
-    auto storage = std::make_unique<Storage>(application_state, *nvm);
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
-    //auto ble_server = std::make_unique<BleServerEsp32>();
-    auto ble_server = std::make_unique<BleServerHost>();
-    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    auto ble_server = std::make_unique<BleServerEsp32>();
+    //auto ble_server = std::make_unique<BleServerHost>();
+    //auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x6f);
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
@@ -700,11 +716,10 @@ app_main(void)
 
     //application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
 
-    storage->Start("storage");
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     //  buzz_handler->Start("buzz_handler", 8192);
-    app_simulator->Start("app_simulator", 8192);
+    //app_simulator->Start("app_simulator", 8192);
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);

@@ -52,5 +52,8 @@ struct ConfigurationSettings
     /// @brief Average watt-hours per kilometer for range estimation
     uint8_t wh_per_km_for_range_estimation;
 
+    // @brief Whether to force a C6 update on the next boot (for testing)
+    bool force_c6_update;
+
     bool operator==(const ConfigurationSettings& other) const = default;
 };

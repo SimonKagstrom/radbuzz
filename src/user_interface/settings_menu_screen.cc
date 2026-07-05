@@ -85,6 +85,15 @@ SettingsMenuScreen::OnActivation()
                 .GetWritableReference<AS::configuration>()
                 .rotate_map = value;
         });
+    settings_page.AddBooleanEntry(
+        "Force C6 FW upgrade", ro.Get<AS::configuration>()->force_c6_update, [this](auto value) {
+            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                .GetWritableReference<AS::configuration>()
+                .force_c6_update = value;
+        });
+
+
+
     main.AddEntry("Reset trip", [this]() {
         m_parent.ResetTrip();
         m_menu_screen->ExitMenu();
