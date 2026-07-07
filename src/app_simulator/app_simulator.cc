@@ -6,16 +6,22 @@
 #include <array>
 
 constexpr auto kDemoPoints = std::array {
-    GpsPosition {59.34448824397194f, 18.048003048806464f},
-    GpsPosition {59.34492700020055f, 18.047580470732395f},
-    GpsPosition {59.34303874112165f, 18.040212245710048f},
-    GpsPosition {59.34272140927074f, 18.04018919599673f},
-    GpsPosition {59.34253335935359f, 18.036355260365138f},
+    GpsPosition {59.34448824397194f, 18.048003048806464f}, // Heimdalsgatan
+    GpsPosition {59.34492700020055f, 18.047580470732395f}, // Frejgatan
+    GpsPosition {59.34303874112165f, 18.040212245710048f}, // Karlbergsvägen
+    GpsPosition {59.34272140927074f, 18.04018919599673f},  // Birkagatan
+    GpsPosition {59.34253335935359f, 18.036355260365138f}, // Rörstrandsgatan
     GpsPosition {59.33990446935914f, 18.03456506597694f},
-    GpsPosition {59.339493074700954f, 18.03714663386149f},
-    GpsPosition {59.34288595204399f, 18.05102256124063f},
-    GpsPosition {59.344339378921724f, 18.049601162253005f},
-    GpsPosition {59.344049482030826f, 18.048433310111818f},
+    GpsPosition {59.339493074700954f, 18.03714663386149f},  // Odengatan
+    GpsPosition {59.341581542004775f, 18.045719925944375f}, // Dalagatan
+    GpsPosition {59.33623339602869f, 18.05100768322643f},   // Kammakargatan
+    GpsPosition {59.33876150433673f, 18.06056584297989f},   // Sveavägen
+    GpsPosition {59.34144749328525f, 18.057952402370162f},  // Kungstensgatan
+    GpsPosition {59.342521920042095f, 18.062008190153417f}, // Tulegatan
+    GpsPosition {59.34576987607082f, 18.058847632172643f},  // Surbrunnsgatan
+    GpsPosition {59.343587302327386f, 18.05035595491337f},  // Norrtullsgatan
+    GpsPosition {59.344320209245744f, 18.049578349479926f}, // Vidargatan
+    GpsPosition {59.344035594051334f, 18.04844603382281f},  // Heimdalsgatan
 };
 
 constexpr auto kStreets = std::array {
