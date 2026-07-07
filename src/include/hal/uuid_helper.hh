@@ -65,6 +65,17 @@ StringToUuid128(std::string_view uuid_string)
 
     return result;
 }
+
+inline Uuid16 ToUuid16(const Uuid128& uuid)
+{
+    return static_cast<Uuid16>(uuid[0] | (uuid[1] << 8));
+}
+
+inline Uuid16 ToUuid16(Uuid128Span uuid)
+{
+    return static_cast<Uuid16>(uuid[0] | (uuid[1] << 8));
+}
+
 } // namespace detail
 
 } // namespace hal

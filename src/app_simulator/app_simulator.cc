@@ -263,9 +263,9 @@ constexpr auto kImages = std::array {
     },
 };
 
-AppSimulator::AppSimulator(ApplicationState& app_state, BleServerHost& ble_server)
+AppSimulator::AppSimulator(ApplicationState& app_state, BleInjector& ble_server)
     : m_application_state(app_state)
-    , m_ble_server(ble_server)
+    , m_ble_injector(ble_server)
     , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
     , m_state_cache(m_application_state)
     , m_bresenham(*Wgs84ToOsmPoint(kDemoPoints[0], kDefaultZoom),
@@ -374,11 +374,11 @@ iconHash={:08x}32
                                 5000,
                                 kImages[m_current_image].key);
 
-    m_ble_server.Inject(kChaNav, nav_info);
+    m_ble_injector.Inject(kChaNav, nav_info);
 
     if (m_cached_images.find(kImages[m_current_image].key) == m_cached_images.end())
     {
-        m_ble_server.Inject(kChaNavTbtIcon, kImages[m_current_image].data);
+        m_ble_injector.Inject(kChaNavTbtIcon, kImages[m_current_image].data);
         m_cached_images.insert(kImages[m_current_image].key);
     }
 

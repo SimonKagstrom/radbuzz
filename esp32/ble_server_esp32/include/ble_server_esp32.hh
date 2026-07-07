@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ble_injector.hh"
 #include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 
@@ -16,23 +17,11 @@
 #include <unordered_map>
 #include <vector>
 
-class BleServerEsp32 : public hal::IBleServer, public hal::IBleClient
+class BleServerEsp32 : public hal::IBleServer, public hal::IBleClient, public BleInjector
 {
 public:
     BleServerEsp32();
     ~BleServerEsp32() final;
-
-    std::unique_ptr<ListenerCookie>
-    AttachConnectionListener(std::function<void(bool connected)> cb) final;
-
-    void SetServiceUuid128(hal::Uuid128Span service_uuid) final;
-
-    void AddWriteGattCharacteristics(hal::Uuid128Span uuid,
-                                     std::function<void(std::span<const uint8_t>)> data) final;
-
-
-    void ScanForService(hal::Uuid128Span service_uuid,
-                        const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
 
     void Start() final;
 
@@ -53,6 +42,20 @@ private:
         struct ble_gatt_chr_def gatt_chr {};
         std::function<void(std::span<const uint8_t>)> cb;
     };
+
+    std::unique_ptr<ListenerCookie>
+    AttachConnectionListener(std::function<void(bool connected)> cb) final;
+
+    void SetServiceUuid128(hal::Uuid128Span service_uuid) final;
+
+    void AddWriteGattCharacteristics(hal::Uuid128Span uuid,
+                                     std::function<void(std::span<const uint8_t>)> data) final;
+
+
+    void ScanForService(hal::Uuid128Span service_uuid,
+                        const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
+
+    void OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
 
     void AppAdvertise();
     int BleGapEvent(struct ble_gap_event* event);
@@ -79,6 +82,7 @@ private:
     ble_uuid128_t m_service_uuid {.u = {.type = BLE_UUID_TYPE_128}, .value = {}};
 
     std::vector<std::unique_ptr<WriteCharacteristic>> m_characteristics;
+    std::unordered_map<hal::Uuid16, uint8_t> m_uuid_to_characteristic_index;
 
     std::optional<hal::Uuid128> m_peer_service_uuid;
     std::function<void(std::unique_ptr<IPeer>)> m_peer_found_cb {[](auto x) {}};

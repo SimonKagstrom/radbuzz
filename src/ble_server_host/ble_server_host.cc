@@ -32,11 +32,16 @@ BleServerHost::Start()
 void
 BleServerHost::PollEvents()
 {
-    Event ev;
+    PollInjections();
+}
 
-    while (m_event_queue.pop(ev))
+void
+BleServerHost::OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data)
+{
+    if (m_uuid_cb.find(uuid[0]) == m_uuid_cb.end())
     {
-        // Presense verified in the Inject method
-        m_uuid_cb[ev.uuid]({ev.data.data(), ev.data.size()});
+        return;
     }
+
+    m_uuid_cb[uuid[0]]({data.data(), data.size()});
 }

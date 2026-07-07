@@ -689,8 +689,7 @@ app_main(void)
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     auto ble_server = std::make_unique<BleServerEsp32>();
-    //auto ble_server = std::make_unique<BleServerHost>();
-    //auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state, 0x6f);
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
@@ -719,7 +718,7 @@ app_main(void)
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     //  buzz_handler->Start("buzz_handler", 8192);
-    //app_simulator->Start("app_simulator", 8192);
+    app_simulator->Start("app_simulator", 8192);
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);

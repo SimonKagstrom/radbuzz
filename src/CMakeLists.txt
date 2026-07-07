@@ -1,5 +1,6 @@
 add_subdirectory(app_simulator)
 add_subdirectory(ble_handler)
+add_subdirectory(ble_injector)
 add_subdirectory(ble_server_host)
 add_subdirectory(buzz_handler)
 add_subdirectory(can_bus_handler)

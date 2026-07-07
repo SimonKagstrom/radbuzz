@@ -1,34 +1,15 @@
 #pragma once
 
+#include "ble_injector.hh"
 #include "hal/i_ble_server.hh"
 
 #include <cassert>
 #include <etl/queue_spsc_atomic.h>
 #include <unordered_map>
 
-class BleServerHost : public hal::IBleServer
+class BleServerHost : public hal::IBleServer, public BleInjector
 {
-public:
-    void Inject(auto uuid, const std::string& data)
-    {
-        Inject(uuid, {reinterpret_cast<const uint8_t*>(data.data()), data.size()});
-    }
-
-    void Inject(auto uuid, std::span<const uint8_t> data)
-    {
-        auto uuid128 = hal::detail::StringToUuid128(uuid);
-
-        assert(m_uuid_cb.find(uuid128[0]) != m_uuid_cb.end());
-
-        m_event_queue.push({uuid128[0], std::vector<uint8_t>(data.begin(), data.end())});
-    }
-
 private:
-    struct Event
-    {
-        uint8_t uuid;
-        std::vector<uint8_t> data;
-    };
     std::unique_ptr<ListenerCookie>
     AttachConnectionListener(std::function<void(bool connected)> cb) final;
 
@@ -40,8 +21,9 @@ private:
     void Start() final;
     void PollEvents() final;
 
+    void OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
+
     std::unordered_map<uint8_t, std::function<void(std::span<const uint8_t>)>> m_uuid_cb;
-    etl::queue_spsc_atomic<Event, 16> m_event_queue;
 
     std::function<void(bool)> m_connection_listener {[](auto) {}};
 };

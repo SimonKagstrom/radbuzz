@@ -11,5 +11,5 @@ target_link_libraries(ble_server_esp32
 PUBLIC
     idf::bt
     idf::nvs_flash
-    radbuzz_interface
+    ble_injector
 )
