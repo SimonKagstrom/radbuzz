@@ -73,7 +73,7 @@ public:
     const Image& GetTile(const Tile& at);
 
 private:
-    class WebThread : public os::BaseThread
+    class WebThread final : public os::BaseThread
     {
     public:
         WebThread(TileCache& parent);

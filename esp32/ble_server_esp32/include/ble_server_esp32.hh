@@ -17,7 +17,7 @@
 #include <unordered_map>
 #include <vector>
 
-class BleServerEsp32 : public hal::IBleServer, public hal::IBleClient, public BleInjector
+class BleServerEsp32 final : public hal::IBleServer, public hal::IBleClient, public BleInjector
 {
 public:
     BleServerEsp32();

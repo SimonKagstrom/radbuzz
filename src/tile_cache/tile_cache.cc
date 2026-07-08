@@ -63,7 +63,7 @@ PngDraw(PNGDRAW* pDraw)
 }
 
 
-class TileHandle : public ITileHandle
+class TileHandle final : public ITileHandle
 {
 public:
     explicit TileHandle(Image& image,

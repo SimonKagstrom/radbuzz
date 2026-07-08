@@ -19,7 +19,7 @@ namespace Ui
 class MainWindow;
 }
 
-class MainWindow : public QMainWindow, public RotaryEncoder
+class MainWindow final : public QMainWindow, public RotaryEncoder
 {
     Q_OBJECT
 
