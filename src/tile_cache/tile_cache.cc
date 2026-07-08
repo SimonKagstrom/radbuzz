@@ -2,6 +2,7 @@
 
 #include <PNGdec.h>
 #include <format>
+#include <mutex>
 
 namespace
 {
@@ -240,6 +241,16 @@ TileCache::DecodePng(std::span<const std::byte> png_data, TileImage& out)
     return true;
 }
 
+std::optional<std::vector<std::byte>>
+TileCache::ReadTile(const Tile& t) const
+{
+    auto path = GetTilePath(t);
+
+    // Hold the lock if the web thread is writing (see below for motivation)
+    auto lock = std::lock_guard(m_filesystem_mutex);
+
+    return m_filesystem.ReadFile(path);
+}
 
 void
 TileCache::FillFromColdStore()
@@ -257,7 +268,7 @@ TileCache::FillFromColdStore()
         }
 
         //        printf("Getting tile %d,%d from cold store\n", t.x, t.y);
-        auto data = m_filesystem.ReadFile(GetTilePath(t));
+        auto data = ReadTile(t);
 
         auto wifi_connected = AppState().Get<AS::wifi_connected>();
 
@@ -323,7 +334,8 @@ TileCache::FillFromServer()
         return;
     }
 
-    while ((!m_get_from_server.empty() || !m_get_from_server_background.empty()) && m_web_thread->CanFetchTile())
+    while ((!m_get_from_server.empty() || !m_get_from_server_background.empty()) &&
+           m_web_thread->CanFetchTile())
     {
         Tile t;
 
@@ -486,15 +498,16 @@ TileCache::WebThread::OnActivation()
     {
         auto url = GetTileUrl(t);
         auto path = m_parent.GetTilePath(t);
-        auto tmp_path = path + ".tmp";
 
         printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
         auto data = m_parent.m_https_client.Get(url);
 
         if (data)
         {
-            m_parent.m_filesystem.WriteFile(tmp_path, {data->data(), data->size()});
-            m_parent.m_filesystem.Move(tmp_path, path);
+            // Better would be to save to a temporary name and then rename, but that doesn't work in esp-idf
+            auto lock = std::lock_guard(m_parent.m_filesystem_mutex);
+
+            m_parent.m_filesystem.WriteFile(path, {data->data(), data->size()});
         }
     }
 

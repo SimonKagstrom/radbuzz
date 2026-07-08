@@ -11,6 +11,7 @@
 #include <array>
 #include <atomic>
 #include <deque>
+#include <etl/mutex.h>
 #include <etl/queue_spsc_atomic.h>
 #include <etl/unordered_set.h>
 #include <unordered_map>
@@ -115,6 +116,8 @@ private:
 
     std::string GetTilePath(const Tile& t) const;
 
+    std::optional<std::vector<std::byte>> ReadTile(const Tile& t) const;
+
     void SavePendingCityTiles();
 
     ApplicationState& m_application_state;
@@ -139,4 +142,6 @@ private:
     std::unordered_map<uint8_t, std::unordered_set<Tile>> m_pending_city_tiles_by_zoom;
 
     std::unique_ptr<WebThread> m_web_thread;
+
+    mutable etl::mutex m_filesystem_mutex;
 };
