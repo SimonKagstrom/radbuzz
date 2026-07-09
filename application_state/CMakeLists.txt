@@ -8,6 +8,10 @@ set(RADBUZZ_APPLICATION_STATE
     "${TOP}/external/libmaelir/application_state/application_state_common.yml"
     "${TOP}/application_state/application_state.yml"
 )
+# Export for parent directories (for example test/unittest) that add this project as a subdirectory.
+set(RADBUZZ_APPLICATION_STATE
+    "${RADBUZZ_APPLICATION_STATE}"
+    CACHE INTERNAL "Radbuzz application-state YAML inputs")
 list(JOIN RADBUZZ_APPLICATION_STATE ";" RADBUZZ_APPLICATION_STATE_STR)
 
 generate_application_state(radbuzz_application_state "${RADBUZZ_APPLICATION_STATE_STR}")

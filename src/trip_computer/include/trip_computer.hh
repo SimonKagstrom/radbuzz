@@ -3,6 +3,7 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "os/memory.hh"
+#include "wgs84_to_osm_point.hh"
 
 #include <etl/circular_buffer.h>
 #include <etl/priority_queue.h>

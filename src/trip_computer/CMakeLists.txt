@@ -11,4 +11,5 @@ target_link_libraries(trip_computer
 PUBLIC
     base_thread
     application_state
+    wgs84_to_osm_point
 )
