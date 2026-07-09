@@ -3,6 +3,22 @@
 #include "split_string.hh"
 
 #include <ranges>
+#include <string_view>
+
+namespace
+{
+std::string
+TrimAtFirstNul(std::string_view input)
+{
+    const auto nul_pos = input.find('\0');
+    if (nul_pos == std::string_view::npos)
+    {
+        return std::string(input);
+    }
+
+    return std::string(input.substr(0, nul_pos));
+}
+} // namespace
 
 enum class Key
 {
@@ -115,7 +131,9 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
                 continue;
             }
 
-            auto [ssid, password] = std::tuple(ssid_pass[0], ssid_pass[1]);
+            auto ssid = TrimAtFirstNul(ssid_pass[0]);
+            auto password = TrimAtFirstNul(ssid_pass[1]);
+
             wifi_data.networks.push_back({ssid, password});
         }
         conf.wifi_ssid_data = wifi_data;
@@ -174,11 +192,13 @@ Storage::OnActivation()
             std::string networks;
             for (const auto& network : new_conf.wifi_ssid_data.networks)
             {
+                const auto ssid = TrimAtFirstNul(network.ssid);
+                const auto password = TrimAtFirstNul(network.password);
                 if (!networks.empty())
                 {
                     networks += "^";
                 }
-                networks += network.ssid + "@" + network.password;
+                networks += ssid + "@" + password;
             }
             m_nvm.Set<std::string>(KeyToString(Key::kWifiNetworks), networks);
         }
