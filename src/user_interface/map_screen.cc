@@ -18,14 +18,16 @@
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
 {
-    constexpr auto center_x = hal::kDisplayWidth / 2;
-    constexpr auto center_y = hal::kDisplayHeight / 2;
+    constexpr auto kDisplayCenterX = hal::kDisplayWidth / 2;
+    constexpr auto kDisplayCenterY = hal::kDisplayHeight / 2;
 
     auto ro = m_parent.m_state.CheckoutReadonly();
     const auto conf = ro.Get<AS::configuration>();
     const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
     const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
     const auto vehicle_point = OsmPointToPoint(m_current_range_circle_center, m_zoom);
+    const int center_x = kDisplayCenterX + (vehicle_point.x - m_current_view_center.x);
+    const int center_y = kDisplayCenterY + (vehicle_point.y - m_current_view_center.y);
 
     // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
     constexpr float kNominalCellVoltageV = 3.7f;
