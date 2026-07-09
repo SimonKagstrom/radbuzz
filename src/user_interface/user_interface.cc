@@ -199,16 +199,6 @@ UserInterface::OnActivation()
         m_current_screen->HandleInput(input_event);
     }
 
-    // Set the pixel position (since the UI can move it around in the future)
-    const auto& co = m_state_cache.Pull();
-
-    co.OnNewValue<AS::position>([this](const auto& gps_data) {
-        if (auto pixel_pos = Wgs84ToOsmPoint(gps_data.position, kDefaultZoom); pixel_pos)
-        {
-            m_state.CheckoutReadWrite().Set<AS::pixel_position>(*pixel_pos);
-        }
-    });
-
     auto max_power = m_pm_lock->FullPower();
 
     m_current_screen->Update();

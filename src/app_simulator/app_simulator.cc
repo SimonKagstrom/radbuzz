@@ -450,9 +450,11 @@ iconHash={:08x}32
     mangled.heading = m_heading;
     mangled.speed = speed;
 
-    auto rw = m_application_state.CheckoutReadWrite();
-    rw.Set<AS::position>(mangled);
-    rw.Set<AS::gps_position_valid>(true);
+    auto qw = m_application_state
+                  .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_position_valid>();
+    qw.Set<AS::position>(mangled);
+    qw.Set<AS::pixel_position>(m_current_point);
+    qw.Set<AS::gps_position_valid>(true);
 
     return 50ms +
            milliseconds(150 - static_cast<uint32_t>(speed / static_cast<float>(kMaxSpeed) * 150));

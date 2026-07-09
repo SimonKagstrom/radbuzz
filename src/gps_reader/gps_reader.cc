@@ -45,11 +45,17 @@ GpsReader::OnActivation()
 
     // Disable, and restart again (for demo mode, it will be disabled completely)
     m_gps_timeout_timer = nullptr;
-    auto rw = m_application_state.CheckoutReadWrite();
-    if (rw.Get<AS::demo_mode>() == false)
+    if (m_application_state.CheckoutReadonly().Get<AS::demo_mode>() == false)
     {
-        rw.Set<AS::position>(mangled);
-        rw.Set<AS::gps_position_valid>(true);
+        auto qw =
+            m_application_state
+                .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_position_valid>();
+        qw.Set<AS::position>(mangled);
+        if (auto pixel_pos = Wgs84ToOsmPoint(mangled.position, kDefaultZoom); pixel_pos)
+        {
+            qw.Set<AS::pixel_position>(*pixel_pos);
+        }
+        qw.Set<AS::gps_position_valid>(true);
 
         m_gps_timeout_timer = StartTimer(10s, [this]() {
             m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(false);
