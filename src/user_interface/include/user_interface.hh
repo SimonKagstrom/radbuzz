@@ -110,8 +110,6 @@ private:
     TileCache& m_tile_cache;
     TripComputer& m_trip_computer;
 
-    ApplicationState::PartialReadOnlyCache<AS::position> m_state_cache;
-
     CurrentTrip m_current_trip_start;
 
     lv_display_t* m_lvgl_display {nullptr};

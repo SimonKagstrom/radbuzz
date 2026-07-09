@@ -22,10 +22,9 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_state(state)
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
-    , m_state_cache(m_state)
     , m_trip_computer(trip_computer)
 {
-    m_state_listener = m_state.AttachListener<AS::position,
+    m_state_listener = m_state.AttachListener<AS::pixel_position,
                                               AS::battery_soc,
                                               AS::distance_traveled,
                                               AS::bluetooth_connected,
