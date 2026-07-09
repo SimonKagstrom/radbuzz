@@ -24,6 +24,7 @@ WifiHandler::OnStartup()
                                     ssid_data->size());
         std::stringstream ssid_stream(ssid_text);
 
+        printf("Read SSID.TXT:\n%s\n", ssid_text.c_str());
         while (true)
         {
             std::string ssid, password;
@@ -37,34 +38,29 @@ WifiHandler::OnStartup()
             {
                 break;
             }
+            printf("Parsed SSID: %s, Password: %s\n", ssid.c_str(), password.c_str());
 
             parsed_ssid_data.networks.push_back({ssid, password});
         }
     }
 
-    auto conf = m_state.CheckoutReadonly().Get<AS::configuration>();
-    if (!std::ranges::equal(parsed_ssid_data.networks, conf->wifi_ssid_data.networks))
-    {
-        // Update the configuration with the new SSID data (invalidate conf)
-        conf = nullptr;
-        auto ps = m_state.CheckoutPartialSnapshot<AS::configuration>();
-        auto& conf = ps.GetWritableReference<AS::configuration>();
+    auto ps = m_state.CheckoutPartialSnapshot<AS::configuration>();
+    auto& conf = ps.GetWritableReference<AS::configuration>();
 
-        for (auto& [ssid, password] : parsed_ssid_data.networks)
+    for (auto& [ssid, password] : parsed_ssid_data.networks)
+    {
+        auto it = std::ranges::find_if(conf.wifi_ssid_data.networks, [ssid](const auto& network) {
+            return network.ssid == ssid;
+        });
+        if (it != conf.wifi_ssid_data.networks.end())
         {
-            auto it = std::ranges::find_if(conf.wifi_ssid_data.networks, [ssid](const auto& network) {
-                return network.ssid == ssid;
-            });
-            if (it != conf.wifi_ssid_data.networks.end())
-            {
-                // Update password (if changed)
-                it->password = password;
-            }
-            else
-            {
-                // Add new
-                conf.wifi_ssid_data.networks.push_back({ssid, password});
-            }
+            // Update password (if changed)
+            it->password = password;
+        }
+        else
+        {
+            // Add new
+            conf.wifi_ssid_data.networks.push_back({ssid, password});
         }
     }
 
@@ -84,9 +80,8 @@ WifiHandler::OnStartup()
     });
 
     auto ssids = m_wifi_client.Scan();
-    // Might have been modified by the FS read above, so re-read
-    conf = m_state.CheckoutReadonly().Get<AS::configuration>();
-    for (const auto& [ssid, password] : conf->wifi_ssid_data.networks)
+
+    for (const auto& [ssid, password] : conf.wifi_ssid_data.networks)
     {
         if (std::ranges::find(ssids, ssid) != ssids.end())
         {
