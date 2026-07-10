@@ -331,6 +331,8 @@ AppSimulator::OnActivation()
         return std::nullopt;
     }
 
+    const auto previous_distance_left = m_distance_left;
+
     if (m_bresenham_iterator != m_bresenham.end())
     {
         m_current_point = *m_bresenham_iterator;
@@ -356,6 +358,9 @@ AppSimulator::OnActivation()
         }
     }
     m_distance_left = MetersBetweenPoints(m_current_point, *m_next_point);
+
+    const auto distance_traveled_delta =
+        std::max<int32_t>(0, previous_distance_left - m_distance_left);
 
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::distance_traveled,
                                                           AS::wh_consumed,
@@ -388,10 +393,9 @@ iconHash={:08x}32
         m_cached_images.insert(kImages[m_current_image].key);
     }
 
-    m_distance_left -= 10;
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);
-    ps.GetWritableReference<AS::distance_traveled>() += 100;
+    ps.GetWritableReference<AS::distance_traveled>() += distance_traveled_delta;
     ps.GetWritableReference<AS::wh_consumed>() += 2 + (m_random_engine() % 5);
     ps.GetWritableReference<AS::wh_regenerated>() += 1;
     auto& speed = ps.GetWritableReference<AS::speed>();
