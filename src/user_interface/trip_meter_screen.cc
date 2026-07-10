@@ -10,7 +10,7 @@
 
 constexpr int kValueRightXOffset = 120;
 constexpr int kLabelColumnWidth = 220;
-constexpr int kValueColumnWidth = 170;
+constexpr int kValueColumnWidth = 180;
 constexpr int kUnitColumnWidth = 130;
 constexpr int kLabelToValueGap = 24;
 constexpr int kValueToUnitGap = 5;
