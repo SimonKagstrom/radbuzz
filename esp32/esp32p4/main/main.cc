@@ -461,7 +461,7 @@ app_main(void)
     auto stepper_motor =
         std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
 
-    auto nvm = std::make_unique<Nvm32>();
+    auto nvm = std::make_unique<NvmEsp32>();
 
     stepper_motor->Start();
 

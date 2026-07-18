@@ -566,7 +566,7 @@ app_main(void)
     // Create before SD card (see below)
     auto wifi_client = std::make_unique<WifiClientEsp32>();
 
-    auto nvm = std::make_unique<Nvm32>();
+    auto nvm = std::make_unique<NvmEsp32>();
     auto storage = std::make_unique<Storage>(application_state, *nvm);
     storage->Start("storage");
 
