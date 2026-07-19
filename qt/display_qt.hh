@@ -11,6 +11,7 @@
 #include <QPoint>
 #include <etl/queue_spsc_atomic.h>
 #include <functional>
+#include <mutex>
 
 class DisplayQt : public QObject, public hal::IDisplay, public hal::ITouch
 {
@@ -47,8 +48,9 @@ private:
     QGraphicsScene* m_scene;
 
     std::atomic<uint8_t> m_current_update_frame {0};
-    std::atomic<uint8_t> m_display_frame {0};
     std::array<uint16_t*, 3> m_frame_buffers;
+    std::vector<uint16_t> m_staged_frame;
+    std::mutex m_staged_frame_mutex;
 
     std::function<void()> m_on_state_changed {[]() {}};
 

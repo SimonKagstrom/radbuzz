@@ -4,6 +4,7 @@
 
 #include <QPainter>
 #include <cstdlib>
+#include <cstring>
 
 DisplayQt::DisplayQt(QGraphicsScene* scene, uint16_t display_width, uint16_t display_height)
     : m_display_width(display_width)
@@ -11,6 +12,7 @@ DisplayQt::DisplayQt(QGraphicsScene* scene, uint16_t display_width, uint16_t dis
     , m_screen(std::make_unique<QImage>(m_display_width, m_display_height, QImage::Format_RGB32))
     , m_pixmap(scene->addPixmap(QPixmap::fromImage(*m_screen)))
     , m_scene(scene)
+    , m_staged_frame(static_cast<size_t>(m_display_width) * static_cast<size_t>(m_display_height))
 {
     for (auto i = 0; i < 3; ++i)
     {
@@ -92,10 +94,17 @@ DisplayQt::GetFrameBuffer(hal::IDisplay::Owner owner)
 void
 DisplayQt::Flip()
 {
-    // Capture the frame to display before advancing the index.
-    m_display_frame = m_current_update_frame.load();
+    auto display_frame = m_current_update_frame.load(std::memory_order_acquire);
+    auto* src = m_frame_buffers[display_frame];
+
+    {
+        auto lock = std::lock_guard(m_staged_frame_mutex);
+        std::memcpy(
+            m_staged_frame.data(), src, m_staged_frame.size() * sizeof(m_staged_frame.front()));
+    }
+
     emit DoFlip();
-    m_current_update_frame = !m_current_update_frame;
+    m_current_update_frame = !display_frame;
 }
 
 void
@@ -107,7 +116,8 @@ DisplayQt::SetActive(bool)
 void
 DisplayQt::UpdateScreen()
 {
-    auto src = m_frame_buffers[m_display_frame];
+    auto lock = std::lock_guard(m_staged_frame_mutex);
+    auto* src = m_staged_frame.data();
     auto src_stride = m_display_width;
 
     for (int y = 0; y < m_display_height; ++y)
