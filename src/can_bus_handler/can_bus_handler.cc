@@ -3,43 +3,16 @@
 #include <vesc_buffer.h>
 #include <vesc_can_sdk.h>
 
-CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state, uint8_t controller_id)
+CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state)
     : m_bus(bus)
     , m_state(app_state)
-    , m_controller_id(controller_id)
 {
-    vesc_can_init(
-        [](uint32_t id, const uint8_t* data, uint8_t len, void* user_cookie) {
-            auto pThis = static_cast<CanBusHandler*>(user_cookie);
-            return pThis->m_bus.SendFrame(id, std::span<const uint8_t> {data, len});
-        },
-        controller_id, // Receiver controller ID
-        0x02,          // Sender ID
-        this);
-
-    vesc_set_response_callback([](uint8_t controller_id,
-                                  uint8_t command,
-                                  const uint8_t* data,
-                                  uint8_t len,
-                                  void* user_cookie) {
-        auto pThis = static_cast<CanBusHandler*>(user_cookie);
-        pThis->VescResponseCallback(controller_id, command, data, len);
-    });
 }
 
 void
 CanBusHandler::OnStartup()
 {
     m_bus_listener = m_bus.Start(GetSemaphore());
-
-    vesc_get_values_setup(m_controller_id);
-
-    m_periodic_timer = StartTimer(500ms, [this]() {
-        vesc_get_values_setup_selective(m_controller_id,
-                                        SETUP_VALUE_SPEED | SETUP_VALUE_ODOMETER |
-                                            SETUP_VALUE_INPUT_VOLTAGE_FILTERED);
-        return 144ms;
-    });
 }
 
 std::optional<milliseconds>
@@ -48,6 +21,40 @@ CanBusHandler::OnActivation()
     while (auto frame = m_bus.ReceiveFrame())
     {
         auto d = frame->Data();
+
+        if (!m_controller_id)
+        {
+            m_controller_id = frame->Id();
+
+            vesc_can_init(
+                [](uint32_t id, const uint8_t* data, uint8_t len, void* user_cookie) {
+                    auto pThis = static_cast<CanBusHandler*>(user_cookie);
+                    return pThis->m_bus.SendFrame(id, std::span<const uint8_t> {data, len});
+                },
+                *m_controller_id, // Receiver controller ID
+                0x02,             // Sender ID
+                this);
+
+            vesc_set_response_callback([](uint8_t controller_id,
+                                          uint8_t command,
+                                          const uint8_t* data,
+                                          uint8_t len,
+                                          void* user_cookie) {
+                auto pThis = static_cast<CanBusHandler*>(user_cookie);
+                pThis->VescResponseCallback(controller_id, command, data, len);
+            });
+
+
+            vesc_get_values_setup(*m_controller_id);
+
+            m_periodic_timer = StartTimer(500ms, [this]() {
+                vesc_get_values_setup_selective(*m_controller_id,
+                                                SETUP_VALUE_SPEED | SETUP_VALUE_ODOMETER |
+                                                    SETUP_VALUE_INPUT_VOLTAGE_FILTERED);
+                return 144ms;
+            });
+        }
+
         vesc_process_can_frame(frame->Id(), d.data(), static_cast<uint8_t>(d.size()));
     }
 

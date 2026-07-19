@@ -7,7 +7,7 @@
 class CanBusHandler : public os::BaseThread
 {
 public:
-    CanBusHandler(hal::ICan& bus, ApplicationState& app_state, uint8_t controller_id);
+    CanBusHandler(hal::ICan& bus, ApplicationState& app_state);
 
 private:
     void OnStartup() final;
@@ -18,7 +18,7 @@ private:
 
     hal::ICan& m_bus;
     ApplicationState& m_state;
-    const uint8_t m_controller_id;
+    std::optional<uint8_t> m_controller_id;
 
     std::unique_ptr<ListenerCookie> m_bus_listener;
 
