@@ -62,6 +62,12 @@ private:
     lv_obj_t* m_distance_left_label {nullptr};
 
     lv_obj_t* m_soc_label {nullptr};
+    // Icon for when GPS is lost (or not yet acquired)
+    lv_obj_t* m_gps_lost {nullptr};
+    // Icon for wifi
+    lv_obj_t* m_wifi_active {nullptr};
+    // Icon for BLE
+    lv_obj_t* m_ble_active {nullptr};
 
     lv_obj_t* m_speedometer_box {nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};

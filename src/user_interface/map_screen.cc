@@ -217,6 +217,20 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
 
 
+    m_gps_lost = lv_label_create(m_screen);
+    lv_obj_align_to(m_gps_lost, m_soc_label, LV_ALIGN_OUT_LEFT_TOP, 24, 0);
+    lv_obj_set_style_text_font(m_gps_lost, &radbuzz_symbols_40, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_gps_lost, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_gps_lost, lv_palette_main(LV_PALETTE_ORANGE), LV_PART_MAIN);
+    lv_label_set_text(m_gps_lost, LV_SYMBOL_GPS);
+
+    m_wifi_active = lv_label_create(m_screen);
+    lv_obj_align_to(m_wifi_active, m_gps_lost, LV_ALIGN_OUT_LEFT_TOP, -5, 0);
+    lv_obj_set_style_text_font(m_wifi_active, &radbuzz_symbols_40, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_wifi_active, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_wifi_active, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+    lv_label_set_text(m_wifi_active, LV_SYMBOL_WIFI);
+
     // Power = regen bar
     m_power_bar = lv_obj_create(m_screen);
     lv_obj_set_size(m_power_bar, 10, 60);
@@ -428,6 +442,9 @@ MapScreen::Update()
 
     lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
     lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
+
+    lv_obj_set_flag(m_gps_lost, LV_OBJ_FLAG_HIDDEN, ro.Get<AS::gps_position_valid>());
+    lv_obj_set_flag(m_wifi_active, LV_OBJ_FLAG_HIDDEN, !ro.Get<AS::wifi_connected>());
 
     if (m_current_icon_hash != state_hash)
     {
