@@ -14,7 +14,7 @@ constexpr int kValueColumnWidth = 180;
 constexpr int kUnitColumnWidth = 130;
 constexpr int kLabelToValueGap = 24;
 constexpr int kValueToUnitGap = 5;
-constexpr int kFirstRowYOffset = 20;
+constexpr int kFirstRowYOffset = 0;
 constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
 
 namespace
@@ -36,6 +36,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
     , m_stat_rows {
           {"SoC", "%", StatValueKind::kSoc},
+          {"Controller/Motor", "°C", StatValueKind::kTemperature},
           {"Consumed", "Wh", StatValueKind::kConsumedWh},
           {"Regenerated", "Wh", StatValueKind::kRegeneratedWh},
           {"Trip average", "Wh/km", StatValueKind::kTripAverageWhPerKm},
@@ -123,6 +124,8 @@ TripMeterScreen::Update()
         const int y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
         std::string value_text {"0"};
         std::string unit_text {row.unit_text};
+        std::string label_text {row.label_text};
+
         switch (row.value_kind)
         {
         case StatValueKind::kSoc:
@@ -182,10 +185,30 @@ TripMeterScreen::Update()
             value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
             break;
         }
+
+        case StatValueKind::kTemperature: {
+            const auto controller_temp = ro.Get<AS::controller_temperature>();
+            const auto motor_temp = ro.Get<AS::motor_temperature>();
+
+            if (motor_temp != 0)
+            {
+                // Not mounted on all motors (like mine)
+                value_text = std::format("{}/{}", controller_temp, motor_temp);
+                label_text = "Controller/Motor";
+            }
+            else
+            {
+                // Should always be valid, since it comes from the VESC
+                value_text = std::format("{}", controller_temp);
+                label_text = "Controller";
+            }
+            break;
+        }
         case StatValueKind::kValueCount:
             break;
         }
 
+        lv_label_set_text(row.label, label_text.c_str());
         lv_label_set_text(row.value, value_text.c_str());
         lv_label_set_text(row.unit, unit_text.c_str());
 

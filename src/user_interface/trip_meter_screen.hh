@@ -18,6 +18,7 @@ private:
         kTripAverageWhPerKm,
         kTripMaxSpeed,
         kTripDistance,
+        kTemperature,
 
         kValueCount,
     };
