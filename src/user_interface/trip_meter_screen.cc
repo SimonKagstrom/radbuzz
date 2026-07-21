@@ -178,10 +178,18 @@ TripMeterScreen::Update()
         }
         break;
         case StatValueKind::kTripAverageWhPerKm: {
-            const uint32_t distance_traveled = ro.Get<AS::distance_traveled>();
-            const float wh_consumed = ro.Get<AS::wh_consumed>();
+            // For the trip, not the odometer
+            const uint32_t total_distance_m = ro.Get<AS::distance_traveled>();
+            const uint32_t trip_distance_m = total_distance_m >= trip_start.start_distance
+                                                 ? (total_distance_m - trip_start.start_distance)
+                                                 : 0;
+
+            const float total_wh_consumed = ro.Get<AS::wh_consumed>();
+            const float trip_wh_consumed =
+                std::max(0.0f, total_wh_consumed - trip_start.start_wh_consumed);
+
             const float average_consumption =
-                distance_traveled > 0 ? (wh_consumed * 1000.0f) / distance_traveled : 0.0f;
+                trip_distance_m > 0 ? (trip_wh_consumed * 1000.0f) / trip_distance_m : 0.0f;
             value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
             break;
         }
