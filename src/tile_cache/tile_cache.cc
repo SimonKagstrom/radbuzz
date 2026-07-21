@@ -280,6 +280,9 @@ TileCache::FillFromColdStore()
             {
                 // Successfully decoded, otherwise the evicted tile remains evicted
                 m_tiles[index] = tile_id;
+
+                // Awake anyone waiting for tiles (i.e., the UI)
+                m_application_state.CheckoutReadWrite().Post<AS::tile_loaded>();
             }
             else
             {

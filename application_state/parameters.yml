@@ -65,3 +65,6 @@ parameters:
 
   reset_trip:
     type: Event
+
+  tile_loaded:
+    type: Event

@@ -24,3 +24,4 @@ application_state:
   position: {}
   pixel_position: {}
   reset_trip: {}
+  tile_loaded: {}
