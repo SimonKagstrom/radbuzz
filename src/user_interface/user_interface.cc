@@ -133,8 +133,8 @@ UserInterface::OnStartup()
         std::optional<milliseconds> out = 100ms;
 
         auto ro = m_state.CheckoutReadonly();
-        auto trip_valid = ro.Get<AS::distance_traveled>() > 0 || ro.Get<AS::wh_consumed>() > 0 ||
-                          ro.Get<AS::wh_regenerated>() > 0;
+        auto trip_valid = ro.Get<AS::distance_traveled>() > 0 &&
+                          (ro.Get<AS::wh_consumed>() > 0 || ro.Get<AS::wh_regenerated>() > 0);
 
         // Reset the trip when the first stats come in
         if (trip_valid)
