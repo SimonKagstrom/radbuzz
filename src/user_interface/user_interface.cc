@@ -44,9 +44,6 @@ UserInterface::UserInterface(hal::IDisplay& display,
 void
 UserInterface::OnStartup()
 {
-    auto stockholm = Wgs84ToOsmPoint({59.3293, 18.0686}, kDefaultZoom);
-    m_state.CheckoutReadWrite().Set<AS::pixel_position>(*stockholm);
-
     assert(m_lvgl_display == nullptr);
 
     lv_init();

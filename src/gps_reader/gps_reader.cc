@@ -11,6 +11,9 @@ GpsReader::GpsReader(ApplicationState& application_state, hal::IGps& gps)
     : m_application_state(application_state)
     , m_gps(gps)
 {
+    auto stockholm = Wgs84ToOsmPoint({59.3293, 18.0686}, kDefaultZoom);
+
+    m_application_state.CheckoutReadWrite().Set<AS::pixel_position>(*stockholm);
 }
 
 std::optional<milliseconds>
