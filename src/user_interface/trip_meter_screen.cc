@@ -16,6 +16,7 @@ constexpr int kLabelToValueGap = 24;
 constexpr int kValueToUnitGap = 5;
 constexpr int kFirstRowYOffset = 0;
 constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
+constexpr int kSecondColumnRightXOffset = 290;
 
 namespace
 {
@@ -39,17 +40,21 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
           {"Controller/Motor", "°C", StatValueKind::kTemperature},
           {"Consumed", "Wh", StatValueKind::kConsumedWh},
           {"Regenerated", "Wh", StatValueKind::kRegeneratedWh},
-          {"Trip average", "Wh/km", StatValueKind::kTripAverageWhPerKm},
+          {"Trip consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm},
           {"Trip max speed", "km/h", StatValueKind::kTripMaxSpeed},
-          {"Trip distance", "m", StatValueKind::kTripDistance},
+          {"Trip/Odometer", "m", StatValueKind::kTripDistance},
       }
 {
+    lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
+
     const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     std::size_t row_index = 0;
+    int y_offset = 0;
     for (auto& row : m_stat_rows)
     {
-        const int y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
+        y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
 
         row.value = lv_label_create(m_screen);
         lv_obj_set_style_text_font(row.value, &radbuzz_font_60, LV_PART_MAIN);
@@ -84,6 +89,30 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 
         ++row_index;
     }
+
+    m_odometer_value = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_odometer_value, &radbuzz_font_60, LV_PART_MAIN);
+    lv_obj_set_width(m_odometer_value, kValueColumnWidth);
+    lv_obj_set_style_text_align(m_odometer_value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_label_set_text(m_odometer_value, "0");
+
+    m_odometer_unit = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_odometer_unit, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_width(m_odometer_unit, kUnitColumnWidth);
+    lv_obj_set_style_text_align(m_odometer_unit, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+    lv_label_set_text(m_odometer_unit, "km");
+
+    const auto& trip_distance_row = m_stat_rows.back();
+    lv_obj_align(m_odometer_value,
+                 LV_ALIGN_TOP_MID,
+                 kSecondColumnRightXOffset - (kValueColumnWidth / 2),
+                 y_offset);
+    lv_obj_align_to(m_odometer_unit,
+                    m_odometer_value,
+                    LV_ALIGN_OUT_RIGHT_BOTTOM,
+                    kValueToUnitGap,
+                    side_text_baseline_y_offset);
+
 
     lv_style_init(&m_style_bar_bg);
     lv_style_set_border_color(&m_style_bar_bg, lv_palette_main(LV_PALETTE_BLUE));
@@ -162,7 +191,8 @@ TripMeterScreen::Update()
             value_text = std::format("{}", ro.Get<AS::max_speed>());
             break;
         case StatValueKind::kTripDistance: {
-            auto distance_m = ro.Get<AS::distance_traveled>() - trip_start.start_distance;
+            auto odometer_m = ro.Get<AS::distance_traveled>();
+            auto distance_m = odometer_m - trip_start.start_distance;
 
             if (distance_m >= 1000)
             {
@@ -174,6 +204,19 @@ TripMeterScreen::Update()
             {
                 unit_text = "m";
                 value_text = std::format("{}", distance_m);
+            }
+
+            if (odometer_m >= 1000)
+            {
+                float distance_km = odometer_m / 1000.0f;
+
+                lv_label_set_text(m_odometer_value, std::format("{:.1f}", distance_km).c_str());
+                lv_label_set_text(m_odometer_unit, "km");
+            }
+            else
+            {
+                lv_label_set_text(m_odometer_value, std::format("{}", odometer_m).c_str());
+                lv_label_set_text(m_odometer_unit, "m");
             }
         }
         break;

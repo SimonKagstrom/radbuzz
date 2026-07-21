@@ -34,9 +34,12 @@ private:
     };
 
     void Update() final;
-    void HandleInput(const Input::Event &event) final;
+    void HandleInput(const Input::Event& event) final;
 
     std::vector<StatRow> m_stat_rows;
+    // Odometer is a special case (for now...)
+    lv_obj_t* m_odometer_value {nullptr};
+    lv_obj_t* m_odometer_unit {nullptr};
 
     lv_style_t m_style_bar_bg;
     lv_style_t m_style_bar_indicator;
