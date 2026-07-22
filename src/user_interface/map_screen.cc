@@ -218,14 +218,14 @@ MapScreen::MapScreen(UserInterface& parent,
 
 
     m_gps_lost = lv_label_create(m_screen);
-    lv_obj_align_to(m_gps_lost, m_soc_label, LV_ALIGN_OUT_LEFT_TOP, 24, 0);
+    lv_obj_align_to(m_gps_lost, m_soc_label, LV_ALIGN_OUT_LEFT_TOP, 40, 0);
     lv_obj_set_style_text_font(m_gps_lost, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_gps_lost, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_gps_lost, lv_palette_main(LV_PALETTE_ORANGE), LV_PART_MAIN);
     lv_label_set_text(m_gps_lost, LV_SYMBOL_GPS);
 
     m_wifi_active = lv_label_create(m_screen);
-    lv_obj_align_to(m_wifi_active, m_gps_lost, LV_ALIGN_OUT_LEFT_TOP, -5, 0);
+    lv_obj_align_to(m_wifi_active, m_gps_lost, LV_ALIGN_OUT_LEFT_TOP, -10, 0);
     lv_obj_set_style_text_font(m_wifi_active, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_wifi_active, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_wifi_active, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
