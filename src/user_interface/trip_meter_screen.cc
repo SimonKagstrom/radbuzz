@@ -37,15 +37,9 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {"SoC", "%", StatValueKind::kSoc});
     m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
-    m_stat_rows.emplace_back(StatRow {"Trip/total consumed",
-                                      "Wh",
-                                      StatValueKind::kConsumedWh,
-                                      std::make_unique<SecondColumnStatRow>("Wh")});
+    m_stat_rows.emplace_back(StatRow {"Trip consumed", "Wh", StatValueKind::kConsumedWh});
     m_stat_rows.emplace_back(StatRow {"Regenerated", "Wh", StatValueKind::kRegeneratedWh});
-    m_stat_rows.emplace_back(StatRow {"Trip/total average",
-                                      "Wh/km",
-                                      StatValueKind::kTripAverageWhPerKm,
-                                      std::make_unique<SecondColumnStatRow>("Wh/km")});
+    m_stat_rows.emplace_back(StatRow {"Trip average", "Wh/km", StatValueKind::kTripAverageWhPerKm});
     m_stat_rows.emplace_back(StatRow {"Trip distance/Odometer",
                                       "m",
                                       StatValueKind::kTripDistance,
@@ -156,7 +150,6 @@ TripMeterScreen::Update()
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
             break;
         case StatValueKind::kConsumedWh: {
-            debug_assert(row.second_column != nullptr);
 
             const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
             const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
@@ -170,20 +163,6 @@ TripMeterScreen::Update()
                 value_text = std::format("{:.1f}", consumed_wh);
             }
 
-            if (total_wh_consumed >= 1000)
-            {
-                float total_wh_consumed_kwh = total_wh_consumed / 1000.0f;
-
-                lv_label_set_text(row.second_column->value,
-                                  std::format("{:.1f}", total_wh_consumed_kwh).c_str());
-                lv_label_set_text(row.second_column->unit, "kWh");
-            }
-            else
-            {
-                lv_label_set_text(row.second_column->value,
-                                  std::format("{}", total_wh_consumed).c_str());
-                lv_label_set_text(row.second_column->unit, "Wh");
-            }
             break;
         }
         case StatValueKind::kRegeneratedWh: {
@@ -249,13 +228,6 @@ TripMeterScreen::Update()
             const float average_consumption =
                 trip_distance_m > 0 ? (trip_wh_consumed * 1000.0f) / trip_distance_m : 0.0f;
             value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
-
-            debug_assert(row.second_column != nullptr);
-            const float total_average_consumption =
-                total_distance_m > 0 ? (total_wh_consumed * 1000.0f) / total_distance_m : 0.0f;
-            lv_label_set_text(
-                row.second_column->value,
-                std::format("{:.1f}", std::min(total_average_consumption, 60.0f)).c_str());
 
             break;
         }
