@@ -8,15 +8,15 @@
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_60.h>
 
-constexpr int kValueRightXOffset = 120;
-constexpr int kLabelColumnWidth = 220;
+constexpr int kValueRightXOffset = 80;
+constexpr int kLabelColumnWidth = 300;
 constexpr int kValueColumnWidth = 180;
-constexpr int kUnitColumnWidth = 130;
+constexpr int kUnitColumnWidth = 100;
 constexpr int kLabelToValueGap = 24;
 constexpr int kValueToUnitGap = 5;
 constexpr int kFirstRowYOffset = 0;
 constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
-constexpr int kSecondColumnRightXOffset = 290;
+constexpr int kSecondColumnRightXOffset = 310;
 
 namespace
 {
@@ -27,26 +27,30 @@ GetSideTextBaselineYOffset()
 }
 } // namespace
 
-/*
- * Distance traveled
- * Average speed
- * Remaining range
- */
 
 TripMeterScreen::TripMeterScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
-    , m_stat_rows {
-          {"SoC", "%", StatValueKind::kSoc},
-          {"Controller/Motor", "°C", StatValueKind::kTemperature},
-          {"Consumed", "Wh", StatValueKind::kConsumedWh},
-          {"Regenerated", "Wh", StatValueKind::kRegeneratedWh},
-          {"Trip consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm},
-          {"Trip max speed", "km/h", StatValueKind::kTripMaxSpeed},
-          {"Trip/Odometer", "m", StatValueKind::kTripDistance},
-      }
 {
     lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
+
+    m_stat_rows.reserve(7);
+    m_stat_rows.emplace_back(StatRow {"SoC", "%", StatValueKind::kSoc});
+    m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
+    m_stat_rows.emplace_back(StatRow {"Trip/total consumed",
+                                      "Wh",
+                                      StatValueKind::kConsumedWh,
+                                      std::make_unique<SecondColumnStatRow>("Wh")});
+    m_stat_rows.emplace_back(StatRow {"Regenerated", "Wh", StatValueKind::kRegeneratedWh});
+    m_stat_rows.emplace_back(StatRow {"Trip/total average",
+                                      "Wh/km",
+                                      StatValueKind::kTripAverageWhPerKm,
+                                      std::make_unique<SecondColumnStatRow>("Wh/km")});
+    m_stat_rows.emplace_back(StatRow {"Trip distance/Odometer",
+                                      "m",
+                                      StatValueKind::kTripDistance,
+                                      std::make_unique<SecondColumnStatRow>("m")});
+    m_stat_rows.emplace_back(StatRow {"Trip max speed", "km/h", StatValueKind::kTripMaxSpeed});
 
     const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
@@ -56,17 +60,17 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     {
         y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
 
-        row.value = lv_label_create(m_screen);
-        lv_obj_set_style_text_font(row.value, &radbuzz_font_60, LV_PART_MAIN);
-        lv_obj_set_width(row.value, kValueColumnWidth);
-        lv_obj_set_style_text_align(row.value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-        lv_label_set_text(row.value, "0");
-
         row.label = lv_label_create(m_screen);
         lv_obj_set_style_text_font(row.label, &radbuzz_font_22, LV_PART_MAIN);
         lv_obj_set_width(row.label, kLabelColumnWidth);
         lv_label_set_text(row.label, row.label_text);
         lv_obj_set_style_text_align(row.label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+
+        row.value = lv_label_create(m_screen);
+        lv_obj_set_style_text_font(row.value, &radbuzz_font_60, LV_PART_MAIN);
+        lv_obj_set_width(row.value, kValueColumnWidth);
+        lv_obj_set_style_text_align(row.value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+        lv_label_set_text(row.value, "0");
 
         row.unit = lv_label_create(m_screen);
         lv_obj_set_style_text_font(row.unit, &radbuzz_font_22, LV_PART_MAIN);
@@ -87,32 +91,35 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
                         kValueToUnitGap,
                         side_text_baseline_y_offset);
 
+        if (row.second_column)
+        {
+            row.second_column->value = lv_label_create(m_screen);
+            lv_obj_set_style_text_font(row.second_column->value, &radbuzz_font_60, LV_PART_MAIN);
+            lv_obj_set_width(row.second_column->value, kValueColumnWidth);
+            lv_obj_set_style_text_align(
+                row.second_column->value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+            lv_label_set_text(row.second_column->value, "0");
+
+            row.second_column->unit = lv_label_create(m_screen);
+            lv_obj_set_style_text_font(row.second_column->unit, &radbuzz_font_22, LV_PART_MAIN);
+            lv_obj_set_width(row.second_column->unit, kUnitColumnWidth);
+            lv_obj_set_style_text_align(row.second_column->unit, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+            lv_label_set_text(row.second_column->unit, row.second_column->unit_text);
+
+            lv_obj_align(row.second_column->value,
+                         LV_ALIGN_TOP_MID,
+                         kSecondColumnRightXOffset - (kValueColumnWidth / 2),
+                         y_offset);
+            lv_obj_align_to(row.second_column->unit,
+                            row.second_column->value,
+                            LV_ALIGN_OUT_RIGHT_BOTTOM,
+                            kValueToUnitGap,
+                            side_text_baseline_y_offset);
+        }
+
+
         ++row_index;
     }
-
-    m_odometer_value = lv_label_create(m_screen);
-    lv_obj_set_style_text_font(m_odometer_value, &radbuzz_font_60, LV_PART_MAIN);
-    lv_obj_set_width(m_odometer_value, kValueColumnWidth);
-    lv_obj_set_style_text_align(m_odometer_value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-    lv_label_set_text(m_odometer_value, "0");
-
-    m_odometer_unit = lv_label_create(m_screen);
-    lv_obj_set_style_text_font(m_odometer_unit, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_width(m_odometer_unit, kUnitColumnWidth);
-    lv_obj_set_style_text_align(m_odometer_unit, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-    lv_label_set_text(m_odometer_unit, "km");
-
-    const auto& trip_distance_row = m_stat_rows.back();
-    lv_obj_align(m_odometer_value,
-                 LV_ALIGN_TOP_MID,
-                 kSecondColumnRightXOffset - (kValueColumnWidth / 2),
-                 y_offset);
-    lv_obj_align_to(m_odometer_unit,
-                    m_odometer_value,
-                    LV_ALIGN_OUT_RIGHT_BOTTOM,
-                    kValueToUnitGap,
-                    side_text_baseline_y_offset);
-
 
     lv_style_init(&m_style_bar_bg);
     lv_style_set_border_color(&m_style_bar_bg, lv_palette_main(LV_PALETTE_BLUE));
@@ -125,18 +132,6 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     lv_style_set_bg_opa(&m_style_bar_indicator, LV_OPA_COVER);
     lv_style_set_bg_color(&m_style_bar_indicator, lv_palette_main(LV_PALETTE_BLUE));
     lv_style_set_radius(&m_style_bar_indicator, 3);
-
-
-    //    m_consumption_bar = lv_bar_create(m_screen);
-    //    lv_bar_set_range(m_consumption_bar, 0, 60);
-    //
-    //
-    //    lv_obj_remove_style_all(m_consumption_bar); /*To have a clean start*/
-    //    lv_obj_add_style(m_consumption_bar, &m_style_bar_bg, 0);
-    //    lv_obj_add_style(m_consumption_bar, &m_style_bar_indicator, LV_PART_INDICATOR);
-    //
-    //    lv_obj_set_size(m_consumption_bar, 200, 20);
-    //    lv_obj_align(m_consumption_bar, LV_ALIGN_CENTER, 0, 125);
 }
 
 void
@@ -161,7 +156,10 @@ TripMeterScreen::Update()
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
             break;
         case StatValueKind::kConsumedWh: {
-            const auto consumed_wh = ro.Get<AS::wh_consumed>() - trip_start.start_wh_consumed;
+            debug_assert(row.second_column != nullptr);
+
+            const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
+            const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
             if (consumed_wh >= 1000)
             {
                 unit_text = "kWh";
@@ -170,6 +168,21 @@ TripMeterScreen::Update()
             else
             {
                 value_text = std::format("{:.1f}", consumed_wh);
+            }
+
+            if (total_wh_consumed >= 1000)
+            {
+                float total_wh_consumed_kwh = total_wh_consumed / 1000.0f;
+
+                lv_label_set_text(row.second_column->value,
+                                  std::format("{:.1f}", total_wh_consumed_kwh).c_str());
+                lv_label_set_text(row.second_column->unit, "kWh");
+            }
+            else
+            {
+                lv_label_set_text(row.second_column->value,
+                                  std::format("{}", total_wh_consumed).c_str());
+                lv_label_set_text(row.second_column->unit, "Wh");
             }
             break;
         }
@@ -194,6 +207,7 @@ TripMeterScreen::Update()
             auto odometer_m = ro.Get<AS::distance_traveled>();
             auto distance_m = odometer_m - trip_start.start_distance;
 
+            debug_assert(row.second_column != nullptr);
             if (distance_m >= 1000)
             {
                 float distance_km = distance_m / 1000.0f;
@@ -210,13 +224,14 @@ TripMeterScreen::Update()
             {
                 float distance_km = odometer_m / 1000.0f;
 
-                lv_label_set_text(m_odometer_value, std::format("{:.1f}", distance_km).c_str());
-                lv_label_set_text(m_odometer_unit, "km");
+                lv_label_set_text(row.second_column->value,
+                                  std::format("{:.1f}", distance_km).c_str());
+                lv_label_set_text(row.second_column->unit, "km");
             }
             else
             {
-                lv_label_set_text(m_odometer_value, std::format("{}", odometer_m).c_str());
-                lv_label_set_text(m_odometer_unit, "m");
+                lv_label_set_text(row.second_column->value, std::format("{}", odometer_m).c_str());
+                lv_label_set_text(row.second_column->unit, "m");
             }
         }
         break;
@@ -234,6 +249,14 @@ TripMeterScreen::Update()
             const float average_consumption =
                 trip_distance_m > 0 ? (trip_wh_consumed * 1000.0f) / trip_distance_m : 0.0f;
             value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
+
+            debug_assert(row.second_column != nullptr);
+            const float total_average_consumption =
+                total_distance_m > 0 ? (total_wh_consumed * 1000.0f) / total_distance_m : 0.0f;
+            lv_label_set_text(
+                row.second_column->value,
+                std::format("{:.1f}", std::min(total_average_consumption, 60.0f)).c_str());
+
             break;
         }
 
@@ -263,8 +286,6 @@ TripMeterScreen::Update()
         lv_label_set_text(row.value, value_text.c_str());
         lv_label_set_text(row.unit, unit_text.c_str());
 
-        static constexpr int kValueRightXOffset = 120;
-        static constexpr int kValueColumnWidth = 170;
         lv_obj_align(
             row.value, LV_ALIGN_TOP_MID, kValueRightXOffset - (kValueColumnWidth / 2), y_offset);
         lv_obj_align_to(row.label,
