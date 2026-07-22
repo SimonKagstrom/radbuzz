@@ -14,11 +14,11 @@ private:
     {
         kSoc,
         kConsumedWh,
-        kRegeneratedWh,
         kTripAverageWhPerKm,
         kTripMaxSpeed,
         kTripDistance,
         kTemperature,
+        kTime,
 
         kValueCount,
     };

@@ -37,14 +37,21 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {"SoC", "%", StatValueKind::kSoc});
     m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
-    m_stat_rows.emplace_back(StatRow {"Trip consumed", "Wh", StatValueKind::kConsumedWh});
-    m_stat_rows.emplace_back(StatRow {"Regenerated", "Wh", StatValueKind::kRegeneratedWh});
-    m_stat_rows.emplace_back(StatRow {"Trip average", "Wh/km", StatValueKind::kTripAverageWhPerKm});
-    m_stat_rows.emplace_back(StatRow {"Trip distance/Odometer",
+    m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
+                                      "Wh",
+                                      StatValueKind::kConsumedWh,
+                                      std::make_unique<SecondColumnStatRow>("Wh")});
+    m_stat_rows.emplace_back(
+        StatRow {"Average consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
+    m_stat_rows.emplace_back(StatRow {"Distance/Odometer",
                                       "m",
                                       StatValueKind::kTripDistance,
                                       std::make_unique<SecondColumnStatRow>("m")});
-    m_stat_rows.emplace_back(StatRow {"Trip max speed", "km/h", StatValueKind::kTripMaxSpeed});
+    m_stat_rows.emplace_back(StatRow {"Time", "s", StatValueKind::kTime});
+    m_stat_rows.emplace_back(StatRow {"Max/average speed",
+                                      "km/h",
+                                      StatValueKind::kTripMaxSpeed,
+                                      std::make_unique<SecondColumnStatRow>("km/h")});
 
     const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
@@ -136,6 +143,13 @@ TripMeterScreen::Update()
 
     auto trip_start = m_parent.m_current_trip_start;
 
+    auto since_trip_start = os::GetTimeStamp() - ro.Get<AS::trip_start_time>();
+    if (since_trip_start == 0ms)
+    {
+        // No divide by zero, so assume at least 1 millisecond has passed
+        since_trip_start = 1ms;
+    }
+
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
     {
@@ -163,25 +177,46 @@ TripMeterScreen::Update()
                 value_text = std::format("{:.1f}", consumed_wh);
             }
 
-            break;
-        }
-        case StatValueKind::kRegeneratedWh: {
+
+            debug_assert(row.second_column != nullptr);
             const auto regenerated_wh =
                 ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated;
+
             if (regenerated_wh >= 1000)
             {
-                unit_text = "kWh";
-                value_text = std::format("{:.1f}", static_cast<float>(regenerated_wh) / 1000.0f);
+                lv_label_set_text(
+                    row.second_column->value,
+                    std::format("{:.1f}", static_cast<float>(regenerated_wh) / 1000.0f).c_str());
+                lv_label_set_text(row.second_column->unit, "kWh");
             }
             else
             {
-                value_text = std::format("{:.1f}", regenerated_wh);
+                lv_label_set_text(
+                    row.second_column->value,
+                    std::format("{:.1f}", static_cast<float>(regenerated_wh)).c_str());
+                lv_label_set_text(row.second_column->unit, "Wh");
             }
             break;
         }
-        case StatValueKind::kTripMaxSpeed:
+        case StatValueKind::kTripMaxSpeed: {
             value_text = std::format("{}", ro.Get<AS::max_speed>());
+
+            debug_assert(row.second_column != nullptr);
+            const uint32_t total_distance_m = ro.Get<AS::distance_traveled>();
+            const uint32_t trip_distance_m = total_distance_m >= trip_start.start_distance
+                                                 ? (total_distance_m - trip_start.start_distance)
+                                                 : 0;
+
+            const float elapsed_seconds = static_cast<float>(since_trip_start.count()) / 1000.0f;
+            const float average_speed_kmh =
+                elapsed_seconds > 0.0f
+                    ? (static_cast<float>(trip_distance_m) * 3.6f) / elapsed_seconds
+                    : 0.0f;
+
+            lv_label_set_text(row.second_column->value,
+                              std::format("{:.0f}", average_speed_kmh).c_str());
             break;
+        }
         case StatValueKind::kTripDistance: {
             auto odometer_m = ro.Get<AS::distance_traveled>();
             auto distance_m = odometer_m - trip_start.start_distance;
@@ -212,8 +247,9 @@ TripMeterScreen::Update()
                 lv_label_set_text(row.second_column->value, std::format("{}", odometer_m).c_str());
                 lv_label_set_text(row.second_column->unit, "m");
             }
+            break;
         }
-        break;
+
         case StatValueKind::kTripAverageWhPerKm: {
             // For the trip, not the odometer
             const uint32_t total_distance_m = ro.Get<AS::distance_traveled>();
@@ -250,6 +286,31 @@ TripMeterScreen::Update()
             }
             break;
         }
+        case StatValueKind::kTime: {
+            auto seconds = static_cast<uint32_t>(since_trip_start.count() / 1000);
+
+            if (seconds > 60)
+            {
+                if (seconds > 3600)
+                {
+                    // Hours
+                    value_text = std::format(
+                        "{:02}:{:02}:{:02}", seconds / 3600, (seconds % 3600) / 60, seconds % 60);
+                }
+                else
+                {
+                    // Minutes
+                    value_text = std::format("{:02}:{:02}", seconds / 60, seconds % 60);
+                }
+                unit_text = "";
+            }
+            else
+            {
+                value_text = std::format("{}", seconds);
+                unit_text = "s";
+            }
+        }
+        break;
         case StatValueKind::kValueCount:
             break;
         }

@@ -25,3 +25,4 @@ application_state:
   pixel_position: {}
   reset_trip: {}
   tile_loaded: {}
+  trip_start_time: 0ms

@@ -155,13 +155,15 @@ UserInterface::ResetTrip()
 {
     m_state.CheckoutReadWrite().Post<AS::reset_trip>();
 
-    auto ro = m_state.CheckoutReadonly();
+    auto rw = m_state.CheckoutReadWrite();
 
     m_current_trip_start = {
-        ro.Get<AS::distance_traveled>(),
-        ro.Get<AS::wh_consumed>(),
-        ro.Get<AS::wh_regenerated>(),
+        rw.Get<AS::distance_traveled>(),
+        rw.Get<AS::wh_consumed>(),
+        rw.Get<AS::wh_regenerated>(),
     };
+
+    rw.Set<AS::trip_start_time>(os::GetTimeStamp());
 }
 
 std::optional<milliseconds>

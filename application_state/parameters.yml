@@ -2,6 +2,7 @@
 cpp_includes:
   - "wgs84_to_osm_point.hh"
   - "configuration_settings.hh"
+  - "time.hh"
 
 
 parameters:
@@ -68,3 +69,6 @@ parameters:
 
   tile_loaded:
     type: Event
+
+  trip_start_time:
+    type: milliseconds

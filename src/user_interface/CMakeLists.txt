@@ -11,7 +11,7 @@ convert_font(radbuzz_font_60
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
     60
     0x20,0x30-0x39
-    "%.°CVWh/"
+    "%:./"
 )
 
 convert_symbols(radbuzz_symbols_40
