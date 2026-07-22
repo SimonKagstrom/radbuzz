@@ -396,8 +396,8 @@ iconHash={:08x}32
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);
     ps.GetWritableReference<AS::distance_traveled>() += distance_traveled_delta;
-    ps.GetWritableReference<AS::wh_consumed>() += 2 + (m_random_engine() % 5);
-    ps.GetWritableReference<AS::wh_regenerated>() += 1;
+    ps.GetWritableReference<AS::wh_consumed>() += (2.001 + (m_random_engine() % 5)) * 0.01;
+    ps.GetWritableReference<AS::wh_regenerated>() += 0.00101;
     auto& speed = ps.GetWritableReference<AS::speed>();
 
     const int current_speed = speed;
