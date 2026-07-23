@@ -43,15 +43,17 @@ add_executable(unittest_radbuzz
     test_tile_cache.cc
     test_king_shark_packet_protocol.cc
     test_speedometer_handler.cc
+    test_trip_computer.cc
 )
 
 target_link_libraries(unittest_radbuzz
     application_state
     ble_handler_private
-    tile_cache
-    os_unittest
     mock_filesystem
+    os_unittest
     speedometer_handler
+    tile_cache
+    trip_computer
 
 
     # Compile tests only for now
