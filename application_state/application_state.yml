@@ -26,3 +26,7 @@ application_state:
   reset_trip: {}
   tile_loaded: {}
   trip_start_time: 0ms
+  trip_distance: 0
+  trip_duration: 0s
+  trip_max_speed: 0
+  trip_average_speed: 0

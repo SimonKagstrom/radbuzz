@@ -61,6 +61,18 @@ parameters:
   odometer:
     type: uint32_t
 
+  trip_distance:
+    type: uint32_t
+
+  trip_duration:
+    type: seconds
+
+  trip_max_speed:
+    type: uint8_t
+
+  trip_average_speed:
+    type: uint8_t
+
   pixel_position:
     type: struct Point
 
