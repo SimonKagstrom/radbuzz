@@ -26,6 +26,7 @@ TEST_SUITE_BEGIN("trip_computer");
 
 TEST_CASE_FIXTURE(Fixture, "")
 {
+    DoRunLoop();
 }
 
 TEST_SUITE_END();

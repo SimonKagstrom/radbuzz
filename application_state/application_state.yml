@@ -20,7 +20,7 @@ application_state:
   current_power_w: 0
   wh_consumed: 0
   wh_regenerated: 0
-  distance_traveled: 0
+  odometer: 0
   position: {}
   pixel_position: {}
   reset_trip: {}

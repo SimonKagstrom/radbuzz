@@ -58,7 +58,7 @@ parameters:
     type: float
 
   # In meters
-  distance_traveled:
+  odometer:
     type: uint32_t
 
   pixel_position:

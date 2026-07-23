@@ -26,7 +26,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
 {
     m_state_listener = m_state.AttachListener<AS::pixel_position,
                                               AS::battery_soc,
-                                              AS::distance_traveled,
+                                              AS::odometer,
                                               AS::bluetooth_connected,
                                               AS::wifi_connected,
                                               AS::speed,
@@ -134,7 +134,7 @@ UserInterface::OnStartup()
         std::optional<milliseconds> out = 100ms;
 
         auto ro = m_state.CheckoutReadonly();
-        auto trip_valid = ro.Get<AS::distance_traveled>() > 0 &&
+        auto trip_valid = ro.Get<AS::odometer>() > 0 &&
                           (ro.Get<AS::wh_consumed>() > 0 || ro.Get<AS::wh_regenerated>() > 0);
 
         // Reset the trip when the first stats come in
@@ -158,7 +158,7 @@ UserInterface::ResetTrip()
     auto rw = m_state.CheckoutReadWrite();
 
     m_current_trip_start = {
-        rw.Get<AS::distance_traveled>(),
+        rw.Get<AS::odometer>(),
         rw.Get<AS::wh_consumed>(),
         rw.Get<AS::wh_regenerated>(),
     };

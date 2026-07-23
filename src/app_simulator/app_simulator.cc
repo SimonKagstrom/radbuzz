@@ -359,10 +359,10 @@ AppSimulator::OnActivation()
     }
     m_distance_left = MetersBetweenPoints(m_current_point, *m_next_point);
 
-    const auto distance_traveled_delta =
+    const auto odometer_delta =
         std::max<int32_t>(0, previous_distance_left - m_distance_left);
 
-    auto ps = m_application_state.CheckoutPartialSnapshot<AS::distance_traveled,
+    auto ps = m_application_state.CheckoutPartialSnapshot<AS::odometer,
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
                                                           AS::speed,
@@ -395,7 +395,7 @@ iconHash={:08x}32
 
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);
-    ps.GetWritableReference<AS::distance_traveled>() += distance_traveled_delta;
+    ps.GetWritableReference<AS::odometer>() += odometer_delta;
     ps.GetWritableReference<AS::wh_consumed>() += (2.001f + (m_random_engine() % 5)) * 0.01f;
     ps.GetWritableReference<AS::wh_regenerated>() += 0.00101f;
     auto& speed = ps.GetWritableReference<AS::speed>();

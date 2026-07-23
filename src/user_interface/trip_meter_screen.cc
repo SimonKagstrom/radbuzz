@@ -202,7 +202,7 @@ TripMeterScreen::Update()
             value_text = std::format("{}", ro.Get<AS::max_speed>());
 
             debug_assert(row.second_column != nullptr);
-            const uint32_t total_distance_m = ro.Get<AS::distance_traveled>();
+            const uint32_t total_distance_m = ro.Get<AS::odometer>();
             const uint32_t trip_distance_m = total_distance_m >= trip_start.start_distance
                                                  ? (total_distance_m - trip_start.start_distance)
                                                  : 0;
@@ -218,7 +218,7 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripDistance: {
-            auto odometer_m = ro.Get<AS::distance_traveled>();
+            auto odometer_m = ro.Get<AS::odometer>();
             auto distance_m = odometer_m - trip_start.start_distance;
 
             debug_assert(row.second_column != nullptr);
@@ -252,7 +252,7 @@ TripMeterScreen::Update()
 
         case StatValueKind::kTripAverageWhPerKm: {
             // For the trip, not the odometer
-            const uint32_t total_distance_m = ro.Get<AS::distance_traveled>();
+            const uint32_t total_distance_m = ro.Get<AS::odometer>();
             const uint32_t trip_distance_m = total_distance_m >= trip_start.start_distance
                                                  ? (total_distance_m - trip_start.start_distance)
                                                  : 0;

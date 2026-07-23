@@ -82,7 +82,7 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
     auto qw = m_state.CheckoutQueuedWriter<
         AS::wh_consumed,
         AS::wh_regenerated,
-        AS::distance_traveled,
+        AS::odometer,
         AS::current_power_w,
         AS::battery_millivolts, // Millivolts is temporary until the bms reader is done
         AS::controller_temperature,
@@ -156,7 +156,7 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
             }
             break;
             case vesc_setup_value_index_t::SETUP_VALUE_ODOMETER:
-                qw.Set<AS::distance_traveled>(vesc_buffer_get_uint32(data, &index));
+                qw.Set<AS::odometer>(vesc_buffer_get_uint32(data, &index));
                 break;
 
             default:

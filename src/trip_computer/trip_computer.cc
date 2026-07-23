@@ -114,7 +114,7 @@ TripComputer::UpdateSoc(uint16_t millivolts)
 
     auto ro = m_state.CheckoutReadonly();
 
-    auto distance_now = ro.Get<AS::distance_traveled>();
+    auto distance_now = ro.Get<AS::odometer>();
     auto qw =
         m_state
             .CheckoutQueuedWriter<AS::is_moving, AS::battery_soc, AS::battery_milliamphours_left>();
