@@ -120,6 +120,7 @@ private:
 
     os::TimerHandle m_moving_timer;
     uint32_t m_current_distance {0};
+    seconds m_current_trip_movement_second;
 
     etl::circular_buffer<uint16_t, 10> m_millivolt_history;
 

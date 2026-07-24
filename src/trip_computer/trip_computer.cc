@@ -190,8 +190,17 @@ TripComputer::UpdateSpeedAndTime()
     auto rw = m_state.CheckoutReadWrite();
     auto distance_now = rw.Get<AS::odometer>();
 
-    if (distance_now != m_current_distance)
+    auto is_moving_now = distance_now != m_current_distance;
+    auto now = std::chrono::duration_cast<seconds>(os::GetTimeStamp());
+
+    if (is_moving_now)
     {
+        if (!rw.Get<AS::is_moving>())
+        {
+            // Take the current value into account
+            m_current_trip_movement_second = now - rw.Get<AS::trip_duration>();
+        }
+
         rw.Set<AS::is_moving>(true);
 
         // Restart the cancel timer
@@ -203,6 +212,10 @@ TripComputer::UpdateSpeedAndTime()
     }
 
     m_current_distance = distance_now;
+    if (rw.Get<AS::is_moving>())
+    {
+        rw.Set<AS::trip_duration>(now - m_current_trip_movement_second);
+    }
 }
 
 void

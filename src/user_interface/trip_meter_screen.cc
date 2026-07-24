@@ -287,7 +287,7 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTime: {
-            auto seconds = static_cast<uint32_t>(since_trip_start.count() / 1000);
+            auto seconds = ro.Get<AS::trip_duration>().count();
 
             if (seconds > 60)
             {
