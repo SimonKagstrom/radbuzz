@@ -10,7 +10,6 @@ application_state:
   navigation_active: false
   gps_position_valid: false
   speed: 0
-  max_speed: 0
   controller_temperature: 0
   motor_temperature: 0
   battery_millivolts: 0

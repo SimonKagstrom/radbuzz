@@ -199,7 +199,7 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripMaxSpeed: {
-            value_text = std::format("{}", ro.Get<AS::max_speed>());
+            value_text = std::format("{}", ro.Get<AS::trip_max_speed>());
 
             debug_assert(row.second_column != nullptr);
             const uint32_t total_distance_m = ro.Get<AS::odometer>();

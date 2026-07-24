@@ -88,7 +88,7 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
         AS::controller_temperature,
         AS::motor_temperature,
         AS::speed,
-        AS::max_speed>();
+        AS::trip_max_speed>();
 
     if (command == CAN_PACKET_STATUS_3)
     {
@@ -147,7 +147,7 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
                 auto speed = static_cast<uint8_t>(km_per_hour);
 
                 qw.Set<AS::speed>(speed);
-                qw.Set<AS::max_speed>(std::max(ro.Get<AS::max_speed>(), speed));
+                qw.Set<AS::trip_max_speed>(std::max(ro.Get<AS::trip_max_speed>(), speed));
             }
             break;
             case vesc_setup_value_index_t::SETUP_VALUE_INPUT_VOLTAGE_FILTERED: {
