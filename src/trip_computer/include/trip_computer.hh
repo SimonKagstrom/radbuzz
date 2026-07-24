@@ -99,6 +99,9 @@ private:
     std::optional<milliseconds> OnActivation() final;
 
     void UpdateSoc(uint16_t millivolts);
+    void UpdateTripLog();
+    void UpdateSpeedAndTime();
+
 
     std::optional<LogHandle> AllocateLogEntry();
     void FreeLogEntry(LogHandle handle);
@@ -115,6 +118,7 @@ private:
     std::unique_ptr<ListenerCookie> m_state_listener;
     os::TimerHandle m_soc_timer;
 
+    os::TimerHandle m_moving_timer;
     uint32_t m_current_distance {0};
 
     etl::circular_buffer<uint16_t, 10> m_millivolt_history;

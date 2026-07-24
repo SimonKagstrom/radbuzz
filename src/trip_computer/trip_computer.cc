@@ -70,8 +70,8 @@ InterpolateSoc(uint16_t millivolts, uint8_t battery_series)
 
 TripComputer::TripComputer(ApplicationState& app_state)
     : m_state(app_state)
-    , m_state_listener(
-          m_state.AttachListener<AS::configuration, AS::pixel_position>(GetSemaphore()))
+    , m_state_listener(m_state.AttachListener<AS::configuration, AS::odometer, AS::pixel_position>(
+          GetSemaphore()))
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
 }
@@ -86,10 +86,17 @@ TripComputer::OnStartup()
     }
 
     m_soc_timer = StartTimer(250ms, [this]() {
-        auto mv = m_state.CheckoutReadonly().Get<AS::battery_millivolts>();
+        auto ro = m_state.CheckoutReadonly();
+        auto mv = ro.Get<AS::battery_millivolts>();
         if (mv != 0)
         {
             UpdateSoc(mv);
+        }
+
+        // Wait for valid CAN bus data
+        if (ro.Get<AS::odometer>() != 0)
+        {
+            UpdateSpeedAndTime();
         }
         return 250ms;
     });
@@ -113,14 +120,7 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     }
 
     auto ro = m_state.CheckoutReadonly();
-
-    auto distance_now = ro.Get<AS::odometer>();
-    auto qw =
-        m_state
-            .CheckoutQueuedWriter<AS::is_moving, AS::battery_soc, AS::battery_milliamphours_left>();
-
-    qw.Set<AS::is_moving>(distance_now - m_current_distance > 10);
-    m_current_distance = distance_now;
+    auto qw = m_state.CheckoutQueuedWriter<AS::battery_soc, AS::battery_milliamphours_left>();
 
 
     if (ro.Get<AS::current_power_w>() > 300)
@@ -179,11 +179,39 @@ TripComputer::FreeLogEntry(LogHandle handle)
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
-    auto ro = m_state.CheckoutReadonly();
+    UpdateTripLog();
 
+    return std::nullopt;
+}
+
+void
+TripComputer::UpdateSpeedAndTime()
+{
+    auto rw = m_state.CheckoutReadWrite();
+    auto distance_now = rw.Get<AS::odometer>();
+
+    if (distance_now != m_current_distance)
+    {
+        rw.Set<AS::is_moving>(true);
+
+        // Restart the cancel timer
+        m_moving_timer = StartTimer(5s, [this]() {
+            auto rw = m_state.CheckoutReadWrite();
+            rw.Set<AS::is_moving>(false);
+            return std::nullopt;
+        });
+    }
+
+    m_current_distance = distance_now;
+}
+
+void
+TripComputer::UpdateTripLog()
+{
+    auto ro = m_state.CheckoutReadonly();
     if (!ro.Get<AS::gps_position_valid>())
     {
-        return std::nullopt;
+        return;
     }
 
     auto position = *ro.Get<AS::pixel_position>();
@@ -213,10 +241,7 @@ TripComputer::OnActivation()
         auto lock = std::lock_guard(m_log_mutex);
         m_current_display_log = update_log;
     }
-
-    return std::nullopt;
 }
-
 
 template <size_t Entries>
 uint32_t
