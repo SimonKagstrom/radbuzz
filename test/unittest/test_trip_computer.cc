@@ -132,4 +132,67 @@ TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the trip computer")
+{
+    auto rw = state.CheckoutReadWrite();
+    rw.Set<AS::can_bus_active>(true);
+    rw.Set<AS::odometer>(1000);
+
+    AdvanceTimeAndRunLoop(1s);
+    REQUIRE(rw.Get<AS::is_moving>() == false);
+    REQUIRE(rw.Get<AS::trip_distance>() == 0);
+
+    WHEN("the odometer is updated")
+    {
+        // 2m/s -> ~7km/h
+        for (auto i = 0; i < 60; i++)
+        {
+            rw.Set<AS::odometer>(rw.Get<AS::odometer>() + 2);
+            AdvanceTimeAndRunLoop(1s);
+        }
+
+        THEN("trip_distance is set")
+        {
+            REQUIRE(rw.Get<AS::trip_distance>() == 2 * 60);
+        }
+        AND_THEN("the average speed is calculated")
+        {
+            REQUIRE(rw.Get<AS::trip_average_speed>() == 7);
+        }
+
+        WHEN("the moped is no longer moving")
+        {
+            AdvanceTimeAndRunLoop(1min);
+            REQUIRE(rw.Get<AS::is_moving>() == false);
+
+            THEN("the average is no longer updated")
+            {
+                REQUIRE(rw.Get<AS::trip_average_speed>() >= 6);
+                REQUIRE(rw.Get<AS::trip_average_speed>() <= 7);
+            }
+
+            AND_WHEN("the moped starts moving again")
+            {
+                // 4m/s for one minute
+                for (auto i = 0; i < 60; i++)
+                {
+                    rw.Set<AS::odometer>(rw.Get<AS::odometer>() + 4);
+                    AdvanceTimeAndRunLoop(1s);
+                }
+
+                THEN("the average speed is updated again")
+                {
+                    // 2m/s for 1 minute, then 4m/s for 1 minute -> average speed = 3m/s -> 10.8km/h
+                    REQUIRE(rw.Get<AS::trip_average_speed>() == 10);
+                }
+            }
+        }
+
+        WHEN("the trip is reset")
+        {
+            // TBD
+        }
+    }
+}
+
 TEST_SUITE_END();

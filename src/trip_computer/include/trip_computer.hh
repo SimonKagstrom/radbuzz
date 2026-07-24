@@ -102,6 +102,7 @@ private:
     void UpdateSoc(uint16_t millivolts);
     void UpdateTripLog();
     void UpdateSpeedAndTime();
+    void ResetTrip();
 
 
     std::optional<LogHandle> AllocateLogEntry();

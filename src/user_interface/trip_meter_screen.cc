@@ -202,24 +202,13 @@ TripMeterScreen::Update()
             value_text = std::format("{}", ro.Get<AS::trip_max_speed>());
 
             debug_assert(row.second_column != nullptr);
-            const uint32_t total_distance_m = ro.Get<AS::odometer>();
-            const uint32_t trip_distance_m = total_distance_m >= trip_start.start_distance
-                                                 ? (total_distance_m - trip_start.start_distance)
-                                                 : 0;
-
-            const float elapsed_seconds = static_cast<float>(since_trip_start.count()) / 1000.0f;
-            const float average_speed_kmh =
-                elapsed_seconds > 0.0f
-                    ? (static_cast<float>(trip_distance_m) * 3.6f) / elapsed_seconds
-                    : 0.0f;
-
             lv_label_set_text(row.second_column->value,
-                              std::format("{:.0f}", average_speed_kmh).c_str());
+                              std::format("{}", ro.Get<AS::trip_average_speed>()).c_str());
             break;
         }
         case StatValueKind::kTripDistance: {
             auto odometer_m = ro.Get<AS::odometer>();
-            auto distance_m = odometer_m - trip_start.start_distance;
+            auto distance_m = ro.Get<AS::trip_distance>();
 
             debug_assert(row.second_column != nullptr);
             if (distance_m >= 1000)
@@ -253,9 +242,7 @@ TripMeterScreen::Update()
         case StatValueKind::kTripAverageWhPerKm: {
             // For the trip, not the odometer
             const uint32_t total_distance_m = ro.Get<AS::odometer>();
-            const uint32_t trip_distance_m = total_distance_m >= trip_start.start_distance
-                                                 ? (total_distance_m - trip_start.start_distance)
-                                                 : 0;
+            const uint32_t trip_distance_m = ro.Get<AS::trip_distance>();
 
             const float total_wh_consumed = ro.Get<AS::wh_consumed>();
             const float trip_wh_consumed =

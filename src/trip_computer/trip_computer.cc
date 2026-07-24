@@ -103,6 +103,8 @@ TripComputer::OnStartup()
 void
 TripComputer::StartMonitoring()
 {
+    ResetTrip();
+
     m_soc_timer = StartTimer(250ms, [this]() {
         auto ro = m_state.CheckoutReadonly();
         auto mv = ro.Get<AS::battery_millivolts>();
@@ -116,6 +118,18 @@ TripComputer::StartMonitoring()
 
         return 250ms;
     });
+}
+
+void
+TripComputer::ResetTrip()
+{
+    auto rw = m_state.CheckoutReadWrite();
+    m_trip_start_distance = rw.Get<AS::odometer>();
+
+    rw.Set<AS::trip_distance>(0);
+    rw.Set<AS::trip_duration>(0s);
+
+    m_current_distance = m_trip_start_distance;
 }
 
 void
@@ -230,7 +244,22 @@ TripComputer::UpdateSpeedAndTime()
     m_current_distance = distance_now;
     if (rw.Get<AS::is_moving>())
     {
-        rw.Set<AS::trip_duration>(now - m_current_trip_movement_second);
+        auto trip_duration = now - m_current_trip_movement_second;
+        auto trip_distance = m_current_distance - m_trip_start_distance;
+
+        rw.Set<AS::trip_duration>(trip_duration);
+        rw.Set<AS::trip_distance>(trip_distance);
+
+        if (trip_distance != 0)
+        {
+            rw.Set<AS::trip_average_speed>(
+                static_cast<uint8_t>(trip_distance * 3.6f / trip_duration.count()));
+        }
+        else
+        {
+            // Shouldn't happen, but why take a chance?
+            rw.Set<AS::trip_average_speed>(0);
+        }
     }
 }
 
