@@ -366,6 +366,7 @@ AppSimulator::OnActivation()
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
                                                           AS::speed,
+                                                          AS::can_bus_active,
                                                           AS::current_power_w,
                                                           AS::navigation_active,
                                                           AS::trip_max_speed>();
@@ -395,6 +396,7 @@ iconHash={:08x}32
 
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);
+    ps.Set<AS::can_bus_active>(true);
     ps.GetWritableReference<AS::odometer>() += odometer_delta;
     ps.GetWritableReference<AS::wh_consumed>() += (2.001f + (m_random_engine() % 5)) * 0.01f;
     ps.GetWritableReference<AS::wh_regenerated>() += 0.00101f;

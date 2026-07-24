@@ -18,6 +18,9 @@ parameters:
   is_moving:
     type: bool
 
+  can_bus_active:
+    type: bool
+
   # If the phone currently supplies navigation instructions
   navigation_active:
     type: bool

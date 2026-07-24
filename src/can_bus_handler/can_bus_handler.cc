@@ -47,11 +47,17 @@ CanBusHandler::OnActivation()
 
             vesc_get_values_setup(*m_controller_id);
 
-            m_periodic_timer = StartTimer(500ms, [this]() {
+            m_periodic_timer = StartTimer(200ms, [this]() {
                 vesc_get_values_setup_selective(*m_controller_id,
                                                 SETUP_VALUE_SPEED | SETUP_VALUE_ODOMETER |
                                                     SETUP_VALUE_INPUT_VOLTAGE_FILTERED);
                 return 144ms;
+            });
+
+            // Set the can bus as active once the first selective values have been received
+            m_start_timer = StartTimer(300ms, [this]() {
+                m_state.CheckoutReadWrite().Set<AS::can_bus_active>(true);
+                return std::nullopt;
             });
         }
 

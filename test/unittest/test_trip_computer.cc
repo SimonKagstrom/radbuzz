@@ -28,8 +28,10 @@ TEST_SUITE_BEGIN("trip_computer");
 
 TEST_CASE_FIXTURE(Fixture, "is_moving is setup by the trip computer")
 {
-    DoRunLoop();
     auto rw = state.CheckoutReadWrite();
+    rw.Set<AS::can_bus_active>(true);
+
+    AdvanceTimeAndRunLoop(1s);
     REQUIRE(rw.Get<AS::is_moving>() == false);
 
     WHEN("the distance is updated")
@@ -71,6 +73,7 @@ TEST_CASE_FIXTURE(Fixture, "is_moving is setup by the trip computer")
 TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
 {
     auto rw = state.CheckoutReadWrite();
+    rw.Set<AS::can_bus_active>(true);
     // Some misaligned value to mimic the real world
     AdvanceTimeAndRunLoop(17399ms);
 

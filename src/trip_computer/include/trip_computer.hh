@@ -98,6 +98,7 @@ private:
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
+    void StartMonitoring();
     void UpdateSoc(uint16_t millivolts);
     void UpdateTripLog();
     void UpdateSpeedAndTime();
@@ -119,6 +120,7 @@ private:
     os::TimerHandle m_soc_timer;
 
     os::TimerHandle m_moving_timer;
+    uint32_t m_trip_start_distance {0};
     uint32_t m_current_distance {0};
     seconds m_current_trip_movement_second;
 

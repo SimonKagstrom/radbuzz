@@ -23,4 +23,5 @@ private:
     std::unique_ptr<ListenerCookie> m_bus_listener;
 
     os::TimerHandle m_periodic_timer;
+    os::TimerHandle m_start_timer;
 };

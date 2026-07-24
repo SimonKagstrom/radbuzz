@@ -70,8 +70,10 @@ InterpolateSoc(uint16_t millivolts, uint8_t battery_series)
 
 TripComputer::TripComputer(ApplicationState& app_state)
     : m_state(app_state)
-    , m_state_listener(m_state.AttachListener<AS::configuration, AS::odometer, AS::pixel_position>(
-          GetSemaphore()))
+    , m_state_listener(m_state.AttachListener<AS::configuration,
+                                              AS::can_bus_active,
+                                              AS::odometer,
+                                              AS::pixel_position>(GetSemaphore()))
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
 }
@@ -85,19 +87,33 @@ TripComputer::OnStartup()
         m_free_log_entries.push_back(i);
     }
 
+    m_soc_timer = StartTimer(100ms, [this]() {
+        std::optional<milliseconds> out = 100ms;
+        if (m_state.CheckoutReadonly().Get<AS::can_bus_active>())
+        {
+            StartMonitoring();
+
+            out = std::nullopt;
+        }
+
+        return out;
+    });
+}
+
+void
+TripComputer::StartMonitoring()
+{
     m_soc_timer = StartTimer(250ms, [this]() {
         auto ro = m_state.CheckoutReadonly();
         auto mv = ro.Get<AS::battery_millivolts>();
+
         if (mv != 0)
         {
             UpdateSoc(mv);
         }
 
-        // Wait for valid CAN bus data
-        if (ro.Get<AS::odometer>() != 0)
-        {
-            UpdateSpeedAndTime();
-        }
+        UpdateSpeedAndTime();
+
         return 250ms;
     });
 }
