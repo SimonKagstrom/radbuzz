@@ -32,6 +32,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::speed,
                                               AS::tile_loaded,
                                               AS::trip_duration,
+                                              AS::is_moving,
                                               AS::wh_consumed,
                                               AS::wh_regenerated>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());

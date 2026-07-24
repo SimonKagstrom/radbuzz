@@ -68,6 +68,8 @@ private:
     lv_obj_t* m_wifi_active {nullptr};
     // Icon for BLE
     lv_obj_t* m_ble_active {nullptr};
+    // Icon for parked state
+    lv_obj_t* m_parked {nullptr};
 
     lv_obj_t* m_speedometer_box {nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};

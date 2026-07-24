@@ -231,6 +231,13 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_color(m_wifi_active, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
     lv_label_set_text(m_wifi_active, LV_SYMBOL_WIFI);
 
+    m_parked = lv_label_create(m_screen);
+    lv_obj_align_to(m_parked, m_wifi_active, LV_ALIGN_OUT_LEFT_TOP, -10, 0);
+    lv_obj_set_style_text_font(m_parked, &radbuzz_symbols_40, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_parked, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_parked, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+    lv_label_set_text(m_parked, "P");
+
     // Power = regen bar
     m_power_bar = lv_obj_create(m_screen);
     lv_obj_set_size(m_power_bar, 10, 60);
@@ -445,6 +452,7 @@ MapScreen::Update()
 
     lv_obj_set_flag(m_gps_lost, LV_OBJ_FLAG_HIDDEN, ro.Get<AS::gps_position_valid>());
     lv_obj_set_flag(m_wifi_active, LV_OBJ_FLAG_HIDDEN, !ro.Get<AS::wifi_connected>());
+    lv_obj_set_flag(m_parked, LV_OBJ_FLAG_HIDDEN, ro.Get<AS::is_moving>());
 
     if (m_current_icon_hash != state_hash)
     {
