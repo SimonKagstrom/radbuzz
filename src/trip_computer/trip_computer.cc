@@ -250,7 +250,7 @@ TripComputer::UpdateSpeedAndTime()
         rw.Set<AS::trip_duration>(trip_duration);
         rw.Set<AS::trip_distance>(trip_distance);
 
-        if (trip_distance != 0)
+        if (trip_duration.count() != 0)
         {
             rw.Set<AS::trip_average_speed>(
                 static_cast<uint8_t>(trip_distance * 3.6f / trip_duration.count()));
