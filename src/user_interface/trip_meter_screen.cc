@@ -143,13 +143,6 @@ TripMeterScreen::Update()
 
     auto trip_start = m_parent.m_current_trip_start;
 
-    auto since_trip_start = os::GetTimeStamp() - ro.Get<AS::trip_start_time>();
-    if (since_trip_start == 0ms)
-    {
-        // No divide by zero, so assume at least 1 millisecond has passed
-        since_trip_start = 1ms;
-    }
-
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
     {

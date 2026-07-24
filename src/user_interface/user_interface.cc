@@ -164,8 +164,6 @@ UserInterface::ResetTrip()
         rw.Get<AS::wh_consumed>(),
         rw.Get<AS::wh_regenerated>(),
     };
-
-    rw.Set<AS::trip_start_time>(os::GetTimeStamp());
 }
 
 std::optional<milliseconds>

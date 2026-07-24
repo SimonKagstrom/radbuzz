@@ -81,6 +81,3 @@ parameters:
 
   tile_loaded:
     type: Event
-
-  trip_start_time:
-    type: milliseconds
