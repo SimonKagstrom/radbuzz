@@ -126,7 +126,8 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
 void
 MapScreen::DrawPowerBar(lv_layer_t* layer)
 {
-    const auto kBackgroundColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREY));
+    const auto kBackgroundColor = lv_color_to_u16(lv_color_make(100, 100, 100));
+    const auto kShadowColor = lv_color_to_u16(lv_color_make(75, 75, 75));
     const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
     const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
     constexpr int kPixelsAtMaxPower = hal::kDisplayHeight / 2;
@@ -157,6 +158,12 @@ MapScreen::DrawPowerBar(lv_layer_t* layer)
                                             {hal::kDisplayWidth, hal::kDisplayHeight},
                                             kPowerBarWidth,
                                             kBackgroundColor);
+    // Shadow line to make it more clear
+    painter::DrawClippedVerticalLine<Point>(dst,
+                                            {hal::kDisplayWidth - kPowerBarWidth - 1, 0},
+                                            {hal::kDisplayWidth, hal::kDisplayHeight},
+                                            1,
+                                            kShadowColor);
     painter::DrawClippedVerticalLine<Point>(dst, from, to, kPowerBarWidth, bar_color);
 }
 
@@ -252,7 +259,7 @@ MapScreen::MapScreen(UserInterface& parent,
 
 
     m_soc_label = lv_label_create(m_screen);
-    lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -kPowerBarWidth - 1, 0);
+    lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -kPowerBarWidth - 2, 0);
     lv_obj_set_style_text_font(m_soc_label, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_soc_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
