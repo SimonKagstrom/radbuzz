@@ -15,6 +15,8 @@
 #include <radbuzz_symbols_40.h>
 
 
+constexpr auto kPowerBarWidth = 8;
+
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
 {
@@ -128,7 +130,6 @@ MapScreen::DrawPowerBar(lv_layer_t* layer)
     const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
     const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
     constexpr int kPixelsAtMaxPower = hal::kDisplayHeight / 2;
-    constexpr auto kBarWidth = 5;
 
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
@@ -139,8 +140,9 @@ MapScreen::DrawPowerBar(lv_layer_t* layer)
     const int power_bar_size = (abs_watts * kPixelsAtMaxPower) / max_watts;
     const int clamped_power_bar_size = std::min(power_bar_size, kPixelsAtMaxPower);
 
-    Point to {hal::kDisplayWidth - kBarWidth, hal::kDisplayHeight / 2};
-    Point from {hal::kDisplayWidth - kBarWidth, hal::kDisplayHeight / 2 - clamped_power_bar_size};
+    Point to {hal::kDisplayWidth - kPowerBarWidth, hal::kDisplayHeight / 2};
+    Point from {hal::kDisplayWidth - kPowerBarWidth,
+                hal::kDisplayHeight / 2 - clamped_power_bar_size};
 
 
     auto bar_color = kPositivePowerColor;
@@ -151,11 +153,11 @@ MapScreen::DrawPowerBar(lv_layer_t* layer)
 
     auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
     painter::DrawClippedVerticalLine<Point>(dst,
-                                            {hal::kDisplayWidth - kBarWidth, 0},
+                                            {hal::kDisplayWidth - kPowerBarWidth, 0},
                                             {hal::kDisplayWidth, hal::kDisplayHeight},
-                                            kBarWidth,
+                                            kPowerBarWidth,
                                             kBackgroundColor);
-    painter::DrawClippedVerticalLine<Point>(dst, from, to, kBarWidth, bar_color);
+    painter::DrawClippedVerticalLine<Point>(dst, from, to, kPowerBarWidth, bar_color);
 }
 
 MapScreen::MapScreen(UserInterface& parent,
@@ -250,7 +252,7 @@ MapScreen::MapScreen(UserInterface& parent,
 
 
     m_soc_label = lv_label_create(m_screen);
-    lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -5, 0);
+    lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -kPowerBarWidth - 1, 0);
     lv_obj_set_style_text_font(m_soc_label, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_soc_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
