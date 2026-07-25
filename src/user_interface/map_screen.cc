@@ -732,7 +732,19 @@ MapScreen::BlitToRotationBuffer()
 os::TimerHandle
 MapScreen::StartHomeHoldTimer()
 {
+    m_home_hold_x = m_parent.m_touch_point.x;
+    m_home_hold_y = m_parent.m_touch_point.y;
+
     return m_parent.StartTimer(2s, [this]() {
+        auto dx = std::abs(m_parent.m_touch_point.x - m_home_hold_x);
+        auto dy = std::abs(m_parent.m_touch_point.y - m_home_hold_y);
+
+        if (dx > 10 || dy > 10)
+        {
+            // Movement, ignore the hold
+            return std::nullopt;
+        }
+
         auto position = OsmPointToWgs84(m_current_view_center);
         printf("Home position set to lat: %f, lon: %f\n", position.latitude, position.longitude);
 
@@ -769,6 +781,11 @@ MapScreen::HandleInput(const Input::Event& event)
     const bool touch_pressed = m_parent.m_touch_state == LV_INDEV_STATE_PRESSED;
     if (touch_pressed)
     {
+        if (!m_touch_was_pressed)
+        {
+            m_home_hold_timer = StartHomeHoldTimer();
+        }
+
         lv_point_t touch_vector {0, 0};
 
         lv_indev_get_vect(m_parent.m_lvgl_touch_input_dev, &touch_vector);
@@ -778,24 +795,9 @@ MapScreen::HandleInput(const Input::Event& event)
         {
             const auto gesture_dir = lv_indev_get_gesture_dir(m_parent.m_lvgl_touch_input_dev);
 
-            switch (gesture_dir)
-            {
-            case LV_DIR_LEFT:
-                dx = 1;
-                break;
-            case LV_DIR_RIGHT:
-                dx = -1;
-                break;
-            default:
-                break;
-            }
+            dx = 1 * (gesture_dir == LV_DIR_LEFT) - 1 * (gesture_dir == LV_DIR_RIGHT);
         }
         m_touch_timer = m_parent.StartTimer(3s);
-
-        if (!m_touch_was_pressed)
-        {
-            m_home_hold_timer = StartHomeHoldTimer();
-        }
 
         m_current_view_center.x -= touch_vector.x;
         m_current_view_center.y -= touch_vector.y;

@@ -348,18 +348,7 @@ TripMeterScreen::HandleInput(const Input::Event& event)
 
         // Swipes anywhere
         const auto gesture_dir = lv_indev_get_gesture_dir(m_parent.m_lvgl_touch_input_dev);
-
-        switch (gesture_dir)
-        {
-        case LV_DIR_LEFT:
-            dx = 1;
-            break;
-        case LV_DIR_RIGHT:
-            dx = -1;
-            break;
-        default:
-            break;
-        }
+        dx = 1 * (gesture_dir == LV_DIR_LEFT) - 1 * (gesture_dir == LV_DIR_RIGHT);
     }
 
     if (dx == -1)
