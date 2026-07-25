@@ -454,7 +454,7 @@ iconHash={:08x}32
 
     mangled.position = OsmPointToWgs84(m_current_point);
     mangled.heading = m_heading;
-    mangled.speed = speed;
+    mangled.speed = speed + rand() % 2 - 1;
 
     auto qw = m_application_state
                   .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_position_valid>();

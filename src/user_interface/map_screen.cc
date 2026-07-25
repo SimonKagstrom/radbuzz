@@ -324,6 +324,15 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_align(m_speed_digits_label, LV_ALIGN_CENTER);
     lv_obj_set_pos(m_speed_digits_label, 8, 4);
     lv_label_set_text(m_speed_digits_label, "0");
+
+    m_gps_speed_label = lv_label_create(m_speedometer_box);
+    lv_obj_set_style_text_font(m_gps_speed_label, &radbuzz_font_16, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_gps_speed_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_gps_speed_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_align(m_gps_speed_label, LV_ALIGN_BOTTOM_RIGHT);
+    lv_obj_set_pos(m_gps_speed_label, 8, 4);
+    lv_label_set_text(m_gps_speed_label, "0");
+
     // End of digital speedometer setup
 
     // Navigation
@@ -505,6 +514,7 @@ MapScreen::Update()
     lv_label_set_text(m_distance_left_label,
                       std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
     lv_label_set_text(m_speed_digits_label, std::format("{}", ro.Get<AS::speed>()).c_str());
+    lv_label_set_text(m_gps_speed_label, std::format("{}", ro.Get<AS::position>()->speed).c_str());
 
     const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
 
@@ -537,11 +547,13 @@ MapScreen::Update()
     {
         lv_obj_remove_flag(m_speedometer_box, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_flag(m_gps_speed_label, LV_OBJ_FLAG_HIDDEN, !conf->show_gps_speed);
     }
     else
     {
         lv_obj_add_flag(m_speedometer_box, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(m_gps_speed_label, LV_OBJ_FLAG_HIDDEN);
     }
 
     lv_obj_invalidate(m_screen);

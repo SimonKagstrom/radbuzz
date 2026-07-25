@@ -74,6 +74,7 @@ private:
 
     lv_obj_t* m_speedometer_box {nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};
+    lv_obj_t* m_gps_speed_label {nullptr};
 
     Point m_current_view_center {0, 0, kDefaultZoom};
     Point m_current_range_circle_center {0, 0, kDefaultZoom};

@@ -30,6 +30,7 @@ enum class Key
     kMaxWatts,
     kRotateMap,
     kForceC6Update,
+    kShowGpsSpeed,
     kWifiNetworks,
 
     kValueCount,
@@ -66,6 +67,10 @@ constexpr auto kKeyToString = std::array {std::pair {
                                           std::pair {
                                               Key::kForceC6Update,
                                               "f",
+                                          },
+                                          std::pair {
+                                              Key::kShowGpsSpeed,
+                                              "G",
                                           },
                                           std::pair {
                                               Key::kWifiNetworks,
@@ -116,6 +121,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
                                          .value_or(std::to_underlying(SpeedometerType::kDigital)));
     conf.max_watts = m_nvm.Get<uint16_t>(KeyToString(Key::kMaxWatts)).value_or(1000);
     conf.force_c6_update = m_nvm.Get<bool>(KeyToString(Key::kForceC6Update)).value_or(false);
+    conf.show_gps_speed = m_nvm.Get<bool>(KeyToString(Key::kShowGpsSpeed)).value_or(false);
 
     auto networks = m_nvm.Get<std::string>(KeyToString(Key::kWifiNetworks));
     if (networks)
@@ -205,6 +211,10 @@ Storage::OnActivation()
         if (old_conf.rotate_map != new_conf.rotate_map)
         {
             m_nvm.Set<bool>(KeyToString(Key::kRotateMap), new_conf.rotate_map);
+        }
+        if (old_conf.show_gps_speed != new_conf.show_gps_speed)
+        {
+            m_nvm.Set<bool>(KeyToString(Key::kShowGpsSpeed), new_conf.show_gps_speed);
         }
 
         m_nvm.Commit();

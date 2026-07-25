@@ -80,6 +80,12 @@ SettingsMenuScreen::OnActivation()
                 .speedometer_type = static_cast<SpeedometerType>(value);
         });
     settings_page.AddBooleanEntry(
+        "Show GPS speed", ro.Get<AS::configuration>()->show_gps_speed, [this](auto value) {
+            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                .GetWritableReference<AS::configuration>()
+                .show_gps_speed = value;
+        });
+    settings_page.AddBooleanEntry(
         "Rotate map with heading", ro.Get<AS::configuration>()->rotate_map, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
@@ -91,7 +97,6 @@ SettingsMenuScreen::OnActivation()
                 .GetWritableReference<AS::configuration>()
                 .force_c6_update = value;
         });
-
 
 
     main.AddEntry("Reset trip", [this]() {
