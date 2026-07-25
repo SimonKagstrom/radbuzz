@@ -118,6 +118,7 @@ private:
     ApplicationState& m_state;
 
     std::unique_ptr<ListenerCookie> m_state_listener;
+    ApplicationState::PartialReadOnlyCache<AS::reset_trip> m_state_cache;
     os::TimerHandle m_soc_timer;
 
     os::TimerHandle m_moving_timer;

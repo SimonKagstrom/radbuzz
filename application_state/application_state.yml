@@ -23,8 +23,8 @@ application_state:
   odometer: 0
   position: {}
   pixel_position: {}
-  reset_trip: {}
-  tile_loaded: {}
+  reset_trip: 0
+  tile_loaded: 0
   trip_distance: 0
   trip_duration: 0s
   trip_max_speed: 0

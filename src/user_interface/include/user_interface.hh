@@ -77,7 +77,6 @@ public:
 private:
     struct CurrentTrip
     {
-        uint32_t start_distance {0};
         float start_wh_consumed {0};
         float start_wh_regenerated {0};
     };

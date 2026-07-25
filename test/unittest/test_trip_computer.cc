@@ -127,7 +127,13 @@ TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
 
         WHEN("the trip is reset")
         {
-            // TBD
+            rw.Post<AS::reset_trip>();
+            DoRunLoop();
+
+            THEN("the trip duration is reset")
+            {
+                REQUIRE(rw.Get<AS::trip_duration>() == 0s);
+            }
         }
     }
 }
@@ -190,7 +196,31 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
 
         WHEN("the trip is reset")
         {
-            // TBD
+            rw.Post<AS::reset_trip>();
+            DoRunLoop();
+
+            THEN("the trip speed and distance are reset")
+            {
+                REQUIRE(rw.Get<AS::trip_distance>() == 0);
+                REQUIRE(rw.Get<AS::trip_average_speed>() == 0);
+            }
+
+            AND_WHEN("the moped has moved a bit")
+            {
+                // 4m/s for one minute
+                for (auto i = 0; i < 60; i++)
+                {
+                    rw.Set<AS::odometer>(rw.Get<AS::odometer>() + 4);
+                    AdvanceTimeAndRunLoop(1s);
+                }
+
+                THEN("the average speed and distance are updated again")
+                {
+                    // 4m/s for 1 minute -> average speed = 4m/s -> 14.4km/h
+                    REQUIRE(rw.Get<AS::trip_average_speed>() == 14);
+                    REQUIRE(rw.Get<AS::trip_distance>() == 4 * 60);
+                }
+            }
         }
     }
 }

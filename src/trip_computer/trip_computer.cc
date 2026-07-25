@@ -74,6 +74,7 @@ TripComputer::TripComputer(ApplicationState& app_state)
                                               AS::can_bus_active,
                                               AS::odometer,
                                               AS::pixel_position>(GetSemaphore()))
+    , m_state_cache(m_state)
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
 }
@@ -128,8 +129,12 @@ TripComputer::ResetTrip()
 
     rw.Set<AS::trip_distance>(0);
     rw.Set<AS::trip_duration>(0s);
+    rw.Set<AS::trip_average_speed>(0);
+    // Set by the can bus handler
+    rw.Set<AS::trip_max_speed>(0);
 
     m_current_distance = m_trip_start_distance;
+    m_current_trip_movement_second = std::chrono::duration_cast<seconds>(os::GetTimeStamp());
 }
 
 void
@@ -209,6 +214,13 @@ TripComputer::FreeLogEntry(LogHandle handle)
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
+    auto &co = m_state_cache.Pull();
+
+    if (co.IsChanged<AS::reset_trip>())
+    {
+        ResetTrip();
+    }
+
     UpdateTripLog();
 
     return std::nullopt;
