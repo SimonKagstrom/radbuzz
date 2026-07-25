@@ -25,6 +25,7 @@ private:
 
     void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
     void DrawTripLines(lv_layer_t* layer);
+    void DrawPowerBar(lv_layer_t* layer);
 
     os::TimerHandle StartHomeHoldTimer();
     void BlitToRotationBuffer();
@@ -73,7 +74,6 @@ private:
 
     lv_obj_t* m_speedometer_box {nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};
-    lv_obj_t* m_power_bar {nullptr};
 
     Point m_current_view_center {0, 0, kDefaultZoom};
     Point m_current_range_circle_center {0, 0, kDefaultZoom};

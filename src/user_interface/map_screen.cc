@@ -120,6 +120,44 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
     }
 }
 
+// Tesla style gray + black / green power bar
+void
+MapScreen::DrawPowerBar(lv_layer_t* layer)
+{
+    const auto kBackgroundColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREY));
+    const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
+    const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
+    constexpr int kPixelsAtMaxPower = hal::kDisplayHeight / 2;
+    constexpr auto kBarWidth = 5;
+
+    auto ro = m_parent.m_state.CheckoutReadonly();
+    auto conf = ro.Get<AS::configuration>();
+
+    const auto watts_signed = static_cast<int16_t>(ro.Get<AS::current_power_w>());
+    const int abs_watts = std::abs(watts_signed);
+    const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
+    const int power_bar_size = (abs_watts * kPixelsAtMaxPower) / max_watts;
+    const int clamped_power_bar_size = std::min(power_bar_size, kPixelsAtMaxPower);
+
+    Point to {hal::kDisplayWidth - kBarWidth, hal::kDisplayHeight / 2};
+    Point from {hal::kDisplayWidth - kBarWidth, hal::kDisplayHeight / 2 - clamped_power_bar_size};
+
+
+    auto bar_color = kPositivePowerColor;
+    if (watts_signed < 0)
+    {
+        bar_color = kNegativePowerColor;
+    }
+
+    auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
+    painter::DrawClippedVerticalLine<Point>(dst,
+                                            {hal::kDisplayWidth - kBarWidth, 0},
+                                            {hal::kDisplayWidth, hal::kDisplayHeight},
+                                            kBarWidth,
+                                            kBackgroundColor);
+    painter::DrawClippedVerticalLine<Point>(dst, from, to, kBarWidth, bar_color);
+}
+
 MapScreen::MapScreen(UserInterface& parent,
                      ImageCache& image_cache,
                      TileCache& tile_cache,
@@ -162,6 +200,7 @@ MapScreen::MapScreen(UserInterface& parent,
                     self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
                 }
                 self->DrawTripLines(layer);
+                self->DrawPowerBar(layer);
             }
             else
             {
@@ -237,16 +276,6 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_bg_opa(m_parked, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_parked, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
     lv_label_set_text(m_parked, "P");
-
-    // Power = regen bar
-    m_power_bar = lv_obj_create(m_screen);
-    lv_obj_set_size(m_power_bar, 10, 60);
-    lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, -5, 0);
-    lv_obj_set_style_border_width(m_power_bar, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(m_power_bar, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(m_power_bar, 4, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_power_bar, LV_OPA_100, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
 
     // Left pane
     auto left_box = lv_obj_create(m_screen);
@@ -504,27 +533,6 @@ MapScreen::Update()
     {
         lv_obj_add_flag(m_speedometer_box, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
-    }
-
-
-    constexpr int kPixelsAtMaxPower = 200;
-    const auto watts_signed = static_cast<int16_t>(ro.Get<AS::current_power_w>());
-    const int abs_watts = std::abs(watts_signed);
-    const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
-    const int power_bar_size = (abs_watts * kPixelsAtMaxPower) / max_watts;
-    const int clamped_power_bar_size = std::min(power_bar_size, kPixelsAtMaxPower);
-    lv_obj_set_size(m_power_bar, 24, clamped_power_bar_size);
-    const int power_bar_y_offset =
-        watts_signed > 0 ? -(clamped_power_bar_size / 2) : (clamped_power_bar_size / 2);
-    lv_obj_align(m_power_bar, LV_ALIGN_RIGHT_MID, -5, power_bar_y_offset);
-
-    if (watts_signed > 0)
-    {
-        lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_ORANGE), LV_PART_MAIN);
-    }
-    else
-    {
-        lv_obj_set_style_bg_color(m_power_bar, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
     }
 
     lv_obj_invalidate(m_screen);
