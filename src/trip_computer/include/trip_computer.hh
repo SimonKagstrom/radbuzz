@@ -86,6 +86,19 @@ private:
             return std::nullopt;
         }
 
+        void Reset()
+        {
+            while (!m_log_queue.empty())
+            {
+                auto &entry = m_log_queue.top();
+                m_parent.FreeLogEntry(entry.handle);
+                m_log_queue.pop();
+            }
+
+            m_log_queue = {};
+            m_pending_log_entry.reset();
+        }
+
     private:
         uint32_t TriangleArea(const TripLogEntry& entry) const;
 
