@@ -82,9 +82,7 @@ private:
     uint16_t m_rotation {0};
     os::TimerHandle m_touch_timer;
     os::TimerHandle m_home_hold_timer;
-
-    int32_t m_last_touch_x {0};
-    int32_t m_last_touch_y {0};
+    bool m_touch_was_pressed {false};
 
     uint8_t m_zoom;
     bool m_rotation_enabled {false};

@@ -128,6 +128,17 @@ UserInterface::OnStartup()
         data->enc_diff = p->m_enc_diff;
     });
 
+    m_lvgl_touch_input_dev = lv_indev_create();
+    lv_indev_set_mode(m_lvgl_touch_input_dev, LV_INDEV_MODE_EVENT);
+    lv_indev_set_type(m_lvgl_touch_input_dev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_user_data(m_lvgl_touch_input_dev, this);
+    lv_indev_set_read_cb(m_lvgl_touch_input_dev, [](lv_indev_t* indev, lv_indev_data_t* data) {
+        auto p = static_cast<UserInterface*>(lv_indev_get_user_data(indev));
+
+        data->state = p->m_touch_state;
+        data->point = p->m_touch_point;
+    });
+
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache, kDefaultZoom);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
@@ -190,6 +201,24 @@ UserInterface::OnActivation()
             break;
         case hal::IInput::EventType::kRight:
             m_enc_diff = 1;
+            break;
+
+        case hal::IInput::EventType::kTouchDown:
+        case hal::IInput::EventType::kTouchMove:
+            m_touch_state = LV_INDEV_STATE_PRESSED;
+            m_touch_point = {
+                static_cast<int32_t>(input_event.x),
+                static_cast<int32_t>(input_event.y),
+            };
+            lv_indev_read(m_lvgl_touch_input_dev);
+            break;
+        case hal::IInput::EventType::kTouchUp:
+            m_touch_state = LV_INDEV_STATE_RELEASED;
+            m_touch_point = {
+                static_cast<int32_t>(input_event.x),
+                static_cast<int32_t>(input_event.y),
+            };
+            lv_indev_read(m_lvgl_touch_input_dev);
             break;
         default:
             break;

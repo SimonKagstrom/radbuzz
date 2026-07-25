@@ -121,6 +121,8 @@ private:
     etl::queue_spsc_atomic<Input::Event, 8> m_input_queue;
     int16_t m_enc_diff {0};
     lv_indev_state_t m_button_state {LV_INDEV_STATE_RELEASED};
+    lv_indev_state_t m_touch_state {LV_INDEV_STATE_RELEASED};
+    lv_point_t m_touch_point {0, 0};
 
     std::unique_ptr<ListenerCookie> m_state_listener;
     std::unique_ptr<ListenerCookie> m_cache_listener;
@@ -132,6 +134,7 @@ private:
     uint32_t m_current_icon_hash {kInvalidIconHash};
 
     lv_indev_t* m_lvgl_input_dev {nullptr};
+    lv_indev_t* m_lvgl_touch_input_dev {nullptr};
 
     std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<ScreenBase> m_trip_meter_screen;

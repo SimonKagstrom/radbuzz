@@ -718,9 +718,66 @@ MapScreen::StartHomeHoldTimer()
 void
 MapScreen::HandleInput(const Input::Event& event)
 {
+    int dx = 0;
+
     switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
+        dx = -1;
+        break;
+    case hal::IInput::EventType::kRight:
+        dx = 1;
+        break;
+    case hal::IInput::EventType::kButtonDown:
+        m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
+        return;
+    default:
+        break;
+    }
+
+    debug_assert(m_parent.m_lvgl_touch_input_dev);
+
+    const bool touch_pressed = m_parent.m_touch_state == LV_INDEV_STATE_PRESSED;
+    if (touch_pressed)
+    {
+        lv_point_t touch_vector {0, 0};
+
+        lv_indev_get_vect(m_parent.m_lvgl_touch_input_dev, &touch_vector);
+
+        // Allow swipes near the lower end of the screen
+        if (m_parent.m_touch_point.y >= hal::kDisplayHeight - 80)
+        {
+            const auto gesture_dir = lv_indev_get_gesture_dir(m_parent.m_lvgl_touch_input_dev);
+
+            switch (gesture_dir)
+            {
+            case LV_DIR_LEFT:
+                dx = 1;
+                break;
+            case LV_DIR_RIGHT:
+                dx = -1;
+                break;
+            default:
+                break;
+            }
+        }
+        m_touch_timer = m_parent.StartTimer(3s);
+
+        if (!m_touch_was_pressed)
+        {
+            m_home_hold_timer = StartHomeHoldTimer();
+        }
+
+        m_current_view_center.x -= touch_vector.x;
+        m_current_view_center.y -= touch_vector.y;
+    }
+    else if (m_touch_was_pressed)
+    {
+        m_home_hold_timer = nullptr;
+    }
+
+    if (dx == -1)
+    {
         // Ugly
         if (m_zoom == kDefaultZoom)
         {
@@ -734,8 +791,9 @@ MapScreen::HandleInput(const Input::Event& event)
         {
             m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
         }
-        break;
-    case hal::IInput::EventType::kRight:
+    }
+    else if (dx == 1)
+    {
         if (m_zoom == kLandscapeZoom)
         {
             SetZoom(kCityZoom);
@@ -748,33 +806,7 @@ MapScreen::HandleInput(const Input::Event& event)
         {
             m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
         }
-        break;
-    case hal::IInput::EventType::kButtonDown:
-        m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
-        break;
-
-    case hal::IInput::EventType::kTouchDown:
-        m_touch_timer = m_parent.StartTimer(3s);
-        m_home_hold_timer = StartHomeHoldTimer();
-
-        m_last_touch_x = event.x;
-        m_last_touch_y = event.y;
-        break;
-    case hal::IInput::EventType::kTouchMove: {
-        m_touch_timer = m_parent.StartTimer(3s);
-        m_home_hold_timer = StartHomeHoldTimer();
-
-        m_current_view_center.x -= event.x - m_last_touch_x;
-        m_current_view_center.y -= event.y - m_last_touch_y;
-        m_last_touch_x = event.x;
-        m_last_touch_y = event.y;
     }
-    break;
-    case hal::IInput::EventType::kTouchUp:
-        m_home_hold_timer = nullptr;
-        break;
 
-    default:
-        break;
-    }
+    m_touch_was_pressed = touch_pressed;
 }

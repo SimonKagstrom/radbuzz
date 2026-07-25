@@ -319,23 +319,57 @@ TripMeterScreen::Update()
 void
 TripMeterScreen::HandleInput(const Input::Event& event)
 {
-    // Ugly
+    int dx = 0;
     auto map_screen = static_cast<MapScreen*>(m_parent.m_map_screen.get());
 
     switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
-        map_screen->SetZoom(kDefaultZoom);
-        m_parent.ActivateScreen(*m_parent.m_map_screen);
+        dx = -1;
         break;
     case hal::IInput::EventType::kRight:
-        map_screen->SetZoom(kLandscapeZoom);
-        m_parent.ActivateScreen(*m_parent.m_map_screen);
+        dx = 1;
         break;
     case hal::IInput::EventType::kButtonDown:
         m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
-        break;
+        return;
     default:
         break;
+    }
+
+
+    debug_assert(m_parent.m_lvgl_touch_input_dev);
+
+    if (m_parent.m_touch_state == LV_INDEV_STATE_PRESSED)
+    {
+        lv_point_t touch_vector {0, 0};
+
+        lv_indev_get_vect(m_parent.m_lvgl_touch_input_dev, &touch_vector);
+
+        // Swipes anywhere
+        const auto gesture_dir = lv_indev_get_gesture_dir(m_parent.m_lvgl_touch_input_dev);
+
+        switch (gesture_dir)
+        {
+        case LV_DIR_LEFT:
+            dx = 1;
+            break;
+        case LV_DIR_RIGHT:
+            dx = -1;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (dx == -1)
+    {
+        map_screen->SetZoom(kDefaultZoom);
+        m_parent.ActivateScreen(*m_parent.m_map_screen);
+    }
+    else if (dx == 1)
+    {
+        map_screen->SetZoom(kLandscapeZoom);
+        m_parent.ActivateScreen(*m_parent.m_map_screen);
     }
 }
