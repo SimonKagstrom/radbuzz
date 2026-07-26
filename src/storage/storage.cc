@@ -32,6 +32,8 @@ enum class Key
     kForceC6Update,
     kShowGpsSpeed,
     kWifiNetworks,
+    kHomeXPosition,
+    kHomeYPosition,
 
     kValueCount,
 };
@@ -73,6 +75,14 @@ constexpr auto kKeyToString = std::array {std::pair {
                                               "G",
                                           },
                                           std::pair {
+                                              Key::kHomeXPosition,
+                                              "x",
+                                          },
+                                          std::pair {
+                                              Key::kHomeYPosition,
+                                              "y",
+                                          },
+                                          std::pair {
                                               Key::kWifiNetworks,
                                               "W",
                                           }};
@@ -110,6 +120,10 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration>();
     auto& conf = ps.GetWritableReference<AS::configuration>();
 
+    Point home_position {0, 0};
+    home_position.x = m_nvm.Get<int32_t>(KeyToString(Key::kHomeXPosition)).value_or(0);
+    home_position.y = m_nvm.Get<int32_t>(KeyToString(Key::kHomeYPosition)).value_or(0);
+
     conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(true);
     conf.max_speed = m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeed)).value_or(30);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(KeyToString(Key::kBatterySeries)).value_or(7);
@@ -122,6 +136,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     conf.max_watts = m_nvm.Get<uint16_t>(KeyToString(Key::kMaxWatts)).value_or(1000);
     conf.force_c6_update = m_nvm.Get<bool>(KeyToString(Key::kForceC6Update)).value_or(false);
     conf.show_gps_speed = m_nvm.Get<bool>(KeyToString(Key::kShowGpsSpeed)).value_or(false);
+    conf.home_position = home_position;
 
     auto networks = m_nvm.Get<std::string>(KeyToString(Key::kWifiNetworks));
     if (networks)
@@ -215,6 +230,11 @@ Storage::OnActivation()
         if (old_conf.show_gps_speed != new_conf.show_gps_speed)
         {
             m_nvm.Set<bool>(KeyToString(Key::kShowGpsSpeed), new_conf.show_gps_speed);
+        }
+        if (old_conf.home_position != new_conf.home_position)
+        {
+            m_nvm.Set<int32_t>(KeyToString(Key::kHomeXPosition), new_conf.home_position.x);
+            m_nvm.Set<int32_t>(KeyToString(Key::kHomeYPosition), new_conf.home_position.y);
         }
 
         m_nvm.Commit();

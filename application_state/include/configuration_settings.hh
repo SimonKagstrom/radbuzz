@@ -33,7 +33,7 @@ enum class SpeedometerType : uint8_t
 struct ConfigurationSettings
 {
     // @brief the home position
-    GpsPosition home_position;
+    Point home_position;
     // Configuration from the filesystem
     WifiSsidData wifi_ssid_data;
     /// @brief Maximum power in watts

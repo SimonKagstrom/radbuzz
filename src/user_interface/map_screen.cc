@@ -12,6 +12,7 @@
 #include <radbuzz_font_16.h>
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_60.h>
+#include <radbuzz_symbols_22.h>
 #include <radbuzz_symbols_40.h>
 
 
@@ -258,11 +259,16 @@ MapScreen::MapScreen(UserInterface& parent,
                    hal::kDisplayHeight / 2 - static_cast<int>(m_position_dot.Height()) / 2);
 
 
+    m_home_label = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_home_label, &radbuzz_symbols_22, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_home_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_home_label, lv_color_black(), LV_PART_MAIN);
+    lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
+
     m_indicator_label = lv_label_create(m_screen);
     lv_obj_align(m_indicator_label, LV_ALIGN_TOP_RIGHT, -kPowerBarWidth - 2, 0);
     lv_obj_set_style_text_font(m_indicator_label, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_indicator_label, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_indicator_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
     lv_label_set_recolor(m_indicator_label, true);
     lv_label_set_text(m_indicator_label, "");
 
@@ -470,6 +476,14 @@ MapScreen::Update()
     lv_obj_set_pos(m_position_dot_obj,
                    dot_center_x - static_cast<int>(m_position_dot.Width()) / 2,
                    dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);
+
+
+    // Place the home position icon
+    auto home_on_screen_x = conf->home_position.x - m_current_view_center.x + display_cx;
+    auto home_on_screen_y = conf->home_position.y - m_current_view_center.y + display_cy;
+    lv_obj_set_pos(m_home_label,
+                   home_on_screen_x - lv_obj_get_width(m_home_label) / 2,
+                   home_on_screen_y - lv_obj_get_height(m_home_label) / 2);
 
     auto state_hash = ro.Get<AS::current_icon_hash>();
     auto navigation_active = ro.Get<AS::navigation_active>();
@@ -738,13 +752,17 @@ MapScreen::StartHomeHoldTimer()
             // Movement, ignore the hold
             return std::nullopt;
         }
+        const int32_t touch_offset_x =
+            static_cast<int32_t>(m_home_hold_x) - static_cast<int32_t>(hal::kDisplayWidth / 2);
+        const int32_t touch_offset_y =
+            static_cast<int32_t>(m_home_hold_y) - static_cast<int32_t>(hal::kDisplayHeight / 2);
 
-        auto position = OsmPointToWgs84(m_current_view_center);
-        printf("Home position set to lat: %f, lon: %f\n", position.latitude, position.longitude);
+        auto pixel_position = m_current_view_center +
+                              Point {touch_offset_x, touch_offset_y, m_current_view_center.zoom};
 
         m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
             .GetWritableReference<AS::configuration>()
-            .home_position = position;
+            .home_position = pixel_position;
 
         return std::nullopt;
     });

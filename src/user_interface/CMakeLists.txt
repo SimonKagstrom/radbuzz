@@ -20,6 +20,12 @@ convert_symbols(radbuzz_symbols_40
     0xf240-0xf244,0xf124,0xf1eb,0xf293,0x50,0x20
 )
 
+convert_symbols(radbuzz_symbols_22
+    22
+    # Home
+    0xf015
+)
+
 # Small font with numbers
 convert_font(radbuzz_font_16
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
@@ -53,6 +59,7 @@ PUBLIC
     radbuzz_font_22_library
     radbuzz_symbols_40_library
     radbuzz_font_60_library
+    radbuzz_symbols_22_library
     ui_menu
 PRIVATE
     bresenham
