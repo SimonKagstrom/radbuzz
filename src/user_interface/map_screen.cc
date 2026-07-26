@@ -538,19 +538,14 @@ MapScreen::Update()
     }
 
     auto range = GetEstimatedRangeKm() * 1000.0f;
-    auto meters_from_home =
-        MetersBetweenPoints(conf->home_position, m_parent.m_state_cache.Get<AS::pixel_position>());
 
-    if (meters_from_home > 0)
+    if (m_parent.m_distance_home_meters / range > 1.0f)
     {
-        if (meters_from_home / range > 1.0f)
-        {
-            indicator_label_text += std::format("#F44336 {}# ", LV_SYMBOL_HOME);
-        }
-        else if (meters_from_home / range > 0.75f)
-        {
-            indicator_label_text += std::format("#ffa500 {}# ", LV_SYMBOL_HOME);
-        }
+        indicator_label_text += std::format("#F44336 {}# ", LV_SYMBOL_HOME);
+    }
+    else if (m_parent.m_distance_home_meters / range > 0.75f)
+    {
+        indicator_label_text += std::format("#ffa500 {}# ", LV_SYMBOL_HOME);
     }
 
     if (battery_soc > 90)
