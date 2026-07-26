@@ -713,7 +713,7 @@ app_main(void)
                                                           *trip_computer);
 
 
-    application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+    // application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
 
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
@@ -725,7 +725,6 @@ app_main(void)
     //speedometer_handler->Start("speedometer_handler");
     trip_computer->Start("trip_computer");
 
-    //gps_reader->Start("gps_reader");
     tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
     gps_reader->Start("gps_reader");
