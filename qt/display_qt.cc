@@ -3,6 +3,8 @@
 #include "lvgl.h"
 
 #include <QPainter>
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 
@@ -35,11 +37,28 @@ DisplayQt::eventFilter(QObject* watched, QEvent* event)
 
     switch (event->type())
     {
+    // Written by Copilot.
     case QEvent::GraphicsSceneMousePress: {
         auto* mouse_event = static_cast<QGraphicsSceneMouseEvent*>(event);
+        const auto bounds = m_pixmap->sceneBoundingRect();
+        const double scale_x =
+            bounds.width() > 0.0 ? static_cast<double>(hal::kDisplayWidth) / bounds.width() : 1.0;
+        const double scale_y = bounds.height() > 0.0
+                                   ? static_cast<double>(hal::kDisplayHeight) / bounds.height()
+                                   : 1.0;
+        const int32_t x =
+            std::clamp<int32_t>(static_cast<int32_t>(std::lround(
+                                    (mouse_event->scenePos().x() - bounds.left()) * scale_x)),
+                                0,
+                                static_cast<int32_t>(hal::kDisplayWidth) - 1);
+        const int32_t y =
+            std::clamp<int32_t>(static_cast<int32_t>(std::lround(
+                                    (mouse_event->scenePos().y() - bounds.top()) * scale_y)),
+                                0,
+                                static_cast<int32_t>(hal::kDisplayHeight) - 1);
         hal::ITouch::Data touch_data {};
-        touch_data.x = static_cast<uint16_t>(mouse_event->scenePos().toPoint().x());
-        touch_data.y = static_cast<uint16_t>(mouse_event->scenePos().toPoint().y());
+        touch_data.x = static_cast<uint16_t>(x);
+        touch_data.y = static_cast<uint16_t>(y);
         touch_data.pressed = true;
         touch_data.was_pressed = false;
         m_touch_data_queue.push(touch_data);
@@ -50,9 +69,26 @@ DisplayQt::eventFilter(QObject* watched, QEvent* event)
         auto* mouse_event = static_cast<QGraphicsSceneMouseEvent*>(event);
         if (mouse_event->buttons() & Qt::LeftButton)
         {
+            const auto bounds = m_pixmap->sceneBoundingRect();
+            const double scale_x = bounds.width() > 0.0
+                                       ? static_cast<double>(hal::kDisplayWidth) / bounds.width()
+                                       : 1.0;
+            const double scale_y = bounds.height() > 0.0
+                                       ? static_cast<double>(hal::kDisplayHeight) / bounds.height()
+                                       : 1.0;
+            const int32_t x =
+                std::clamp<int32_t>(static_cast<int32_t>(std::lround(
+                                        (mouse_event->scenePos().x() - bounds.left()) * scale_x)),
+                                    0,
+                                    static_cast<int32_t>(hal::kDisplayWidth) - 1);
+            const int32_t y =
+                std::clamp<int32_t>(static_cast<int32_t>(std::lround(
+                                        (mouse_event->scenePos().y() - bounds.top()) * scale_y)),
+                                    0,
+                                    static_cast<int32_t>(hal::kDisplayHeight) - 1);
             hal::ITouch::Data touch_data {};
-            touch_data.x = static_cast<uint16_t>(mouse_event->scenePos().toPoint().x());
-            touch_data.y = static_cast<uint16_t>(mouse_event->scenePos().toPoint().y());
+            touch_data.x = static_cast<uint16_t>(x);
+            touch_data.y = static_cast<uint16_t>(y);
             touch_data.pressed = true;
             touch_data.was_pressed = true;
             m_touch_data_queue.push(touch_data);
@@ -62,9 +98,25 @@ DisplayQt::eventFilter(QObject* watched, QEvent* event)
     }
     case QEvent::GraphicsSceneMouseRelease: {
         auto* mouse_event = static_cast<QGraphicsSceneMouseEvent*>(event);
+        const auto bounds = m_pixmap->sceneBoundingRect();
+        const double scale_x =
+            bounds.width() > 0.0 ? static_cast<double>(hal::kDisplayWidth) / bounds.width() : 1.0;
+        const double scale_y = bounds.height() > 0.0
+                                   ? static_cast<double>(hal::kDisplayHeight) / bounds.height()
+                                   : 1.0;
+        const int32_t x =
+            std::clamp<int32_t>(static_cast<int32_t>(std::lround(
+                                    (mouse_event->scenePos().x() - bounds.left()) * scale_x)),
+                                0,
+                                static_cast<int32_t>(hal::kDisplayWidth) - 1);
+        const int32_t y =
+            std::clamp<int32_t>(static_cast<int32_t>(std::lround(
+                                    (mouse_event->scenePos().y() - bounds.top()) * scale_y)),
+                                0,
+                                static_cast<int32_t>(hal::kDisplayHeight) - 1);
         hal::ITouch::Data touch_data {};
-        touch_data.x = static_cast<uint16_t>(mouse_event->scenePos().toPoint().x());
-        touch_data.y = static_cast<uint16_t>(mouse_event->scenePos().toPoint().y());
+        touch_data.x = static_cast<uint16_t>(x);
+        touch_data.y = static_cast<uint16_t>(y);
         touch_data.was_pressed = true;
         touch_data.pressed = false;
         m_touch_data_queue.push(touch_data);
@@ -208,11 +260,10 @@ DisplayQt::GetActiveTouchData()
     hal::ITouch::Data data;
     while (m_touch_data_queue.pop(data))
     {
-
         data.x = std::clamp(
-            data.x, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_width - 1));
+            data.x, static_cast<uint16_t>(0), static_cast<uint16_t>(hal::kDisplayWidth - 1));
         data.y = std::clamp(
-            data.y, static_cast<uint16_t>(0), static_cast<uint16_t>(m_display_height - 1));
+            data.y, static_cast<uint16_t>(0), static_cast<uint16_t>(hal::kDisplayHeight - 1));
         m_data_vector.push_back(data);
     }
 
