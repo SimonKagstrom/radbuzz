@@ -120,7 +120,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration>();
     auto& conf = ps.GetWritableReference<AS::configuration>();
 
-    Point home_position {0, 0};
+    Point home_position {0, 0, kDefaultZoom};
     home_position.x = m_nvm.Get<int32_t>(KeyToString(Key::kHomeXPosition)).value_or(0);
     home_position.y = m_nvm.Get<int32_t>(KeyToString(Key::kHomeYPosition)).value_or(0);
 
