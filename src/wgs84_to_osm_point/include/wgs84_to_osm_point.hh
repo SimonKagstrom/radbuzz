@@ -89,7 +89,7 @@ ToTile(const Point& point)
 }
 
 inline auto
-TileId(const Tile &tile)
+TileId(const Tile& tile)
 {
     // Lowermost two bits the unique value of 10,13,15 zooms
     uint32_t out = (tile.zoom >> 1) & 0b11;
@@ -100,6 +100,18 @@ TileId(const Tile &tile)
     out |= static_cast<uint32_t>(tile.y) << 2;
 
     return out;
+}
+
+inline Point
+operator+(const Point& lhs, const Point& rhs)
+{
+    return Point {lhs.x + rhs.x, lhs.y + rhs.y, lhs.zoom};
+}
+
+inline Point
+operator-(const Point& lhs, const Point& rhs)
+{
+    return Point {lhs.x - rhs.x, lhs.y - rhs.y, lhs.zoom};
 }
 
 inline bool
