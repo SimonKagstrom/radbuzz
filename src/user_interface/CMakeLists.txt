@@ -16,8 +16,8 @@ convert_font(radbuzz_font_60
 
 convert_symbols(radbuzz_symbols_40
     40
-    # Battery, GPS, WiFi, BLE (see lv_symbol_def.h)
-    0xf240-0xf244,0xf124,0xf1eb,0xf293,0x50
+    # Battery, GPS, WiFi, BLE (see lv_symbol_def.h), P, " "
+    0xf240-0xf244,0xf124,0xf1eb,0xf293,0x50,0x20
 )
 
 # Small font with numbers

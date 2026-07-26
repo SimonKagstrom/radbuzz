@@ -713,7 +713,7 @@ app_main(void)
                                                           *trip_computer);
 
 
-    //application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+    application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
 
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);

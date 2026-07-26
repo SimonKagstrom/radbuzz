@@ -258,33 +258,13 @@ MapScreen::MapScreen(UserInterface& parent,
                    hal::kDisplayHeight / 2 - static_cast<int>(m_position_dot.Height()) / 2);
 
 
-    m_soc_label = lv_label_create(m_screen);
-    lv_obj_align(m_soc_label, LV_ALIGN_TOP_RIGHT, -kPowerBarWidth - 2, 0);
-    lv_obj_set_style_text_font(m_soc_label, &radbuzz_symbols_40, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_soc_label, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
-
-
-    m_gps_lost = lv_label_create(m_screen);
-    lv_obj_align_to(m_gps_lost, m_soc_label, LV_ALIGN_OUT_LEFT_TOP, 40, 0);
-    lv_obj_set_style_text_font(m_gps_lost, &radbuzz_symbols_40, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_gps_lost, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_gps_lost, lv_palette_main(LV_PALETTE_ORANGE), LV_PART_MAIN);
-    lv_label_set_text(m_gps_lost, LV_SYMBOL_GPS);
-
-    m_wifi_active = lv_label_create(m_screen);
-    lv_obj_align_to(m_wifi_active, m_gps_lost, LV_ALIGN_OUT_LEFT_TOP, -10, 0);
-    lv_obj_set_style_text_font(m_wifi_active, &radbuzz_symbols_40, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_wifi_active, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_wifi_active, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
-    lv_label_set_text(m_wifi_active, LV_SYMBOL_WIFI);
-
-    m_parked = lv_label_create(m_screen);
-    lv_obj_align_to(m_parked, m_wifi_active, LV_ALIGN_OUT_LEFT_TOP, -10, 0);
-    lv_obj_set_style_text_font(m_parked, &radbuzz_symbols_40, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_parked, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_parked, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
-    lv_label_set_text(m_parked, "P");
+    m_indicator_label = lv_label_create(m_screen);
+    lv_obj_align(m_indicator_label, LV_ALIGN_TOP_RIGHT, -kPowerBarWidth - 2, 0);
+    lv_obj_set_style_text_font(m_indicator_label, &radbuzz_symbols_40, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_indicator_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_indicator_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+    lv_label_set_recolor(m_indicator_label, true);
+    lv_label_set_text(m_indicator_label, "");
 
     // Left pane
     auto left_box = lv_obj_create(m_screen);
@@ -497,10 +477,6 @@ MapScreen::Update()
     lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
     lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
 
-    lv_obj_set_flag(m_gps_lost, LV_OBJ_FLAG_HIDDEN, ro.Get<AS::gps_position_valid>());
-    lv_obj_set_flag(m_wifi_active, LV_OBJ_FLAG_HIDDEN, !ro.Get<AS::wifi_connected>());
-    lv_obj_set_flag(m_parked, LV_OBJ_FLAG_HIDDEN, ro.Get<AS::is_moving>());
-
     if (m_current_icon_hash != state_hash)
     {
         if (auto image = m_image_cache.Lookup(state_hash); image)
@@ -518,29 +494,47 @@ MapScreen::Update()
 
     const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
 
-    lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+    std::string indicator_label_text = "";
+
+    if (!ro.Get<AS::gps_position_valid>())
+    {
+        indicator_label_text += std::format("#ffa500 {}# ", LV_SYMBOL_GPS);
+    }
+    if (ro.Get<AS::wifi_connected>())
+    {
+        indicator_label_text += std::format("#4CAF50 {}# ", LV_SYMBOL_WIFI);
+    }
+    if (ro.Get<AS::bluetooth_connected>())
+    {
+        indicator_label_text += std::format("#4CAF50 {}# ", LV_SYMBOL_BLUETOOTH);
+    }
+    if (!ro.Get<AS::is_moving>())
+    {
+        indicator_label_text += "#4CAF50 P# ";
+    }
+
     if (battery_soc > 90)
     {
-        lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_FULL);
+        indicator_label_text += std::format("#4CAF50 {}#", LV_SYMBOL_BATTERY_FULL);
     }
     else if (battery_soc > 75)
     {
-        lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_3);
+        indicator_label_text += std::format("#4CAF50 {}#", LV_SYMBOL_BATTERY_3);
     }
     else if (battery_soc >= 40)
     {
-        lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_2);
+        indicator_label_text += std::format("#4CAF50 {}#", LV_SYMBOL_BATTERY_2);
     }
     else if (battery_soc > 20)
     {
-        lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_ORANGE), LV_PART_MAIN);
-        lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_1);
+        indicator_label_text += std::format("#ffa500 {}#", LV_SYMBOL_BATTERY_1);
     }
     else
     {
-        lv_obj_set_style_text_color(m_soc_label, lv_palette_main(LV_PALETTE_RED), LV_PART_MAIN);
-        lv_label_set_text(m_soc_label, LV_SYMBOL_BATTERY_EMPTY);
+        indicator_label_text += std::format("#F44336 {}#", LV_SYMBOL_BATTERY_EMPTY);
     }
+
+    lv_label_set_text(m_indicator_label, indicator_label_text.c_str());
 
     if (conf->speedometer_type == SpeedometerType::kDigital ||
         conf->speedometer_type == SpeedometerType::kBoth)
