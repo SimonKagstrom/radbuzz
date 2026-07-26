@@ -109,6 +109,9 @@ private:
     TileCache& m_tile_cache;
     TripComputer& m_trip_computer;
 
+    ApplicationState::PartialReadOnlyCache<AS::pixel_position> m_state_cache;
+    uint32_t m_distance_home_meters {0};
+
     CurrentTrip m_current_trip_start;
 
     lv_display_t* m_lvgl_display {nullptr};

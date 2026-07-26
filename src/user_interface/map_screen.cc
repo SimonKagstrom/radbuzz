@@ -18,29 +18,35 @@
 
 constexpr auto kPowerBarWidth = 8;
 
-void
-MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
+uint32_t
+MapScreen::GetEstimatedRangeKm() const
 {
-    constexpr auto kDisplayCenterX = hal::kDisplayWidth / 2;
-    constexpr auto kDisplayCenterY = hal::kDisplayHeight / 2;
-
     auto ro = m_parent.m_state.CheckoutReadonly();
     const auto conf = ro.Get<AS::configuration>();
     const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
     const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
-    const auto vehicle_point = OsmPointToPoint(m_current_range_circle_center, m_zoom);
-    const int center_x = kDisplayCenterX + (vehicle_point.x - m_current_view_center.x);
-    const int center_y = kDisplayCenterY + (vehicle_point.y - m_current_view_center.y);
-
     // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
     constexpr float kNominalCellVoltageV = 3.7f;
     const float pack_nominal_voltage_v =
         static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
     const float full_pack_wh = static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
     const float wh_left = full_pack_wh * (static_cast<float>(battery_soc) / 100.0f);
-    // Round trip circle is smaller since it represents the distance to the furthest point and back
-    const float estimated_range_km = wh_left / static_cast<float>(wh_per_km) /
-                                     (type == RangeCircleType::kRoundTrip ? 2.0f : 1.0f);
+
+    if (wh_per_km == 0)
+    {
+        return 1;
+    }
+
+    return std::max(1.0f, wh_left / static_cast<float>(wh_per_km));
+}
+
+void
+MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width)
+{
+    constexpr auto kDisplayCenterX = hal::kDisplayWidth / 2;
+    constexpr auto kDisplayCenterY = hal::kDisplayHeight / 2;
+
+    const auto vehicle_point = OsmPointToPoint(m_current_range_circle_center, m_zoom);
 
     constexpr int kMinRangeCircleRadiusPx = 24;
     const float meters_per_pixel = MetersPerPixelAtPoint(vehicle_point);
@@ -49,10 +55,13 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer, RangeCircleType type)
                                   kMinRangeCircleRadiusPx,
                                   static_cast<int>(std::numeric_limits<uint16_t>::max()));
 
+    const int center_x = kDisplayCenterX + (vehicle_point.x - m_current_view_center.x);
+    const int center_y = kDisplayCenterY + (vehicle_point.y - m_current_view_center.y);
+
     lv_draw_arc_dsc_t arc_dsc;
     lv_draw_arc_dsc_init(&arc_dsc);
     arc_dsc.color = lv_color_black();
-    arc_dsc.width = type == RangeCircleType::kFurthest ? 3 : 2;
+    arc_dsc.width = width;
     arc_dsc.opa = LV_OPA_COVER;
     arc_dsc.start_angle = 0;
     arc_dsc.end_angle = 360;
@@ -206,8 +215,9 @@ MapScreen::MapScreen(UserInterface& parent,
                 // Only for the most zoomed out map, because of our insane range
                 if (self->m_zoom == kLandscapeZoom)
                 {
-                    self->DrawRangeCircle(layer, RangeCircleType::kFurthest);
-                    self->DrawRangeCircle(layer, RangeCircleType::kRoundTrip);
+                    auto range_km = self->GetEstimatedRangeKm();
+                    self->DrawRangeCircle(layer, range_km, 3);
+                    self->DrawRangeCircle(layer, range_km / 2, 2);
                 }
                 self->DrawTripLines(layer);
                 self->DrawPowerBar(layer);
@@ -385,10 +395,9 @@ MapScreen::SetZoom(uint8_t zoom)
 {
     m_zoom = zoom;
 
-    auto pixel_position = m_parent.m_state.CheckoutReadonly().Get<AS::pixel_position>();
-
     // Setup the view center according to the zoom when changing
-    m_current_view_center = OsmPointToPoint(*pixel_position, m_zoom);
+    m_current_view_center =
+        OsmPointToPoint(m_parent.m_state_cache.Get<AS::pixel_position>(), m_zoom);
     // And store the center of the range circle
     m_current_range_circle_center = m_current_view_center;
 }
@@ -427,7 +436,7 @@ MapScreen::Update()
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
 
-    auto pixel_position = OsmPointToPoint(*ro.Get<AS::pixel_position>(), m_zoom);
+    auto pixel_position = OsmPointToPoint(m_parent.m_state_cache.Get<AS::pixel_position>(), m_zoom);
 
     constexpr int kFollowAnchorX = hal::kDisplayWidth / 2;
     constexpr int kFollowAnchorY = (hal::kDisplayHeight * 2) / 3;
@@ -526,6 +535,22 @@ MapScreen::Update()
     if (!ro.Get<AS::is_moving>())
     {
         indicator_label_text += "#4CAF50 P# ";
+    }
+
+    auto range = GetEstimatedRangeKm() * 1000.0f;
+    auto meters_from_home =
+        MetersBetweenPoints(conf->home_position, m_parent.m_state_cache.Get<AS::pixel_position>());
+
+    if (meters_from_home > 0)
+    {
+        if (meters_from_home / range > 1.0f)
+        {
+            indicator_label_text += std::format("#F44336 {}# ", LV_SYMBOL_HOME);
+        }
+        else if (meters_from_home / range > 0.75f)
+        {
+            indicator_label_text += std::format("#ffa500 {}# ", LV_SYMBOL_HOME);
+        }
     }
 
     if (battery_soc > 90)

@@ -15,15 +15,9 @@ public:
     void SetZoom(uint8_t zoom);
 
 private:
-    enum class RangeCircleType
-    {
-        kFurthest,
-        kRoundTrip,
+    uint32_t GetEstimatedRangeKm() const;
 
-        kValueCount,
-    };
-
-    void DrawRangeCircle(lv_layer_t* layer, RangeCircleType type);
+    void DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width);
     void DrawTripLines(lv_layer_t* layer);
     void DrawPowerBar(lv_layer_t* layer);
 

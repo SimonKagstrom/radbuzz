@@ -23,6 +23,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
     , m_trip_computer(trip_computer)
+    , m_state_cache(m_state)
 {
     m_state_listener = m_state.AttachListener<AS::pixel_position,
                                               AS::battery_soc,
@@ -163,6 +164,14 @@ UserInterface::ResetTrip()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
+    auto& co = m_state_cache.Pull();
+    if (co.IsChanged<AS::pixel_position>())
+    {
+        m_distance_home_meters =
+            MetersBetweenPoints(m_state.CheckoutReadonly().Get<AS::configuration>()->home_position,
+                                co.Get<AS::pixel_position>());
+    }
+
     Input::Event input_event;
 
     while (m_input_queue.pop(input_event))
