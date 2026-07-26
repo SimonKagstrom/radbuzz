@@ -479,8 +479,9 @@ MapScreen::Update()
 
 
     // Place the home position icon
-    auto home_on_screen_x = conf->home_position.x - m_current_view_center.x + display_cx;
-    auto home_on_screen_y = conf->home_position.y - m_current_view_center.y + display_cy;
+    auto home_position = OsmPointToPoint(conf->home_position, m_zoom);
+    auto home_on_screen_x = home_position.x - m_current_view_center.x + display_cx;
+    auto home_on_screen_y = home_position.y - m_current_view_center.y + display_cy;
     lv_obj_set_pos(m_home_label,
                    home_on_screen_x - lv_obj_get_width(m_home_label) / 2,
                    home_on_screen_y - lv_obj_get_height(m_home_label) / 2);
@@ -757,8 +758,10 @@ MapScreen::StartHomeHoldTimer()
         const int32_t touch_offset_y =
             static_cast<int32_t>(m_home_hold_y) - static_cast<int32_t>(hal::kDisplayHeight / 2);
 
-        auto pixel_position = m_current_view_center +
-                              Point {touch_offset_x, touch_offset_y, m_current_view_center.zoom};
+        auto pixel_position =
+            OsmPointToPoint(m_current_view_center +
+                                Point {touch_offset_x, touch_offset_y, m_current_view_center.zoom},
+                            kDefaultZoom);
 
         m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
             .GetWritableReference<AS::configuration>()
