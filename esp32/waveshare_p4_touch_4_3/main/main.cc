@@ -647,6 +647,9 @@ app_main(void)
             },
     };
 
+    esp_hosted_bt_controller_init();
+    esp_hosted_bt_controller_enable();
+
     // Devices / helper classes
     //auto left_buzzer_gpio = std::make_unique<GpioEsp32>(kPinLeftBuzzer);
     //auto right_buzzer_gpio = std::make_unique<GpioEsp32>(kPinRightBuzzer);
