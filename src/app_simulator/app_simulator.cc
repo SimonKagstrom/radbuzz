@@ -317,12 +317,16 @@ AppSimulator::OnActivation()
 
     auto demo_active = co.Get<AS::demo_mode>();
     co.OnChangedValue<AS::demo_mode>([this, &demo_active](auto old, auto now) {
+        auto rw = m_application_state.CheckoutReadWrite();
+
         if (old == true && now == false)
         {
             // Disable navigation
             printf("Navigation deactivated\n");
-            m_application_state.CheckoutReadWrite().Set<AS::navigation_active>(false);
+            rw.Set<AS::navigation_active>(false);
         }
+
+        rw.Post<AS::reset_trip>();
     });
 
     if (demo_active == false)
@@ -359,8 +363,7 @@ AppSimulator::OnActivation()
     }
     m_distance_left = MetersBetweenPoints(m_current_point, *m_next_point);
 
-    const auto odometer_delta =
-        std::max<int32_t>(0, previous_distance_left - m_distance_left);
+    const auto odometer_delta = std::max<int32_t>(0, previous_distance_left - m_distance_left);
 
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::odometer,
                                                           AS::wh_consumed,

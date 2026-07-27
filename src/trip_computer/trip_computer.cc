@@ -130,6 +130,7 @@ TripComputer::ResetTrip()
     rw.Set<AS::trip_distance>(0);
     rw.Set<AS::trip_duration>(0s);
     rw.Set<AS::trip_average_speed>(0);
+    rw.Set<AS::is_moving>(false);
     // Set by the can bus handler
     rw.Set<AS::trip_max_speed>(0);
 
