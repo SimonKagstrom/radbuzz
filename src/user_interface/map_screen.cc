@@ -534,7 +534,7 @@ MapScreen::Update()
     }
     if (!ro.Get<AS::is_moving>())
     {
-        indicator_label_text += "#4CAF50 P# ";
+        indicator_label_text += std::format("#4CAF50 {}# ", LV_SYMBOL_PAUSE);
     }
 
     auto range = GetEstimatedRangeKm() * 1000.0f;
