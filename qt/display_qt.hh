@@ -23,6 +23,8 @@ public:
     uint16_t* GetFrameBuffer(hal::IDisplay::Owner owner) final;
     void Flip() final;
 
+    void SaveScreenshot(const char* filename);
+
 signals:
     void DoFlip();
 

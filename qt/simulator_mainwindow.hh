@@ -4,15 +4,15 @@
 #include "display_qt.hh"
 #include "gpio_host.hh"
 #include "hal/i_input.hh"
-#include "speedometer_qt.hh"
 #include "rotary_encoder.hh"
+#include "speedometer_qt.hh"
 
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>
 #include <QImage>
 #include <QMainWindow>
-#include <QPoint>
 #include <QPaintEvent>
+#include <QPoint>
 
 namespace Ui
 {
@@ -67,6 +67,7 @@ private:
     std::unique_ptr<ListenerCookie> m_left_buzzer_cookie;
     std::unique_ptr<ListenerCookie> m_right_buzzer_cookie;
 
-    std::function<void(RotaryEncoder::Direction)> m_on_rotation {
-        [](auto) { /* NOP */ }};
+    std::function<void(RotaryEncoder::Direction)> m_on_rotation {[](auto) { /* NOP */ }};
+
+    int m_screenshot_index {0};
 };

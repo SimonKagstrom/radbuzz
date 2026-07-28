@@ -38,6 +38,14 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
     connect(m_ui->centerButton, &QPushButton::pressed, [this]() { m_button.SetState(true); });
     connect(m_ui->centerButton, &QPushButton::released, [this]() { m_button.SetState(false); });
 
+    connect(m_ui->screenshotButton, &QPushButton::clicked, [this]() {
+        auto filename = std::format("screenshot_{}.png", m_screenshot_index);
+
+        printf("Saved screenshot '%s'\n", filename.c_str());
+        m_display->SaveScreenshot(filename.c_str());
+        m_screenshot_index++;
+    });
+
     m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(m_ui->socSlider->value());
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
         printf("Setting millivolts to %d\n", value);
@@ -71,10 +79,11 @@ MainWindow::GetStepperMotor()
     return *m_speedometer;
 }
 
-hal::IGpio& MainWindow::GetButtonGpio()
+hal::IGpio&
+MainWindow::GetButtonGpio()
 {
     return m_button;
-}    
+}
 
 hal::IGpio&
 MainWindow::GetLeftBuzzer()

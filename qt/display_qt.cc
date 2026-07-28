@@ -27,6 +27,35 @@ DisplayQt::DisplayQt(QGraphicsScene* scene, uint16_t display_width, uint16_t dis
     scene->installEventFilter(this);
 }
 
+void
+DisplayQt::SaveScreenshot(const char* filename)
+{
+    QImage screenshot = *m_screen;
+
+    if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
+    {
+        QTransform transform;
+        switch (hal::kDisplayRotation)
+        {
+        case hal::Rotation::k90:
+            transform.rotate(-90);
+            break;
+        case hal::Rotation::k180:
+            transform.rotate(-180);
+            break;
+        case hal::Rotation::k270:
+            transform.rotate(-270);
+            break;
+        default:
+            break;
+        }
+
+        screenshot = screenshot.transformed(transform);
+    }
+
+    screenshot.save(filename);
+}
+
 bool
 DisplayQt::eventFilter(QObject* watched, QEvent* event)
 {
