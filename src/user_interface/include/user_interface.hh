@@ -86,6 +86,7 @@ private:
     std::optional<milliseconds> OnActivation() final;
 
     void ResetTrip();
+    void DrawPowerBar(uint16_t* dst);
 
     void ActivateScreen(ScreenBase& screen)
     {

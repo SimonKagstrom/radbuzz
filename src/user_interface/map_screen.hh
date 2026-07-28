@@ -10,6 +10,8 @@
 class MapScreen : public UserInterface::ScreenBase
 {
 public:
+    static constexpr auto kNavigationBoxHeight = 32;
+
     MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache, uint8_t zoom);
 
     void SetZoom(uint8_t zoom);
@@ -19,7 +21,6 @@ private:
 
     void DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width);
     void DrawTripLines(lv_layer_t* layer);
-    void DrawPowerBar(lv_layer_t* layer);
 
     os::TimerHandle StartHomeHoldTimer();
     void BlitToRotationBuffer();

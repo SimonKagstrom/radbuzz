@@ -31,6 +31,11 @@ GetSideTextBaselineYOffset()
 TripMeterScreen::TripMeterScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
 {
+    const lv_color_t kTripMeterBackgroundColor = lv_color_make(47, 47, 58);
+
+    lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(m_screen, kTripMeterBackgroundColor, 0);
+
     lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 

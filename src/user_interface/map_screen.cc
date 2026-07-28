@@ -132,51 +132,6 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
     }
 }
 
-// Tesla style gray + black / green power bar
-void
-MapScreen::DrawPowerBar(lv_layer_t* layer)
-{
-    const auto kBackgroundColor = lv_color_to_u16(lv_color_make(100, 100, 100));
-    const auto kShadowColor = lv_color_to_u16(lv_color_make(75, 75, 75));
-    const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
-    const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
-    constexpr int kPixelsAtMaxPower = hal::kDisplayHeight / 2;
-
-    auto ro = m_parent.m_state.CheckoutReadonly();
-    auto conf = ro.Get<AS::configuration>();
-
-    const auto watts_signed = static_cast<int16_t>(ro.Get<AS::current_power_w>());
-    const int abs_watts = std::abs(watts_signed);
-    const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
-    const int power_bar_size = (abs_watts * kPixelsAtMaxPower) / max_watts;
-    const int clamped_power_bar_size = std::min(power_bar_size, kPixelsAtMaxPower);
-
-    Point to {hal::kDisplayWidth - kPowerBarWidth, hal::kDisplayHeight / 2};
-    Point from {hal::kDisplayWidth - kPowerBarWidth,
-                hal::kDisplayHeight / 2 - clamped_power_bar_size};
-
-
-    auto bar_color = kPositivePowerColor;
-    if (watts_signed < 0)
-    {
-        bar_color = kNegativePowerColor;
-    }
-
-    auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
-    painter::DrawClippedVerticalLine<Point>(dst,
-                                            {hal::kDisplayWidth - kPowerBarWidth, 0},
-                                            {hal::kDisplayWidth, hal::kDisplayHeight},
-                                            kPowerBarWidth,
-                                            kBackgroundColor);
-    // Shadow line to make it more clear
-    painter::DrawClippedVerticalLine<Point>(dst,
-                                            {hal::kDisplayWidth - kPowerBarWidth - 1, 0},
-                                            {hal::kDisplayWidth, hal::kDisplayHeight},
-                                            1,
-                                            kShadowColor);
-    painter::DrawClippedVerticalLine<Point>(dst, from, to, kPowerBarWidth, bar_color);
-}
-
 MapScreen::MapScreen(UserInterface& parent,
                      ImageCache& image_cache,
                      TileCache& tile_cache,
@@ -220,7 +175,6 @@ MapScreen::MapScreen(UserInterface& parent,
                     self->DrawRangeCircle(layer, range_km / 2, 2);
                 }
                 self->DrawTripLines(layer);
-                self->DrawPowerBar(layer);
             }
             else
             {
@@ -329,9 +283,10 @@ MapScreen::MapScreen(UserInterface& parent,
     // ... to here
 
     m_navigation_description_box = lv_obj_create(m_screen);
-    lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, 128 - 32, 0);
-    lv_obj_set_size(
-        m_navigation_description_box, hal::kDisplayWidth - lv_obj_get_width(m_navigation_box), 32);
+    lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, 128 - kNavigationBoxHeight, 0);
+    lv_obj_set_size(m_navigation_description_box,
+                    hal::kDisplayWidth - lv_obj_get_width(m_navigation_box),
+                    kNavigationBoxHeight);
     lv_obj_set_style_border_width(m_navigation_description_box, 0, LV_PART_MAIN);
     lv_obj_set_style_outline_width(m_navigation_description_box, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(m_navigation_description_box, 0, LV_PART_MAIN);
@@ -479,7 +434,7 @@ MapScreen::Update()
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
                       std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
-    
+
     const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
 
     std::string indicator_label_text = "";

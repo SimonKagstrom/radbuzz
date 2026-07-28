@@ -102,6 +102,7 @@ UserInterface::OnStartup()
                 auto p = static_cast<UserInterface*>(lv_display_get_user_data(display));
                 auto frame_buffer = reinterpret_cast<uint16_t*>(px_map);
 
+                p->DrawPowerBar(frame_buffer);
                 if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
                 {
                     p->m_rotation_blit_operations[0].src_data = frame_buffer;
@@ -149,6 +150,60 @@ UserInterface::OnStartup()
 
     ActivateScreen(*m_map_screen);
 }
+
+
+// Tesla style gray + black / green power bar
+void
+UserInterface::DrawPowerBar(uint16_t* dst)
+{
+    const auto kBackgroundColor = lv_color_to_u16(lv_color_make(100, 100, 100));
+    const auto kShadowColor = lv_color_to_u16(lv_color_make(75, 75, 75));
+    const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
+    const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
+    constexpr auto kPowerBarWidth = 8;
+
+    auto ro = m_state.CheckoutReadonly();
+    auto conf = ro.Get<AS::configuration>();
+
+    auto height = hal::kDisplayHeight;
+    if (ro.Get<AS::navigation_active>() && m_current_screen == m_map_screen.get())
+    {
+        height = hal::kDisplayHeight - MapScreen::kNavigationBoxHeight;
+    }
+
+    const int pixels_at_max_power = height / 2;
+
+    const auto watts_signed = static_cast<int16_t>(ro.Get<AS::current_power_w>());
+    const int abs_watts = std::abs(watts_signed);
+    const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
+    const int power_bar_size = (abs_watts * pixels_at_max_power) / max_watts;
+    const int clamped_power_bar_size = std::min(power_bar_size, pixels_at_max_power);
+
+    Point to {hal::kDisplayWidth - kPowerBarWidth, height / 2};
+    Point from {hal::kDisplayWidth - kPowerBarWidth,
+                hal::kDisplayHeight / 2 - clamped_power_bar_size};
+
+
+    auto bar_color = kPositivePowerColor;
+    if (watts_signed < 0)
+    {
+        bar_color = kNegativePowerColor;
+    }
+
+    painter::DrawClippedVerticalLine<Point>(dst,
+                                            {hal::kDisplayWidth - kPowerBarWidth, 0},
+                                            {hal::kDisplayWidth, height},
+                                            kPowerBarWidth,
+                                            kBackgroundColor);
+    // Shadow line to make it more clear
+    painter::DrawClippedVerticalLine<Point>(dst,
+                                            {hal::kDisplayWidth - kPowerBarWidth - 1, 0},
+                                            {hal::kDisplayWidth, height},
+                                            1,
+                                            kShadowColor);
+    painter::DrawClippedVerticalLine<Point>(dst, from, to, kPowerBarWidth, bar_color);
+}
+
 
 void
 UserInterface::ResetTrip()
