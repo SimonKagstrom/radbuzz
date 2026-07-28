@@ -68,7 +68,13 @@ BleHandler::OnStartup()
                                          [this](auto data) {});
 
     m_connection_listener = m_server.AttachConnectionListener([this](bool connected) {
-        m_state.CheckoutReadWrite().Set<AS::bluetooth_connected>(connected);
+        auto rw = m_state.CheckoutReadWrite();
+
+        rw.Set<AS::bluetooth_connected>(connected);
+        if (connected == false)
+        {
+            rw.Set<AS::navigation_active>(false);
+        }
     });
 
     m_server.Start();
@@ -105,6 +111,7 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
      * ete=2 min
      * iconHash=a7f7f83332
      */
+    //printf("ChaNav: %.*s\n", (int)data.size(), (const char*)data.data());
     for (auto line :
          SplitString(std::string(reinterpret_cast<const char*>(data.data()), data.size()), "\n"))
     {
@@ -120,9 +127,18 @@ BleHandler::OnChaNav(std::span<const uint8_t> data)
         {
             state.Set<AS::current_icon_hash>(StringToKey(val));
         }
-        if (key == "distToNext" && val.size() > 0 && std::isdigit(val[0]))
+        if (key == "distToNext" && val.size() > 0)
         {
-            state.Set<AS::distance_to_next>(std::stoul(val));
+            if (std::isdigit(val[0]))
+            {
+                state.Set<AS::distance_to_next>(std::stoul(val));
+            }
+            else
+            {
+                // "Head towards Idvägen" or similar, so treat as navigation instructions
+                next_street = val;
+                state.Set<AS::next_street>(next_street);
+            }
         }
         if (key == "nextRd")
         {
