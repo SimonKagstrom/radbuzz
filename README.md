@@ -13,8 +13,8 @@ Radbuzz is an infotainment / trip computer for electric mopeds and motorcycles, 
 
 Features:
 
-* OpenStreetMap-based map (currently open cycle map) with different zoom levels
-* GPS location support
+* OpenStreetMap-based map (currently OpenCycleMap) with different zoom levels, via a GPS module
+* Trip data, with average consumption, distance etc
 * Speedometer, both based on VESC data and GPS
 * Tesla-style power meter bar on the right
 * Supports receiving navigation instructions from Google maps via an android app
@@ -28,6 +28,7 @@ Hardware:
 * A rotary encoder
 * UART-based GPS
 * A CAN-bus adapter to communicate with the VESC
+* A DC/DC converter to power the ESP32P4 from the 12V outlet on the VESC
 
 ## Setup
 
@@ -53,6 +54,8 @@ or
 cmake -GNinja -B radbuzz_qt ~/projects/radbuzz/qt
 ```
 
+See [doc/build_instructions.md](doc/build_instructions.md) for more details on building and flashing the firmware.
+
 ## The OSM API key
 Get an API key for thunderforest via https://www.thunderforest.com/docs/apikeys/
 
@@ -68,29 +71,4 @@ MySsid
 PasswordForMySsid
 OtherSsid
 PasswordForOtherSsid
-```
-
-# C6 FW
-(only needed if you want to update the wifi/bt fw)
-
-## Build the fw
-```
-cd esp32/waveshare_p4_touch_4_3/managed_components/espressif__esp_hosted/slave
-idf.py set-target esp32c6
-idf.py build
-```
-
-## Flash the esp32c6 fw
-```
-esptool.py -p /dev/tty.usbmodem5B5E0700331 write_flash 0x00ff0000 --force build/network_adapter.bin
-```
-
-## Flash the esp32c6 fw if bricked
-Connect to the RX/TX pins of the esp32c6 and run the following command:
-
-```
-esptool -b 1500000 --before no_reset --after no_reset -p /dev/tty.SLAB_USBtoUART write_flash \
-  0x0000 ./bootloader/bootloader.bin \
-  0x8000 ./partition_table/partition-table.bin \
-  0x10000 ./network_adapter_esp32c6.bin
 ```
