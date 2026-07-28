@@ -2,11 +2,12 @@
 Radbuzz is an infotainment / trip computer for electric mopeds and motorcycles, for VESC-based controllers.
 
 <p align="center">
+  <a href="doc/on_the_moped.jpg"><img src="doc/on_the_moped.jpg" alt="how it looks mounted on the moped" width="31%"></a>
   <a href="doc/default_zoom.png"><img src="doc/default_zoom.png" alt="the default map screen" width="31%"></a>
   <a href="doc/zoomed_out.png"><img src="doc/zoomed_out.png" alt="zoomed out" width="31%"></a>
-  <a href="doc/city_zoom.png"><img src="doc/city_zoom.png" alt="maximum zoom with range" width="31%"></a>
 </p>
 <p align="center">
+  <a href="doc/city_zoom.png"><img src="doc/city_zoom.png" alt="maximum zoom with range" width="31%"></a>
   <a href="doc/trip_screen.png"><img src="doc/trip_screen.png" alt="trip meter screen" width="31%"></a>
   <a href="doc/menu.png"><img src="doc/menu.png" alt="menu screen" width="31%"></a>
 </p>
