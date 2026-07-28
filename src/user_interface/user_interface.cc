@@ -25,6 +25,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_trip_computer(trip_computer)
     , m_state_cache(m_state)
 {
+    // Probably should listen to a few others, but many are bulk-updated.
     m_state_listener = m_state.AttachListener<AS::pixel_position,
                                               AS::battery_soc,
                                               AS::odometer,
