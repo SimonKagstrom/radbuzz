@@ -46,7 +46,5 @@ private:
 
     std::vector<StatRow> m_stat_rows;
 
-    lv_style_t m_style_bar_bg;
-    lv_style_t m_style_bar_indicator;
-    lv_obj_t* m_consumption_bar {nullptr};
+    lv_obj_t* m_max_power_label {nullptr};
 };

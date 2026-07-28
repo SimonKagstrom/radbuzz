@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <format>
+#include <radbuzz_font_16.h>
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_60.h>
 
@@ -127,17 +128,11 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
         ++row_index;
     }
 
-    lv_style_init(&m_style_bar_bg);
-    lv_style_set_border_color(&m_style_bar_bg, lv_palette_main(LV_PALETTE_BLUE));
-    lv_style_set_border_width(&m_style_bar_bg, 2);
-    lv_style_set_pad_all(&m_style_bar_bg, 6); /*To make the indicator smaller*/
-    lv_style_set_radius(&m_style_bar_bg, 6);
-    lv_style_set_anim_duration(&m_style_bar_bg, 1000);
-
-    lv_style_init(&m_style_bar_indicator);
-    lv_style_set_bg_opa(&m_style_bar_indicator, LV_OPA_COVER);
-    lv_style_set_bg_color(&m_style_bar_indicator, lv_palette_main(LV_PALETTE_BLUE));
-    lv_style_set_radius(&m_style_bar_indicator, 3);
+    m_max_power_label = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_max_power_label, &radbuzz_font_16, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_max_power_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_max_power_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_align(m_max_power_label, LV_ALIGN_TOP_RIGHT, -10, 1);
 }
 
 void
@@ -319,6 +314,9 @@ TripMeterScreen::Update()
 
         ++row_index;
     }
+
+    auto max_power = ro.Get<AS::configuration>()->max_watts;
+    lv_label_set_text(m_max_power_label, std::format("{} W", max_power).c_str());
 }
 
 void
