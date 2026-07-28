@@ -44,7 +44,7 @@ GpsReader::OnActivation()
 
     mangled.position = *m_position;
     mangled.heading = *m_heading;
-    mangled.speed = *m_speed;
+    mangled.speed = *m_speed * 1.852f; // Convert from knots to km/h
 
     // Disable, and restart again (for demo mode, it will be disabled completely)
     m_gps_timeout_timer = nullptr;
