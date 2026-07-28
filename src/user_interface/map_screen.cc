@@ -297,9 +297,6 @@ MapScreen::MapScreen(UserInterface& parent,
     constexpr int kLeftCornerClipPx = 16;
     constexpr int kPaneCornerRadius = 18;
 
-    // Digital speedometer
-    m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(left_box);
-
     // Navigation
     m_navigation_box = lv_obj_create(left_box);
     lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, 128);
@@ -537,7 +534,6 @@ MapScreen::Update()
     }
 
     lv_label_set_text(m_indicator_label, indicator_label_text.c_str());
-    m_digital_speedometer->Update(m_parent.m_state);
 
     lv_obj_invalidate(m_screen);
 }

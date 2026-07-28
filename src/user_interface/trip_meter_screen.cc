@@ -34,8 +34,6 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
-    m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(m_screen);
-
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {"SoC", "%", StatValueKind::kSoc});
     m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
@@ -316,8 +314,6 @@ TripMeterScreen::Update()
 
         ++row_index;
     }
-
-    m_digital_speedometer->Update(m_parent.m_state);
 }
 
 void

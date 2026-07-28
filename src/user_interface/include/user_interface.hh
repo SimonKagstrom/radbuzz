@@ -2,6 +2,7 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
+#include "digital_speedometer_widget.hh"
 #include "hal/i_blitter.hh"
 #include "hal/i_display.hh"
 #include "hal/i_gpio.hh"
@@ -141,6 +142,7 @@ private:
     std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
     std::unique_ptr<ScreenBase> m_settings_menu_screen;
+    std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
 
     ScreenBase* m_current_screen {nullptr};
 };

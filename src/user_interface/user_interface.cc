@@ -144,6 +144,9 @@ UserInterface::OnStartup()
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
 
+    // Keep this widget above any active screen (map, trip meter, settings, ...).
+    m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
+
     ActivateScreen(*m_map_screen);
 }
 
@@ -222,6 +225,7 @@ UserInterface::OnActivation()
     auto max_power = m_pm_lock->FullPower();
 
     m_current_screen->Update();
+    m_digital_speedometer->Update(m_state);
 
     if (auto time_before = os::GetTimeStampRaw(); m_next_redraw_time > time_before)
     {

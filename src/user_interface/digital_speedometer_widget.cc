@@ -25,6 +25,7 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
     lv_obj_set_style_radius(m_speedometer_box, kPaneCornerRadius, LV_PART_MAIN);
     lv_obj_set_scrollbar_mode(m_speedometer_box, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_CLICKABLE);
 
     m_speed_digits_label = lv_label_create(m_speedometer_box);
     lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_60, LV_PART_MAIN);
