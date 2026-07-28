@@ -49,11 +49,11 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
                                       std::make_unique<SecondColumnStatRow>("Wh")});
     m_stat_rows.emplace_back(
         StatRow {"Average consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
-    m_stat_rows.emplace_back(StatRow {"Distance/Odometer",
+    m_stat_rows.emplace_back(StatRow {"Distance/odometer",
                                       "m",
                                       StatValueKind::kTripDistance,
                                       std::make_unique<SecondColumnStatRow>("m")});
-    m_stat_rows.emplace_back(StatRow {"Time", "s", StatValueKind::kTime});
+    m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
     m_stat_rows.emplace_back(StatRow {"Max/average speed",
                                       "km/h",
                                       StatValueKind::kTripMaxSpeed,
