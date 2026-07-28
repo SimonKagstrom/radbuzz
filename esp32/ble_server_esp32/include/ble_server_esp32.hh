@@ -100,4 +100,7 @@ private:
     uint8_t m_ble_addr_type {0};
     std::vector<struct ble_gatt_svc_def> m_gatt_svc_def;
     std::vector<struct ble_gatt_chr_def> m_ble_gatt_chr_defs;
+
+
+    std::function<void(bool connected)> m_on_connection_changed {[](bool) {}};
 };

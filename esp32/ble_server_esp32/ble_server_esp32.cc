@@ -298,8 +298,9 @@ BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_hand
 std::unique_ptr<ListenerCookie>
 BleServerEsp32::AttachConnectionListener(std::function<void(bool connected)> cb)
 {
-    // NYI
-    return std::make_unique<ListenerCookie>([this]() { /* Remove the listener */ });
+    m_on_connection_changed = std::move(cb);
+
+    return std::make_unique<ListenerCookie>([this]() { m_on_connection_changed = [](bool) {}; });
 }
 
 void
@@ -863,6 +864,7 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
                 MODLOG_DFLT(ERROR, "Failed to start peer service discovery; rc=%d\n", rc);
                 return rc;
             }
+            m_on_connection_changed(true);
         }
         break;
     case BLE_GAP_EVENT_DISCONNECT:
@@ -875,6 +877,7 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         m_peer_chr_val_handle = 0;
         m_peer_cccd_handle = 0;
         m_notification_callbacks.clear();
+        m_on_connection_changed(false);
         AppAdvertise();
         break;
 
