@@ -316,7 +316,7 @@ TripMeterScreen::Update()
     }
 
     auto max_power = ro.Get<AS::configuration>()->max_watts;
-    lv_label_set_text(m_max_power_label, std::format("{} W", max_power).c_str());
+    lv_label_set_text(m_max_power_label, std::format("+{} W", max_power).c_str());
 }
 
 void
