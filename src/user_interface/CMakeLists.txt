@@ -35,6 +35,7 @@ convert_font(radbuzz_font_16
 )
 
 add_library(user_interface EXCLUDE_FROM_ALL
+    digital_speedometer_widget.cc
     map_screen.cc
     settings_menu_screen.cc
     trip_meter_screen.cc

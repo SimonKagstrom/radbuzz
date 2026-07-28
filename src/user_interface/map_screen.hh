@@ -4,6 +4,7 @@
 #include "os/memory.hh"
 #include "painter.hh"
 #include "user_interface.hh"
+#include "digital_speedometer_widget.hh"
 
 #include <etl/vector.h>
 
@@ -59,10 +60,6 @@ private:
 
     lv_obj_t* m_indicator_label {nullptr};
 
-    lv_obj_t* m_speedometer_box {nullptr};
-    lv_obj_t* m_speed_digits_label {nullptr};
-    lv_obj_t* m_gps_speed_label {nullptr};
-
     Point m_current_view_center {0, 0, kDefaultZoom};
     Point m_current_range_circle_center {0, 0, kDefaultZoom};
     int32_t m_rotation_pivot_x {hal::kDisplayWidth / 2};
@@ -73,6 +70,8 @@ private:
     uint16_t m_home_hold_y {0};
     os::TimerHandle m_home_hold_timer;
     bool m_touch_was_pressed {false};
+
+    std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
 
     uint8_t m_zoom;
     bool m_rotation_enabled {false};

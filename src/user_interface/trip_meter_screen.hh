@@ -1,5 +1,6 @@
 #pragma once
 
+#include "digital_speedometer_widget.hh"
 #include "user_interface.hh"
 
 #include <vector>
@@ -49,4 +50,6 @@ private:
     lv_style_t m_style_bar_bg;
     lv_style_t m_style_bar_indicator;
     lv_obj_t* m_consumption_bar {nullptr};
+
+    std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
 };
