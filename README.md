@@ -1,5 +1,33 @@
 # Radbuzz
-Bicycle
+Radbuzz is an infotainment / trip computer for electric mopeds and motorcycles, for VESC-based controllers.
+
+<p align="center">
+  <a href="doc/default_zoom.png"><img src="doc/default_zoom.png" alt="the default map screen" width="31%"></a>
+  <a href="doc/zoomed_out.png"><img src="doc/zoomed_out.png" alt="zoomed out" width="31%"></a>
+  <a href="doc/city_zoom.png"><img src="doc/city_zoom.png" alt="maximum zoom with range" width="31%"></a>
+</p>
+<p align="center">
+  <a href="doc/trip_screen.png"><img src="doc/trip_screen.png" alt="trip meter screen" width="31%"></a>
+  <a href="doc/menu.png"><img src="doc/menu.png" alt="menu screen" width="31%"></a>
+</p>
+
+Features:
+
+* OpenStreetMap-based map (currently open cycle map) with different zoom levels
+* GPS location support
+* Speedometer, both based on VESC data and GPS
+* Tesla-style power meter bar on the right
+* Supports receiving navigation instructions from Google maps via an android app
+* Range estimation shown on the map
+* A menu for configuration
+* Written in clean and modern C++ (C++23)
+
+Hardware:
+
+* [Waveshare 4.3" ESP32P4 Touch](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-4.3.htm)
+* A rotary encoder
+* UART-based GPS
+* A CAN-bus adapter to communicate with the VESC
 
 ## Setup
 
