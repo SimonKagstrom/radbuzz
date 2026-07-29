@@ -41,19 +41,22 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     m_stat_rows.reserve(7);
-    m_stat_rows.emplace_back(StatRow {"SoC", "%", StatValueKind::kSoc});
+    m_stat_rows.emplace_back(StatRow {"SoC/range",
+                                      "%",
+                                      StatValueKind::kSoc,
+                                      std::make_unique<SecondColumnStatRow>("km")});
     m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
+    m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
+    m_stat_rows.emplace_back(
+        StatRow {"Average consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
     m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
                                       "Wh",
                                       StatValueKind::kConsumedWh,
                                       std::make_unique<SecondColumnStatRow>("Wh")});
-    m_stat_rows.emplace_back(
-        StatRow {"Average consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
     m_stat_rows.emplace_back(StatRow {"Distance/odometer",
                                       "m",
                                       StatValueKind::kTripDistance,
                                       std::make_unique<SecondColumnStatRow>("m")});
-    m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
     m_stat_rows.emplace_back(StatRow {"Max/average speed",
                                       "km/h",
                                       StatValueKind::kTripMaxSpeed,
@@ -155,6 +158,8 @@ TripMeterScreen::Update()
         {
         case StatValueKind::kSoc:
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
+            lv_label_set_text(row.second_column->value,
+                              std::format("{}", ro.Get<AS::estimated_range_km>()).c_str());
             break;
         case StatValueKind::kConsumedWh: {
 
