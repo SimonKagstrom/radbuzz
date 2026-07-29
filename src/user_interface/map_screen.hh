@@ -17,8 +17,6 @@ public:
     void SetZoom(uint8_t zoom);
 
 private:
-    uint32_t GetEstimatedRangeKm() const;
-
     void DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width);
     void DrawTripLines(lv_layer_t* layer);
 

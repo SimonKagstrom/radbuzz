@@ -18,28 +18,6 @@
 
 constexpr auto kPowerBarWidth = 8;
 
-uint32_t
-MapScreen::GetEstimatedRangeKm() const
-{
-    auto ro = m_parent.m_state.CheckoutReadonly();
-    const auto conf = ro.Get<AS::configuration>();
-    const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
-    const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
-    // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
-    constexpr float kNominalCellVoltageV = 3.7f;
-    const float pack_nominal_voltage_v =
-        static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
-    const float full_pack_wh = static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
-    const float wh_left = full_pack_wh * (static_cast<float>(battery_soc) / 100.0f);
-
-    if (wh_per_km == 0)
-    {
-        return 1;
-    }
-
-    return std::max(1.0f, wh_left / static_cast<float>(wh_per_km));
-}
-
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width)
 {
@@ -170,7 +148,8 @@ MapScreen::MapScreen(UserInterface& parent,
                 // Only for the most zoomed out map, because of our insane range
                 if (self->m_zoom == kLandscapeZoom)
                 {
-                    auto range_km = self->GetEstimatedRangeKm();
+                    auto range_km =
+                        self->m_parent.m_state.CheckoutReadonly().Get<AS::estimated_range_km>();
                     self->DrawRangeCircle(layer, range_km, 3);
                     self->DrawRangeCircle(layer, range_km / 2, 2);
                 }
@@ -456,7 +435,7 @@ MapScreen::Update()
         indicator_label_text += std::format("#4CAF50 {}# ", LV_SYMBOL_PAUSE);
     }
 
-    auto range = GetEstimatedRangeKm() * 1000.0f;
+    auto range = ro.Get<AS::estimated_range_km>() * 1000.0f;
 
     if (m_parent.m_distance_home_meters / range > 1.0f)
     {

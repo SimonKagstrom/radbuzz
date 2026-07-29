@@ -162,8 +162,6 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     }
 
     auto ro = m_state.CheckoutReadonly();
-    auto qw = m_state.CheckoutQueuedWriter<AS::battery_soc, AS::battery_milliamphours_left>();
-
 
     if (ro.Get<AS::current_power_w>() > 300)
     {
@@ -174,6 +172,10 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     m_millivolt_history.push(millivolts);
     if (m_millivolt_history.full())
     {
+        auto qw = m_state.CheckoutQueuedWriter<AS::battery_soc,
+                                               AS::battery_milliamphours_left,
+                                               AS::estimated_range_km>();
+
         auto soc = InterpolateSoc(
             std::accumulate(m_millivolt_history.begin(), m_millivolt_history.end(), 0u) /
                 m_millivolt_history.size(),
@@ -183,6 +185,21 @@ TripComputer::UpdateSoc(uint16_t millivolts)
         // Convert Ah to mAh and apply SOC
         qw.Set<AS::battery_milliamphours_left>(ro.Get<AS::configuration>()->battery_amp_hours *
                                                1000 * soc / 100);
+
+
+        const auto conf = ro.Get<AS::configuration>();
+        const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
+
+        // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
+        constexpr float kNominalCellVoltageV = 3.7f;
+        const float pack_nominal_voltage_v =
+            static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
+        const float full_pack_wh =
+            static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
+        const float wh_left = full_pack_wh * (static_cast<float>(soc) / 100.0f);
+        uint32_t range = std::max(1.0f, wh_left / static_cast<float>(wh_per_km));
+
+        qw.Set<AS::estimated_range_km>(range);
 
         // Discard the oldest
         m_millivolt_history.pop();
@@ -221,7 +238,7 @@ TripComputer::FreeLogEntry(LogHandle handle)
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
-    auto &co = m_state_cache.Pull();
+    auto& co = m_state_cache.Pull();
 
     if (co.IsChanged<AS::reset_trip>())
     {

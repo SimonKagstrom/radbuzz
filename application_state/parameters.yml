@@ -61,6 +61,10 @@ parameters:
   odometer:
     type: uint32_t
 
+  # in km
+  estimated_range_km:
+    type: uint16_t
+
   trip_distance:
     type: uint32_t
 
