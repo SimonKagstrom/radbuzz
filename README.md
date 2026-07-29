@@ -16,10 +16,11 @@ It's built for an ESP32P4 microcontroller, but can also be run on the desktop fo
 Features:
 
 * OpenStreetMap-based map (currently OpenCycleMap) with different zoom levels, via a GPS module
-* Trip data, with average consumption, distance etc
 * Speedometer, both based on VESC data and GPS
+* Trip data, with average consumption, distance etc
 * Tesla-style power meter bar on the right
 * Supports receiving navigation instructions from Google maps via an android app
+* Trip log shown on the map, with power indicator in color
 * Range estimation shown on the map
 * A menu for configuration
 * Written in clean and modern C++ (C++23)
