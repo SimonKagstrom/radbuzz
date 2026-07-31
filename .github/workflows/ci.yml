@@ -48,8 +48,8 @@ jobs:
             cmake -GNinja -B build -DCMAKE_BUILD_TYPE=Release .
             cmake --build build --parallel
 
-  qt-build:
-    name: Qt Build
+  host-build:
+    name: Qt/unit test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -78,42 +78,17 @@ jobs:
           npm i lv_font_conv -g
           pip3 install jinja2 pyyaml
 
-      - name: Configure
-        run: cmake -S qt -B build-qt -GNinja -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: cmake --build build-qt --parallel
-
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            g++ \
-            nodejs \
-            npm \
-            python3-pip
-
-      - name: Install codegen dependencies
-        run: |
-          npm i lv_font_conv -g
-          pip3 install jinja2 pyyaml
-
-      - name: Configure
+      - name: Configure unit test
         run: cmake -S test/unittest -B build-unittest -GNinja -DCMAKE_BUILD_TYPE=Debug
 
-      - name: Build
+      - name: Build unit tests
         run: cmake --build build-unittest --parallel
 
-      - name: Run tests
+      - name: Run unit tests
         run: ctest --test-dir build-unittest --output-on-failure
+
+      - name: Configure qt
+        run: cmake -S qt -B build-qt -GNinja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build qt
+        run: cmake --build build-qt --parallel
