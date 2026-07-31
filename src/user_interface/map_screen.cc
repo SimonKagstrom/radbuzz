@@ -306,8 +306,8 @@ void
 MapScreen::RotateBackground(int32_t angle_deg, uint16_t* dst)
 {
     const float angle_rad = static_cast<float>(angle_deg) * std::numbers::pi_v<float> / 180.0f;
-    const float cos_a = std::cosf(angle_rad);
-    const float sin_a = std::sinf(angle_rad);
+    const float cos_a = ::cosf(angle_rad);
+    const float sin_a = ::sinf(angle_rad);
     // Rotate around a configurable display pivot (follow anchor in follow mode).
     const int cx = m_rotation_pivot_x;
     const int cy = m_rotation_pivot_y;
