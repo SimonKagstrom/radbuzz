@@ -41,6 +41,10 @@ jobs:
           target: esp32p4
           path: esp32/waveshare_p4_touch_4_3
           command: |
+            apt-get update
+            apt-get install -y nodejs npm python3-pip
+            npm i lv_font_conv -g
+            pip3 install jinja2 pyyaml
             cmake -GNinja -B build -DCMAKE_BUILD_TYPE=Release .
             cmake --build build --parallel
 
@@ -60,10 +64,18 @@ jobs:
             cmake \
             ninja-build \
             g++ \
+            nodejs \
+            npm \
+            python3-pip \
             qt6-base-dev \
             qt6-base-dev-tools \
             qt6-tools-dev \
             libgl1-mesa-dev
+
+      - name: Install codegen dependencies
+        run: |
+          npm i lv_font_conv -g
+          pip3 install jinja2 pyyaml
 
       - name: Configure
         run: cmake -S qt -B build-qt -GNinja -DCMAKE_BUILD_TYPE=Release
@@ -86,7 +98,15 @@ jobs:
           sudo apt-get install -y \
             cmake \
             ninja-build \
-            g++
+            g++ \
+            nodejs \
+            npm \
+            python3-pip
+
+      - name: Install codegen dependencies
+        run: |
+          npm i lv_font_conv -g
+          pip3 install jinja2 pyyaml
 
       - name: Configure
         run: cmake -S test/unittest -B build-unittest -GNinja -DCMAKE_BUILD_TYPE=Debug
