@@ -1,6 +1,7 @@
 #include "tile_cache.hh"
 
 #include <PNGdec.h>
+#include <cctype>
 #include <format>
 #include <mutex>
 
@@ -26,6 +27,23 @@ constexpr auto kLandscapeTileFactorZoomedOut = 5;
 constexpr auto kPendingCityTilesFileName = "pending.bin";
 // Bump when format changed
 constexpr int32_t kPendingTileMagic = 0x43697480;
+constexpr auto kRuntimeOsmApiKeyFilename = "osm_key.txt";
+
+void
+TrimAsciiWhitespace(std::string& value)
+{
+    auto is_space = [](unsigned char ch) { return std::isspace(ch) != 0; };
+
+    while (!value.empty() && is_space(static_cast<unsigned char>(value.front())))
+    {
+        value.erase(value.begin());
+    }
+
+    while (!value.empty() && is_space(static_cast<unsigned char>(value.back())))
+    {
+        value.pop_back();
+    }
+}
 
 inline auto
 ToCityTile(const Point& point)
@@ -115,6 +133,20 @@ TileCache::TileCache(ApplicationState& application_state,
 void
 TileCache::OnStartup()
 {
+    std::string osm_api_key = OSM_API_KEY;
+    if (auto runtime_key_data = m_filesystem.ReadFile(kRuntimeOsmApiKeyFilename);
+        runtime_key_data && !runtime_key_data->empty())
+    {
+        std::string runtime_key(reinterpret_cast<const char*>(runtime_key_data->data()),
+                                runtime_key_data->size());
+        TrimAsciiWhitespace(runtime_key);
+        if (!runtime_key.empty())
+        {
+            osm_api_key = std::move(runtime_key);
+        }
+    }
+    m_web_thread->SetOsmApiKey(std::move(osm_api_key));
+
     for (auto zoom : {kDefaultZoom, kCityZoom})
     {
         auto pending_city_tile_data =
@@ -483,13 +515,17 @@ TileCache::WebThread::FetchTile(const Tile& t)
 std::string
 TileCache::WebThread::GetTileUrl(const Tile& t) const
 {
-    constexpr auto kOsmApiKey = OSM_API_KEY;
-
     return std::format("https://tile.thunderforest.com/cycle/{}/{}/{}.png?apikey={}",
                        t.zoom,
                        t.x,
                        t.y,
-                       kOsmApiKey);
+                       GetOsmApiKey());
+}
+
+const std::string&
+TileCache::WebThread::GetOsmApiKey() const
+{
+    return m_osm_api_key;
 }
 
 std::optional<milliseconds>

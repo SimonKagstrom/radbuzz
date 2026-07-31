@@ -81,6 +81,11 @@ private:
 
         ~WebThread() final = default;
 
+        void SetOsmApiKey(std::string api_key)
+        {
+            m_osm_api_key = std::move(api_key);
+        }
+
         bool CanFetchTile() const
         {
             return !m_in_queue.full();
@@ -90,11 +95,13 @@ private:
 
     private:
         std::string GetTileUrl(const Tile& t) const;
+        const std::string& GetOsmApiKey() const;
 
         std::optional<milliseconds> OnActivation() final;
 
         TileCache& m_parent;
         etl::queue_spsc_atomic<Tile, 8> m_in_queue;
+        std::string m_osm_api_key;
     };
 
     void OnStartup() final;

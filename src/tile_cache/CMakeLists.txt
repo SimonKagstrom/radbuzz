@@ -1,7 +1,10 @@
 set(OSM_API_KEY_FILENAME "${CMAKE_CURRENT_SOURCE_DIR}/../../osm_api_key.txt")
 
-file(READ "${OSM_API_KEY_FILENAME}" OSM_API_KEY)
-string(STRIP "${OSM_API_KEY}" OSM_API_KEY) # Remove whitespace/newlines
+set(OSM_API_KEY "")
+if(EXISTS "${OSM_API_KEY_FILENAME}")
+    file(READ "${OSM_API_KEY_FILENAME}" OSM_API_KEY)
+    string(STRIP "${OSM_API_KEY}" OSM_API_KEY) # Remove whitespace/newlines
+endif()
 
 
 add_library(tile_cache EXCLUDE_FROM_ALL
