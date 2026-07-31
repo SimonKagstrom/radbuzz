@@ -21,10 +21,10 @@ std::optional<Point>
 Wgs84ToOsmPoint(const GpsPosition& position, uint8_t zoom)
 {
     float lat_rad = deg2rad(position.latitude);
-    float n = std::powf(2.0f, zoom);
+    float n = ::powf(2.0f, zoom);
 
     float x = (position.longitude + 180.0f) / 360.0f * n;
-    float y = (1.0f - std::asinhf(std::tanf(lat_rad)) / std::numbers::pi_v<float>) / 2.0f * n;
+    float y = (1.0f - ::asinhf(::tanf(lat_rad)) / std::numbers::pi_v<float>) / 2.0f * n;
 
     return Point {static_cast<int32_t>(x * kTileSize), static_cast<int32_t>(y * kTileSize), zoom};
 }
@@ -34,7 +34,7 @@ OsmPointToPoint(const Point& point, uint8_t next_zoom)
 {
     float scale = point.zoom == next_zoom
                       ? 1.0f
-                      : std::powf(2.0f, static_cast<int>(next_zoom) - static_cast<int>(point.zoom));
+                      : ::powf(2.0f, static_cast<int>(next_zoom) - static_cast<int>(point.zoom));
     return Point {
         static_cast<int32_t>(point.x * scale), static_cast<int32_t>(point.y * scale), next_zoom};
 }
@@ -43,10 +43,9 @@ float
 MetersPerPixelAtPoint(const Point& point)
 {
     const auto pos = OsmPointToWgs84(point);
-    const auto n = std::powf(2.0f, point.zoom);
+    const auto n = ::powf(2.0f, point.zoom);
     const auto lat_rad = deg2rad(pos.latitude);
-    const float meters_per_pixel =
-        (std::cosf(lat_rad) * kEarthCircumferenceMeters) / (kTileSize * n);
+    const float meters_per_pixel = (::cosf(lat_rad) * kEarthCircumferenceMeters) / (kTileSize * n);
     return std::max(meters_per_pixel, 0.001f);
 }
 
@@ -57,19 +56,19 @@ MetersBetweenPoints(const Point& p1, const Point& p2)
     auto dx = static_cast<float>(p2.x - p1.x);
     auto dy = static_cast<float>(p2.y - p1.y);
 
-    return static_cast<uint32_t>(std::sqrtf(dx * dx + dy * dy) * meters_per_pixel);
+    return static_cast<uint32_t>(::sqrtf(dx * dx + dy * dy) * meters_per_pixel);
 }
 
 GpsPosition
 OsmPointToWgs84(const Point& point)
 {
-    float n = std::powf(2.0f, point.zoom);
+    float n = ::powf(2.0f, point.zoom);
 
     float x = static_cast<float>(point.x) / kTileSize;
     float y = static_cast<float>(point.y) / kTileSize;
 
     float lon = x / n * 360.0f - 180.0f;
-    float lat_rad = std::atan(std::sinh(std::numbers::pi_v<float> * (1.0f - 2.0f * y / n)));
+    float lat_rad = ::atanf(::sinh(std::numbers::pi_v<float> * (1.0f - 2.0f * y / n)));
     float lat = lat_rad * (180.0f / std::numbers::pi_v<float>);
 
     return GpsPosition {lat, lon};
