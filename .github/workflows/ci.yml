@@ -37,7 +37,7 @@ jobs:
       - name: Build firmware with CMake/Ninja
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v6.0
+          esp_idf_version: v6.0.1
           target: esp32p4
           path: esp32/waveshare_p4_touch_4_3
           command: |
