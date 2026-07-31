@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'CMakeLists.txt'
+      - 'application_state/**'
+      - 'esp32/**'
+      - 'external/**'
+      - 'qt/**'
+      - 'src/**'
+      - 'test/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'CMakeLists.txt'
+      - 'application_state/**'
+      - 'esp32/**'
+      - 'external/**'
+      - 'qt/**'
+      - 'src/**'
+      - 'test/**'
+
+jobs:
+  firmware-build:
+    name: Firmware (waveshare_p4_touch_4_3)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build firmware with CMake/Ninja
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0
+          target: esp32p4
+          path: esp32/waveshare_p4_touch_4_3
+          command: |
+            cmake -GNinja -B build -DCMAKE_BUILD_TYPE=Release .
+            cmake --build build --parallel
+
+  qt-build:
+    name: Qt Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt and build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            g++ \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            qt6-tools-dev \
+            libgl1-mesa-dev
+
+      - name: Configure
+        run: cmake -S qt -B build-qt -GNinja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build-qt --parallel
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            g++
+
+      - name: Configure
+        run: cmake -S test/unittest -B build-unittest -GNinja -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build-unittest --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build-unittest --output-on-failure
