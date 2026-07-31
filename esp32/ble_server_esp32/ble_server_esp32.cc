@@ -4,6 +4,9 @@
 
 #include <algorithm>
 #include <esp_err.h>
+#include <esp_mac.h>
+#include <format>
+#include <string>
 extern "C" {
 #include <services/ans/ble_svc_ans.h>
 }
@@ -436,7 +439,15 @@ BleServerEsp32::Start()
     ble_svc_gap_init();  // 4 - Initialize NimBLE configuration - gap service
     ble_svc_gatt_init(); // 4 - Initialize NimBLE configuration - gatt service
     ble_svc_ans_init();
-    ble_svc_gap_device_name_set("Bicycletas"); // 4 - Initialize NimBLE configuration - server name
+
+    uint8_t ble_mac[6] = {};
+    std::string device_name = "radbuzz";
+    if (esp_read_mac(ble_mac, ESP_MAC_BT) == ESP_OK)
+    {
+        device_name = std::format("radbuzz_{:02x}{:02x}", ble_mac[1], ble_mac[0]);
+    }
+    ble_svc_gap_device_name_set(device_name.c_str());
+
     ble_gatts_count_cfg(
         m_gatt_svc_def.data()); // 4 - Initialize NimBLE configuration - config gatt services
     ble_gatts_add_svcs(
