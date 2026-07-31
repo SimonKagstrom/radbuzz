@@ -24,7 +24,6 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFile>
-#include <print>
 #include <stdlib.h>
 
 int
