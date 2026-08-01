@@ -1,6 +1,6 @@
 #
 # Automatically generated file. DO NOT EDIT.
-# Espressif IoT Development Framework (ESP-IDF) 6.0.1 Project Configuration
+# Espressif IoT Development Framework (ESP-IDF) 6.0.2 Project Configuration
 #
 # default:
 CONFIG_SOC_ADC_SUPPORTED=y
@@ -575,6 +575,8 @@ CONFIG_SOC_MCPWM_SUPPORT_SLEEP_RETENTION=y
 # default:
 CONFIG_SOC_USB_OTG_PERIPH_NUM=2
 # default:
+CONFIG_SOC_USB_FSLS_PHY_NUM=1
+# default:
 CONFIG_SOC_USB_UTMI_PHY_NUM=1
 # default:
 CONFIG_SOC_USB_UTMI_PHY_NO_POWER_OFF_ISO=y
@@ -831,6 +833,8 @@ CONFIG_SOC_PSRAM_ENCRYPTION_SEPARATE_KEY=y
 # default:
 CONFIG_SOC_PSRAM_ENCRYPTION_PAGE_CONFIGURABLE=y
 # default:
+CONFIG_SOC_RECOVERY_BOOTLOADER_SUPPORTED=y
+# default:
 CONFIG_SOC_UART_NUM=6
 # default:
 CONFIG_SOC_UART_HP_NUM=5
@@ -965,6 +969,8 @@ CONFIG_SOC_JPEG_DECODE_SUPPORTED=y
 # default:
 CONFIG_SOC_JPEG_ENCODE_SUPPORTED=y
 # default:
+CONFIG_SOC_H264_ENCODER_SUPPORTED=y
+# default:
 CONFIG_SOC_LCDCAM_CAM_SUPPORT_RGB_YUV_CONV=y
 # default:
 CONFIG_SOC_LCDCAM_LCD_SUPPORT_SLEEP_RETENTION=y
@@ -1046,6 +1052,8 @@ CONFIG_BOOTLOADER_PROJECT_VER=1
 #
 # Recovery Bootloader and Rollback
 #
+# default:
+# CONFIG_BOOTLOADER_RECOVERY_ENABLE is not set
 # end of Recovery Bootloader and Rollback
 
 # default:
@@ -1148,6 +1156,8 @@ CONFIG_SECURE_BOOT_V2_RSA_SUPPORTED=y
 # default:
 CONFIG_SECURE_BOOT_V2_ECC_SUPPORTED=y
 # default:
+CONFIG_SECURE_BOOT_V2_ECDSA_INSECURE=y
+# default:
 CONFIG_SECURE_BOOT_V2_PREFERRED=y
 # default:
 # CONFIG_SECURE_SIGNED_APPS_NO_SECURE_BOOT is not set
@@ -1218,6 +1228,12 @@ CONFIG_ESP_ROM_CLIC_INT_TYPE_PATCH=y
 CONFIG_ESP_ROM_HAS_OUTPUT_PUTC_FUNC=y
 # default:
 CONFIG_ESP_ROM_HAS_SUBOPTIMAL_NEWLIB_ON_MISALIGNED_MEMORY=y
+# default:
+CONFIG_ESP_ROM_ECDSA_VERIFY_PATCH=y
+# default:
+CONFIG_ESP_ROM_BOOTLOADER_OFFSET_FLASH=0x2000
+# default:
+CONFIG_ESP_ROM_CACHE_WRITEBACK_NEEDS_SYNC_TWICE_MAP=y
 
 #
 # Boot ROM Behavior
@@ -1396,6 +1412,42 @@ CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y
 # default:
 CONFIG_BT_CONTROLLER_DISABLED=y
+
+#
+# Common Options
+#
+# default:
+CONFIG_BT_ALARM_MAX_NUM=50
+# default:
+CONFIG_BT_SMP_CRYPTO_STACK_TINYCRYPT=y
+# default:
+# CONFIG_BT_SMP_CRYPTO_STACK_MBEDTLS is not set
+
+#
+# BT Logs
+#
+
+#
+# Log Sources
+#
+# end of Log Sources
+
+# default:
+# CONFIG_BT_LOG_CRITICAL_ONLY is not set
+# default:
+# CONFIG_BLE_LOG_ENABLED is not set
+
+#
+# Legacy SPI Log Output (Deprecated - use BT Log Async Output instead)
+#
+# default:
+# CONFIG_BT_BLE_LOG_SPI_OUT_ENABLED is not set
+# end of Legacy SPI Log Output (Deprecated - use BT Log Async Output instead)
+# end of BT Logs
+
+# default:
+# CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED is not set
+# end of Common Options
 
 #
 # NimBLE Options
@@ -1819,37 +1871,9 @@ CONFIG_BT_NIMBLE_EXTRA_ADV_FIELDS=y
 # end of Helper Utils
 # end of NimBLE Options
 
-#
-# Common Options
-#
-# default:
-CONFIG_BT_ALARM_MAX_NUM=50
-# default:
-CONFIG_BT_SMP_CRYPTO_STACK_TINYCRYPT=y
-# default:
-# CONFIG_BT_SMP_CRYPTO_STACK_MBEDTLS is not set
-
-#
-# BLE Log
-#
-# default:
-# CONFIG_BLE_LOG_ENABLED is not set
-# end of BLE Log
-
-# default:
-# CONFIG_BT_BLE_LOG_SPI_OUT_ENABLED is not set
-# default:
-# CONFIG_BT_BLE_LOG_UHCI_OUT_ENABLED is not set
-# default:
-# CONFIG_BT_LE_USED_MEM_STATISTICS_ENABLED is not set
-# end of Common Options
-
 # default:
 # CONFIG_BT_HCI_LOG_DEBUG_EN is not set
 # end of Bluetooth
-
-# default:
-# CONFIG_BLE_MESH is not set
 
 #
 # Console Library
@@ -3853,8 +3877,6 @@ CONFIG_MBEDTLS_TLS_SERVER_AND_CLIENT=y
 # default:
 # CONFIG_MBEDTLS_TLS_CLIENT_ONLY is not set
 # default:
-# CONFIG_MBEDTLS_TLS_DISABLED is not set
-# default:
 # CONFIG_MBEDTLS_SSL_KEEP_PEER_CERTIFICATE is not set
 # default:
 # CONFIG_MBEDTLS_SSL_CONTEXT_SERIALIZATION is not set
@@ -3939,8 +3961,6 @@ CONFIG_MBEDTLS_CMAC_C=y
 #
 # Asymmetric Ciphers
 #
-# default:
-CONFIG_MBEDTLS_BIGNUM_C=y
 # default:
 CONFIG_MBEDTLS_RSA_C=y
 # default:
@@ -4888,8 +4908,6 @@ CONFIG_WIFI_RMT_TX_HETB_QUEUE_NUM=3
 CONFIG_WIFI_RMT_ENTERPRISE_SUPPORT=y
 # default:
 # CONFIG_WIFI_RMT_ENT_FREE_DYNAMIC_BUFFER is not set
-# default:
-# CONFIG_WIFI_RMT_PASSIVE_HIDDEN_AP_SUPPORT is not set
 # end of Wi-Fi configuration
 
 # default:

@@ -43,18 +43,18 @@ pip3 install jinja2 pyyaml
 
 ## Build setup (target)
 ```
-cmake -GNinja -B radbuzz_esp32p4 -DCMAKE_BUILD_TYPE=Release ~/projects/radbuzz/esp32/esp32p4/
+cmake -GNinja -B radbuzz_esp32p4 -DCMAKE_BUILD_TYPE=Release <path>/radbuzz/esp32/waveshare_p4_touch_4_3
 ```
 
 ## Build setup (unittest/qt)
 ```
-cmake -GNinja -B radbuzz_unittest ~/projects/radbuzz/test/unittest/
+cmake -GNinja -B radbuzz_unittest <path>/radbuzz/test/unittest/
 ```
 
 or
 
 ```
-cmake -GNinja -B radbuzz_qt ~/projects/radbuzz/qt
+cmake -GNinja -B radbuzz_qt <path>/radbuzz/qt
 ```
 
 See [doc/build_instructions.md](doc/build_instructions.md) for more details on building and flashing the firmware.
