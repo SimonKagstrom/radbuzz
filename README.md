@@ -29,9 +29,11 @@ Hardware:
 
 * [Waveshare 4.3" ESP32P4 Touch](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-4.3.htm)
 * A rotary encoder
-* UART-based GPS
-* A CAN-bus adapter to communicate with the VESC
-* A DC/DC converter to power the ESP32P4 from the 12V outlet on the VESC
+* UART-based GPS (UBLOX Neo-6M / Neo-7M tested)
+* A CAN-bus adapter to communicate with the VESC (a Waveshare SN65HVD230 has been used)
+* A DC/DC converter to power the ESP32P4 from the 12V outlet on the VESC (a [Waveshare DC-DC buck mini module](https://www.waveshare.com/dc5-36-to-dc3v3-5.htm) used here)
+
+the pinout for the ESP32P4 can be seen in [esp32/waveshare_p4_touch_4_3/main.cc](esp32/waveshare_p4_touch_4_3/main.cc)
 
 ## Setup
 
