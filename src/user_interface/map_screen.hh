@@ -64,9 +64,12 @@ private:
     int32_t m_rotation_pivot_y {hal::kDisplayHeight / 2};
     uint16_t m_rotation {0};
     os::TimerHandle m_touch_timer;
+
     uint16_t m_home_hold_x {0};
     uint16_t m_home_hold_y {0};
     os::TimerHandle m_home_hold_timer;
+
+
     bool m_touch_was_pressed {false};
 
     uint8_t m_zoom;
