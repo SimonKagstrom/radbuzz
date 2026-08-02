@@ -49,11 +49,11 @@ DigitalSpeedometerWidget::Update(ApplicationState& state)
 {
     auto ro = state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
+    auto gps_speed = std::max(0.0f, ro.Get<AS::position>()->speed);
 
     lv_label_set_text(m_speed_digits_label, std::format("{}", ro.Get<AS::speed>()).c_str());
-    lv_label_set_text(
-        m_gps_speed_label,
-        std::format("{}", static_cast<uint8_t>(ro.Get<AS::position>()->speed)).c_str());
+    lv_label_set_text(m_gps_speed_label,
+                      std::format("{}", static_cast<uint8_t>(gps_speed)).c_str());
 
     if (conf->speedometer_type == SpeedometerType::kDigital ||
         conf->speedometer_type == SpeedometerType::kBoth)
