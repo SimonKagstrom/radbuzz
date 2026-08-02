@@ -38,7 +38,7 @@ the pinout for the ESP32P4 can be seen in [waveshare_p4_touch_4_3/main.cc](esp32
 ## Setup
 
 ```
-source $HOME/.espressif/tools/activate_idf_v6.0.0.sh
+source $HOME/.espressif/tools/activate_idf_v6.0.2.sh
 npm i lv_font_conv -g
 pip3 install jinja2 pyyaml
 ```
