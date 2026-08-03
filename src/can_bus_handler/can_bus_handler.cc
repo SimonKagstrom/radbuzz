@@ -13,6 +13,12 @@ void
 CanBusHandler::OnStartup()
 {
     m_bus_listener = m_bus.Start(GetSemaphore());
+
+    auto ro = m_state.CheckoutReadonly();
+
+    // storage.cc has loaded these before the thread start, so set here
+    m_start_consumed_wh = ro.Get<AS::wh_consumed>();
+    m_start_regen_wh = ro.Get<AS::wh_regenerated>();
 }
 
 std::optional<milliseconds>
@@ -101,8 +107,8 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
         vesc_status_msg_3_t status;
         if (vesc_parse_status_msg_3(data, len, &status))
         {
-            qw.Set<AS::wh_consumed>(ro.Get<AS::wh_consumed>() + status.watt_hours);
-            qw.Set<AS::wh_regenerated>(ro.Get<AS::wh_regenerated>() + status.watt_hours_charged);
+            qw.Set<AS::wh_consumed>(m_start_consumed_wh + status.watt_hours);
+            qw.Set<AS::wh_regenerated>(m_start_regen_wh + status.watt_hours_charged);
         }
     }
     else if (command == CAN_PACKET_STATUS_4)
