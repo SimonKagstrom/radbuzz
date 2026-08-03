@@ -18,6 +18,7 @@ TrimAtFirstNul(std::string_view input)
 
     return std::string(input.substr(0, nul_pos));
 }
+
 } // namespace
 
 enum class Key
@@ -34,6 +35,8 @@ enum class Key
     kWifiNetworks,
     kHomeXPosition,
     kHomeYPosition,
+    kWhConsumed,
+    kWhRegenerated,
 
     kValueCount,
 };
@@ -83,6 +86,11 @@ constexpr auto kKeyToString = std::array {std::pair {
                                               "y",
                                           },
                                           std::pair {
+                                              Key::kWhConsumed,
+                                              "C",
+                                          },
+                                          std::pair {Key::kWhRegenerated, "g"},
+                                          std::pair {
                                               Key::kWifiNetworks,
                                               "W",
                                           }};
@@ -114,10 +122,13 @@ KeyToString(Key key)
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
-    , m_state_listener(m_application_state.AttachListener<AS::configuration>(GetSemaphore()))
+    , m_state_listener(
+          m_application_state.AttachListener<AS::configuration, AS::is_moving>(GetSemaphore()))
     , m_state_cache(m_application_state)
 {
-    auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration>();
+    auto ps =
+        m_application_state
+            .CheckoutPartialSnapshot<AS::configuration, AS::wh_consumed, AS::wh_regenerated>();
     auto& conf = ps.GetWritableReference<AS::configuration>();
 
     Point home_position {0, 0, kDefaultZoom};
@@ -137,6 +148,10 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     conf.force_c6_update = m_nvm.Get<bool>(KeyToString(Key::kForceC6Update)).value_or(false);
     conf.show_gps_speed = m_nvm.Get<bool>(KeyToString(Key::kShowGpsSpeed)).value_or(false);
     conf.home_position = home_position;
+
+    // Set the stored consumed/regen values
+    ps.Set<AS::wh_consumed>(m_nvm.Get<float>(KeyToString(Key::kWhConsumed)).value_or(0.0f));
+    ps.Set<AS::wh_regenerated>(m_nvm.Get<float>(KeyToString(Key::kWhRegenerated)).value_or(0.0f));
 
     auto networks = m_nvm.Get<std::string>(KeyToString(Key::kWifiNetworks));
     if (networks)
@@ -171,13 +186,32 @@ std::optional<milliseconds>
 Storage::OnActivation()
 {
     auto& co = m_state_cache.Pull();
+    auto ro = m_application_state.CheckoutReadonly();
 
-    if (co.IsChanged<AS::configuration>())
-    {
-        printf("Configuration changed, writing to NVM...\n");
-    }
+    // Mark as true if demo mode has been active, to not ruin the stored consumption values
+    m_tainted_by_demo_mode |= ro.Get<AS::demo_mode>();
+    auto do_commit = false;
 
-    co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
+    co.OnNewValue<AS::is_moving>([this, &ro, &do_commit](auto is_moving) {
+        if (!is_moving)
+        {
+            if (m_tainted_by_demo_mode)
+            {
+                printf("Demo mode has been active, not saving consumption values to NVM\n");
+            }
+            else
+            {
+                m_nvm.Set<float>(KeyToString(Key::kWhConsumed), ro.Get<AS::wh_consumed>());
+                m_nvm.Set<float>(KeyToString(Key::kWhRegenerated), ro.Get<AS::wh_regenerated>());
+
+                do_commit = true;
+            }
+        }
+    });
+
+    co.OnChangedValue<AS::configuration>([this, &do_commit](auto& old_conf, auto& new_conf) {
+        do_commit = true;
+
         if (old_conf.max_speed != new_conf.max_speed)
         {
             m_nvm.Set<uint8_t>(KeyToString(Key::kMaxSpeed), new_conf.max_speed);
@@ -236,9 +270,13 @@ Storage::OnActivation()
             m_nvm.Set<int32_t>(KeyToString(Key::kHomeXPosition), new_conf.home_position.x);
             m_nvm.Set<int32_t>(KeyToString(Key::kHomeYPosition), new_conf.home_position.y);
         }
-
-        m_nvm.Commit();
     });
+
+    if (do_commit)
+    {
+        printf("Writing to NVM...\n");
+        m_nvm.Commit();
+    }
 
     return std::nullopt;
 }

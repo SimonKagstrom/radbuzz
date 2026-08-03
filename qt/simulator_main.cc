@@ -58,9 +58,8 @@ main(int argc, char* argv[])
 
     rw.Set<AS::wifi_connected>(true);
     rw.Set<AS::demo_mode>(true);
+    // Stored by VESC, so update to something here
     rw.Set<AS::odometer>(500 + rand() % 2000);
-    rw.Set<AS::wh_consumed>(800 + rand() % 1000);
-    rw.Set<AS::wh_regenerated>(800 + rand() % 100);
 
     MainWindow window(application_state);
 

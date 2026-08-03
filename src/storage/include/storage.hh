@@ -17,5 +17,7 @@ private:
     ApplicationState& m_application_state;
     std::unique_ptr<ListenerCookie> m_state_listener;
     hal::INvm& m_nvm;
-    ApplicationState::PartialReadOnlyCache<AS::configuration> m_state_cache;
+    ApplicationState::PartialReadOnlyCache<AS::configuration, AS::is_moving> m_state_cache;
+
+    bool m_tainted_by_demo_mode {false};
 };
