@@ -1,6 +1,7 @@
 #include "settings_menu_screen.hh"
 
 #include <array>
+#include <radbuzz_font_22.h>
 #include <string_view>
 
 constexpr auto kSpeedometerTypeOptions = std::to_array<std::string_view>({
@@ -107,17 +108,42 @@ SettingsMenuScreen::OnActivation()
     main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
         m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(value);
     });
+
+
+    m_odometer_label = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_odometer_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_align(m_odometer_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+    lv_obj_align(m_odometer_label, LV_ALIGN_TOP_MID, 0, 0);
+
+    m_consumed_regen_label = lv_label_create(m_screen);
+
+    lv_obj_set_style_text_font(m_consumed_regen_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_align(m_consumed_regen_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+
+    lv_obj_align_to(m_consumed_regen_label, m_odometer_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 }
 
 void
 SettingsMenuScreen::OnDeactivation()
 {
+    lv_obj_del(m_odometer_label);
+    lv_obj_del(m_consumed_regen_label);
+
     m_menu_screen = nullptr;
 }
 
 void
 SettingsMenuScreen::Update()
 {
+    auto ro = m_parent.m_state.CheckoutReadonly();
+    auto odometer_km = ro.Get<AS::odometer>() / 1000.0f;
+    auto consumed_kwh = ro.Get<AS::wh_consumed>() / 1000.0f;
+    auto regen_kwh = ro.Get<AS::wh_regenerated>() / 1000.0f;
+
+    lv_label_set_text(m_odometer_label, std::format("Odometer: {:.1f} km", odometer_km).c_str());
+    lv_label_set_text(m_consumed_regen_label,
+                      std::format("Consumed: -{:.1f}+{:.1f} kWh", consumed_kwh, regen_kwh).c_str());
+    lv_obj_align_to(m_consumed_regen_label, m_odometer_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 }
 
 void

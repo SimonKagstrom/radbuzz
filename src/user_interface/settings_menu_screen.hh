@@ -14,5 +14,8 @@ private:
     void Update() final;
     void HandleInput(const Input::Event &event) final;
 
+    lv_obj_t* m_odometer_label {nullptr};
+    lv_obj_t* m_consumed_regen_label {nullptr};
+
     std::unique_ptr<MenuScreen> m_menu_screen;
 };

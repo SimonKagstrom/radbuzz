@@ -47,16 +47,15 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
                                       std::make_unique<SecondColumnStatRow>("km")});
     m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
     m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
+    m_stat_rows.emplace_back(StatRow {"Distance",
+                                      "m",
+                                      StatValueKind::kTripDistance});
     m_stat_rows.emplace_back(
         StatRow {"Average consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
     m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
                                       "Wh",
                                       StatValueKind::kConsumedWh,
                                       std::make_unique<SecondColumnStatRow>("Wh")});
-    m_stat_rows.emplace_back(StatRow {"Distance/odometer",
-                                      "m",
-                                      StatValueKind::kTripDistance,
-                                      std::make_unique<SecondColumnStatRow>("m")});
     m_stat_rows.emplace_back(StatRow {"Max/average speed",
                                       "km/h",
                                       StatValueKind::kTripMaxSpeed,
@@ -208,7 +207,6 @@ TripMeterScreen::Update()
             auto odometer_m = ro.Get<AS::odometer>();
             auto distance_m = ro.Get<AS::trip_distance>();
 
-            debug_assert(row.second_column != nullptr);
             if (distance_m >= 1000)
             {
                 float distance_km = distance_m / 1000.0f;
@@ -219,20 +217,6 @@ TripMeterScreen::Update()
             {
                 unit_text = "m";
                 value_text = std::format("{}", distance_m);
-            }
-
-            if (odometer_m >= 1000)
-            {
-                float distance_km = odometer_m / 1000.0f;
-
-                lv_label_set_text(row.second_column->value,
-                                  std::format("{:.1f}", distance_km).c_str());
-                lv_label_set_text(row.second_column->unit, "km");
-            }
-            else
-            {
-                lv_label_set_text(row.second_column->value, std::format("{}", odometer_m).c_str());
-                lv_label_set_text(row.second_column->unit, "m");
             }
             break;
         }

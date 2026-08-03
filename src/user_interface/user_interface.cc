@@ -150,6 +150,7 @@ UserInterface::OnStartup()
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
 
     ActivateScreen(*m_map_screen);
+    ResetTrip();
 }
 
 
