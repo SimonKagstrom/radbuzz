@@ -13,6 +13,9 @@ static constexpr TripComputer::LogHandle kInvalidLogHandle =
 namespace
 {
 
+// Limit in watts below which the battery sensing is done
+constexpr auto kBatterySenseLimit = 100;
+
 constexpr auto kMillivoltSocTable = std::array {std::pair<uint16_t, uint8_t> {3270, 0},
                                                 std::pair<uint16_t, uint8_t> {3390, 10},
                                                 std::pair<uint16_t, uint8_t> {3510, 20},
@@ -163,7 +166,7 @@ TripComputer::UpdateSoc(uint16_t millivolts)
 
     auto ro = m_state.CheckoutReadonly();
 
-    if (ro.Get<AS::current_power_w>() > 300)
+    if (ro.Get<AS::current_power_w>() > kBatterySenseLimit)
     {
         // Limit SOC updates on high power
         return;
