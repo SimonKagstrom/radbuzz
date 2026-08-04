@@ -255,7 +255,7 @@ TripMeterScreen::Update()
         case StatValueKind::kTime: {
             auto seconds = ro.Get<AS::trip_duration>().count();
 
-            value_text = std::format("{}", seconds);
+            value_text = SecondsToString(seconds);
             unit_text = seconds > 60 ? "" : "s";
         }
         break;
