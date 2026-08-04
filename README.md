@@ -1,6 +1,6 @@
 # Radbuzz
-Radbuzz is an infotainment and trip computer for electric mopeds and motorcycles, for VESC-based controllers.
-It's built for an ESP32P4 microcontroller, but can also be run on the desktop for testing.
+Radbuzz is an infotainment and trip computer for electric mopeds and motorcycles, targeting VESC-based
+controllers. It's built for an ESP32P4 microcontroller, but can also be run on the desktop for testing.
 
 <p align="center">
   <a href="doc/on_the_moped.jpg"><img src="doc/on_the_moped.jpg" alt="how it looks mounted on the moped" width="31%"></a>
