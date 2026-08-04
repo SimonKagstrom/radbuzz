@@ -6,12 +6,17 @@
 class DigitalSpeedometerWidget
 {
 public:
+    static constexpr auto kBoxDimensions = 96;
+
     DigitalSpeedometerWidget(lv_obj_t* parent);
 
-    void Update(ApplicationState& state);
+    void Update(ApplicationState& state, bool show_distance);
 
 private:
-    lv_obj_t* m_speedometer_box {nullptr};
+    std::array<lv_obj_t*, 2> m_boxes {nullptr, nullptr};
     lv_obj_t* m_speed_digits_label {nullptr};
     lv_obj_t* m_gps_speed_label {nullptr};
+
+    std::array<lv_obj_t*, 2> m_distance_labels {nullptr, nullptr};
+    std::array<lv_obj_t*, 2> m_distance_unit_labels {nullptr, nullptr};
 };

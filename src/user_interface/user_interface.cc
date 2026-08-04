@@ -168,9 +168,15 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     auto conf = ro.Get<AS::configuration>();
 
     auto height = hal::kDisplayHeight;
-    if (ro.Get<AS::navigation_active>() && m_current_screen == m_map_screen.get())
+    auto y_start = 0;
+    if (m_current_screen == m_map_screen.get())
     {
-        height = hal::kDisplayHeight - MapScreen::kNavigationBoxHeight;
+        if (ro.Get<AS::navigation_active>())
+        {
+            height -= MapScreen::kNavigationBoxHeight;
+        }
+        // The distance box is only shown on the map
+        y_start = DigitalSpeedometerWidget::kBoxDimensions;
     }
 
     const int pixels_at_max_power = height / 2;
@@ -193,13 +199,13 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     }
 
     painter::DrawClippedVerticalLine<Point>(dst,
-                                            {hal::kDisplayWidth - kPowerBarWidth, 0},
+                                            {hal::kDisplayWidth - kPowerBarWidth, y_start},
                                             {hal::kDisplayWidth, height},
                                             kPowerBarWidth,
                                             kBackgroundColor);
     // Shadow line to make it more clear
     painter::DrawClippedVerticalLine<Point>(dst,
-                                            {hal::kDisplayWidth - kPowerBarWidth - 1, 0},
+                                            {hal::kDisplayWidth - kPowerBarWidth - 1, y_start},
                                             {hal::kDisplayWidth, height},
                                             1,
                                             kShadowColor);
@@ -282,7 +288,7 @@ UserInterface::OnActivation()
     auto max_power = m_pm_lock->FullPower();
 
     m_current_screen->Update();
-    m_digital_speedometer->Update(m_state);
+    m_digital_speedometer->Update(m_state, m_current_screen == m_map_screen.get());
 
     if (auto time_before = os::GetTimeStampRaw(); m_next_redraw_time > time_before)
     {

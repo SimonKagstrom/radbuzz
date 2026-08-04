@@ -22,6 +22,8 @@ class MapScreen;
 class TripMeterScreen;
 class SettingsMenuScreen;
 
+constexpr auto kPowerBarWidth = 8;
+
 class UserInterface : public os::BaseThread
 {
 public:

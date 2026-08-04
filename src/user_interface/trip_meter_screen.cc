@@ -1,6 +1,7 @@
 #include "trip_meter_screen.hh"
 
 #include "map_screen.hh"
+#include "time_string.hh"
 
 #include <algorithm>
 #include <cstddef>
@@ -41,15 +42,11 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     m_stat_rows.reserve(7);
-    m_stat_rows.emplace_back(StatRow {"SoC/range",
-                                      "%",
-                                      StatValueKind::kSoc,
-                                      std::make_unique<SecondColumnStatRow>("km")});
+    m_stat_rows.emplace_back(StatRow {
+        "SoC/range", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("km")});
     m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
     m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
-    m_stat_rows.emplace_back(StatRow {"Distance",
-                                      "m",
-                                      StatValueKind::kTripDistance});
+    m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
     m_stat_rows.emplace_back(
         StatRow {"Average consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
     m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
@@ -258,26 +255,8 @@ TripMeterScreen::Update()
         case StatValueKind::kTime: {
             auto seconds = ro.Get<AS::trip_duration>().count();
 
-            if (seconds > 60)
-            {
-                if (seconds > 3600)
-                {
-                    // Hours
-                    value_text = std::format(
-                        "{:02}:{:02}:{:02}", seconds / 3600, (seconds % 3600) / 60, seconds % 60);
-                }
-                else
-                {
-                    // Minutes
-                    value_text = std::format("{:02}:{:02}", seconds / 60, seconds % 60);
-                }
-                unit_text = "";
-            }
-            else
-            {
-                value_text = std::format("{}", seconds);
-                unit_text = "s";
-            }
+            value_text = std::format("{}", seconds);
+            unit_text = seconds > 60 ? "" : "s";
         }
         break;
         case StatValueKind::kValueCount:

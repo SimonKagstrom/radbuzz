@@ -2,6 +2,7 @@
 
 #include "bresenham.hh"
 #include "cohen_sutherland.hh"
+#include "digital_speedometer_widget.hh"
 #include "lv_event_listener.hh"
 
 #include <algorithm>
@@ -16,8 +17,6 @@
 #include <radbuzz_symbols_22.h>
 #include <radbuzz_symbols_40.h>
 
-
-constexpr auto kPowerBarWidth = 8;
 
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width)
@@ -210,7 +209,10 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
 
     m_indicator_label = lv_label_create(m_screen);
-    lv_obj_align(m_indicator_label, LV_ALIGN_TOP_RIGHT, -kPowerBarWidth - 2, 0);
+    lv_obj_align(m_indicator_label,
+                 LV_ALIGN_TOP_RIGHT,
+                 -kPowerBarWidth - DigitalSpeedometerWidget::kBoxDimensions - 16,
+                 0);
     lv_obj_set_style_text_font(m_indicator_label, &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_indicator_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_label_set_recolor(m_indicator_label, true);
