@@ -34,6 +34,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::speed,
                                               AS::tile_loaded,
                                               AS::trip_duration,
+                                              AS::navigation_active,
                                               AS::is_moving,
                                               AS::wh_consumed,
                                               AS::wh_regenerated>(GetSemaphore());
@@ -159,7 +160,7 @@ void
 UserInterface::DrawPowerBar(uint16_t* dst)
 {
     const auto kBackgroundColor = lv_color_to_u16(lv_color_make(100, 100, 100));
-    const auto kShadowColor = lv_color_to_u16(lv_color_make(75, 75, 75));
+    const auto kShadowColor = lv_color_to_u16(lv_color_make(135, 135, 135));
     const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
     const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
     constexpr auto kPowerBarWidth = 8;
