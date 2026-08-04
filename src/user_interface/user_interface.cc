@@ -188,7 +188,6 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     const int power_bar_size = (abs_watts * pixels_at_max_power) / max_watts;
     const int clamped_power_bar_size = std::min(power_bar_size, pixels_at_max_power);
 
-    Point to {hal::kDisplayWidth - kPowerBarWidth, height / 2};
     Point from {hal::kDisplayWidth - kPowerBarWidth,
                 hal::kDisplayHeight / 2 - clamped_power_bar_size};
 
@@ -199,18 +198,12 @@ UserInterface::DrawPowerBar(uint16_t* dst)
         bar_color = kNegativePowerColor;
     }
 
-    painter::DrawClippedVerticalLine<Point>(dst,
-                                            {hal::kDisplayWidth - kPowerBarWidth, y_start},
-                                            {hal::kDisplayWidth, height},
-                                            kPowerBarWidth,
-                                            kBackgroundColor);
+    painter::DrawClippedVerticalLine<Point, kPowerBarWidth>(
+        dst, {hal::kDisplayWidth - kPowerBarWidth, y_start}, height, kBackgroundColor);
     // Shadow line to make it more clear
-    painter::DrawClippedVerticalLine<Point>(dst,
-                                            {hal::kDisplayWidth - kPowerBarWidth - 1, y_start},
-                                            {hal::kDisplayWidth, height},
-                                            1,
-                                            kShadowColor);
-    painter::DrawClippedVerticalLine<Point>(dst, from, to, kPowerBarWidth, bar_color);
+    painter::DrawClippedVerticalLine<Point, 1>(
+        dst, {hal::kDisplayWidth - kPowerBarWidth - 1, y_start}, height, kShadowColor);
+    painter::DrawClippedVerticalLine<Point, kPowerBarWidth>(dst, from, height / 2, bar_color);
 }
 
 
