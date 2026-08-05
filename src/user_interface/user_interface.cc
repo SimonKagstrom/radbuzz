@@ -1,11 +1,26 @@
 #include "user_interface.hh"
 
+#include "indicators.hh"
 #include "map_screen.hh"
 #include "painter.hh"
 #include "settings_menu_screen.hh"
 #include "trip_meter_screen.hh"
 
 #include <radbuzz_font_22.h>
+#include <radbuzz_symbols_40.h>
+
+UserInterface::IndicatorBase::IndicatorBase(UserInterface& parent, const Point& position)
+    : m_parent(parent)
+    , m_indicator_label(lv_label_create(lv_layer_top()))
+{
+
+    lv_obj_set_style_text_font(m_indicator_label, &radbuzz_symbols_40, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_indicator_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_label_set_recolor(m_indicator_label, true);
+    lv_label_set_text(m_indicator_label, "");
+
+    lv_obj_set_pos(m_indicator_label, position.x, position.y);
+}
 
 UserInterface::UserInterface(hal::IDisplay& display,
                              hal::IBlitter& blitter,
@@ -150,6 +165,29 @@ UserInterface::OnStartup()
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
 
+    // The battery icon is at the top right, and the rest in a column to the lright
+    constexpr auto kIndicatorRowSpacing = 46;
+    constexpr auto kIndicatorColumn = hal::kDisplayWidth - kPowerBarWidth - 48;
+
+    m_indicators.push_back(std::make_unique<BatteryIndicator>(
+        *this, Point {hal::kDisplayWidth - DigitalSpeedometerWidget::kBoxDimensions - 72, 0}));
+
+    auto indicator_row_y = DigitalSpeedometerWidget::kBoxDimensions - 46;
+    m_indicators.push_back(std::make_unique<OverheatedIndicator>(
+        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing}));
+    m_indicators.push_back(std::make_unique<HomeIndicator>(
+        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing}));
+    m_indicators.push_back(std::make_unique<GpsLostIndicator>(
+        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing}));
+    m_indicators.push_back(std::make_unique<PausedIndicator>(
+        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing}));
+    m_indicators.push_back(std::make_unique<WifiIndicator>(
+        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing}));
+    m_indicators.push_back(std::make_unique<BluetoothIndicator>(
+        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing}));
+
+    m_show_all_indicators_timer = StartTimer(2s);
+
     ActivateScreen(*m_map_screen);
     ResetTrip();
 }
@@ -163,14 +201,13 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     const auto kShadowColor = lv_color_to_u16(lv_color_make(135, 135, 135));
     const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
     const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
-    constexpr auto kPowerBarWidth = 8;
 
     auto ro = m_state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
 
     auto height = hal::kDisplayHeight;
     auto y_start = 0;
-    if (m_current_screen == m_map_screen.get())
+    if (OnMapScreen())
     {
         if (ro.Get<AS::navigation_active>())
         {
@@ -282,7 +319,20 @@ UserInterface::OnActivation()
     auto max_power = m_pm_lock->FullPower();
 
     m_current_screen->Update();
-    m_digital_speedometer->Update(m_state, m_current_screen == m_map_screen.get());
+    m_digital_speedometer->Update(m_state, OnMapScreen());
+    for (auto& indicator : m_indicators)
+    {
+        indicator->Update(m_state);
+    }
+
+    // Like in automobiles, show all indicators at startup
+    if (!m_show_all_indicators_timer->IsExpired())
+    {
+        for (auto& indicator : m_indicators)
+        {
+            lv_obj_clear_flag(indicator->m_indicator_label, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
 
     if (auto time_before = os::GetTimeStampRaw(); m_next_redraw_time > time_before)
     {

@@ -48,7 +48,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
     m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
     m_stat_rows.emplace_back(
-        StatRow {"Average consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
+        StatRow {"Trip consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
     m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
                                       "Wh",
                                       StatValueKind::kConsumedWh,

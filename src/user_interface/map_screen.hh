@@ -56,8 +56,6 @@ private:
     lv_obj_t* m_distance_left_label {nullptr};
     lv_obj_t* m_home_label {nullptr};
 
-    lv_obj_t* m_indicator_label {nullptr};
-
     Point m_current_view_center {0, 0, kDefaultZoom};
     Point m_current_range_circle_center {0, 0, kDefaultZoom};
     int32_t m_rotation_pivot_x {hal::kDisplayWidth / 2};

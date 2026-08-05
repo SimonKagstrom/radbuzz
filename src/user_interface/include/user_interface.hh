@@ -21,6 +21,7 @@
 class MapScreen;
 class TripMeterScreen;
 class SettingsMenuScreen;
+class HomeIndicator;
 
 constexpr auto kPowerBarWidth = 10;
 
@@ -30,6 +31,7 @@ public:
     friend class MapScreen;
     friend class TripMeterScreen;
     friend class SettingsMenuScreen;
+    friend class HomeIndicator;
 
     class ScreenBase
     {
@@ -68,6 +70,21 @@ public:
         lv_obj_t* m_screen {nullptr};
     };
 
+    class IndicatorBase
+    {
+    public:
+        friend class UserInterface;
+
+        IndicatorBase(UserInterface& parent, const Point& position);
+        virtual ~IndicatorBase() = default;
+
+        virtual void Update(ApplicationState& state) = 0;
+
+    protected:
+        UserInterface& m_parent;
+        lv_obj_t* m_indicator_label {nullptr};
+    };
+
     UserInterface(hal::IDisplay& display,
                   hal::IBlitter& blitter,
                   std::unique_ptr<hal::IPm::ILock> pm_lock,
@@ -77,12 +94,23 @@ public:
                   TileCache& tile_cache,
                   TripComputer& trip_computer);
 
+    bool OnMapScreen() const
+    {
+        return m_current_screen == m_map_screen.get();
+    }
+
+    bool OnTripMeterScreen() const
+    {
+        return m_current_screen == m_trip_meter_screen.get();
+    }
+
 private:
     struct CurrentTrip
     {
         float start_wh_consumed {0};
         float start_wh_regenerated {0};
     };
+
 
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
@@ -136,6 +164,7 @@ private:
 
     os::TimerHandle m_trip_start_initial_timer;
     os::TimerHandle m_menu_destructor;
+    os::TimerHandle m_show_all_indicators_timer;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
 
@@ -146,6 +175,8 @@ private:
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
     std::unique_ptr<ScreenBase> m_settings_menu_screen;
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
+
+    std::vector<std::unique_ptr<IndicatorBase>> m_indicators;
 
     ScreenBase* m_current_screen {nullptr};
 };

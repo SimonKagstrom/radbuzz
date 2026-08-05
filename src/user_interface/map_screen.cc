@@ -208,16 +208,6 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_color(m_home_label, lv_color_black(), LV_PART_MAIN);
     lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
 
-    m_indicator_label = lv_label_create(m_screen);
-    lv_obj_align(m_indicator_label,
-                 LV_ALIGN_TOP_RIGHT,
-                 -kPowerBarWidth - DigitalSpeedometerWidget::kBoxDimensions - 16,
-                 0);
-    lv_obj_set_style_text_font(m_indicator_label, &radbuzz_symbols_40, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_indicator_label, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_label_set_recolor(m_indicator_label, true);
-    lv_label_set_text(m_indicator_label, "");
-
     // Left pane
     auto left_box = lv_obj_create(m_screen);
     lv_obj_set_size(left_box, 128 + 10, hal::kDisplayHeight + 10);
@@ -435,65 +425,6 @@ MapScreen::Update()
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
                       std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
-
-    const uint8_t battery_soc = std::min<uint8_t>(ro.Get<AS::battery_soc>(), 100);
-
-    std::string indicator_label_text = "";
-
-    if (ro.Get<AS::overheated>())
-    {
-        indicator_label_text += std::format("#F44336 {}# ", LV_SYMBOL_WARNING);
-    }
-    if (!ro.Get<AS::gps_position_valid>())
-    {
-        indicator_label_text += std::format("#ffa500 {}# ", LV_SYMBOL_GPS);
-    }
-    if (ro.Get<AS::wifi_connected>())
-    {
-        indicator_label_text += std::format("#4CAF50 {}# ", LV_SYMBOL_WIFI);
-    }
-    if (ro.Get<AS::bluetooth_connected>())
-    {
-        indicator_label_text += std::format("#4CAF50 {}# ", LV_SYMBOL_BLUETOOTH);
-    }
-    if (!ro.Get<AS::is_moving>())
-    {
-        indicator_label_text += std::format("#4CAF50 {}# ", LV_SYMBOL_PAUSE);
-    }
-
-    auto range = ro.Get<AS::estimated_range_km>() * 1000.0f;
-
-    if (m_parent.m_distance_home_meters / range > 1.0f)
-    {
-        indicator_label_text += std::format("#F44336 {}# ", LV_SYMBOL_HOME);
-    }
-    else if (m_parent.m_distance_home_meters / range > 0.75f)
-    {
-        indicator_label_text += std::format("#ffa500 {}# ", LV_SYMBOL_HOME);
-    }
-
-    if (battery_soc > 90)
-    {
-        indicator_label_text += std::format("#4CAF50 {}#", LV_SYMBOL_BATTERY_FULL);
-    }
-    else if (battery_soc > 75)
-    {
-        indicator_label_text += std::format("#4CAF50 {}#", LV_SYMBOL_BATTERY_3);
-    }
-    else if (battery_soc >= 40)
-    {
-        indicator_label_text += std::format("#4CAF50 {}#", LV_SYMBOL_BATTERY_2);
-    }
-    else if (battery_soc > 20)
-    {
-        indicator_label_text += std::format("#ffa500 {}#", LV_SYMBOL_BATTERY_1);
-    }
-    else
-    {
-        indicator_label_text += std::format("#F44336 {}#", LV_SYMBOL_BATTERY_EMPTY);
-    }
-
-    lv_label_set_text(m_indicator_label, indicator_label_text.c_str());
 
     lv_obj_invalidate(m_screen);
 }
