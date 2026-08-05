@@ -390,10 +390,29 @@ MapScreen::Update()
                    dot_center_y - static_cast<int>(m_position_dot.Height()) / 2);
 
 
-    // Place the home position icon
+    // Place the home position icon using the same transform as the map.
     auto home_position = OsmPointToPoint(conf->home_position, m_zoom);
-    auto home_on_screen_x = home_position.x - m_current_view_center.x + display_cx;
-    auto home_on_screen_y = home_position.y - m_current_view_center.y + display_cy;
+    int home_on_screen_x = home_position.x - m_current_view_center.x + display_cx;
+    int home_on_screen_y = home_position.y - m_current_view_center.y + display_cy;
+
+    if (m_rotation_enabled)
+    {
+        const float angle_rad = static_cast<float>(m_rotation) * std::numbers::pi_v<float> / 180.0f;
+        const float cos_a = ::cosf(angle_rad);
+        const float sin_a = ::sinf(angle_rad);
+
+        const float source_offset_x = static_cast<float>(home_position.x - m_current_view_center.x);
+        const float source_offset_y = static_cast<float>(home_position.y - m_current_view_center.y);
+
+        // Apply the forward source->display rotation around the active pivot.
+        home_on_screen_x =
+            static_cast<int>(std::lround(static_cast<float>(m_rotation_pivot_x) +
+                                         cos_a * source_offset_x - sin_a * source_offset_y));
+        home_on_screen_y =
+            static_cast<int>(std::lround(static_cast<float>(m_rotation_pivot_y) +
+                                         sin_a * source_offset_x + cos_a * source_offset_y));
+    }
+
     lv_obj_set_pos(m_home_label,
                    home_on_screen_x - lv_obj_get_width(m_home_label) / 2,
                    home_on_screen_y - lv_obj_get_height(m_home_label) / 2);
