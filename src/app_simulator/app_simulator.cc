@@ -365,6 +365,7 @@ AppSimulator::OnActivation()
 
     const auto odometer_delta = std::max<int32_t>(0, previous_distance_left - m_distance_left);
 
+    auto ro = m_application_state.CheckoutReadonly();
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::odometer,
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
@@ -416,7 +417,7 @@ iconHash={:08x}32
             std::clamp(speed + sign * static_cast<uint8_t>(m_random_engine() % 3), 0, kMaxSpeed));
 
         ps.GetWritableReference<AS::trip_max_speed>() =
-            std::max(m_application_state.CheckoutReadonly().Get<AS::trip_max_speed>(), speed);
+            std::max(ro.Get<AS::trip_max_speed>(), speed);
     }
     else
     {
@@ -459,11 +460,37 @@ iconHash={:08x}32
     mangled.heading = m_heading;
     mangled.speed = speed + rand() % 2 - 1;
 
-    auto qw = m_application_state
-                  .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_position_valid>();
+    auto controller_temperature = speed + 20; // Silly, yes
+
+    auto qw = m_application_state.CheckoutQueuedWriter<AS::position,
+                                                       AS::pixel_position,
+                                                       AS::gps_position_valid,
+                                                       AS::controller_temperature,
+                                                       AS::overheated>();
+
     qw.Set<AS::position>(mangled);
     qw.Set<AS::pixel_position>(m_current_point);
     qw.Set<AS::gps_position_valid>(true);
+    qw.Set<AS::controller_temperature>(controller_temperature);
+
+    // TODO: This is really the same as the can bus handler does
+    if (controller_temperature > 75 && ro.Get<AS::overheated>() == false)
+    {
+        qw.Set<AS::overheated>(true);
+        m_overheated_timer = StartTimer(2s, [this]() {
+            auto rw = m_application_state.CheckoutReadWrite();
+            auto out = std::optional<milliseconds> {2s};
+
+            if (rw.Get<AS::controller_temperature>() <= 75)
+            {
+                // Clear the condition and disable the timer
+                rw.Set<AS::overheated>(false);
+                out = std::nullopt;
+            }
+
+            return out;
+        });
+    }
 
     return 50ms +
            milliseconds(150 - static_cast<uint32_t>(speed / static_cast<float>(kMaxSpeed) * 150));

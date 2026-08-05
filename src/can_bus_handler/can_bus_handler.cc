@@ -99,6 +99,7 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
         AS::battery_millivolts, // Millivolts is temporary until the bms reader is done
         AS::controller_temperature,
         AS::motor_temperature,
+        AS::overheated,
         AS::speed,
         AS::trip_max_speed>();
 
@@ -119,10 +120,30 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
             auto amps = status.current_in;
 
             auto watts = ro.Get<AS::battery_millivolts>() * amps / 1000.0f;
+            auto fet_temperature = static_cast<uint8_t>(status.temp_fet);
 
             qw.Set<AS::current_power_w>(static_cast<int16_t>(watts));
-            qw.Set<AS::controller_temperature>(static_cast<uint8_t>(status.temp_fet));
+            qw.Set<AS::controller_temperature>(fet_temperature);
             qw.Set<AS::motor_temperature>(static_cast<uint8_t>(status.temp_motor));
+
+            if (fet_temperature > 80 && ro.Get<AS::overheated>() == false)
+            {
+                qw.Set<AS::overheated>(true);
+                // Clear the overheating condition after a while, if it's not still overheated
+                m_overheated_timer = StartTimer(2s, [this]() {
+                    auto rw = m_state.CheckoutReadWrite();
+                    auto out = std::optional<milliseconds> {2s};
+
+                    if (rw.Get<AS::controller_temperature>() <= 80)
+                    {
+                        // Clear the condition and disable the timer
+                        rw.Set<AS::overheated>(false);
+                        out = std::nullopt;
+                    }
+
+                    return out;
+                });
+            }
         }
     }
     else if (command == CAN_PACKET_STATUS_5)

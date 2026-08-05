@@ -85,3 +85,6 @@ parameters:
 
   tile_loaded:
     type: Event
+
+  overheated:
+    type: bool

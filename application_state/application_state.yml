@@ -30,3 +30,4 @@ application_state:
   trip_max_speed: 0
   trip_average_speed: 0
   estimated_range_km: 0
+  overheated: false

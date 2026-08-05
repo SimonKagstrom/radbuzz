@@ -44,7 +44,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {
         "SoC/range", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("km")});
-    m_stat_rows.emplace_back(StatRow {"Controller/Motor", "°C", StatValueKind::kTemperature});
+    m_stat_rows.emplace_back(StatRow {"MOSFET/Motor", "°C", StatValueKind::kTemperature});
     m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
     m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
     m_stat_rows.emplace_back(
@@ -242,13 +242,13 @@ TripMeterScreen::Update()
             {
                 // Not mounted on all motors (like mine)
                 value_text = std::format("{}/{}", controller_temp, motor_temp);
-                label_text = "Controller/Motor";
+                label_text = "MOSFET/Motor";
             }
             else
             {
                 // Should always be valid, since it comes from the VESC
                 value_text = std::format("{}", controller_temp);
-                label_text = "Controller";
+                label_text = "MOSFET";
             }
             break;
         }

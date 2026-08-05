@@ -24,6 +24,7 @@ private:
 
     os::TimerHandle m_periodic_timer;
     os::TimerHandle m_start_timer;
+    os::TimerHandle m_overheated_timer;
 
     float m_start_consumed_wh {0.0f};
     float m_start_regen_wh {0.0f};

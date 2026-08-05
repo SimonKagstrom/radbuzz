@@ -16,8 +16,8 @@ convert_font(radbuzz_font_60
 
 convert_symbols(radbuzz_symbols_40
     40
-    # Battery, GPS, WiFi, BLE, home, pause (see lv_symbol_def.h), " "
-    0xf240-0xf244,0xf124,0xf1eb,0xf293,0xf015,0xf04C,0x50,0x20
+    # Battery, GPS, WiFi, BLE, home, pause, warning (see lv_symbol_def.h), " "
+    0xf240-0xf244,0xf124,0xf1eb,0xf293,0xf015,0xf04C,0xf071,0x50,0x20
 )
 
 convert_symbols(radbuzz_symbols_22

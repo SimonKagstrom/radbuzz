@@ -440,6 +440,10 @@ MapScreen::Update()
 
     std::string indicator_label_text = "";
 
+    if (ro.Get<AS::overheated>())
+    {
+        indicator_label_text += std::format("#F44336 {}# ", LV_SYMBOL_WARNING);
+    }
     if (!ro.Get<AS::gps_position_valid>())
     {
         indicator_label_text += std::format("#ffa500 {}# ", LV_SYMBOL_GPS);

@@ -49,4 +49,6 @@ private:
 
     uint16_t m_target_heading;
     uint16_t m_heading;
+
+    os::TimerHandle m_overheated_timer;
 };
