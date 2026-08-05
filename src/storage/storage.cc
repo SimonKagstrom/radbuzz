@@ -135,7 +135,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     home_position.x = m_nvm.Get<int32_t>(KeyToString(Key::kHomeXPosition)).value_or(0);
     home_position.y = m_nvm.Get<int32_t>(KeyToString(Key::kHomeYPosition)).value_or(0);
 
-    conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(true);
+    conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(false);
     conf.max_speed = m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeed)).value_or(30);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(KeyToString(Key::kBatterySeries)).value_or(7);
     conf.battery_amp_hours = m_nvm.Get<uint8_t>(KeyToString(Key::kBatteryAmpHours)).value_or(20);
