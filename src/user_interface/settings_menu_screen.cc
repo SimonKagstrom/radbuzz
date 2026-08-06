@@ -92,6 +92,13 @@ SettingsMenuScreen::OnActivation()
                 .GetWritableReference<AS::configuration>()
                 .rotate_map = value;
         });
+    settings_page.AddBooleanEntry("Show speech bubbles at start",
+                                  ro.Get<AS::configuration>()->show_speech_bubbles,
+                                  [this](auto value) {
+                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                          .GetWritableReference<AS::configuration>()
+                                          .show_speech_bubbles = value;
+                                  });
     settings_page.AddBooleanEntry(
         "Force C6 FW upgrade", ro.Get<AS::configuration>()->force_c6_update, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()

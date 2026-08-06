@@ -6,6 +6,8 @@
 class DigitalSpeedometerWidget
 {
 public:
+    friend class UserInterface;
+
     static constexpr auto kBoxDimensions = 96;
 
     DigitalSpeedometerWidget(lv_obj_t* parent);

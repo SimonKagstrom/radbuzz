@@ -37,6 +37,7 @@ enum class Key
     kHomeYPosition,
     kWhConsumed,
     kWhRegenerated,
+    kSpeechBubbles,
 
     kValueCount,
 };
@@ -93,6 +94,10 @@ constexpr auto kKeyToString = std::array {std::pair {
                                           std::pair {
                                               Key::kWifiNetworks,
                                               "W",
+                                          },
+                                          std::pair {
+                                              Key::kSpeechBubbles,
+                                              "b",
                                           }};
 
 static_assert(kKeyToString.size() == std::to_underlying(Key::kValueCount));
@@ -141,6 +146,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     conf.battery_amp_hours = m_nvm.Get<uint8_t>(KeyToString(Key::kBatteryAmpHours)).value_or(20);
     conf.wh_per_km_for_range_estimation =
         m_nvm.Get<uint8_t>(KeyToString(Key::kWhPerKmForRangeEstimation)).value_or(10);
+    conf.show_speech_bubbles = m_nvm.Get<bool>(KeyToString(Key::kSpeechBubbles)).value_or(true);
     conf.speedometer_type =
         static_cast<SpeedometerType>(m_nvm.Get<uint8_t>(KeyToString(Key::kSpeedometerType))
                                          .value_or(std::to_underlying(SpeedometerType::kDigital)));
@@ -264,6 +270,10 @@ Storage::OnActivation()
         if (old_conf.show_gps_speed != new_conf.show_gps_speed)
         {
             m_nvm.Set<bool>(KeyToString(Key::kShowGpsSpeed), new_conf.show_gps_speed);
+        }
+        if (old_conf.show_speech_bubbles != new_conf.show_speech_bubbles)
+        {
+            m_nvm.Set<bool>(KeyToString(Key::kSpeechBubbles), new_conf.show_speech_bubbles);
         }
         if (old_conf.home_position != new_conf.home_position)
         {

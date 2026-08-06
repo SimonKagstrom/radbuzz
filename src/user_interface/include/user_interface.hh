@@ -9,6 +9,7 @@
 #include "hal/i_input.hh"
 #include "hal/i_pm.hh"
 #include "image_cache.hh"
+#include "speech_bubble.hh"
 #include "input.hh"
 #include "menu_screen.hh"
 #include "tile_cache.hh"
@@ -177,6 +178,7 @@ private:
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
 
     std::vector<std::unique_ptr<IndicatorBase>> m_indicators;
+    std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
 
     ScreenBase* m_current_screen {nullptr};
 };

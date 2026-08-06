@@ -53,6 +53,8 @@ struct ConfigurationSettings
     uint8_t wh_per_km_for_range_estimation;
     /// @brief show the gps speed in small numbers
     bool show_gps_speed;
+    // Whether to show speech bubbles with info at start
+    bool show_speech_bubbles;
 
     // @brief Whether to force a C6 update on the next boot (for testing)
     bool force_c6_update;

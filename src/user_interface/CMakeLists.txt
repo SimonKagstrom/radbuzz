@@ -26,11 +26,11 @@ convert_symbols(radbuzz_symbols_22
     0xf015
 )
 
-# Small font with numbers
+# Small font
 convert_font(radbuzz_font_16
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
     16
-    0x20,0x30-0x39
+    0x20-0x7F
     "W+-%"
 )
 
