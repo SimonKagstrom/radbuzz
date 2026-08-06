@@ -247,7 +247,9 @@ BleServerEsp32::WritePeerCharacteristic(uint16_t conn_handle,
 {
     if (conn_handle == BLE_HS_CONN_HANDLE_NONE || value_handle == 0)
     {
-        printf("WritePeerCharacteristic: conn_handle=%d, value_handle=%d\n", conn_handle, value_handle);
+        printf("WritePeerCharacteristic: conn_handle=%d, value_handle=%d\n",
+               conn_handle,
+               value_handle);
         return false;
     }
 
@@ -283,10 +285,7 @@ BleServerEsp32::ReadPeerCharacteristic(uint16_t conn_handle,
     auto rc = ble_gattc_read(
         conn_handle,
         value_handle,
-        [](uint16_t ch,
-           const struct ble_gatt_error* error,
-           struct ble_gatt_attr* attr,
-           void* arg) {
+        [](uint16_t ch, const struct ble_gatt_error* error, struct ble_gatt_attr* attr, void* arg) {
             auto p = reinterpret_cast<BleServerEsp32*>(arg);
             return p->PeerReadComplete(ch, error, attr);
         },
@@ -353,7 +352,8 @@ BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_hand
 {
     if (conn_handle == BLE_HS_CONN_HANDLE_NONE || cccd_handle == 0)
     {
-        printf("EnablePeerNotifications: conn_handle=%d, cccd_handle=%d\n", conn_handle, cccd_handle);
+        printf(
+            "EnablePeerNotifications: conn_handle=%d, cccd_handle=%d\n", conn_handle, cccd_handle);
         return false;
     }
 
@@ -368,7 +368,7 @@ BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_hand
             return p->PeerWriteComplete(ch, error, attr);
         },
         this);
-printf("EnablePeerNotifications: rc=%d\n", rc);
+    printf("EnablePeerNotifications: rc=%d\n", rc);
     return rc == 0;
 }
 
@@ -410,16 +410,16 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
         uint16_t out_sz = 0;
         auto rv = ble_hs_mbuf_to_flat(ctxt->om, flattened.get(), data_size, &out_sz);
 
-        printf("Write characteristic callback: conn_handle=%u, attr_handle=%u, data_size=%u, rv=%d\n",
-               conn_handle,
-               attr_handle,
-               static_cast<unsigned>(data_size),
-               rv);
+        printf(
+            "Write characteristic callback: conn_handle=%u, attr_handle=%u, data_size=%u, rv=%d\n",
+            conn_handle,
+            attr_handle,
+            static_cast<unsigned>(data_size),
+            rv);
         if (rv == 0)
         {
-            auto payload_span =
-                std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(flattened.get()),
-                                         static_cast<size_t>(out_sz));
+            auto payload_span = std::span<const uint8_t>(
+                reinterpret_cast<const uint8_t*>(flattened.get()), static_cast<size_t>(out_sz));
             p->cb(payload_span);
         }
         ble_gatts_chr_updated(attr_handle);
@@ -600,9 +600,8 @@ BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
         return false;
     }
 
-    const bool mac_match = std::equal(std::begin(disc->addr.val),
-                                      std::end(disc->addr.val),
-                                      kPreferredPeerMac.begin());
+    const bool mac_match =
+        std::equal(std::begin(disc->addr.val), std::end(disc->addr.val), kPreferredPeerMac.begin());
     if (!mac_match)
     {
         return false;
@@ -694,20 +693,19 @@ BleServerEsp32::PeerSvcDisced(uint16_t conn_handle,
 
     switch (error->status)
     {
-    case 0:
-        {
-            auto discovered_uuid = UuidFromBle(service->uuid.u);
-            printf("Discovered service start=%u end=%u ", service->start_handle, service->end_handle);
-            PrintUuid(discovered_uuid);
+    case 0: {
+        auto discovered_uuid = UuidFromBle(service->uuid.u);
+        printf("Discovered service start=%u end=%u ", service->start_handle, service->end_handle);
+        PrintUuid(discovered_uuid);
 
-            if (m_peer_service_uuid && UuidEquals(*m_peer_service_uuid, discovered_uuid))
-            {
-                printf("Matched requested service UUID: ");
-                PrintUuid(*m_peer_service_uuid);
-                m_peer_svc_start_handle = service->start_handle;
-                m_peer_svc_end_handle = service->end_handle;
-            }
+        if (m_peer_service_uuid && UuidEquals(*m_peer_service_uuid, discovered_uuid))
+        {
+            printf("Matched requested service UUID: ");
+            PrintUuid(*m_peer_service_uuid);
+            m_peer_svc_start_handle = service->start_handle;
+            m_peer_svc_end_handle = service->end_handle;
         }
+    }
         rc = 0;
         break;
 
@@ -756,17 +754,16 @@ BleServerEsp32::PeerChrDisced(uint16_t conn_handle,
 
     switch (error->status)
     {
-    case 0:
+    case 0: {
+        auto uuid = UuidFromBle(chr->uuid.u);
+        const bool prefer_this_char =
+            UuidEquals(uuid, kPreferredPeerCharacteristicUuid) || m_peer_chr_val_handle == 0;
+        if (prefer_this_char)
         {
-            auto uuid = UuidFromBle(chr->uuid.u);
-            const bool prefer_this_char =
-                UuidEquals(uuid, kPreferredPeerCharacteristicUuid) || m_peer_chr_val_handle == 0;
-            if (prefer_this_char)
-            {
-                m_peer_char_uuid = uuid;
-                m_peer_chr_val_handle = chr->val_handle;
-            }
+            m_peer_char_uuid = uuid;
+            m_peer_chr_val_handle = chr->val_handle;
         }
+    }
         rc = 0;
         break;
 
@@ -855,7 +852,6 @@ BleServerEsp32::PeerWriteComplete(uint16_t conn_handle,
 {
     if (error->status == 0)
     {
-        printf("Write complete (handle=%u)\n", attr ? attr->handle : 0);
         return 0;
     }
 
@@ -892,8 +888,7 @@ BleServerEsp32::PeerReadComplete(uint16_t conn_handle,
 
     if (rv == 0)
     {
-        auto payload_span =
-            std::span<const uint8_t>(flattened.get(), static_cast<size_t>(out_sz));
+        auto payload_span = std::span<const uint8_t>(flattened.get(), static_cast<size_t>(out_sz));
         cb_it->second(payload_span);
     }
 
@@ -1011,7 +1006,6 @@ BleServerEsp32::StartPeerDscDiscovery(uint16_t conn_handle)
 int
 BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
 {
-    printf("T: %d\n", event->type);
     switch (event->type)
     {
     // Advertise if connected
@@ -1076,8 +1070,8 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         {
             if (!m_peer_connect_in_progress)
             {
-                printf("Ignoring incoming server connection on handle %u\n",
-                       event->connect.conn_handle);
+                m_server_conn_handle = event->connect.conn_handle;
+                m_on_connection_changed(true);
                 break;
             }
 
@@ -1090,11 +1084,18 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
                 MODLOG_DFLT(ERROR, "Failed to start peer service discovery; rc=%d\n", rc);
                 return rc;
             }
-            m_on_connection_changed(true);
         }
         break;
     case BLE_GAP_EVENT_DISCONNECT: {
         ESP_LOGI("GAP", "BLE GAP EVENT DISCONNECT %d", event->disconnect.reason);
+        if (event->disconnect.conn.conn_handle == m_server_conn_handle)
+        {
+            m_server_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+            m_on_connection_changed(false);
+            AppAdvertise();
+            break;
+        }
+
         if (event->disconnect.conn.conn_handle != m_peer_conn_handle)
         {
             printf("Ignoring non-peer disconnect on handle %u\n",
@@ -1111,7 +1112,6 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         m_peer_cccd_handle = 0;
         m_peer_connect_in_progress = false;
         m_notification_callbacks.clear();
-        m_on_connection_changed(false);
 
         const bool matched_service = m_peer_matched_requested_service;
         if (matched_service)
@@ -1140,9 +1140,8 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
             auto cb_it = m_notification_callbacks.find(handle);
             if (cb_it != m_notification_callbacks.end())
             {
-                auto payload_span =
-                    std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(flattened.get()),
-                                             static_cast<size_t>(out_sz));
+                auto payload_span = std::span<const uint8_t>(
+                    reinterpret_cast<const uint8_t*>(flattened.get()), static_cast<size_t>(out_sz));
                 cb_it->second(payload_span);
             }
             else

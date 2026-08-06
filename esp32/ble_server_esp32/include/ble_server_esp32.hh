@@ -107,6 +107,7 @@ private:
     std::unordered_set<uint16_t> m_pending_notification_subscriptions;
 
     uint16_t m_peer_conn_handle {BLE_HS_CONN_HANDLE_NONE};
+    uint16_t m_server_conn_handle {BLE_HS_CONN_HANDLE_NONE};
     uint16_t m_peer_svc_start_handle {0};
     uint16_t m_peer_svc_end_handle {0};
     std::optional<hal::Uuid128> m_peer_char_uuid;

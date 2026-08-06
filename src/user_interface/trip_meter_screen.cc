@@ -10,15 +10,17 @@
 #include <radbuzz_font_22.h>
 #include <radbuzz_font_60.h>
 
-constexpr int kValueRightXOffset = 80;
-constexpr int kLabelColumnWidth = 300;
-constexpr int kValueColumnWidth = 180;
-constexpr int kUnitColumnWidth = 100;
-constexpr int kLabelToValueGap = 24;
+constexpr int kValueRightXOffset = 60;
+constexpr int kLabelColumnWidth = 280;
+constexpr int kValueColumnWidth = 160;
+constexpr int kUnitColumnWidth = 70;
+constexpr int kLabelToValueGap = 20;
 constexpr int kValueToUnitGap = 5;
 constexpr int kFirstRowYOffset = 0;
 constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
-constexpr int kSecondColumnRightXOffset = 310;
+constexpr int kSecondColumnRightXOffset = 260;
+constexpr int kSingleColumnValueWidth =
+    kValueColumnWidth + (kSecondColumnRightXOffset - kValueRightXOffset);
 
 namespace
 {
@@ -74,18 +76,42 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 
         row.value = lv_label_create(m_screen);
         lv_obj_set_style_text_font(row.value, &radbuzz_font_60, LV_PART_MAIN);
-        lv_obj_set_width(row.value, kValueColumnWidth);
+        if (row.second_column)
+        {
+            lv_obj_set_width(row.value, kValueColumnWidth);
+        }
+        else
+        {
+            lv_obj_set_width(row.value, kSingleColumnValueWidth);
+        }
         lv_obj_set_style_text_align(row.value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
         lv_label_set_text(row.value, "0");
 
         row.unit = lv_label_create(m_screen);
         lv_obj_set_style_text_font(row.unit, &radbuzz_font_22, LV_PART_MAIN);
-        lv_obj_set_width(row.unit, kUnitColumnWidth);
+        lv_obj_align_to(row.unit,
+                        row.value,
+                        LV_ALIGN_OUT_RIGHT_BOTTOM,
+                        kValueToUnitGap,
+                        side_text_baseline_y_offset);
+        //        lv_obj_set_width(row.unit, kUnitColumnWidth);
         lv_obj_set_style_text_align(row.unit, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
         lv_label_set_text(row.unit, row.unit_text);
 
-        lv_obj_align(
-            row.value, LV_ALIGN_TOP_MID, kValueRightXOffset - (kValueColumnWidth / 2), y_offset);
+        if (row.second_column)
+        {
+            lv_obj_align(row.value,
+                         LV_ALIGN_TOP_MID,
+                         kValueRightXOffset - (kValueColumnWidth / 2),
+                         y_offset);
+        }
+        else
+        {
+            lv_obj_align(row.value,
+                         LV_ALIGN_TOP_MID,
+                         kSecondColumnRightXOffset - (kSingleColumnValueWidth / 2),
+                         y_offset);
+        }
         lv_obj_align_to(row.label,
                         row.value,
                         LV_ALIGN_OUT_LEFT_BOTTOM,
@@ -237,19 +263,29 @@ TripMeterScreen::Update()
         case StatValueKind::kTemperature: {
             const auto controller_temp = ro.Get<AS::controller_temperature>();
             const auto motor_temp = ro.Get<AS::motor_temperature>();
+            auto bms_data = ro.Get<AS::bms_data>();
 
+            value_text = "";
+            label_text = "";
+
+            // Not mounted on all motors (like mine)
             if (motor_temp != 0)
             {
-                // Not mounted on all motors (like mine)
-                value_text = std::format("{}/{}", controller_temp, motor_temp);
-                label_text = "MOSFET/Motor";
+                value_text += std::format("{}/", motor_temp);
+                label_text += "Motor/";
             }
-            else
+            // Might not be valid
+            if (bms_data->valid)
             {
-                // Should always be valid, since it comes from the VESC
-                value_text = std::format("{}", controller_temp);
-                label_text = "MOSFET";
+                value_text +=
+                    std::format("{}/{}/", bms_data->bms_temperature, bms_data->highest_cell_temp);
+                label_text += "BMS/Cell/";
             }
+
+
+            // Should always be valid, since it comes from the VESC
+            value_text += std::format("{}", controller_temp);
+            label_text += "MOSFET";
             break;
         }
         case StatValueKind::kTime: {
@@ -267,8 +303,20 @@ TripMeterScreen::Update()
         lv_label_set_text(row.value, value_text.c_str());
         lv_label_set_text(row.unit, unit_text.c_str());
 
-        lv_obj_align(
-            row.value, LV_ALIGN_TOP_MID, kValueRightXOffset - (kValueColumnWidth / 2), y_offset);
+        if (row.second_column)
+        {
+            lv_obj_align(row.value,
+                         LV_ALIGN_TOP_MID,
+                         kValueRightXOffset - (kValueColumnWidth / 2),
+                         y_offset);
+        }
+        else
+        {
+            lv_obj_align(row.value,
+                         LV_ALIGN_TOP_MID,
+                         kSecondColumnRightXOffset - (kSingleColumnValueWidth / 2),
+                         y_offset);
+        }
         lv_obj_align_to(row.label,
                         row.value,
                         LV_ALIGN_OUT_LEFT_BOTTOM,

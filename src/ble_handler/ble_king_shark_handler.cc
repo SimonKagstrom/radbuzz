@@ -88,7 +88,6 @@ BleKingSharkHandler::OnBatteryData(std::span<const uint8_t> data)
     m_packet_protocol.PushData(data);
     if (auto packet = m_packet_protocol.Poll(); packet)
     {
-        printf("King Shark packet: ");
         for (auto b : *packet)
         {
             printf("%02x", b);
