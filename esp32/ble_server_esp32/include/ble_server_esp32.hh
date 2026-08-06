@@ -15,6 +15,7 @@
 #include <services/gap/ble_svc_gap.h>
 #include <services/gatt/ble_svc_gatt.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class BleServerEsp32 final : public hal::IBleServer, public hal::IBleClient, public BleInjector
@@ -30,6 +31,14 @@ public:
     bool WritePeerCharacteristic(uint16_t conn_handle,
                                  uint16_t value_handle,
                                  std::span<const uint8_t> data);
+    bool ReadPeerCharacteristic(uint16_t conn_handle,
+                                uint16_t value_handle,
+                                hal::IBleClient::ICharacteristic::DataCallback cb);
+    uint16_t ResolvePeerCccdHandle(uint16_t value_handle, uint16_t fallback_cccd_handle) const;
+    bool RequestPeerNotificationSubscription(uint16_t conn_handle,
+                                             uint16_t value_handle,
+                                             uint16_t fallback_cccd_handle);
+    void CancelPendingNotificationSubscription(uint16_t value_handle);
     bool EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_handle);
     void RegisterNotificationCallback(uint16_t value_handle,
                                       std::function<void(std::span<const uint8_t>)> cb);
@@ -58,6 +67,7 @@ private:
     void OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
 
     void AppAdvertise();
+    void StartScanForCurrentServiceFilter();
     int BleGapEvent(struct ble_gap_event* event);
     bool ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc);
     int PeerSvcDisced(uint16_t conn_handle,
@@ -73,6 +83,10 @@ private:
     int PeerWriteComplete(uint16_t conn_handle,
                           const struct ble_gatt_error* error,
                           struct ble_gatt_attr* attr);
+    int PeerReadComplete(uint16_t conn_handle,
+                         const struct ble_gatt_error* error,
+                         struct ble_gatt_attr* attr);
+    void FinalizePeerDiscovery(uint16_t conn_handle);
     int StartPeerSvcDiscovery(uint16_t conn_handle);
     int StartPeerChrDiscovery(uint16_t conn_handle);
     int StartPeerDscDiscovery(uint16_t conn_handle);
@@ -88,6 +102,9 @@ private:
     std::function<void(std::unique_ptr<IPeer>)> m_peer_found_cb {[](auto x) {}};
     std::unordered_map<uint16_t, std::function<void(std::span<const uint8_t>)>>
         m_notification_callbacks;
+    std::unordered_map<uint16_t, hal::IBleClient::ICharacteristic::DataCallback> m_read_callbacks;
+    std::unordered_map<uint16_t, uint16_t> m_value_to_cccd_handle;
+    std::unordered_set<uint16_t> m_pending_notification_subscriptions;
 
     uint16_t m_peer_conn_handle {BLE_HS_CONN_HANDLE_NONE};
     uint16_t m_peer_svc_start_handle {0};
@@ -95,6 +112,8 @@ private:
     std::optional<hal::Uuid128> m_peer_char_uuid;
     uint16_t m_peer_chr_val_handle {0};
     uint16_t m_peer_cccd_handle {0};
+    bool m_peer_matched_requested_service {false};
+    bool m_peer_reported_to_client {false};
 
     // Adaptations to the C interface
     uint8_t m_ble_addr_type {0};
