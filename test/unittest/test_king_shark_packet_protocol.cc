@@ -147,4 +147,14 @@ TEST_CASE_FIXTURE(Fixture, "King shark packets can be serialized")
         std::ranges::equal(*d, PacketData({0x3A, 0x16, 0x19, 0x01, 0x03, 0x33, 0x00, 0x0D, 0x0A})));
 }
 
+TEST_CASE_FIXTURE(Fixture, "An information package can be serialized")
+{
+    KingSharkPacketProtocol p;
+    auto d = p.BuildTxPacket(0x16, PacketData({0x00}));
+
+    REQUIRE(d);
+    REQUIRE(
+        std::ranges::equal(*d, PacketData({0x3A, 0x16, 0x16, 0x01, 0x00, 0x2D, 0x00, 0x0D, 0x0A})));
+}
+
 TEST_SUITE_END();
