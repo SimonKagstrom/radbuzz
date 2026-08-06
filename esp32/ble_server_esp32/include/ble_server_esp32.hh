@@ -112,6 +112,7 @@ private:
     std::optional<hal::Uuid128> m_peer_char_uuid;
     uint16_t m_peer_chr_val_handle {0};
     uint16_t m_peer_cccd_handle {0};
+    bool m_peer_connect_in_progress {false};
     bool m_peer_matched_requested_service {false};
     bool m_peer_reported_to_client {false};
 

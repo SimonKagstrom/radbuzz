@@ -338,6 +338,7 @@ void
 BleServerEsp32::RegisterNotificationCallback(uint16_t value_handle,
                                              std::function<void(std::span<const uint8_t>)> cb)
 {
+    printf("RegisterNotificationCallback: value_handle=%u\n", value_handle);
     m_notification_callbacks[value_handle] = std::move(cb);
 }
 
@@ -1036,6 +1037,7 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
 
             // Try to connect the the advertiser.
             auto addr = &((struct ble_gap_disc_desc*)&event->disc)->addr;
+            m_peer_connect_in_progress = true;
             rc = ble_gap_connect(
                 own_addr_type,
                 addr,
@@ -1048,6 +1050,7 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
                 this);
             if (rc != 0)
             {
+                m_peer_connect_in_progress = false;
                 MODLOG_DFLT(ERROR, "Failed to connect to device \n");
                 break;
             }
@@ -1058,11 +1061,27 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         ESP_LOGI("GAP", "BLE GAP EVENT CONNECT %s", event->connect.status == 0 ? "OK!" : "FAILED!");
         if (event->connect.status != 0)
         {
+            if (m_peer_connect_in_progress)
+            {
+                m_peer_connect_in_progress = false;
+                if (m_peer_service_uuid)
+                {
+                    StartScanForCurrentServiceFilter();
+                }
+            }
             //            AppAdvertise();
         }
 
         if (event->connect.status == 0)
         {
+            if (!m_peer_connect_in_progress)
+            {
+                printf("Ignoring incoming server connection on handle %u\n",
+                       event->connect.conn_handle);
+                break;
+            }
+
+            m_peer_connect_in_progress = false;
             m_peer_conn_handle = event->connect.conn_handle;
             m_notification_callbacks.clear();
             auto rc = StartPeerSvcDiscovery(event->connect.conn_handle);
@@ -1076,12 +1095,21 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         break;
     case BLE_GAP_EVENT_DISCONNECT: {
         ESP_LOGI("GAP", "BLE GAP EVENT DISCONNECT %d", event->disconnect.reason);
+        if (event->disconnect.conn.conn_handle != m_peer_conn_handle)
+        {
+            printf("Ignoring non-peer disconnect on handle %u\n",
+                   event->disconnect.conn.conn_handle);
+            AppAdvertise();
+            break;
+        }
+
         m_peer_conn_handle = BLE_HS_CONN_HANDLE_NONE;
         m_peer_svc_start_handle = 0;
         m_peer_svc_end_handle = 0;
         m_peer_char_uuid.reset();
         m_peer_chr_val_handle = 0;
         m_peer_cccd_handle = 0;
+        m_peer_connect_in_progress = false;
         m_notification_callbacks.clear();
         m_on_connection_changed(false);
 
