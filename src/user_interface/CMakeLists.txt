@@ -3,7 +3,7 @@ convert_font(radbuzz_font_22
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
     22
     0x20-0x7F
-    "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜ"
+    "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜ•"
 )
 
 # Big font with numbers plus a few extras
