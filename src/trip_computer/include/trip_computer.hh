@@ -90,7 +90,7 @@ private:
         {
             while (!m_log_queue.empty())
             {
-                auto &entry = m_log_queue.top();
+                auto& entry = m_log_queue.top();
                 m_parent.FreeLogEntry(entry.handle);
                 m_log_queue.pop();
             }
@@ -115,6 +115,7 @@ private:
     void UpdateSoc(uint16_t millivolts);
     void UpdateTripLog();
     void UpdateSpeedAndTime();
+    void UpdateRange();
     void ResetTrip();
 
 
@@ -133,6 +134,7 @@ private:
     std::unique_ptr<ListenerCookie> m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::reset_trip> m_state_cache;
     os::TimerHandle m_soc_timer;
+    uint8_t m_last_soc {0};
 
     os::TimerHandle m_moving_timer;
     uint32_t m_trip_start_distance {0};
