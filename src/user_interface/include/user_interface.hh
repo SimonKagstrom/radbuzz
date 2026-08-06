@@ -9,9 +9,9 @@
 #include "hal/i_input.hh"
 #include "hal/i_pm.hh"
 #include "image_cache.hh"
-#include "speech_bubble.hh"
 #include "input.hh"
 #include "menu_screen.hh"
+#include "speech_bubble.hh"
 #include "tile_cache.hh"
 #include "trip_computer.hh"
 #include "wgs84_to_osm_point.hh"
@@ -121,6 +121,12 @@ private:
 
     void ActivateScreen(ScreenBase& screen)
     {
+        if (m_show_all_indicators_timer && !m_show_all_indicators_timer->IsExpired())
+        {
+            // Don't allow switching until indicators have shown
+            return;
+        }
+
         if (m_current_screen)
         {
             m_current_screen->OnDeactivation();
