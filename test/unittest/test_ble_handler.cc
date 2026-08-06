@@ -7,7 +7,7 @@
 namespace
 {
 
-class BleServerStub : public hal::IBleServer
+class BleServerStub : public hal::IBleServer, public hal::IBleClient
 {
 public:
     void Inject(auto uuid, const std::string& data)
@@ -24,8 +24,7 @@ public:
     }
 
 private:
-    std::unique_ptr<ListenerCookie>
-    AttachConnectionListener(std::function<void(bool connected)> cb)
+    std::unique_ptr<ListenerCookie> AttachConnectionListener(std::function<void(bool connected)> cb)
     {
         // TODO: Actually implement
         return nullptr;
@@ -52,6 +51,13 @@ private:
     {
     }
 
+    void
+    ScanForService(hal::Uuid128Span service_uuid,
+                   const std::function<void(std::unique_ptr<hal::IBleClient::IPeer>)>& cb) final
+    {
+        // Not relevant for now
+    }
+
     std::map<uint8_t, std::function<void(std::span<const uint8_t>)>> m_uuid_cb;
 };
 
@@ -68,7 +74,7 @@ public:
     ApplicationState state;
     ImageCache cache;
 
-    BleHandler ble {srv, state, cache};
+    BleHandler ble {srv, srv, state, cache};
 };
 
 } // namespace
