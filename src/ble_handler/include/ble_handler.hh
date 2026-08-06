@@ -2,6 +2,8 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
+#include "ble_king_shark_handler.hh"
+#include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 #include "image_cache.hh"
 
@@ -20,7 +22,11 @@ constexpr auto kChaGpsSpeed = "98b6073a-5cf3-4e73-b6d3-f8e05fa018a9";
 class BleHandler : public os::BaseThread
 {
 public:
-    BleHandler(hal::IBleServer& server, ApplicationState& state, ImageCache& cache);
+    friend class BleKingSharkHandler;
+    BleHandler(hal::IBleServer& server,
+               hal::IBleClient& client,
+               ApplicationState& state,
+               ImageCache& cache);
 
 private:
     // From BaseThread
@@ -33,6 +39,7 @@ private:
     void BumpNavigationActive();
 
     os::TimerHandle m_ble_poller;
+    os::TimerHandle m_client_startup;
     hal::IBleServer& m_server;
     ApplicationState& m_state;
     ImageCache& m_image_cache;
@@ -40,4 +47,6 @@ private:
     std::unique_ptr<ListenerCookie> m_connection_listener;
 
     os::TimerHandle m_navigation_active_timer;
+
+    std::unique_ptr<BleKingSharkHandler> m_king_shark_handler;
 };

@@ -698,7 +698,8 @@ app_main(void)
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
-    auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
+    auto ble_handler =
+        std::make_unique<BleHandler>(*ble_server, *ble_server, application_state, *image_cache);
 
     auto trip_computer = std::make_unique<TripComputer>(application_state);
 

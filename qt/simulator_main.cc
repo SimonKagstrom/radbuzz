@@ -1,4 +1,5 @@
 #include "app_simulator.hh"
+#include "ble_client_host.hh"
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
 #include "blitter_host.hh"
@@ -67,6 +68,7 @@ main(int argc, char* argv[])
 
     // Devices / helper classes
     auto ble_server = std::make_unique<BleServerHost>();
+    auto ble_client = std::make_unique<BleClientHost>();
     auto image_cache = std::make_unique<ImageCache>();
     auto filesystem = std::make_unique<Filesystem>("./app_data");
     auto https_client = std::make_unique<HttpsClient>();
@@ -83,7 +85,8 @@ main(int argc, char* argv[])
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
-    auto ble_handler = std::make_unique<BleHandler>(*ble_server, application_state, *image_cache);
+    auto ble_handler =
+        std::make_unique<BleHandler>(*ble_server, *ble_client, application_state, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),

@@ -2,7 +2,6 @@
 #include "ble_handler.hh"
 
 #include "split_string.hh"
-
 namespace
 {
 
@@ -27,7 +26,10 @@ StringToKey(const std::string& s)
 
 } // namespace
 
-BleHandler::BleHandler(hal::IBleServer& server, ApplicationState& state, ImageCache& cache)
+BleHandler::BleHandler(hal::IBleServer& server,
+                       hal::IBleClient& client,
+                       ApplicationState& state,
+                       ImageCache& cache)
     : m_server(server)
     , m_state(state)
     , m_image_cache(cache)
@@ -39,6 +41,9 @@ BleHandler::BleHandler(hal::IBleServer& server, ApplicationState& state, ImageCa
                          kImageWidth,
                          kImageHeight,
                          {static_cast<const uint8_t*>(invalid_data.get()), kImageByteSize});
+
+
+    m_king_shark_handler = std::make_unique<BleKingSharkHandler>(*this, client);
 }
 
 void
@@ -78,11 +83,18 @@ BleHandler::OnStartup()
     });
 
     m_server.Start();
+
+    m_client_startup = StartTimer(1s, [this]() {
+        m_king_shark_handler->OnStartup();
+        return std::nullopt;
+    });
 }
 
 std::optional<milliseconds>
 BleHandler::OnActivation()
 {
+    m_king_shark_handler->Update();
+    
     return std::nullopt;
 }
 

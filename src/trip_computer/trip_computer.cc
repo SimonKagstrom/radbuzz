@@ -110,8 +110,14 @@ TripComputer::StartMonitoring()
     ResetTrip();
 
     m_soc_timer = StartTimer(250ms, [this]() {
-        auto ro = m_state.CheckoutReadonly();
-        auto mv = ro.Get<AS::battery_millivolts>();
+        if (m_state.Get<AS::bms_data>()->valid)
+        {
+            // Use the SoC from the BMS instead, and prolong the update interval
+            printf("Using SoC from BMS: %u%%\n", m_state.Get<AS::bms_data>()->soc);
+            return 5000ms;
+        }
+
+        auto mv = m_state.Get<AS::battery_millivolts>();
 
         if (mv != 0)
         {

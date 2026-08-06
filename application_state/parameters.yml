@@ -2,6 +2,7 @@
 cpp_includes:
   - "wgs84_to_osm_point.hh"
   - "configuration_settings.hh"
+  - "bms_data.hh"
   - "time.hh"
 
 
@@ -88,3 +89,6 @@ parameters:
 
   overheated:
     type: bool
+
+  bms_data:
+    type: struct BmsData

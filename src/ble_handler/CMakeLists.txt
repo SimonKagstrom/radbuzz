@@ -1,5 +1,6 @@
 add_library(ble_handler EXCLUDE_FROM_ALL
     ble_handler.cc
+    ble_king_shark_handler.cc
     king_shark_packet_protocol.cc
 )
 

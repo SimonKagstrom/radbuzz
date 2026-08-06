@@ -31,3 +31,4 @@ application_state:
   trip_average_speed: 0
   estimated_range_km: 0
   overheated: false
+  bms_data: {}
