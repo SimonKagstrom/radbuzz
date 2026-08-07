@@ -34,6 +34,7 @@ target_link_libraries(${COMPONENT_TARGET}
     tile_cache
     storage
     user_interface
+    temperature_monitor
     speedometer_handler
     trip_computer
     wifi_handler

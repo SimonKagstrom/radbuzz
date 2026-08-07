@@ -20,6 +20,7 @@
 #include "st7701_display_esp32.hh"
 #include "stepper_motor_esp32.hh"
 #include "storage.hh"
+#include "temperature_monitor.hh"
 #include "touch_esp32.hh"
 #include "trip_computer.hh"
 #include "uart_esp32.hh"
@@ -702,6 +703,7 @@ app_main(void)
         std::make_unique<BleHandler>(*ble_server, *ble_server, application_state, *image_cache);
 
     auto trip_computer = std::make_unique<TripComputer>(application_state);
+    auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
 
     //    constexpr auto kFullRotation = 2400;
     //    auto speedometer_handler =
@@ -732,6 +734,7 @@ app_main(void)
     tile_cache->Start("tile_cache", 8192);
     user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
     gps_reader->Start("gps_reader");
+    temperature_monitor->Start("temperature_monitor");
 
 
     while (true)
