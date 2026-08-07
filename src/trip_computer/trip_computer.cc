@@ -204,7 +204,7 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     m_millivolt_history.push(millivolts);
     if (m_millivolt_history.full())
     {
-        auto qw = m_state.CheckoutQueuedWriter<AS::battery_soc, AS::battery_milliamphours_left>();
+        auto qw = m_state.CheckoutQueuedWriter<AS::battery_soc>();
 
         auto soc = InterpolateSoc(
             std::accumulate(m_millivolt_history.begin(), m_millivolt_history.end(), 0u) /
@@ -212,9 +212,7 @@ TripComputer::UpdateSoc(uint16_t millivolts)
             battery_cell_series);
 
         qw.Set<AS::battery_soc>(soc);
-        // Convert Ah to mAh and apply SOC
-        qw.Set<AS::battery_milliamphours_left>(rw.Get<AS::configuration>()->battery_amp_hours *
-                                               1000 * soc / 100);
+
         // Discard the oldest
         m_millivolt_history.pop();
     }

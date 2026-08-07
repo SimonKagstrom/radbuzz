@@ -46,7 +46,6 @@ TemperatureMonitor::IsOverheated() const
         return true;
     }
 
-    // TODO: Relevant values here
     if (m_state.Get<AS::motor_temperature>() > conf->motor_overheat_temperature)
     {
         return true;
