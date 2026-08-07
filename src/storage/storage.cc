@@ -38,67 +38,89 @@ enum class Key
     kWhConsumed,
     kWhRegenerated,
     kSpeechBubbles,
+    kControllerOverheatTemperature,
+    kMotorOverheatTemperature,
+    kBmsOverheatTemperature,
+    kCellOverheatTemperature,
 
     kValueCount,
 };
 
-constexpr auto kKeyToString = std::array {std::pair {
-                                              Key::kMaxSpeed,
-                                              "M",
-                                          },
-                                          std::pair {
-                                              Key::kBatterySeries,
-                                              "B",
-                                          },
-                                          std::pair {
-                                              Key::kBatteryAmpHours,
-                                              "A",
-                                          },
-                                          std::pair {
-                                              Key::kWhPerKmForRangeEstimation,
-                                              "R",
-                                          },
-                                          std::pair {
-                                              Key::kSpeedometerType,
-                                              "S",
-                                          },
-                                          std::pair {
-                                              Key::kMaxWatts,
-                                              "P",
-                                          },
-                                          std::pair {
-                                              Key::kRotateMap,
-                                              "r",
-                                          },
-                                          std::pair {
-                                              Key::kForceC6Update,
-                                              "f",
-                                          },
-                                          std::pair {
-                                              Key::kShowGpsSpeed,
-                                              "G",
-                                          },
-                                          std::pair {
-                                              Key::kHomeXPosition,
-                                              "x",
-                                          },
-                                          std::pair {
-                                              Key::kHomeYPosition,
-                                              "y",
-                                          },
-                                          std::pair {
-                                              Key::kWhConsumed,
-                                              "C",
-                                          },
-                                          std::pair {Key::kWhRegenerated, "g"},
-                                          std::pair {
-                                              Key::kWifiNetworks,
-                                              "W",
-                                          },
-                                          std::pair {
-                                              Key::kSpeechBubbles,
-                                              "b",
-                                          }};
+constexpr auto kKeyToString = std::array {
+    std::pair {
+        Key::kMaxSpeed,
+        "M",
+    },
+    std::pair {
+        Key::kBatterySeries,
+        "B",
+    },
+    std::pair {
+        Key::kBatteryAmpHours,
+        "A",
+    },
+    std::pair {
+        Key::kWhPerKmForRangeEstimation,
+        "R",
+    },
+    std::pair {
+        Key::kSpeedometerType,
+        "S",
+    },
+    std::pair {
+        Key::kMaxWatts,
+        "P",
+    },
+    std::pair {
+        Key::kRotateMap,
+        "r",
+    },
+    std::pair {
+        Key::kForceC6Update,
+        "f",
+    },
+    std::pair {
+        Key::kShowGpsSpeed,
+        "G",
+    },
+    std::pair {
+        Key::kHomeXPosition,
+        "x",
+    },
+    std::pair {
+        Key::kHomeYPosition,
+        "y",
+    },
+    std::pair {
+        Key::kWhConsumed,
+        "C",
+    },
+    std::pair {Key::kWhRegenerated, "g"},
+    std::pair {
+        Key::kWifiNetworks,
+        "W",
+    },
+    std::pair {
+        Key::kSpeechBubbles,
+        "b",
+    },
+    std::pair {
+        Key::kControllerOverheatTemperature,
+        "0",
+    },
+    std::pair {
+        Key::kMotorOverheatTemperature,
+        "1",
+    },
+    std::pair {
+        Key::kBmsOverheatTemperature,
+        "2",
+    },
+    std::pair {
+        Key::kCellOverheatTemperature,
+        "3",
+    },
+};
 
 static_assert(kKeyToString.size() == std::to_underlying(Key::kValueCount));
 
@@ -140,6 +162,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     home_position.x = m_nvm.Get<int32_t>(KeyToString(Key::kHomeXPosition)).value_or(0);
     home_position.y = m_nvm.Get<int32_t>(KeyToString(Key::kHomeYPosition)).value_or(0);
 
+    // Make sure all configuration values are set here, this is where defaults come from
     conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(false);
     conf.max_speed = m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeed)).value_or(30);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(KeyToString(Key::kBatterySeries)).value_or(7);
@@ -154,6 +177,16 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     conf.force_c6_update = m_nvm.Get<bool>(KeyToString(Key::kForceC6Update)).value_or(false);
     conf.show_gps_speed = m_nvm.Get<bool>(KeyToString(Key::kShowGpsSpeed)).value_or(false);
     conf.home_position = home_position;
+
+    conf.bms_overheat_temperature =
+        m_nvm.Get<uint8_t>(KeyToString(Key::kBmsOverheatTemperature)).value_or(60);
+    conf.motor_overheat_temperature =
+        m_nvm.Get<uint8_t>(KeyToString(Key::kMotorOverheatTemperature)).value_or(80);
+    conf.controller_overheat_temperature =
+        m_nvm.Get<uint8_t>(KeyToString(Key::kControllerOverheatTemperature)).value_or(80);
+    conf.cell_overheat_temperature =
+        m_nvm.Get<uint8_t>(KeyToString(Key::kCellOverheatTemperature)).value_or(50);
+    // ... to here
 
     // Set the stored consumed/regen values
     ps.Set<AS::wh_consumed>(m_nvm.Get<float>(KeyToString(Key::kWhConsumed)).value_or(0.0f));
@@ -279,6 +312,28 @@ Storage::OnActivation()
         {
             m_nvm.Set<int32_t>(KeyToString(Key::kHomeXPosition), new_conf.home_position.x);
             m_nvm.Set<int32_t>(KeyToString(Key::kHomeYPosition), new_conf.home_position.y);
+        }
+
+        // Temperature limits
+        if (old_conf.bms_overheat_temperature != new_conf.bms_overheat_temperature)
+        {
+            m_nvm.Set<uint8_t>(KeyToString(Key::kBmsOverheatTemperature),
+                               new_conf.bms_overheat_temperature);
+        }
+        if (old_conf.motor_overheat_temperature != new_conf.motor_overheat_temperature)
+        {
+            m_nvm.Set<uint8_t>(KeyToString(Key::kMotorOverheatTemperature),
+                               new_conf.motor_overheat_temperature);
+        }
+        if (old_conf.controller_overheat_temperature != new_conf.controller_overheat_temperature)
+        {
+            m_nvm.Set<uint8_t>(KeyToString(Key::kControllerOverheatTemperature),
+                               new_conf.controller_overheat_temperature);
+        }
+        if (old_conf.cell_overheat_temperature != new_conf.cell_overheat_temperature)
+        {
+            m_nvm.Set<uint8_t>(KeyToString(Key::kCellOverheatTemperature),
+                               new_conf.cell_overheat_temperature);
         }
     });
 

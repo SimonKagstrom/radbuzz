@@ -32,6 +32,47 @@ SettingsMenuScreen::OnActivation()
 
     auto& settings_page = main.AddSubPage("Settings");
     main.AddSeparator();
+
+    auto& temperature_limits = settings_page.AddSubPage("Temperature limits");
+    {
+        temperature_limits.AddNumericEntry(
+            "Motor (°C)",
+            {30, 120, 5},
+            ro.Get<AS::configuration>()->motor_overheat_temperature,
+            [this](auto value) {
+                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                    .GetWritableReference<AS::configuration>()
+                    .motor_overheat_temperature = static_cast<uint8_t>(value);
+            });
+        temperature_limits.AddNumericEntry(
+            "Controller (°C)",
+            {30, 120, 5},
+            ro.Get<AS::configuration>()->controller_overheat_temperature,
+            [this](auto value) {
+                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                    .GetWritableReference<AS::configuration>()
+                    .controller_overheat_temperature = static_cast<uint8_t>(value);
+            });
+        temperature_limits.AddNumericEntry(
+            "BMS (°C)",
+            {30, 120, 5},
+            ro.Get<AS::configuration>()->bms_overheat_temperature,
+            [this](auto value) {
+                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                    .GetWritableReference<AS::configuration>()
+                    .bms_overheat_temperature = static_cast<uint8_t>(value);
+            });
+        temperature_limits.AddNumericEntry(
+            "Battery cells (°C)",
+            {30, 120, 5},
+            ro.Get<AS::configuration>()->cell_overheat_temperature,
+            [this](auto value) {
+                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                    .GetWritableReference<AS::configuration>()
+                    .cell_overheat_temperature = static_cast<uint8_t>(value);
+            });
+    }
+
     settings_page.AddNumericEntry(
         "Max speed", {25, 120, 5}, ro.Get<AS::configuration>()->max_speed, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
@@ -105,7 +146,6 @@ SettingsMenuScreen::OnActivation()
                 .GetWritableReference<AS::configuration>()
                 .force_c6_update = value;
         });
-
 
     main.AddEntry("Reset trip", [this]() {
         m_parent.ResetTrip();

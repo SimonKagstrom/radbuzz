@@ -56,6 +56,12 @@ struct ConfigurationSettings
     // Whether to show speech bubbles with info at start
     bool show_speech_bubbles;
 
+    // Overheating limits
+    uint8_t motor_overheat_temperature;
+    uint8_t controller_overheat_temperature;
+    uint8_t bms_overheat_temperature;
+    uint8_t cell_overheat_temperature;
+
     // @brief Whether to force a C6 update on the next boot (for testing)
     bool force_c6_update;
 
