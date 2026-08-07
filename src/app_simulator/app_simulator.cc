@@ -496,25 +496,6 @@ iconHash={:08x}32
     qw.Set<AS::battery_soc>(m_soc);
     qw.Set<AS::bms_data>(bms);
 
-    // TODO: This is really the same as the can bus handler does
-    if (controller_temperature > 75 && ro.Get<AS::overheated>() == false)
-    {
-        qw.Set<AS::overheated>(true);
-        m_overheated_timer = StartTimer(2s, [this]() {
-            auto rw = m_application_state.CheckoutReadWrite();
-            auto out = std::optional<milliseconds> {2s};
-
-            if (rw.Get<AS::controller_temperature>() <= 75)
-            {
-                // Clear the condition and disable the timer
-                rw.Set<AS::overheated>(false);
-                out = std::nullopt;
-            }
-
-            return out;
-        });
-    }
-
     return 50ms +
            milliseconds(150 - static_cast<uint32_t>(speed / static_cast<float>(kMaxSpeed) * 150));
 }

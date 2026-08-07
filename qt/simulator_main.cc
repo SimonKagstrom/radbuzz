@@ -14,6 +14,7 @@
 #include "simulator_mainwindow.hh"
 #include "speedometer_handler.hh"
 #include "storage.hh"
+#include "temperature_monitor.hh"
 #include "tile_cache.hh"
 #include "time.hh"
 #include "trip_computer.hh"
@@ -89,6 +90,7 @@ main(int argc, char* argv[])
         std::make_unique<BleHandler>(*ble_server, *ble_client, application_state, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
+    auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),
@@ -110,6 +112,7 @@ main(int argc, char* argv[])
     tile_cache->Start("tile_cache");
     user_interface->Start("user_interface");
     speedometer_handler->Start("speedometer_handler");
+    temperature_monitor->Start("temperature_monitor");
 
     os::Sleep(10ms);
     app_simulator->Start("app_simulator");

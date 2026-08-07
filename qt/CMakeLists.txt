@@ -72,6 +72,7 @@ target_link_libraries(radbuzz_qt
     speedometer_handler
     gps_reader
     storage
+    temperature_monitor
     wifi_handler
     wifi_client_host
     Qt6::Widgets
