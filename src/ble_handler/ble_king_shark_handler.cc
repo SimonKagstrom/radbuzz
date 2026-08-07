@@ -111,7 +111,7 @@ BleKingSharkHandler::OnBatteryData(std::span<const uint8_t> data)
          * TODO: Fix this ugly hack
          */
         // Reply to an information packet (0x16). TODO: Fix this ugly crudeness
-        if (p.size() > 16 && p[2] == 0x02 && p[3] == 0x61)
+        if (p.size() >= 0x29 && p[0] == 0x16)
         {
             auto ps = m_parent.m_state.CheckoutPartialSnapshot<AS::bms_data, AS::battery_soc>();
             auto& bms_data = ps.GetWritableReference<AS::bms_data>();
