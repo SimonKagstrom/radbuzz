@@ -51,4 +51,6 @@ private:
     uint16_t m_heading;
 
     os::TimerHandle m_overheated_timer;
+    uint8_t m_soc {100};
+    int8_t m_soc_delta {-1};
 };

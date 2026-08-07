@@ -181,23 +181,21 @@ TripComputer::ResetTrip()
 void
 TripComputer::UpdateSoc(uint16_t millivolts)
 {
-    auto battery_cell_series =
-        m_state.CheckoutReadonly().Get<AS::configuration>()->battery_cell_series;
+    auto rw = m_state.CheckoutReadWrite();
+    auto battery_cell_series = rw.Get<AS::configuration>()->battery_cell_series;
+
     if (battery_cell_series == 0)
     {
         // Invalid / incomplete configuration
         return;
     }
 
-    if (m_millivolt_history.empty())
+    if (m_millivolt_history.empty() && rw.Get<AS::demo_mode>() == false)
     {
-        m_state.CheckoutReadWrite().Set<AS::battery_soc>(
-            InterpolateSoc(millivolts, battery_cell_series));
+        rw.Set<AS::battery_soc>(InterpolateSoc(millivolts, battery_cell_series));
     }
 
-    auto ro = m_state.CheckoutReadonly();
-
-    if (ro.Get<AS::current_power_w>() > kBatterySenseLimit)
+    if (rw.Get<AS::current_power_w>() > kBatterySenseLimit)
     {
         // Limit SOC updates on high power
         return;
@@ -206,9 +204,7 @@ TripComputer::UpdateSoc(uint16_t millivolts)
     m_millivolt_history.push(millivolts);
     if (m_millivolt_history.full())
     {
-        auto qw = m_state.CheckoutQueuedWriter<AS::battery_soc,
-                                               AS::battery_milliamphours_left,
-                                               AS::estimated_range_km>();
+        auto qw = m_state.CheckoutQueuedWriter<AS::battery_soc, AS::battery_milliamphours_left>();
 
         auto soc = InterpolateSoc(
             std::accumulate(m_millivolt_history.begin(), m_millivolt_history.end(), 0u) /
@@ -217,9 +213,8 @@ TripComputer::UpdateSoc(uint16_t millivolts)
 
         qw.Set<AS::battery_soc>(soc);
         // Convert Ah to mAh and apply SOC
-        qw.Set<AS::battery_milliamphours_left>(ro.Get<AS::configuration>()->battery_amp_hours *
+        qw.Set<AS::battery_milliamphours_left>(rw.Get<AS::configuration>()->battery_amp_hours *
                                                1000 * soc / 100);
-
         // Discard the oldest
         m_millivolt_history.pop();
     }

@@ -85,6 +85,14 @@ BleKingSharkHandler::Update()
 void
 BleKingSharkHandler::OnBatteryData(std::span<const uint8_t> data)
 {
+    if (m_parent.m_state.Get<AS::demo_mode>())
+    {
+        // Make sure it's not disabling the bms data while the demo is running
+        m_invalidate_timer = nullptr;
+        return;
+    }
+
+
     m_packet_protocol.PushData(data);
     if (auto packet = m_packet_protocol.Poll(); packet)
     {

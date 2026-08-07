@@ -321,9 +321,10 @@ AppSimulator::OnActivation()
 
         if (old == true && now == false)
         {
-            // Disable navigation
+            // Disable navigation and BMS data
             printf("Navigation deactivated\n");
             rw.Set<AS::navigation_active>(false);
+            rw.Set<AS::bms_data>(BmsData {});
         }
 
         rw.Post<AS::reset_trip>();
@@ -451,6 +452,18 @@ iconHash={:08x}32
                                      static_cast<uint16_t>(1));
     }
 
+    if (m_soc == 0)
+    {
+        // Move upwards
+        m_soc_delta = 1;
+    }
+    else if (m_soc == 100)
+    {
+        // Move downwards
+        m_soc_delta = -1;
+    }
+    m_soc = std::clamp(m_soc + m_soc_delta, 0, 100);
+
 
     current_power = static_cast<int16_t>(next_power);
 
@@ -461,17 +474,27 @@ iconHash={:08x}32
     mangled.speed = speed + rand() % 2 - 1;
 
     auto controller_temperature = speed + 20; // Silly, yes
+    BmsData bms = {
+        .valid = true,
+        .soc = m_soc,
+        .highest_cell_temp = static_cast<uint8_t>(27 + rand() % 2),
+        .bms_temperature = static_cast<uint8_t>(25 + rand() % 2),
+    };
 
     auto qw = m_application_state.CheckoutQueuedWriter<AS::position,
                                                        AS::pixel_position,
                                                        AS::gps_position_valid,
                                                        AS::controller_temperature,
-                                                       AS::overheated>();
+                                                       AS::overheated,
+                                                       AS::battery_soc,
+                                                       AS::bms_data>();
 
     qw.Set<AS::position>(mangled);
     qw.Set<AS::pixel_position>(m_current_point);
     qw.Set<AS::gps_position_valid>(true);
     qw.Set<AS::controller_temperature>(controller_temperature);
+    qw.Set<AS::battery_soc>(m_soc);
+    qw.Set<AS::bms_data>(bms);
 
     // TODO: This is really the same as the can bus handler does
     if (controller_temperature > 75 && ro.Get<AS::overheated>() == false)
