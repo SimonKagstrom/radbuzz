@@ -689,21 +689,12 @@ app_main(void)
     auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder, *touch);
 
     // Threads
-    auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
-    auto ble_server = std::make_unique<BleServerEsp32>();
-    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
-    auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state);
-
-    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
-    auto ble_handler =
-        std::make_unique<BleHandler>(*ble_server, *ble_server, application_state, *image_cache);
 
     auto trip_computer = std::make_unique<TripComputer>(application_state);
-    auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
 
     //    constexpr auto kFullRotation = 2400;
     //    auto speedometer_handler =
@@ -721,6 +712,20 @@ app_main(void)
 
     // application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
 
+    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
+
+    auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state);
+
+    auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
+
+    auto ble_server = std::make_unique<BleServerEsp32>();
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
+    auto ble_handler =
+        std::make_unique<BleHandler>(*ble_server, *ble_server, application_state, *image_cache);
+
+
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     //  buzz_handler->Start("buzz_handler", 8192);
@@ -732,7 +737,6 @@ app_main(void)
     trip_computer->Start("trip_computer");
 
     tile_cache->Start("tile_cache", 8192);
-    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
     gps_reader->Start("gps_reader");
     temperature_monitor->Start("temperature_monitor");
 
