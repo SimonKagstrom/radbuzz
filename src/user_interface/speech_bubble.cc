@@ -1,7 +1,14 @@
 #include "speech_bubble.hh"
 
-SpeechBubble::SpeechBubble(lv_obj_t* pointing_at, Direction direction, const char* text)
+constexpr auto kOffset = 4;
+
+SpeechBubble::SpeechBubble(lv_obj_t* pointing_at,
+                           Direction direction,
+                           const char* text,
+                           Point offset)
     : m_pointing_at(pointing_at)
+    , m_direction(direction)
+    , m_offset(offset)
 {
     m_bubble = lv_obj_create(lv_layer_top());
 
@@ -21,21 +28,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at, Direction direction, const cha
 
     lv_obj_center(m_text_label);
 
-    switch (direction)
-    {
-    case Direction::kAbove:
-        lv_obj_align_to(m_bubble, pointing_at, LV_ALIGN_OUT_TOP_MID, 0, -4);
-        break;
-    case Direction::kBelow:
-        lv_obj_align_to(m_bubble, pointing_at, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
-        break;
-    case Direction::kLeft:
-        lv_obj_align_to(m_bubble, pointing_at, LV_ALIGN_OUT_LEFT_MID, 4, 0);
-        break;
-    case Direction::kRight:
-        lv_obj_align_to(m_bubble, pointing_at, LV_ALIGN_OUT_RIGHT_MID, 4, 0);
-        break;
-    }
+    UpdatePosition();
 
     auto tail = lv_canvas_create(lv_layer_top());
     lv_canvas_set_buffer(tail,
@@ -51,7 +44,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at, Direction direction, const cha
     lv_draw_triangle_dsc_init(&tri_dsc);
     tri_dsc.color = lv_obj_get_style_bg_color(m_bubble, LV_PART_MAIN);
 
-    switch (direction)
+    switch (m_direction)
     {
     case Direction::kAbove:
         tri_dsc.p[0] = {0, 0};
@@ -79,7 +72,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at, Direction direction, const cha
     lv_canvas_finish_layer(tail, &layer);
 
     m_bubble_tail = tail;
-    switch (direction)
+    switch (m_direction)
     {
     case Direction::kAbove:
         lv_obj_align_to(m_bubble_tail, m_bubble, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
@@ -97,6 +90,8 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at, Direction direction, const cha
 
     lv_obj_move_foreground(m_bubble_tail);
     lv_obj_move_foreground(m_bubble);
+
+    Update();
 }
 
 SpeechBubble::~SpeechBubble()
@@ -107,10 +102,39 @@ SpeechBubble::~SpeechBubble()
 }
 
 void
+SpeechBubble::UpdatePosition()
+{
+    switch (m_direction)
+    {
+    case Direction::kAbove:
+        lv_obj_align_to(
+            m_bubble, m_pointing_at, LV_ALIGN_OUT_TOP_MID, m_offset.x, -kOffset + m_offset.y);
+        break;
+    case Direction::kBelow:
+        lv_obj_align_to(
+            m_bubble, m_pointing_at, LV_ALIGN_OUT_BOTTOM_MID, m_offset.x, kOffset + m_offset.y);
+        break;
+    case Direction::kLeft:
+        lv_obj_align_to(
+            m_bubble, m_pointing_at, LV_ALIGN_OUT_LEFT_MID, kOffset + m_offset.x, m_offset.y);
+        break;
+    case Direction::kRight:
+        lv_obj_align_to(
+            m_bubble, m_pointing_at, LV_ALIGN_OUT_RIGHT_MID, -kOffset + m_offset.x, m_offset.y);
+        break;
+    }
+}
+
+void
 SpeechBubble::Update()
 {
-    auto hidden = !lv_obj_is_visible(m_pointing_at);
+    auto parent_screen = lv_obj_get_screen(m_pointing_at);
+    auto on_screen = parent_screen == lv_screen_active() || parent_screen == lv_layer_top();
+    auto hidden = !on_screen || !lv_obj_is_visible(m_pointing_at);
 
+    // Set visiblity
     lv_obj_set_flag(m_bubble, LV_OBJ_FLAG_HIDDEN, hidden);
     lv_obj_set_flag(m_bubble_tail, LV_OBJ_FLAG_HIDDEN, hidden);
+
+    UpdatePosition();
 }

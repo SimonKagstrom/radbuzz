@@ -13,6 +13,7 @@ private:
     void OnDeactivation() final;
     void Update() final;
     void HandleInput(const Input::Event &event) final;
+    void SetHelp(bool on) final;
 
     lv_obj_t* m_odometer_label {nullptr};
     lv_obj_t* m_consumed_regen_label {nullptr};

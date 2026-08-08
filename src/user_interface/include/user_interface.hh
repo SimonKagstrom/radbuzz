@@ -53,6 +53,15 @@ public:
 
         virtual void OnDeactivation()
         {
+            UpdateHelp();
+        }
+
+        void UpdateHelp()
+        {
+            for (auto& bubble : m_explanatory_bubbles)
+            {
+                bubble->Update();
+            }
         }
 
         void Activate()
@@ -67,10 +76,13 @@ public:
             return m_screen;
         }
 
+        virtual void SetHelp(bool on) = 0;
+
     protected:
         UserInterface& m_parent;
 
         lv_obj_t* m_screen {nullptr};
+        std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
     };
 
     class IndicatorBase
@@ -141,12 +153,12 @@ private:
             return;
         }
 
+        screen.OnActivation();
+        screen.Activate();
         if (m_current_screen)
         {
             m_current_screen->OnDeactivation();
         }
-        screen.OnActivation();
-        screen.Activate();
         m_current_screen = &screen;
     }
 
@@ -186,6 +198,7 @@ private:
     os::TimerHandle m_trip_start_initial_timer;
     os::TimerHandle m_menu_destructor;
     os::TimerHandle m_show_all_indicators_timer;
+    os::TimerHandle m_show_help_timer;
 
     uint32_t m_current_icon_hash {kInvalidIconHash};
 
@@ -201,4 +214,6 @@ private:
     std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
 
     ScreenBase* m_current_screen {nullptr};
+
+    bool m_help_enabled {false};
 };

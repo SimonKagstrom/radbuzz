@@ -93,7 +93,7 @@ SettingsMenuScreen::OnActivation()
                 .GetWritableReference<AS::configuration>()
                 .battery_amp_hours = static_cast<uint8_t>(value);
         });
-    settings_page.AddNumericEntry("Wh per km",
+    settings_page.AddNumericEntry("Wh per km for range estimation",
                                   {10, 100},
                                   ro.Get<AS::configuration>()->wh_per_km_for_range_estimation,
                                   [this](auto value) {
@@ -152,6 +152,9 @@ SettingsMenuScreen::OnActivation()
         m_menu_screen->ExitMenu();
     });
     main.AddSeparator();
+    main.AddBooleanEntry("Show help text", m_parent.m_help_enabled, [this](auto value) {
+        m_parent.m_help_enabled = value;
+    });
     main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
         m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(value);
     });
@@ -168,6 +171,10 @@ SettingsMenuScreen::OnActivation()
     lv_obj_set_style_text_align(m_consumed_regen_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
 
     lv_obj_align_to(m_consumed_regen_label, m_odometer_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+
+
+    // No help while in the menu
+    m_parent.HideHelp();
 }
 
 void
@@ -177,6 +184,10 @@ SettingsMenuScreen::OnDeactivation()
     lv_obj_del(m_consumed_regen_label);
 
     m_menu_screen = nullptr;
+    if (m_parent.m_help_enabled)
+    {
+        m_parent.ShowHelp();
+    }
 }
 
 void
@@ -201,4 +212,10 @@ SettingsMenuScreen::HandleInput(const Input::Event& event)
         m_menu_screen->BumpExitTimer();
         lv_indev_read(m_parent.m_lvgl_input_dev);
     }
+}
+
+void
+SettingsMenuScreen::SetHelp(bool on)
+{
+    // No help for now
 }

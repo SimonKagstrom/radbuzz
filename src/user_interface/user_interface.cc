@@ -205,10 +205,15 @@ UserInterface::OnStartup()
     ActivateScreen(*m_map_screen);
     ResetTrip();
 
-    if (m_state.Get<AS::configuration>()->show_speech_bubbles)
-    {
-        ShowHelp();
-    }
+    // Allow placing the objects first, so delay a bit
+    m_show_help_timer = StartTimer(10ms, [this]() {
+        if (m_state.Get<AS::configuration>()->show_speech_bubbles)
+        {
+            ShowHelp();
+        }
+
+        return std::nullopt;
+    });
 
     m_show_all_indicators_timer = StartTimer(3s, [this]() {
         HideHelp();
@@ -219,11 +224,17 @@ UserInterface::OnStartup()
 void
 UserInterface::SetHelp(bool on)
 {
+    // Ugly
+    m_map_screen->SetHelp(on);
+    m_trip_meter_screen->SetHelp(on);
+    m_settings_menu_screen->SetHelp(on);
+
     if (!on)
     {
         m_explanatory_bubbles.clear();
         return;
     }
+
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kOverheated]->m_indicator_label,
@@ -258,7 +269,7 @@ UserInterface::SetHelp(bool on)
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_digital_speedometer->m_boxes[0],
                                        SpeechBubble::Direction::kRight,
-                                       "Speedometer (km/h), and\nGPS speed (small)"));
+                                       "Speedometer (km/h),\nGPS speed (small)"));
 }
 
 
@@ -388,6 +399,8 @@ UserInterface::OnActivation()
     auto max_power = m_pm_lock->FullPower();
 
     m_current_screen->Update();
+    m_current_screen->UpdateHelp();
+
     m_digital_speedometer->Update(m_state, OnMapScreen());
     for (auto& indicator : m_indicators)
     {

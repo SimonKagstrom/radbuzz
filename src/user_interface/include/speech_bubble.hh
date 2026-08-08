@@ -1,6 +1,7 @@
 #pragma once
 
 #include "radbuzz_font_16.h"
+#include "wgs84_to_osm_point.hh"
 
 #include <lvgl.h>
 
@@ -15,17 +16,24 @@ public:
         kRight,
     };
 
-    SpeechBubble(lv_obj_t* pointing_at, Direction direction, const char* text);
+    SpeechBubble(lv_obj_t* pointing_at,
+                 Direction direction,
+                 const char* text,
+                 Point offset = {0, 0});
 
     ~SpeechBubble();
 
     void Update();
 
 private:
+    void UpdatePosition();
+
     static constexpr lv_coord_t kTailWidth = 16;
     static constexpr lv_coord_t kTailHeight = 12;
 
     lv_obj_t* m_pointing_at {nullptr};
+    const Direction m_direction;
+    const Point m_offset;
     lv_obj_t* m_text_label {nullptr};
     lv_obj_t* m_bubble {nullptr};
     lv_obj_t* m_bubble_tail {nullptr};

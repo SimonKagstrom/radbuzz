@@ -43,6 +43,7 @@ private:
 
     void Update() final;
     void HandleInput(const Input::Event& event) final;
+    void SetHelp(bool on) final;
 
     std::vector<StatRow> m_stat_rows;
 

@@ -740,3 +740,27 @@ MapScreen::HandleInput(const Input::Event& event)
 
     m_touch_was_pressed = touch_pressed;
 }
+
+
+void
+MapScreen::SetHelp(bool on)
+{
+    if (!on)
+    {
+        m_explanatory_bubbles.clear();
+        return;
+    }
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(m_current_icon,
+                                       SpeechBubble::Direction::kAbove,
+                                       "Icon for current navigation\ndirections",
+                                       Point {64, 0}));
+    m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
+        m_description_label, SpeechBubble::Direction::kAbove, "Next street name", Point {256, 0}));
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(m_position_dot_obj,
+                                       SpeechBubble::Direction::kLeft,
+                                       "Current position when\nGPS is active"));
+}

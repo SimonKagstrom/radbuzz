@@ -27,6 +27,7 @@ private:
 
     void Update() final;
     void HandleInput(const Input::Event& event) final;
+    void SetHelp(bool on) final;
 
 
     // Source buffer is the display diagonal squared so any rotation angle fills the screen

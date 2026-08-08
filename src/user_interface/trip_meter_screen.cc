@@ -381,3 +381,29 @@ TripMeterScreen::HandleInput(const Input::Event& event)
         m_parent.ActivateScreen(*m_parent.m_map_screen);
     }
 }
+
+void
+TripMeterScreen::SetHelp(bool on)
+{
+    if (!on)
+    {
+        m_explanatory_bubbles.clear();
+        return;
+    }
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(m_stat_rows[0].second_column->value,
+                                       SpeechBubble::Direction::kLeft,
+                                       "Estimated range based on the\nconfigurable Wh/km value",
+                                       Point {80, 0}));
+
+    m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
+        m_stat_rows[1].label,
+        SpeechBubble::Direction::kRight,
+        "Battery, motor and controller temperature,\nfor those that report temperature"));
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(m_stat_rows[2].label,
+                                       SpeechBubble::Direction::kRight,
+                                       "Trip time, increasing when not paused"));
+}
