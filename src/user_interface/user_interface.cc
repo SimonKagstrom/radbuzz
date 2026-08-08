@@ -9,6 +9,20 @@
 #include <radbuzz_font_22.h>
 #include <radbuzz_symbols_40.h>
 
+enum IndicatorType
+{
+    kBattery,
+    kOverheated,
+    kHome,
+    kGpsLost,
+    kPaused,
+    kWifi,
+    kBluetooth,
+
+    kValueCount,
+};
+
+
 UserInterface::IndicatorBase::IndicatorBase(UserInterface& parent, const Point& position)
     : m_parent(parent)
     , m_indicator_label(lv_label_create(lv_layer_top()))
@@ -170,32 +184,22 @@ UserInterface::OnStartup()
     constexpr auto kIndicatorColumn = hal::kDisplayWidth - kPowerBarWidth - 48;
     auto indicator_row_y = DigitalSpeedometerWidget::kBoxDimensions - 46;
 
-    enum I
-    {
-        kBattery,
-        kOverheated,
-        kHome,
-        kGpsLost,
-        kPaused,
-        kWifi,
-        kBluetooth,
-    };
 
-    m_indicators.resize(7);
-    m_indicators[I::kBattery] = std::make_unique<BatteryIndicator>(
+    m_indicators.resize(std::to_underlying(IndicatorType::kValueCount));
+    m_indicators[IndicatorType::kBattery] = std::make_unique<BatteryIndicator>(
         *this, Point {hal::kDisplayWidth - DigitalSpeedometerWidget::kBoxDimensions - 72, 0});
 
-    m_indicators[I::kOverheated] = std::make_unique<OverheatedIndicator>(
+    m_indicators[IndicatorType::kOverheated] = std::make_unique<OverheatedIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
-    m_indicators[I::kHome] = std::make_unique<HomeIndicator>(
+    m_indicators[IndicatorType::kHome] = std::make_unique<HomeIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
-    m_indicators[I::kGpsLost] = std::make_unique<GpsLostIndicator>(
+    m_indicators[IndicatorType::kGpsLost] = std::make_unique<GpsLostIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
-    m_indicators[I::kPaused] = std::make_unique<PausedIndicator>(
+    m_indicators[IndicatorType::kPaused] = std::make_unique<PausedIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
-    m_indicators[I::kWifi] = std::make_unique<WifiIndicator>(
+    m_indicators[IndicatorType::kWifi] = std::make_unique<WifiIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
-    m_indicators[I::kBluetooth] = std::make_unique<BluetoothIndicator>(
+    m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
     ActivateScreen(*m_map_screen);
@@ -203,53 +207,65 @@ UserInterface::OnStartup()
 
     if (m_state.Get<AS::configuration>()->show_speech_bubbles)
     {
-        m_explanatory_bubbles.push_back(
-            std::make_unique<SpeechBubble>(lv_layer_top(),
-                                           m_indicators[I::kOverheated]->m_indicator_label,
-                                           SpeechBubble::Direction::kLeft,
-                                           "Controller/battery overheat warning"));
-
-        m_explanatory_bubbles.push_back(
-            std::make_unique<SpeechBubble>(lv_layer_top(),
-                                           m_indicators[I::kHome]->m_indicator_label,
-                                           SpeechBubble::Direction::kLeft,
-                                           "Home range warning"));
-
-        m_explanatory_bubbles.push_back(
-            std::make_unique<SpeechBubble>(lv_layer_top(),
-                                           m_indicators[I::kGpsLost]->m_indicator_label,
-                                           SpeechBubble::Direction::kLeft,
-                                           "GPS lost warning"));
-        m_explanatory_bubbles.push_back(
-            std::make_unique<SpeechBubble>(lv_layer_top(),
-                                           m_indicators[I::kPaused]->m_indicator_label,
-                                           SpeechBubble::Direction::kLeft,
-                                           "Stationary, trip paused"));
-
-        m_explanatory_bubbles.push_back(
-            std::make_unique<SpeechBubble>(lv_layer_top(),
-                                           m_indicators[I::kBluetooth]->m_indicator_label,
-                                           SpeechBubble::Direction::kLeft,
-                                           "Bluetooth navigation\nconnected"));
-
-        m_explanatory_bubbles.push_back(
-            std::make_unique<SpeechBubble>(lv_layer_top(),
-                                           m_digital_speedometer->m_boxes[1],
-                                           SpeechBubble::Direction::kLeft,
-                                           "Trip distance and\ntime"));
-
-
-        m_explanatory_bubbles.push_back(
-            std::make_unique<SpeechBubble>(lv_layer_top(),
-                                           m_digital_speedometer->m_boxes[0],
-                                           SpeechBubble::Direction::kRight,
-                                           "Speedometer (km/h), and\nGPS speed (small)"));
+        ShowHelp();
     }
 
     m_show_all_indicators_timer = StartTimer(3s, [this]() {
-        m_explanatory_bubbles.clear();
+        HideHelp();
         return std::nullopt;
     });
+}
+
+void
+UserInterface::SetHelp(bool on)
+{
+    if (!on)
+    {
+        m_explanatory_bubbles.clear();
+        return;
+    }
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(lv_layer_top(),
+                                       m_indicators[IndicatorType::kOverheated]->m_indicator_label,
+                                       SpeechBubble::Direction::kLeft,
+                                       "Controller/battery overheat warning"));
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(lv_layer_top(),
+                                       m_indicators[IndicatorType::kHome]->m_indicator_label,
+                                       SpeechBubble::Direction::kLeft,
+                                       "Home range warning"));
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(lv_layer_top(),
+                                       m_indicators[IndicatorType::kGpsLost]->m_indicator_label,
+                                       SpeechBubble::Direction::kLeft,
+                                       "GPS lost warning"));
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(lv_layer_top(),
+                                       m_indicators[IndicatorType::kPaused]->m_indicator_label,
+                                       SpeechBubble::Direction::kLeft,
+                                       "Stationary, trip paused"));
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(lv_layer_top(),
+                                       m_indicators[IndicatorType::kBluetooth]->m_indicator_label,
+                                       SpeechBubble::Direction::kLeft,
+                                       "Bluetooth navigation\nconnected"));
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(lv_layer_top(),
+                                       m_digital_speedometer->m_boxes[1],
+                                       SpeechBubble::Direction::kLeft,
+                                       "Trip distance and\ntime"));
+
+
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(lv_layer_top(),
+                                       m_digital_speedometer->m_boxes[0],
+                                       SpeechBubble::Direction::kRight,
+                                       "Speedometer (km/h), and\nGPS speed (small)"));
 }
 
 
@@ -392,6 +408,12 @@ UserInterface::OnActivation()
         {
             lv_obj_clear_flag(indicator->m_indicator_label, LV_OBJ_FLAG_HIDDEN);
         }
+    }
+
+    // Show help, if it's active
+    for (auto& bubble : m_explanatory_bubbles)
+    {
+        bubble->Update();
     }
 
     if (auto time_before = os::GetTimeStampRaw(); m_next_redraw_time > time_before)

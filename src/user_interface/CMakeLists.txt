@@ -38,6 +38,7 @@ add_library(user_interface EXCLUDE_FROM_ALL
     digital_speedometer_widget.cc
     map_screen.cc
     settings_menu_screen.cc
+    speech_bubble.cc
     trip_meter_screen.cc
     user_interface.cc
 )

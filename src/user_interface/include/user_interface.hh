@@ -46,9 +46,11 @@ public:
         virtual ~ScreenBase() = default;
         virtual void Update() = 0;
         virtual void HandleInput(const Input::Event& event) = 0;
+
         virtual void OnActivation()
         {
         }
+
         virtual void OnDeactivation()
         {
         }
@@ -105,7 +107,19 @@ public:
         return m_current_screen == m_trip_meter_screen.get();
     }
 
+    void ShowHelp()
+    {
+        SetHelp(true);
+    }
+
+    void HideHelp()
+    {
+        SetHelp(false);
+    }
+
 private:
+    void SetHelp(bool on);
+
     struct CurrentTrip
     {
         float start_wh_consumed {0};
