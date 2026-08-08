@@ -15,7 +15,7 @@ public:
         kRight,
     };
 
-    SpeechBubble(lv_obj_t* screen, lv_obj_t* pointing_at, Direction direction, const char* text);
+    SpeechBubble(lv_obj_t* pointing_at, Direction direction, const char* text);
 
     ~SpeechBubble();
 

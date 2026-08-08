@@ -226,44 +226,37 @@ UserInterface::SetHelp(bool on)
     }
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(lv_layer_top(),
-                                       m_indicators[IndicatorType::kOverheated]->m_indicator_label,
+        std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kOverheated]->m_indicator_label,
                                        SpeechBubble::Direction::kLeft,
                                        "Controller/battery overheat warning"));
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(lv_layer_top(),
-                                       m_indicators[IndicatorType::kHome]->m_indicator_label,
+        std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kHome]->m_indicator_label,
                                        SpeechBubble::Direction::kLeft,
                                        "Home range warning"));
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(lv_layer_top(),
-                                       m_indicators[IndicatorType::kGpsLost]->m_indicator_label,
+        std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kGpsLost]->m_indicator_label,
                                        SpeechBubble::Direction::kLeft,
                                        "GPS lost warning"));
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(lv_layer_top(),
-                                       m_indicators[IndicatorType::kPaused]->m_indicator_label,
+        std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kPaused]->m_indicator_label,
                                        SpeechBubble::Direction::kLeft,
                                        "Stationary, trip paused"));
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(lv_layer_top(),
-                                       m_indicators[IndicatorType::kBluetooth]->m_indicator_label,
+        std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kBluetooth]->m_indicator_label,
                                        SpeechBubble::Direction::kLeft,
                                        "Bluetooth navigation\nconnected"));
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(lv_layer_top(),
-                                       m_digital_speedometer->m_boxes[1],
+        std::make_unique<SpeechBubble>(m_digital_speedometer->m_boxes[1],
                                        SpeechBubble::Direction::kLeft,
                                        "Trip distance and\ntime"));
 
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(lv_layer_top(),
-                                       m_digital_speedometer->m_boxes[0],
+        std::make_unique<SpeechBubble>(m_digital_speedometer->m_boxes[0],
                                        SpeechBubble::Direction::kRight,
                                        "Speedometer (km/h), and\nGPS speed (small)"));
 }

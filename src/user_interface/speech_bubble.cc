@@ -1,12 +1,9 @@
 #include "speech_bubble.hh"
 
-SpeechBubble::SpeechBubble(lv_obj_t* screen,
-                           lv_obj_t* pointing_at,
-                           Direction direction,
-                           const char* text)
+SpeechBubble::SpeechBubble(lv_obj_t* pointing_at, Direction direction, const char* text)
     : m_pointing_at(pointing_at)
 {
-    m_bubble = lv_obj_create(screen);
+    m_bubble = lv_obj_create(lv_layer_top());
 
     lv_obj_set_style_bg_color(m_bubble, lv_palette_main(LV_PALETTE_GREY), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_bubble, LV_OPA_COVER, LV_PART_MAIN);
@@ -40,7 +37,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* screen,
         break;
     }
 
-    auto tail = lv_canvas_create(screen);
+    auto tail = lv_canvas_create(lv_layer_top());
     lv_canvas_set_buffer(tail,
                          static_cast<void*>(m_tail_canvas_buffer),
                          kTailWidth,
