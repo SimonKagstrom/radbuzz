@@ -176,6 +176,8 @@ UserInterface::OnStartup()
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
 
+    m_screens = {m_map_screen.get(), m_trip_meter_screen.get(), m_settings_menu_screen.get()};
+
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
 
@@ -224,10 +226,10 @@ UserInterface::OnStartup()
 void
 UserInterface::SetHelp(bool on)
 {
-    // Ugly
-    m_map_screen->SetHelp(on);
-    m_trip_meter_screen->SetHelp(on);
-    m_settings_menu_screen->SetHelp(on);
+    for (auto& screen : m_screens)
+    {
+        screen->SetHelp(on);
+    }
 
     if (!on)
     {

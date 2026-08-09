@@ -208,12 +208,13 @@ private:
     std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
     std::unique_ptr<ScreenBase> m_settings_menu_screen;
-    std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
 
+    etl::vector<ScreenBase*, 3> m_screens;
+    ScreenBase* m_current_screen {nullptr};
+
+    std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
     std::vector<std::unique_ptr<IndicatorBase>> m_indicators;
     std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
-
-    ScreenBase* m_current_screen {nullptr};
 
     bool m_help_enabled {false};
 };
