@@ -398,12 +398,14 @@ TripMeterScreen::SetHelp(bool on)
                                        Point {80, 0}));
 
     m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
-        m_stat_rows[1].label,
-        SpeechBubble::Direction::kRight,
-        "Battery, motor and controller temperature,\nfor those that report temperature"));
+        m_stat_rows[1].value,
+        SpeechBubble::Direction::kLeft,
+        "Battery, motor and controller temperature,\nfor those that report temperature",
+        Point {240, 0}));
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(m_stat_rows[2].label,
-                                       SpeechBubble::Direction::kRight,
-                                       "Trip time, increasing when not paused"));
+        std::make_unique<SpeechBubble>(m_stat_rows[2].value,
+                                       SpeechBubble::Direction::kLeft,
+                                       "Trip time, increasing\nwhen not paused",
+                                       Point {280, 0}));
 }

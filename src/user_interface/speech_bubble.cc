@@ -12,7 +12,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at,
 {
     m_bubble = lv_obj_create(lv_layer_top());
 
-    lv_obj_set_style_bg_color(m_bubble, lv_palette_main(LV_PALETTE_GREY), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(m_bubble, lv_color_make(80, 80, 80), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_bubble, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(m_bubble, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(m_bubble, 8, LV_PART_MAIN);
@@ -22,7 +22,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at,
 
     m_text_label = lv_label_create(m_bubble);
     lv_label_set_text(m_text_label, text);
-    lv_obj_set_style_text_color(m_text_label, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_text_label, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_text_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_font(m_text_label, &radbuzz_font_16, LV_PART_MAIN);
 
