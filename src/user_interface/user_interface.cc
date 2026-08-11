@@ -4,6 +4,7 @@
 #include "map_screen.hh"
 #include "painter.hh"
 #include "settings_menu_screen.hh"
+#include "speedometer_only_screen.hh"
 #include "trip_meter_screen.hh"
 
 #include <radbuzz_font_22.h>
@@ -174,9 +175,13 @@ UserInterface::OnStartup()
 
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache, kDefaultZoom);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
+    m_speedometer_only_screen = std::make_unique<SpeedometerOnlyScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
 
-    m_screens = {m_map_screen.get(), m_trip_meter_screen.get(), m_settings_menu_screen.get()};
+    m_screens = {m_map_screen.get(),
+                 m_trip_meter_screen.get(),
+                 m_speedometer_only_screen.get(),
+                 m_settings_menu_screen.get()};
 
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
@@ -204,7 +209,8 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
-    ActivateScreen(*m_map_screen);
+    //ActivateScreen(*m_map_screen);
+    ActivateScreen(*m_speedometer_only_screen);
     ResetTrip();
 
     // Allow placing the objects first, so delay a bit
@@ -403,7 +409,7 @@ UserInterface::OnActivation()
     m_current_screen->Update();
     m_current_screen->UpdateHelp();
 
-    m_digital_speedometer->Update(m_state, OnMapScreen());
+    m_digital_speedometer->Update(m_state, !OnSpeedometerScreen(), OnMapScreen());
     for (auto& indicator : m_indicators)
     {
         indicator->Update(m_state);

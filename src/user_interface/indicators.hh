@@ -48,10 +48,13 @@ public:
         lv_label_set_text(m_indicator_label, m_text.c_str());
         lv_label_set_text(m_bms_label, bms_text);
 
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, m_parent.OnTripMeterScreen());
+        lv_obj_set_flag(m_indicator_label,
+                        LV_OBJ_FLAG_HIDDEN,
+                        m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen());
         lv_obj_set_flag(m_bms_label,
                         LV_OBJ_FLAG_HIDDEN,
-                        m_parent.OnTripMeterScreen() || !state.Get<AS::bms_data>()->valid);
+                        m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen() ||
+                            !state.Get<AS::bms_data>()->valid);
     }
 
 private:

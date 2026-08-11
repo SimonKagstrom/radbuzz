@@ -98,14 +98,14 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
 }
 
 void
-DigitalSpeedometerWidget::Update(ApplicationState& state, bool show_distance)
+DigitalSpeedometerWidget::Update(ApplicationState& state, bool show_speedometer, bool show_distance)
 {
     auto ro = state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
     auto gps_speed = std::max(0.0f, ro.Get<AS::position>()->speed);
 
-    if (conf->speedometer_type == SpeedometerType::kDigital ||
-        conf->speedometer_type == SpeedometerType::kBoth)
+    if (show_speedometer && (conf->speedometer_type == SpeedometerType::kDigital ||
+                             conf->speedometer_type == SpeedometerType::kBoth))
     {
         lv_label_set_text(m_speed_digits_label, std::format("{}", ro.Get<AS::speed>()).c_str());
         lv_label_set_text(m_gps_speed_label,

@@ -12,7 +12,7 @@ public:
 
     DigitalSpeedometerWidget(lv_obj_t* parent);
 
-    void Update(ApplicationState& state, bool show_distance);
+    void Update(ApplicationState& state, bool show_speedometer, bool show_distance);
 
 private:
     std::array<lv_obj_t*, 2> m_boxes {nullptr, nullptr};

@@ -22,6 +22,7 @@
 class MapScreen;
 class TripMeterScreen;
 class SettingsMenuScreen;
+class SpeedometerOnlyScreen;
 class HomeIndicator;
 
 constexpr auto kPowerBarWidth = 10;
@@ -32,6 +33,7 @@ public:
     friend class MapScreen;
     friend class TripMeterScreen;
     friend class SettingsMenuScreen;
+    friend class SpeedometerOnlyScreen;
     friend class HomeIndicator;
 
     class ScreenBase
@@ -117,6 +119,11 @@ public:
     bool OnTripMeterScreen() const
     {
         return m_current_screen == m_trip_meter_screen.get();
+    }
+
+    bool OnSpeedometerScreen() const
+    {
+        return m_current_screen == m_speedometer_only_screen.get();
     }
 
     void ShowHelp()
@@ -207,9 +214,10 @@ private:
 
     std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
+    std::unique_ptr<ScreenBase> m_speedometer_only_screen;
     std::unique_ptr<ScreenBase> m_settings_menu_screen;
 
-    etl::vector<ScreenBase*, 3> m_screens;
+    etl::vector<ScreenBase*, 4> m_screens;
     ScreenBase* m_current_screen {nullptr};
 
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
