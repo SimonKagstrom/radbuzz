@@ -140,12 +140,20 @@ SettingsMenuScreen::OnActivation()
                                           .GetWritableReference<AS::configuration>()
                                           .show_speech_bubbles = value;
                                   });
+    settings_page.AddSeparator();
     settings_page.AddBooleanEntry(
         "Force C6 FW upgrade", ro.Get<AS::configuration>()->force_c6_update, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
                 .force_c6_update = value;
         });
+    settings_page.AddEntry("Perform OTA update", [this]() {
+        auto rw = m_parent.m_state.CheckoutReadWrite();
+        rw.Set<AS::ota_update_active>(true);
+        rw.Set<AS::demo_mode>(false);
+
+        m_parent.ActivateScreen(*m_parent.m_ota_update_screen);
+    });
 
     main.AddEntry("Reset trip", [this]() {
         m_parent.ResetTrip();

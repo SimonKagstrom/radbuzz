@@ -2,6 +2,7 @@
 
 #include "indicators.hh"
 #include "map_screen.hh"
+#include "ota_update_screen.hh"
 #include "painter.hh"
 #include "settings_menu_screen.hh"
 #include "trip_meter_screen.hh"
@@ -40,6 +41,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                              hal::IBlitter& blitter,
                              std::unique_ptr<hal::IPm::ILock> pm_lock,
                              hal::IInput& input,
+                             OtaUpdater& ota_updater,
                              ApplicationState& state,
                              ImageCache& cache,
                              TileCache& tile_cache,
@@ -48,6 +50,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_blitter(blitter)
     , m_pm_lock(std::move(pm_lock))
     , m_input(input)
+    , m_ota_updater(ota_updater)
     , m_state(state)
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
@@ -175,8 +178,12 @@ UserInterface::OnStartup()
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache, kDefaultZoom);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
+    m_ota_update_screen = std::make_unique<OtaUpdateScreen>(*this);
 
-    m_screens = {m_map_screen.get(), m_trip_meter_screen.get(), m_settings_menu_screen.get()};
+    m_screens = {m_map_screen.get(),
+                 m_trip_meter_screen.get(),
+                 m_settings_menu_screen.get(),
+                 m_ota_update_screen.get()};
 
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());

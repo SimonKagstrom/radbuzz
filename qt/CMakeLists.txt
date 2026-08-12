@@ -73,6 +73,8 @@ target_link_libraries(radbuzz_qt
     gps_reader
     storage
     temperature_monitor
+    ota_updater_host
+    ota_updater
     wifi_handler
     wifi_client_host
     Qt6::Widgets

@@ -12,6 +12,7 @@ target_link_libraries(${COMPONENT_TARGET}
     idf::esp_driver_ledc
     idf::espressif__esp_hosted
     wifi_client_esp32
+    httpd_ota_updater_esp32
     blitter_esp32
     ble_handler
     ble_server_esp32

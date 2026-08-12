@@ -9,10 +9,12 @@
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
 #include "gps_reader.hh"
+#include "httpd_ota_updater_esp32.hh"
 #include "i2c_gps_esp32.hh"
 #include "image_cache.hh"
 #include "input.hh"
 #include "nvm_esp32.hh"
+#include "ota_updater.hh"
 #include "pm_esp32.hh"
 #include "rotary_encoder.hh"
 #include "sdkconfig.h"
@@ -688,6 +690,8 @@ app_main(void)
 
     auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder, *touch);
 
+    auto httpd_ota_updater = std::make_unique<TargetHttpdOtaUpdater>(*display);
+
     // Threads
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
@@ -695,6 +699,8 @@ app_main(void)
         application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
 
     auto trip_computer = std::make_unique<TripComputer>(application_state);
+
+    auto ota_updater = std::make_unique<OtaUpdater>(*httpd_ota_updater, application_state);
 
     //    constexpr auto kFullRotation = 2400;
     //    auto speedometer_handler =
@@ -704,6 +710,7 @@ app_main(void)
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),
                                                           *input,
+                                                          *ota_updater,
                                                           application_state,
                                                           *image_cache,
                                                           *tile_cache,
@@ -733,6 +740,7 @@ app_main(void)
     can_bus_handler->Start("can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);
+    ota_updater->Start("ota_updater", 8192);
     //speedometer_handler->Start("speedometer_handler");
     trip_computer->Start("trip_computer");
 

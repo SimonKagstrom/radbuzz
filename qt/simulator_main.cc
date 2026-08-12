@@ -10,6 +10,8 @@
 #include "input.hh"
 #include "nvm_host.hh"
 #include "opportunistic_scheduler.hh"
+#include "ota_updater.hh"
+#include "ota_updater_host.hh"
 #include "pm_host.hh"
 #include "simulator_mainwindow.hh"
 #include "speedometer_handler.hh"
@@ -77,9 +79,11 @@ main(int argc, char* argv[])
     auto nvm_host = std::make_unique<NvmHost>("nvm.txt");
     auto blitter = std::make_unique<BlitterHost>();
     auto wifi_client = std::make_unique<WifiClientHost>();
+    auto ota_updater = std::make_unique<OtaUpdaterHost>(false);
 
     // Threads
     auto storage = std::make_unique<Storage>(application_state, *nvm_host);
+    auto ota_updater_thread = std::make_unique<OtaUpdater>(*ota_updater, application_state);
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state);
@@ -95,6 +99,7 @@ main(int argc, char* argv[])
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),
                                                           *input, // IInput
+                                                          *ota_updater_thread,
                                                           application_state,
                                                           *image_cache,
                                                           *tile_cache,
@@ -104,6 +109,7 @@ main(int argc, char* argv[])
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
 
     storage->Start("storage");
+    ota_updater_thread->Start("ota_updater");
     wifi_handler->Start("wifi_handler");
     input->Start("input");
     trip_computer->Start("trip_computer");

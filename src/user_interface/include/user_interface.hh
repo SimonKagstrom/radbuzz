@@ -11,6 +11,7 @@
 #include "image_cache.hh"
 #include "input.hh"
 #include "menu_screen.hh"
+#include "ota_updater.hh"
 #include "speech_bubble.hh"
 #include "tile_cache.hh"
 #include "trip_computer.hh"
@@ -22,6 +23,7 @@
 class MapScreen;
 class TripMeterScreen;
 class SettingsMenuScreen;
+class OtaUpdateScreen;
 class HomeIndicator;
 
 constexpr auto kPowerBarWidth = 10;
@@ -32,6 +34,7 @@ public:
     friend class MapScreen;
     friend class TripMeterScreen;
     friend class SettingsMenuScreen;
+    friend class OtaUpdateScreen;
     friend class HomeIndicator;
 
     class ScreenBase
@@ -104,6 +107,7 @@ public:
                   hal::IBlitter& blitter,
                   std::unique_ptr<hal::IPm::ILock> pm_lock,
                   hal::IInput& input,
+                  OtaUpdater& ota_updater,
                   ApplicationState& state,
                   ImageCache& cache,
                   TileCache& tile_cache,
@@ -147,6 +151,7 @@ private:
 
     void ActivateScreen(ScreenBase& screen)
     {
+        printf("ACTIVATING SCREEN %p\n", &screen);
         if (m_show_all_indicators_timer && !m_show_all_indicators_timer->IsExpired())
         {
             // Don't allow switching until indicators have shown
@@ -167,6 +172,7 @@ private:
 
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     hal::IInput& m_input;
+    OtaUpdater& m_ota_updater;
 
     ApplicationState& m_state;
 
@@ -208,8 +214,9 @@ private:
     std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
     std::unique_ptr<ScreenBase> m_settings_menu_screen;
+    std::unique_ptr<ScreenBase> m_ota_update_screen;
 
-    etl::vector<ScreenBase*, 3> m_screens;
+    etl::vector<ScreenBase*, 4> m_screens;
     ScreenBase* m_current_screen {nullptr};
 
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
