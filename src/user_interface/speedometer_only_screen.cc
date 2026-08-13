@@ -33,6 +33,14 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_bg_opa(m_power_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_align(m_power_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_power_label, lv_color_white(), LV_PART_MAIN);
+
+
+    m_range_label = lv_label_create(m_screen);
+    lv_obj_align(m_range_label, LV_ALIGN_BOTTOM_MID, 240, -10);
+    lv_obj_set_style_text_font(m_range_label, &radbuzz_font_40, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_range_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_text_align(m_range_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_range_label, lv_color_white(), LV_PART_MAIN);
 }
 
 void
@@ -43,6 +51,10 @@ SpeedometerOnlyScreen::Update()
 
     lv_label_set_text(m_power_label,
                       std::format("{} W", m_parent.m_state.Get<AS::current_power_w>()).c_str());
+
+
+    lv_label_set_text(m_range_label,
+                      std::format("{} km", m_parent.m_state.Get<AS::estimated_range_km>()).c_str());
 }
 
 void
