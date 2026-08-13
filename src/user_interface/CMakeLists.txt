@@ -1,3 +1,12 @@
+include(FetchContent)
+
+FetchContent_Declare(
+  dejavu_fonts
+  GIT_REPOSITORY https://github.com/senotrusov/dejavu-fonts-ttf.git
+  GIT_TAG        v2.37.3
+)
+FetchContent_MakeAvailable(dejavu_fonts)
+
 # Font with size 22, containing all ASCII characters (0x20...0x7F) and some extra symbols.
 convert_font(radbuzz_font_22
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
@@ -16,7 +25,7 @@ convert_font(radbuzz_font_60
 
 # Big font for only numbers
 convert_font(radbuzz_font_40
-    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    ${dejavu_fonts_SOURCE_DIR}/ttf/DejaVuSansMono-Bold.ttf
     40
     0x30-0x39
     "W "
@@ -24,7 +33,7 @@ convert_font(radbuzz_font_40
 
 # Huge font for only numbers
 convert_font(radbuzz_font_120
-    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    ${dejavu_fonts_SOURCE_DIR}/ttf/DejaVuSansMono-Bold.ttf
     120
     0x30-0x39
     ""

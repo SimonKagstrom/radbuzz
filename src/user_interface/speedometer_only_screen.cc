@@ -28,7 +28,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_label_set_text(m_speedometer_unit_label, "km/h");
 
     m_power_label = lv_label_create(m_screen);
-    lv_obj_align(m_power_label, LV_ALIGN_BOTTOM_RIGHT, -16, -10);
+    lv_obj_align(m_power_label, LV_ALIGN_BOTTOM_MID, -16, -10);
     lv_obj_set_style_text_font(m_power_label, &radbuzz_font_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_power_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_align(m_power_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
