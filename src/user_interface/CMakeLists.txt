@@ -7,9 +7,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(chivo_fonts)
 
+set(GENERAL_FONT "${chivo_fonts_SOURCE_DIR}/fonts/Chivo/ttf/Chivo-Medium.ttf")
+set(NUMBERS_FONT "${chivo_fonts_SOURCE_DIR}/fonts/Chivo Mono/ttf/ChivoMono-Medium.ttf")
+
 # Font with size 22, containing all ASCII characters (0x20...0x7F) and some extra symbols.
 convert_font(radbuzz_font_22
-    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    ${GENERAL_FONT}
     22
     0x20-0x7F
     "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜ•"
@@ -17,7 +20,7 @@ convert_font(radbuzz_font_22
 
 # Big font with numbers plus a few extras
 convert_font(radbuzz_font_60
-    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    ${GENERAL_FONT}
     60
     0x20,0x30-0x39
     "%:./-"
@@ -25,7 +28,7 @@ convert_font(radbuzz_font_60
 
 # Big font for only numbers
 convert_font(radbuzz_font_40
-    "${chivo_fonts_SOURCE_DIR}/fonts/Chivo Mono/ttf/ChivoMono-Bold.ttf"
+    ${NUMBERS_FONT}
     40
     0x30-0x39
     "W "
@@ -33,7 +36,7 @@ convert_font(radbuzz_font_40
 
 # Huge font for only numbers
 convert_font(radbuzz_font_120
-    "${chivo_fonts_SOURCE_DIR}/fonts/Chivo Mono/ttf/ChivoMono-Bold.ttf"
+    ${NUMBERS_FONT}
     120
     0x30-0x39
     ""
@@ -53,7 +56,7 @@ convert_symbols(radbuzz_symbols_22
 
 # Small font
 convert_font(radbuzz_font_16
-    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    ${GENERAL_FONT}
     16
     0x20-0x7F
     "W+-%"
