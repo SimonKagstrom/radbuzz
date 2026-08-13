@@ -734,7 +734,7 @@ MapScreen::HandleInput(const Input::Event& event)
         }
         else
         {
-            m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
+            m_parent.ActivateScreen(*m_parent.m_speedometer_only_screen);
         }
     }
 

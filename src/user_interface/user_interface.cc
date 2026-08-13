@@ -209,7 +209,6 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
-    //ActivateScreen(*m_map_screen);
     ActivateScreen(*m_speedometer_only_screen);
     ResetTrip();
 

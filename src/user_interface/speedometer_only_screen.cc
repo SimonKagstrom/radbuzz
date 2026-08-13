@@ -87,8 +87,7 @@ SpeedometerOnlyScreen::HandleInput(const Input::Event& event)
     }
     else if (dx == 1)
     {
-        map_screen->SetZoom(kLandscapeZoom);
-        m_parent.ActivateScreen(*m_parent.m_map_screen);
+        m_parent.ActivateScreen(*m_parent.m_trip_meter_screen);
     }
 }
 

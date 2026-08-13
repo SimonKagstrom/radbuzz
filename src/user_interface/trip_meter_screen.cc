@@ -372,8 +372,7 @@ TripMeterScreen::HandleInput(const Input::Event& event)
 
     if (dx == -1)
     {
-        map_screen->SetZoom(kDefaultZoom);
-        m_parent.ActivateScreen(*m_parent.m_map_screen);
+        m_parent.ActivateScreen(*m_parent.m_speedometer_only_screen);
     }
     else if (dx == 1)
     {
