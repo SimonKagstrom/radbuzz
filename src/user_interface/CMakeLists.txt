@@ -14,8 +14,16 @@ convert_font(radbuzz_font_60
     "%:./-"
 )
 
+# Big font for only numbers
+convert_font(radbuzz_font_40
+    ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
+    40
+    0x30-0x39
+    "W "
+)
+
 # Huge font for only numbers
-convert_font(radbuzz_font_huge
+convert_font(radbuzz_font_120
     ${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/external/lvgl/scripts/built_in_font/Montserrat-Medium.ttf
     120
     0x30-0x39
@@ -69,8 +77,9 @@ PUBLIC
     radbuzz_font_16_library
     radbuzz_font_22_library
     radbuzz_symbols_40_library
+    radbuzz_font_40_library
     radbuzz_font_60_library
-    radbuzz_font_huge_library
+    radbuzz_font_120_library
     radbuzz_symbols_22_library
     ui_menu
 PRIVATE

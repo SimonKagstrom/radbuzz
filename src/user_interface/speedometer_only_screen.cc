@@ -1,8 +1,9 @@
 #include "speedometer_only_screen.hh"
 
 #include "map_screen.hh"
+#include "radbuzz_font_120.h"
 #include "radbuzz_font_22.h"
-#include "radbuzz_font_huge.h"
+#include "radbuzz_font_40.h"
 
 SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
@@ -15,7 +16,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     // Big speedometer in the center of the screen
     m_speedometer_label = lv_label_create(m_screen);
     lv_obj_align(m_speedometer_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_text_font(m_speedometer_label, &radbuzz_font_huge, LV_PART_MAIN);
+    lv_obj_set_style_text_font(m_speedometer_label, &radbuzz_font_120, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_speedometer_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speedometer_label, lv_color_white(), LV_PART_MAIN);
 
@@ -28,7 +29,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 
     m_power_label = lv_label_create(m_screen);
     lv_obj_align(m_power_label, LV_ALIGN_BOTTOM_RIGHT, -16, -10);
-    lv_obj_set_style_text_font(m_power_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_font(m_power_label, &radbuzz_font_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_power_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_align(m_power_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_power_label, lv_color_white(), LV_PART_MAIN);
