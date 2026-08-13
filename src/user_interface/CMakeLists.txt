@@ -1,11 +1,11 @@
 include(FetchContent)
 
 FetchContent_Declare(
-  dejavu_fonts
-  GIT_REPOSITORY https://github.com/senotrusov/dejavu-fonts-ttf.git
-  GIT_TAG        v2.37.3
+  chivo_fonts
+  GIT_REPOSITORY https://github.com/Omnibus-Type/Chivo.git
+  GIT_TAG        dc61c468d79781eb5183426e88e844af16cdc3e5
 )
-FetchContent_MakeAvailable(dejavu_fonts)
+FetchContent_MakeAvailable(chivo_fonts)
 
 # Font with size 22, containing all ASCII characters (0x20...0x7F) and some extra symbols.
 convert_font(radbuzz_font_22
@@ -25,7 +25,7 @@ convert_font(radbuzz_font_60
 
 # Big font for only numbers
 convert_font(radbuzz_font_40
-    ${dejavu_fonts_SOURCE_DIR}/ttf/DejaVuSansMono-Bold.ttf
+    "${chivo_fonts_SOURCE_DIR}/fonts/Chivo Mono/ttf/ChivoMono-Bold.ttf"
     40
     0x30-0x39
     "W "
@@ -33,7 +33,7 @@ convert_font(radbuzz_font_40
 
 # Huge font for only numbers
 convert_font(radbuzz_font_120
-    ${dejavu_fonts_SOURCE_DIR}/ttf/DejaVuSansMono-Bold.ttf
+    "${chivo_fonts_SOURCE_DIR}/fonts/Chivo Mono/ttf/ChivoMono-Bold.ttf"
     120
     0x30-0x39
     ""
