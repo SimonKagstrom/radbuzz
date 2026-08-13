@@ -28,6 +28,11 @@ private:
         const char* unit_text {nullptr};
         lv_obj_t* value {nullptr};
         lv_obj_t* unit {nullptr};
+
+        SecondColumnStatRow(const char* unit_text)
+            : unit_text(unit_text)
+        {
+        }
     };
 
     struct StatRow
