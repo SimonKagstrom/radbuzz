@@ -46,7 +46,6 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {
         "SoC/range", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("km")});
-    m_stat_rows.emplace_back(StatRow {"MOSFET/Motor", "°C", StatValueKind::kTemperature});
     m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
     m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
     m_stat_rows.emplace_back(
@@ -59,6 +58,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
                                       "km/h",
                                       StatValueKind::kTripMaxSpeed,
                                       std::make_unique<SecondColumnStatRow>("km/h")});
+    m_stat_rows.emplace_back(StatRow {"Odometer", "km", StatValueKind::kOdometer});
 
     const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
@@ -227,7 +227,6 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripDistance: {
-            auto odometer_m = ro.Get<AS::odometer>();
             auto distance_m = ro.Get<AS::trip_distance>();
 
             if (distance_m >= 1000)
@@ -260,34 +259,6 @@ TripMeterScreen::Update()
             break;
         }
 
-        case StatValueKind::kTemperature: {
-            const auto controller_temp = ro.Get<AS::controller_temperature>();
-            const auto motor_temp = ro.Get<AS::motor_temperature>();
-            auto bms_data = ro.Get<AS::bms_data>();
-
-            value_text = "";
-            label_text = "";
-
-            // Not mounted on all motors (like mine)
-            if (motor_temp != 0)
-            {
-                value_text += std::format("{}/", motor_temp);
-                label_text += "Motor/";
-            }
-            // Might not be valid
-            if (bms_data->valid)
-            {
-                value_text +=
-                    std::format("{}/{}/", bms_data->bms_temperature, bms_data->highest_cell_temp);
-                label_text += "BMS/Cell/";
-            }
-
-
-            // Should always be valid, since it comes from the VESC
-            value_text += std::format("{}", controller_temp);
-            label_text += "MOSFET";
-            break;
-        }
         case StatValueKind::kTime: {
             auto seconds = ro.Get<AS::trip_duration>().count();
 
@@ -295,6 +266,13 @@ TripMeterScreen::Update()
             unit_text = seconds > 60 ? "" : "s";
         }
         break;
+        case StatValueKind::kOdometer: {
+            auto odometer_m = ro.Get<AS::odometer>();
+            float distance_km = odometer_m / 1000.0f;
+            unit_text = "km";
+            value_text = std::format("{:.1f}", distance_km);
+            break;
+        }
         case StatValueKind::kValueCount:
             break;
         }
@@ -395,12 +373,6 @@ TripMeterScreen::SetHelp(bool on)
                                        SpeechBubble::Direction::kLeft,
                                        "Estimated range based on the\nconfigurable Wh/km value",
                                        Point {80, 0}));
-
-    m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
-        m_stat_rows[1].value,
-        SpeechBubble::Direction::kLeft,
-        "Battery, motor and controller temperature,\nfor those that report temperature",
-        Point {240, 0}));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_stat_rows[2].value,

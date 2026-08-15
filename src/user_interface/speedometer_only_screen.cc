@@ -64,8 +64,8 @@ SpeedometerOnlyScreen::CenterAligned(const char* label_text,
     auto datum = CreateDatum(m_screen, label_text, value_text, unit_text);
 
     lv_obj_set_style_text_align(datum.description_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
 
     lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
     lv_obj_align_to(datum.value_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
@@ -85,7 +85,7 @@ SpeedometerOnlyScreen::RightAligned(const char* label_text,
 
     lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
     lv_obj_set_style_text_align(datum.description_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
 
     lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
     lv_obj_align_to(

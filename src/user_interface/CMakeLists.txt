@@ -31,7 +31,7 @@ convert_font(radbuzz_font_40
     ${NUMBERS_FONT}
     40
     0x30-0x39
-    "W %kmi/,."
+    "W %kmi/,.-"
 )
 
 # Huge font for only numbers
