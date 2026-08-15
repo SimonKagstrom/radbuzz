@@ -19,10 +19,16 @@ private:
     void HandleInput(const Input::Event& event) final;
     void SetHelp(bool on) final;
 
-    Datum TopRight(const char* label_text, const char* unit_text);
-    Datum TopLeft(const char* label_text, const char* unit_text);
-    Datum BottomLeft(const char* label_text, const char *value_text, const char* unit_text);
-    Datum BottomRight(const char* label_text, const char *value_text, const char* unit_text);
+    Datum RightAligned(const char* label_text,
+                       const char* value_text,
+                       const char* unit_text,
+                       lv_align_t alignment,
+                       Point offset);
+    Datum LeftAligned(const char* label_text,
+                      const char* value_text,
+                      const char* unit_text,
+                      lv_align_t alignment,
+                      Point offset);
 
     lv_obj_t* m_speedometer_label {nullptr};
     lv_obj_t* m_speedometer_unit_label {nullptr};
