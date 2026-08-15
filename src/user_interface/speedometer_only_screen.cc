@@ -4,6 +4,7 @@
 #include "radbuzz_font_120.h"
 #include "radbuzz_font_22.h"
 #include "radbuzz_font_40.h"
+#include "time_string.hh"
 
 SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
@@ -24,6 +25,30 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_text_font(m_speedometer_unit_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speedometer_unit_label, lv_color_white(), LV_PART_MAIN);
     lv_label_set_text(m_speedometer_unit_label, "km/h");
+
+
+    m_battery_label = lv_label_create(m_screen);
+    lv_obj_align(m_battery_label, LV_ALIGN_TOP_LEFT, 0, 4);
+    lv_obj_set_style_text_font(m_battery_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_battery_label, lv_color_white(), LV_PART_MAIN);
+    lv_label_set_text(m_battery_label, "Battery");
+
+    m_battery_value_label = lv_label_create(m_screen);
+    lv_obj_align_to(m_battery_value_label, m_battery_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 4);
+    lv_obj_set_style_text_font(m_battery_value_label, &radbuzz_font_40, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_battery_value_label, lv_color_white(), LV_PART_MAIN);
+    lv_label_set_text(m_battery_value_label, "100 %");
+
+    m_temperature_label = lv_label_create(m_screen);
+    lv_obj_align(m_temperature_label, LV_ALIGN_TOP_RIGHT, -20, 4);
+    lv_obj_set_style_text_font(m_temperature_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_temperature_label, lv_color_white(), LV_PART_MAIN);
+    lv_label_set_text(m_temperature_label, "Controller/Motor/BMS/Cell");
+
+    m_temperature_value_label = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_temperature_value_label, &radbuzz_font_40, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_temperature_value_label, lv_color_white(), LV_PART_MAIN);
+
 
     m_trip_distance_value_label = lv_label_create(m_screen);
     lv_obj_align(m_trip_distance_value_label, LV_ALIGN_BOTTOM_LEFT, 0, -10);
@@ -65,18 +90,56 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_speedometer_label,
                       std::format("{}", m_parent.m_state.Get<AS::speed>()).c_str());
 
+    lv_label_set_text(m_battery_value_label,
+                      std::format("{} %", m_parent.m_state.Get<AS::battery_soc>()).c_str());
+
+    std::string temperature_text = "Controller";
+    std::string temperature_value_text =
+        std::format("{}", m_parent.m_state.Get<AS::controller_temperature>());
+
+    if (m_parent.m_state.Get<AS::motor_temperature>() != 0)
+    {
+        temperature_text +=
+            "/Motor" + std::to_string(m_parent.m_state.Get<AS::motor_temperature>());
+        temperature_value_text +=
+            "/" + std::to_string(m_parent.m_state.Get<AS::motor_temperature>());
+    }
+    if (auto bms = m_parent.m_state.Get<AS::bms_data>(); bms->valid)
+    {
+        temperature_text += "/BMS/Cell";
+        temperature_value_text += "/" + std::to_string(bms->bms_temperature) + "/" +
+                                  std::to_string(bms->highest_cell_temp);
+    }
+    temperature_value_text += "°C";
+
+    lv_label_set_text(m_temperature_label, temperature_text.c_str());
+    lv_label_set_text(m_temperature_value_label, temperature_value_text.c_str());
+
     lv_label_set_text(m_power_label,
                       std::format("{} W", m_parent.m_state.Get<AS::current_power_w>()).c_str());
-
 
     lv_label_set_text(m_range_value,
                       std::format("{} km", m_parent.m_state.Get<AS::estimated_range_km>()).c_str());
 
-    lv_label_set_text(m_trip_distance_value_label,
-                      std::format("{} km", m_parent.m_state.Get<AS::trip_distance>()).c_str());
+    std::string trip_value_text;
+    auto trip_distance_m = m_parent.m_state.Get<AS::trip_distance>();
+
+    if (trip_distance_m < 1000)
+    {
+        trip_value_text = std::format("{} m", trip_distance_m);
+    }
+    else
+    {
+        trip_value_text = std::format("{:.1f} km", trip_distance_m / 1000.0f);
+    }
+    trip_value_text += ", " + SecondsToString(m_parent.m_state.Get<AS::trip_duration>());
+
+    lv_label_set_text(m_trip_distance_value_label, trip_value_text.c_str());
 
 
     // Dynamic alignment
+    lv_obj_align_to(
+        m_temperature_value_label, m_temperature_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 4);
     lv_obj_align_to(
         m_trip_distance_label, m_trip_distance_value_label, LV_ALIGN_OUT_TOP_LEFT, 0, -4);
     lv_obj_align_to(m_range_label, m_range_value, LV_ALIGN_OUT_TOP_RIGHT, 0, -4);

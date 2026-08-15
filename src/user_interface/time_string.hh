@@ -4,7 +4,7 @@
 #include <string>
 
 static inline std::string
-SecondsToString(auto seconds)
+SecondsToString(uint32_t seconds)
 {
     if (seconds >= 60)
     {
@@ -22,4 +22,10 @@ SecondsToString(auto seconds)
     }
 
     return std::format("{}", seconds);
+}
+
+static inline std::string
+SecondsToString(seconds seconds)
+{
+    return SecondsToString(seconds.count());
 }
