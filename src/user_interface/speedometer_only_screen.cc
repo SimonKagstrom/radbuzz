@@ -25,17 +25,18 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_text_color(m_speedometer_unit_label, lv_color_white(), LV_PART_MAIN);
     lv_label_set_text(m_speedometer_unit_label, "km/h");
 
-    m_trip_distance_label = lv_label_create(m_screen);
-    lv_obj_align_to(m_trip_distance_label, m_speedometer_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 40);
-    lv_obj_set_style_text_font(m_trip_distance_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_trip_distance_label, lv_color_white(), LV_PART_MAIN);
-    lv_label_set_text(m_trip_distance_label, "Trip");
-
     m_trip_distance_value_label = lv_label_create(m_screen);
-    lv_obj_align_to(
-        m_trip_distance_value_label, m_trip_distance_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
+    lv_obj_align(m_trip_distance_value_label, LV_ALIGN_BOTTOM_LEFT, 0, -10);
     lv_obj_set_style_text_font(m_trip_distance_value_label, &radbuzz_font_40, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_trip_distance_value_label, lv_color_white(), LV_PART_MAIN);
+
+    m_trip_distance_label = lv_label_create(m_screen);
+    lv_obj_align_to(
+        m_trip_distance_label, m_trip_distance_value_label, LV_ALIGN_OUT_TOP_LEFT, 0, -4);
+    lv_obj_set_style_text_font(m_trip_distance_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_trip_distance_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_align(m_trip_distance_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+    lv_label_set_text(m_trip_distance_label, "Trip");
 
 
     m_power_label = lv_label_create(m_screen);
@@ -74,6 +75,10 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_trip_distance_value_label,
                       std::format("{} km", m_parent.m_state.Get<AS::trip_distance>()).c_str());
 
+
+    // Dynamic alignment
+    lv_obj_align_to(
+        m_trip_distance_label, m_trip_distance_value_label, LV_ALIGN_OUT_TOP_LEFT, 0, -4);
     lv_obj_align_to(m_range_label, m_range_value, LV_ALIGN_OUT_TOP_RIGHT, 0, -4);
 }
 
