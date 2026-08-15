@@ -104,8 +104,29 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_bg_color(m_screen, kBackgroundColor, 0);
 
     // Big speedometer in the center of the screen
-    m_speedometer_label = lv_label_create(m_screen);
-    lv_obj_align(m_speedometer_label, LV_ALIGN_CENTER, 0, 0);
+    m_speedometer_box = lv_obj_create(m_screen);
+
+    constexpr int kCornerClipPx = 16;
+    constexpr int kPaneCornerRadius = 18;
+
+    lv_obj_set_size(m_speedometer_box, 304 + kCornerClipPx, 128 + 32);
+    lv_obj_set_style_border_width(m_speedometer_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_outline_width(m_speedometer_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(m_speedometer_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(m_speedometer_box, LV_OPA_100, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(m_speedometer_box, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_image_opa(m_speedometer_box, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_dir(m_speedometer_box, LV_GRAD_DIR_NONE, LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_opa(m_speedometer_box, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_radius(m_speedometer_box, kPaneCornerRadius, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(m_speedometer_box, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_align(m_speedometer_box, LV_ALIGN_CENTER, 0, 0);
+
+
+    m_speedometer_label = lv_label_create(m_speedometer_box);
+    lv_obj_align(m_speedometer_label, LV_ALIGN_CENTER, -16, 0);
     lv_obj_set_style_text_font(m_speedometer_label, &radbuzz_font_120, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speedometer_label, lv_color_white(), LV_PART_MAIN);
 

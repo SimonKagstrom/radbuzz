@@ -35,6 +35,8 @@ private:
                         lv_align_t alignment,
                         Point offset);
 
+    lv_obj_t* m_speedometer_box {nullptr};
+
     lv_obj_t* m_speedometer_label {nullptr};
     lv_obj_t* m_speedometer_unit_label {nullptr};
 
