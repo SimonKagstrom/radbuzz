@@ -55,6 +55,26 @@ SpeedometerOnlyScreen::LeftAligned(const char* label_text,
 }
 
 SpeedometerOnlyScreen::Datum
+SpeedometerOnlyScreen::CenterAligned(const char* label_text,
+                                     const char* value_text,
+                                     const char* unit_text,
+                                     lv_align_t alignment,
+                                     Point offset)
+{
+    auto datum = CreateDatum(m_screen, label_text, value_text, unit_text);
+
+    lv_obj_set_style_text_align(datum.description_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+
+    lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
+    lv_obj_align_to(datum.value_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
+    lv_obj_align_to(datum.value_unit_label, datum.value_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 4, -4);
+
+    return datum;
+}
+
+SpeedometerOnlyScreen::Datum
 SpeedometerOnlyScreen::RightAligned(const char* label_text,
                                     const char* value_text,
                                     const char* unit_text,
@@ -69,7 +89,7 @@ SpeedometerOnlyScreen::RightAligned(const char* label_text,
 
     lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
     lv_obj_align_to(
-        datum.value_unit_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 8);
+        datum.value_unit_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 4 + 7);
     lv_obj_align_to(datum.value_label, datum.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
 
     return datum;
@@ -98,16 +118,14 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     m_battery = LeftAligned("Battery", "100", "%", LV_ALIGN_TOP_LEFT, {0, 4});
     m_temperature =
         RightAligned("Controller/Motor/BMS/Cell", "0/0/0/0", "°C", LV_ALIGN_TOP_RIGHT, {-16, 4});
+
     m_trip_distance =
         LeftAligned("Trip", "999", "km", LV_ALIGN_BOTTOM_LEFT, {0, -kPixelSize_radbuzz_font_40});
     m_range = RightAligned(
-        "Range", "999", "km", LV_ALIGN_BOTTOM_RIGHT, {-20, -kPixelSize_radbuzz_font_40 + 8});
+        "Range", "999", "km", LV_ALIGN_BOTTOM_RIGHT, {-20, -kPixelSize_radbuzz_font_40});
 
-    m_power_label = lv_label_create(m_screen);
-    lv_obj_align(m_power_label, LV_ALIGN_BOTTOM_MID, -16, -10);
-    lv_obj_set_style_text_font(m_power_label, &radbuzz_font_40, LV_PART_MAIN);
-    lv_obj_set_style_text_align(m_power_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_power_label, lv_color_white(), LV_PART_MAIN);
+    m_power =
+        CenterAligned("Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {0, -kPixelSize_radbuzz_font_40});
 }
 
 void
@@ -140,8 +158,8 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_temperature.description_label, temperature_text.c_str());
     lv_label_set_text(m_temperature.value_label, temperature_value_text.c_str());
 
-    lv_label_set_text(m_power_label,
-                      std::format("{} W", m_parent.m_state.Get<AS::current_power_w>()).c_str());
+    lv_label_set_text(m_power.value_label,
+                      std::format("{}", m_parent.m_state.Get<AS::current_power_w>()).c_str());
 
     lv_label_set_text(m_range.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::estimated_range_km>()).c_str());

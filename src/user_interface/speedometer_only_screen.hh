@@ -29,16 +29,20 @@ private:
                       const char* unit_text,
                       lv_align_t alignment,
                       Point offset);
+    Datum CenterAligned(const char* label_text,
+                        const char* value_text,
+                        const char* unit_text,
+                        lv_align_t alignment,
+                        Point offset);
 
     lv_obj_t* m_speedometer_label {nullptr};
     lv_obj_t* m_speedometer_unit_label {nullptr};
-
-    lv_obj_t* m_power_label {nullptr};
 
     Datum m_battery;
     Datum m_temperature;
     Datum m_trip_distance;
     Datum m_range;
+    Datum m_power;
 
     lv_obj_t* m_consumption_label {nullptr};
 };
