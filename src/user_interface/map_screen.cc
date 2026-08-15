@@ -248,7 +248,7 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_clear_flag(m_current_icon, LV_OBJ_FLAG_SCROLLABLE);
 
     m_distance_left_label = lv_label_create(m_navigation_box);
-    lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 2);
     lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
     lv_obj_clear_flag(m_distance_left_label, LV_OBJ_FLAG_SCROLLABLE);
@@ -273,7 +273,7 @@ MapScreen::MapScreen(UserInterface& parent,
 
     m_description_label = lv_label_create(m_navigation_description_box);
     lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 4, -20);
+    lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 4, -18);
     lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
     lv_obj_clear_flag(m_description_label, LV_OBJ_FLAG_SCROLLABLE);
 
