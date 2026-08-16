@@ -10,6 +10,7 @@ controllers. It's built for an ESP32P4 microcontroller, but can also be run on t
 <p align="center">
   <a href="doc/city_zoom.png"><img src="doc/city_zoom.png" alt="maximum zoom with range" width="31%"></a>
   <a href="doc/help_bubbles.png"><img src="doc/help_bubbles.png" alt="speech bubbles with help text" width="31%"></a>
+  <a href="doc/speedometer_only.png"><img src="doc/speedometer_only.png" alt="speedometer only screen" width="31%"></a>
 </p>
 <p align="center">
   <a href="doc/trip_screen.png"><img src="doc/trip_screen.png" alt="trip meter screen" width="31%"></a>
