@@ -151,7 +151,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
         "", kMaxGoodLookingDistance, "", LV_ALIGN_BOTTOM_RIGHT, {-14, -kPixelSize_radbuzz_font_40});
 
     m_range =
-        LeftAligned("Range", "99", "km", LV_ALIGN_BOTTOM_LEFT, {0, -kPixelSize_radbuzz_font_40});
+        LeftAligned("Range", "999", "km", LV_ALIGN_BOTTOM_LEFT, {0, -kPixelSize_radbuzz_font_40});
 
     m_power =
         CenterAligned("Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {0, -kPixelSize_radbuzz_font_40});
