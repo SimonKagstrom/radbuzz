@@ -14,7 +14,7 @@ constexpr auto kDistanceBox = 1;
 constexpr auto kDistanceIndex = 0;
 constexpr auto kTripTimeIndex = 1;
 constexpr int kDistanceValueXOffset = 8;
-constexpr int kDistanceFirstRowYOffset = 22;
+constexpr int kDistanceFirstRowYOffset = 26;
 constexpr int kDistanceRowSpacing = 34;
 constexpr int kDistanceValueToUnitGap = 4;
 
@@ -51,7 +51,7 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
     lv_obj_set_style_text_color(m_speed_digits_label, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_speed_digits_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_align(m_speed_digits_label, LV_ALIGN_CENTER);
-    lv_obj_set_pos(m_speed_digits_label, 8, 4);
+    lv_obj_set_pos(m_speed_digits_label, 12, 14);
     lv_label_set_text(m_speed_digits_label, "0");
 
     m_gps_speed_label = lv_label_create(m_boxes[kSpeedometerBox]);
@@ -94,7 +94,7 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
     lv_label_set_text(m_distance_labels[kDistanceIndex], "0");
     lv_label_set_text(m_distance_unit_labels[kDistanceIndex], "m");
     lv_label_set_text(m_distance_labels[kTripTimeIndex], "0");
-    lv_label_set_text(m_distance_unit_labels[kTripTimeIndex], "s");
+    lv_label_set_text(m_distance_unit_labels[kTripTimeIndex], "");
 }
 
 void
