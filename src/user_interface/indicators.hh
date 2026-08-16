@@ -57,6 +57,14 @@ public:
                             !state.Get<AS::bms_data>()->valid);
     }
 
+    void ForceShow() final
+    {
+        if (m_parent.OnMapScreen())
+        {
+            IndicatorBase::ForceShow();
+        }
+    }
+
 private:
     std::string m_text;
     lv_obj_t* m_bms_label {nullptr};

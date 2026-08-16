@@ -419,7 +419,7 @@ UserInterface::OnActivation()
     {
         for (auto& indicator : m_indicators)
         {
-            lv_obj_clear_flag(indicator->m_indicator_label, LV_OBJ_FLAG_HIDDEN);
+            indicator->ForceShow();
         }
     }
 
