@@ -425,7 +425,7 @@ iconHash={:08x}32
         m_target_speed = m_random_engine() % kMaxSpeed;
     }
     const int speed_delta = static_cast<int>(speed) - current_speed;
-    constexpr int kWattsPerKmh = 10;
+    constexpr int kWattsPerKmh = 20;
     auto target_power = static_cast<int>(speed) * kWattsPerKmh;
 
     if (speed_delta < 0)

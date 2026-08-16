@@ -68,7 +68,7 @@ SpeedometerOnlyScreen::CenterAligned(const char* label_text,
     lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
 
     lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
-    lv_obj_align_to(datum.value_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
+    lv_obj_align_to(datum.value_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_MID, -16, 4);
     lv_obj_align_to(datum.value_unit_label, datum.value_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 4, -4);
 
     return datum;
@@ -179,8 +179,20 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_temperature.description_label, temperature_text.c_str());
     lv_label_set_text(m_temperature.value_label, temperature_value_text.c_str());
 
-    lv_label_set_text(m_power.value_label,
-                      std::format("{}", m_parent.m_state.Get<AS::current_power_w>()).c_str());
+    auto power = m_parent.m_state.Get<AS::current_power_w>();
+    std::string power_text;
+
+    if (power < 1000)
+    {
+        power_text = std::format("{}", power);
+        lv_label_set_text(m_power.value_unit_label, "W");
+    }
+    else
+    {
+        power_text = std::format("{:.1f}", power / 1000.0f);
+        lv_label_set_text(m_power.value_unit_label, "kW");
+    }
+    lv_label_set_text(m_power.value_label, power_text.c_str());
 
     lv_label_set_text(m_range.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::estimated_range_km>()).c_str());
@@ -205,12 +217,16 @@ SpeedometerOnlyScreen::Update()
 
     // Dynamic alignment
     lv_obj_align_to(
+        m_battery.value_label, m_battery.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
+    lv_obj_align_to(m_power.value_label, m_power.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
+    lv_obj_align_to(m_range.value_label, m_range.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
+    lv_obj_align_to(m_trip_distance.value_label,
+                    m_trip_distance.value_unit_label,
+                    LV_ALIGN_OUT_LEFT_BOTTOM,
+                    -4,
+                    4);
+    lv_obj_align_to(
         m_temperature.value_label, m_temperature.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
-    lv_obj_align_to(m_trip_distance.description_label,
-                    m_trip_distance.value_label,
-                    LV_ALIGN_OUT_TOP_LEFT,
-                    0,
-                    -4);
 }
 
 void
