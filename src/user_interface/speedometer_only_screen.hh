@@ -43,6 +43,7 @@ private:
     Datum m_battery;
     Datum m_temperature;
     Datum m_trip_distance;
+    Datum m_trip_time;
     Datum m_range;
     Datum m_power;
 

@@ -140,13 +140,25 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     m_temperature =
         RightAligned("Controller/Motor/BMS/Cell", "0/0/0/0", "°C", LV_ALIGN_TOP_RIGHT, {-16, 4});
 
-    m_trip_distance =
-        LeftAligned("Trip", "999", "km", LV_ALIGN_BOTTOM_LEFT, {0, -kPixelSize_radbuzz_font_40});
-    m_range = RightAligned(
-        "Range", "999", "km", LV_ALIGN_BOTTOM_RIGHT, {-20, -kPixelSize_radbuzz_font_40});
+    // Align both these to the longest realistic distance
+    constexpr auto kMaxGoodLookingDistance = "99.9";
+    m_trip_distance = RightAligned("Trip",
+                                   kMaxGoodLookingDistance,
+                                   "m",
+                                   LV_ALIGN_BOTTOM_RIGHT,
+                                   {-20, -kPixelSize_radbuzz_font_40 * 2});
+    m_trip_time = RightAligned(
+        "", kMaxGoodLookingDistance, "", LV_ALIGN_BOTTOM_RIGHT, {-14, -kPixelSize_radbuzz_font_40});
+
+    m_range =
+        LeftAligned("Range", "99", "km", LV_ALIGN_BOTTOM_LEFT, {0, -kPixelSize_radbuzz_font_40});
 
     m_power =
         CenterAligned("Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {0, -kPixelSize_radbuzz_font_40});
+
+
+    // Never show
+    lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, true);
 }
 
 void
@@ -197,6 +209,11 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_range.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::estimated_range_km>()).c_str());
 
+    auto trip_duration = m_parent.m_state.Get<AS::trip_duration>();
+    std::string trip_time_text = SecondsToString(trip_duration);
+
+    lv_label_set_text(m_trip_time.value_label, trip_time_text.c_str());
+
     std::string trip_value_text;
     auto trip_distance_m = m_parent.m_state.Get<AS::trip_distance>();
 
@@ -210,8 +227,6 @@ SpeedometerOnlyScreen::Update()
         trip_value_text = std::format("{:.1f}", trip_distance_m / 1000.0f);
         lv_label_set_text(m_trip_distance.value_unit_label, "km");
     }
-    // trip_value_text += ", " + SecondsToString(m_parent.m_state.Get<AS::trip_duration>());
-
     lv_label_set_text(m_trip_distance.value_label, trip_value_text.c_str());
 
 
@@ -220,11 +235,18 @@ SpeedometerOnlyScreen::Update()
         m_battery.value_label, m_battery.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
     lv_obj_align_to(m_power.value_label, m_power.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
     lv_obj_align_to(m_range.value_label, m_range.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
+    lv_obj_align_to(m_trip_distance.value_unit_label,
+                    m_trip_distance.description_label,
+                    LV_ALIGN_OUT_BOTTOM_RIGHT,
+                    0,
+                    4 + 7);
     lv_obj_align_to(m_trip_distance.value_label,
                     m_trip_distance.value_unit_label,
                     LV_ALIGN_OUT_LEFT_BOTTOM,
                     -4,
                     4);
+    lv_obj_align_to(
+        m_trip_time.value_label, m_trip_time.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
     lv_obj_align_to(
         m_temperature.value_label, m_temperature.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
 }
