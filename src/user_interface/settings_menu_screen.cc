@@ -33,7 +33,7 @@ SettingsMenuScreen::OnActivation()
     auto& settings_page = main.AddSubPage("Settings");
     main.AddSeparator();
 
-    auto& temperature_limits = settings_page.AddSubPage("Temperature limits");
+    auto& temperature_limits = settings_page.AddSubPage("Overheating limits");
     {
         temperature_limits.AddNumericEntry(
             "Motor (°C)",
@@ -155,7 +155,7 @@ SettingsMenuScreen::OnActivation()
     main.AddBooleanEntry("Show help text", m_parent.m_help_enabled, [this](auto value) {
         m_parent.m_help_enabled = value;
     });
-    main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
+    main.AddBooleanEntry("Demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
         m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(value);
     });
 
