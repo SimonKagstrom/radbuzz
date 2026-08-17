@@ -27,7 +27,7 @@ constexpr auto kLandscapeTileFactorZoomedOut = 5;
 constexpr auto kPendingCityTilesFileName = "pending.bin";
 // Bump when format changed
 constexpr int32_t kPendingTileMagic = 0x43697480;
-constexpr auto kRuntimeOsmApiKeyFilename = "osm_key.txt";
+constexpr auto kRuntimeOsmApiKeyFilename = "OSM_KEY.TXT";
 
 void
 TrimAsciiWhitespace(std::string& value)

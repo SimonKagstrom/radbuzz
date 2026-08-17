@@ -68,7 +68,7 @@ See [doc/build_instructions.md](doc/build_instructions.md) for more details on b
 ## The OSM API key
 Get an API key for thunderforest via https://www.thunderforest.com/docs/apikeys/
 
-Put this key as a string in a `osm_api_key.txt` file in the root directory of this project.
+Put this key as a string in a `/APP_DATA/OSM_KEY.TXT` file in the root directory of this project.
 
 A key can also be placed on the SD card, as osm_key.txt, which will be
 preferred over the build time one if it exists.
