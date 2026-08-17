@@ -45,7 +45,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {
-        "SoC/range", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("km")});
+        "SoC/used on trip", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("%")});
     m_stat_rows.emplace_back(StatRow {"Trip time", "", StatValueKind::kTime});
     m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
     m_stat_rows.emplace_back(
@@ -178,11 +178,21 @@ TripMeterScreen::Update()
 
         switch (row.value_kind)
         {
-        case StatValueKind::kSoc:
+        case StatValueKind::kSoc: {
+            const auto conf = ro.Get<AS::configuration>();
+
+            // Estimate Wh left from configured pack size
+            constexpr float kNominalCellVoltageV = 3.7f;
+            const float pack_nominal_voltage_v =
+                static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
+            const float full_pack_wh =
+                static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
+            const int wh_percent_used = (ro.Get<AS::wh_consumed>() / full_pack_wh) * 100.0f;
+
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
-            lv_label_set_text(row.second_column->value,
-                              std::format("{}", ro.Get<AS::estimated_range_km>()).c_str());
+            lv_label_set_text(row.second_column->value, std::format("{}", wh_percent_used).c_str());
             break;
+        }
         case StatValueKind::kConsumedWh: {
 
             const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
