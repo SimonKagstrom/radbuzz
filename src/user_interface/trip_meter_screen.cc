@@ -45,7 +45,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {
-        "SoC/used on trip", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("%")});
+        "SoC/trip usage", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("%")});
     m_stat_rows.emplace_back(StatRow {"Trip time", "", StatValueKind::kTime});
     m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
     m_stat_rows.emplace_back(
@@ -380,7 +380,7 @@ TripMeterScreen::SetHelp(bool on)
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_stat_rows[0].second_column->value,
                                        SpeechBubble::Direction::kLeft,
-                                       "Estimated range based on the\nconfigurable Wh/km value",
+                                       "Estimated trip battery usage,\nfrom the configurable battery Ah",
                                        Point {80, 0}));
 
     m_explanatory_bubbles.push_back(
