@@ -1,5 +1,6 @@
 #include "trip_meter_screen.hh"
 
+#include "battery_utils.hh"
 #include "map_screen.hh"
 #include "time_string.hh"
 
@@ -179,15 +180,13 @@ TripMeterScreen::Update()
         switch (row.value_kind)
         {
         case StatValueKind::kSoc: {
-            const auto conf = ro.Get<AS::configuration>();
+            const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
+            const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
 
-            // Estimate Wh left from configured pack size
-            constexpr float kNominalCellVoltageV = 3.7f;
-            const float pack_nominal_voltage_v =
-                static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
-            const float full_pack_wh =
-                static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
-            const int wh_percent_used = (ro.Get<AS::wh_consumed>() / full_pack_wh) * 100.0f;
+            const int wh_percent_used =
+                (consumed_wh /
+                 static_cast<float>(battery::FullPackWh(ro.Get<AS::configuration>()))) *
+                100.0f;
 
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
             lv_label_set_text(row.second_column->value, std::format("{}", wh_percent_used).c_str());
@@ -377,11 +376,11 @@ TripMeterScreen::SetHelp(bool on)
         return;
     }
 
-    m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(m_stat_rows[0].second_column->value,
-                                       SpeechBubble::Direction::kLeft,
-                                       "Estimated trip battery usage,\nfrom the configurable battery Ah",
-                                       Point {80, 0}));
+    m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
+        m_stat_rows[0].second_column->value,
+        SpeechBubble::Direction::kLeft,
+        "Estimated trip battery usage,\nfrom the configurable battery Ah",
+        Point {80, 0}));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_stat_rows[2].value,

@@ -1,5 +1,6 @@
 #include "trip_computer.hh"
 
+#include "battery_utils.hh"
 #include "debug_assert.hh"
 
 #include <numeric>
@@ -144,11 +145,7 @@ TripComputer::UpdateRange()
     const auto conf = rw.Get<AS::configuration>();
     const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
 
-    // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
-    constexpr float kNominalCellVoltageV = 3.7f;
-    const float pack_nominal_voltage_v =
-        static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
-    const float full_pack_wh = static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
+    auto full_pack_wh = battery::FullPackWh(conf);
     const float wh_left = full_pack_wh * (static_cast<float>(soc) / 100.0f);
     uint32_t range = std::max(1.0f, wh_left / static_cast<float>(wh_per_km));
 
