@@ -81,7 +81,11 @@ TripComputer::TripComputer(ApplicationState& app_state)
     , m_state_cache(m_state)
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
-    std::ranges::fill(m_recent_entries, RecentEntry {0});
+    // Fill with zeroes to start from the rightmost point
+    for (auto i = 0; i < kNumberOfRecentEntries; ++i)
+    {
+        m_recent_entries.push(RecentEntry {0});
+    }
 }
 
 void

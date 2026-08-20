@@ -245,15 +245,13 @@ SpeedometerOnlyScreen::Update()
 
 
     auto recent_entries = m_parent.m_trip_computer.GetRecentEntries();
+    debug_assert(recent_entries.size() == m_recent_entry_bars.size());
+    const float max_watts = m_parent.m_state.Get<AS::configuration>()->max_watts;
     for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
     {
-        if (i < recent_entries.size())
-        {
-            auto power = recent_entries[i].power /
-                         static_cast<float>(m_parent.m_state.Get<AS::configuration>()->max_watts);
-
-            lv_obj_set_size(m_recent_entry_bars[i], 60, static_cast<int>(power * 128));
-        }
+        lv_obj_set_size(m_recent_entry_bars[i],
+                        60,
+                        static_cast<int>(recent_entries[i].power / max_watts * 128));
     }
 
 
