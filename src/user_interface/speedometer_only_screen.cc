@@ -113,7 +113,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
         lv_obj_set_style_radius(bar, 0, LV_PART_MAIN);
         lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
 
-        lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, TripComputer::kNumberOfRecentEntries * 60 -  i * 60, 0);
+        lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, i * 60, 0);
 
         m_recent_entry_bars.push_back(bar);
     }

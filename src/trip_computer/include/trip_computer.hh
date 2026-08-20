@@ -17,6 +17,7 @@ class TripComputer : public os::BaseThread
 public:
     using LogHandle = uint16_t;
     using PowerType = decltype(AS::current_power_w::current_power_w);
+    using DistanceType = decltype(AS::odometer::odometer);
 
     struct TripLogEntry
     {
@@ -131,6 +132,7 @@ private:
     void UpdateRecentEntries(uint32_t odometer);
     void ResetTrip();
 
+    DistanceType RecentDistance(DistanceType distance) const;
 
     std::optional<LogHandle> AllocateLogEntry();
     void FreeLogEntry(LogHandle handle);

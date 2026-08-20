@@ -30,13 +30,6 @@ constexpr auto kMillivoltSocTable = std::array {std::pair<uint16_t, uint8_t> {32
                                                 std::pair<uint16_t, uint8_t> {4200, 100}};
 
 
-auto
-RecentDistance(auto distance)
-{
-    // Round to the nearest 100 meters
-    return (distance / 100) * 100;
-}
-
 uint32_t
 TriangleArea(const Point& a, const Point& b, const Point& c)
 {
@@ -88,6 +81,7 @@ TripComputer::TripComputer(ApplicationState& app_state)
     , m_state_cache(m_state)
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
+    std::ranges::fill(m_recent_entries, RecentEntry {0});
 }
 
 void
@@ -138,6 +132,16 @@ TripComputer::StartMonitoring()
 
         return 250ms;
     });
+}
+
+
+TripComputer::DistanceType
+TripComputer::RecentDistance(TripComputer::DistanceType distance) const
+{
+    auto resolution = m_state.Get<AS::configuration>()->recent_power_distance;
+
+    // Round to the nearest X meters
+    return (distance / resolution) * resolution;
 }
 
 void

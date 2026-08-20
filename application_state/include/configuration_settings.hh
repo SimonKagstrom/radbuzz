@@ -39,6 +39,9 @@ struct ConfigurationSettings
     /// @brief Maximum power in watts
     uint16_t max_watts;
 
+    /// Distance in meters between power bars on the speedometer screen
+    uint16_t recent_power_distance;
+
     SpeedometerType speedometer_type;
 
     /// Whether the map should rotate according to heading

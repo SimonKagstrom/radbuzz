@@ -29,6 +29,7 @@ enum class Key
     kWhPerKmForRangeEstimation,
     kSpeedometerType,
     kMaxWatts,
+    kRecentPowerDistance,
     kRotateMap,
     kForceC6Update,
     kShowGpsSpeed,
@@ -120,6 +121,10 @@ constexpr auto kKeyToString = std::array {
         Key::kCellOverheatTemperature,
         "3",
     },
+    std::pair {
+        Key::kRecentPowerDistance,
+        "4",
+    },
 };
 
 static_assert(kKeyToString.size() == std::to_underlying(Key::kValueCount));
@@ -165,6 +170,8 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     // Make sure all configuration values are set here, this is where defaults come from
     conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(false);
     conf.max_speed = m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeed)).value_or(30);
+    conf.recent_power_distance =
+        m_nvm.Get<uint16_t>(KeyToString(Key::kRecentPowerDistance)).value_or(100);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(KeyToString(Key::kBatterySeries)).value_or(7);
     conf.battery_amp_hours = m_nvm.Get<uint8_t>(KeyToString(Key::kBatteryAmpHours)).value_or(20);
     conf.wh_per_km_for_range_estimation =
@@ -299,6 +306,11 @@ Storage::OnActivation()
         if (old_conf.rotate_map != new_conf.rotate_map)
         {
             m_nvm.Set<bool>(KeyToString(Key::kRotateMap), new_conf.rotate_map);
+        }
+        if (old_conf.recent_power_distance != new_conf.recent_power_distance)
+        {
+            m_nvm.Set<uint16_t>(KeyToString(Key::kRecentPowerDistance),
+                                new_conf.recent_power_distance);
         }
         if (old_conf.show_gps_speed != new_conf.show_gps_speed)
         {
