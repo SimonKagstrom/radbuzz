@@ -11,6 +11,9 @@ class Fixture : public ThreadFixture
 public:
     Fixture()
     {
+        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+        ps.GetWritableReference<AS::configuration>().recent_power_distance = 50;
+
         SetThread(&trip_computer);
 
         trip_computer.Start("trip_computer");
