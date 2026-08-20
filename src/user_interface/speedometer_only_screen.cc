@@ -99,6 +99,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
 {
     const lv_color_t kBackgroundColor = lv_color_make(47, 47, 58);
+    const lv_color_t kBarColor = lv_color_make(128, 128, 128);
 
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(m_screen, kBackgroundColor, 0);
@@ -107,13 +108,13 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     for (auto i = 0; i < TripComputer::kNumberOfRecentEntries; ++i)
     {
         auto bar = lv_obj_create(m_screen);
-        lv_obj_set_size(bar, 50, 0);
-        lv_obj_set_style_bg_color(bar, lv_color_black(), LV_PART_MAIN);
+        lv_obj_set_size(bar, 58, 0);
+        lv_obj_set_style_bg_color(bar, kBarColor, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(bar, LV_OPA_100, LV_PART_MAIN);
         lv_obj_set_style_radius(bar, 0, LV_PART_MAIN);
         lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
 
-        lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, i * 60, 0);
+        lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, i * 65, 0);
 
         m_recent_entry_bars.push_back(bar);
     }
@@ -165,8 +166,11 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     m_trip_time = RightAligned(
         "", kMaxGoodLookingDistance, "", LV_ALIGN_BOTTOM_RIGHT, {-14, -kPixelSize_radbuzz_font_40});
 
-    m_range =
-        LeftAligned("Range", "999", "km", LV_ALIGN_BOTTOM_LEFT, {0, -kPixelSize_radbuzz_font_40});
+    m_range = LeftAligned("Range",
+                          "999",
+                          "km",
+                          LV_ALIGN_TOP_LEFT,
+                          {0, kPixelSize_radbuzz_font_40 + kPixelSize_radbuzz_font_22 + 10});
 
     m_power =
         CenterAligned("Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {0, -kPixelSize_radbuzz_font_40});
@@ -250,8 +254,8 @@ SpeedometerOnlyScreen::Update()
     for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
     {
         lv_obj_set_size(m_recent_entry_bars[i],
-                        60,
-                        static_cast<int>(recent_entries[i].power / max_watts * 128));
+                        65,
+                        static_cast<int>(recent_entries[i].power / max_watts * 192));
     }
 
 
