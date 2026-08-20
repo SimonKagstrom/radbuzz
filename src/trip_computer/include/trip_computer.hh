@@ -7,6 +7,7 @@
 
 #include <etl/circular_buffer.h>
 #include <etl/priority_queue.h>
+#include <etl/vector.h>
 #include <mutex>
 #include <optional>
 #include <utility>
@@ -15,11 +16,13 @@ class TripComputer : public os::BaseThread
 {
 public:
     using LogHandle = uint16_t;
+    using PowerType = decltype(AS::current_power_w::current_power_w);
+
     struct TripLogEntry
     {
         Point position;
         milliseconds timestamp;
-        int16_t power;
+        PowerType power;
         LogHandle predecessor;
         LogHandle successor;
     };
@@ -27,7 +30,13 @@ public:
     struct DisplayTripLogEntry
     {
         Point position;
-        int16_t power;
+        PowerType power;
+    };
+
+
+    struct RecentEntry
+    {
+        PowerType power;
     };
 
 
@@ -37,9 +46,12 @@ public:
     static constexpr auto kNumberOfExportLogEntries =
         kNumberOfTripLogEntries - kNumberOfDisplayLogEntries - 2;
 
+    static constexpr auto kNumberOfRecentEntries = 10;
+
     explicit TripComputer(ApplicationState& app_state);
 
     std::pair<std::unique_lock<etl::mutex>, std::span<const DisplayTripLogEntry>> GetDisplayLog();
+    std::span<const RecentEntry> GetRecentEntries();
 
     const TripLogEntry& Entry(LogHandle handle) const
     {
@@ -114,8 +126,9 @@ private:
     void StartMonitoring();
     void UpdateSoc(uint16_t millivolts);
     void UpdateTripLog();
-    void UpdateSpeedAndTime();
+    void UpdateSpeedAndTime(uint32_t odometer);
     void UpdateRange();
+    void UpdateRecentEntries(uint32_t odometer);
     void ResetTrip();
 
 
@@ -151,6 +164,12 @@ private:
 
     std::array<std::vector<DisplayTripLogEntry>, 2> m_display_logs;
     std::atomic<uint8_t> m_current_display_log {0};
+
+
+    etl::circular_buffer<RecentEntry, kNumberOfRecentEntries> m_recent_entries {};
+    etl::vector<RecentEntry, kNumberOfRecentEntries> m_display_recent_entries;
+    RecentEntry m_current_recent_entry {};
+    uint32_t m_recent_entry_samples {0};
 
     etl::mutex m_log_mutex;
 };

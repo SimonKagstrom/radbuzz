@@ -30,6 +30,13 @@ constexpr auto kMillivoltSocTable = std::array {std::pair<uint16_t, uint8_t> {32
                                                 std::pair<uint16_t, uint8_t> {4200, 100}};
 
 
+auto
+RecentDistance(auto distance)
+{
+    // Round to the nearest 100 meters
+    return (distance / 100) * 100;
+}
+
 uint32_t
 TriangleArea(const Point& a, const Point& b, const Point& c)
 {
@@ -121,12 +128,46 @@ TripComputer::StartMonitoring()
             }
         }
 
-        UpdateSpeedAndTime();
+        auto rw = m_state.CheckoutReadWrite();
+        auto odometer = rw.Get<AS::odometer>();
+
+        UpdateSpeedAndTime(odometer);
         UpdateRange();
+        UpdateRecentEntries(odometer);
+        m_current_distance = odometer;
 
         return 250ms;
     });
 }
+
+void
+TripComputer::UpdateRecentEntries(uint32_t odometer)
+{
+    auto current_distance = RecentDistance(m_current_distance);
+    auto distance_now = RecentDistance(odometer);
+    auto power = m_state.Get<AS::current_power_w>();
+
+    if (distance_now != current_distance)
+    {
+        if (m_recent_entries.full())
+        {
+            m_recent_entries.pop();
+        }
+
+        m_current_recent_entry.power /= m_recent_entry_samples + 1;
+        m_recent_entries.push(m_current_recent_entry);
+        m_recent_entry_samples = 0;
+
+        m_current_distance = distance_now;
+        m_current_recent_entry = {};
+    }
+    else
+    {
+        m_current_recent_entry.power += power;
+        m_recent_entry_samples++;
+    }
+}
+
 
 void
 TripComputer::UpdateRange()
@@ -222,6 +263,22 @@ TripComputer::GetDisplayLog()
     return {std::move(lock), m_display_logs[m_current_display_log]};
 }
 
+std::span<const TripComputer::RecentEntry>
+TripComputer::GetRecentEntries()
+{
+    m_display_recent_entries = {};
+    m_display_recent_entries.clear();
+
+    std::lock_guard<etl::mutex> lock(m_log_mutex);
+    for (const auto& entry : m_recent_entries)
+    {
+        m_display_recent_entries.push_back(entry);
+    }
+
+    return m_display_recent_entries;
+}
+
+
 std::optional<TripComputer::LogHandle>
 TripComputer::AllocateLogEntry()
 {
@@ -260,10 +317,9 @@ TripComputer::OnActivation()
 }
 
 void
-TripComputer::UpdateSpeedAndTime()
+TripComputer::UpdateSpeedAndTime(uint32_t distance_now)
 {
     auto rw = m_state.CheckoutReadWrite();
-    auto distance_now = rw.Get<AS::odometer>();
 
     auto is_moving_now = distance_now != m_current_distance;
     auto now = std::chrono::duration_cast<seconds>(os::GetTimeStamp());
@@ -286,11 +342,10 @@ TripComputer::UpdateSpeedAndTime()
         });
     }
 
-    m_current_distance = distance_now;
     if (rw.Get<AS::is_moving>())
     {
         auto trip_duration = now - m_current_trip_movement_second;
-        auto trip_distance = m_current_distance - m_trip_start_distance;
+        auto trip_distance = distance_now - m_trip_start_distance;
 
         rw.Set<AS::trip_duration>(trip_duration);
         rw.Set<AS::trip_distance>(trip_distance);

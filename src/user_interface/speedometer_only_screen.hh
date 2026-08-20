@@ -1,6 +1,9 @@
 #pragma once
 
+#include "trip_computer.hh"
 #include "user_interface.hh"
+
+#include <etl/vector.h>
 
 class SpeedometerOnlyScreen : public UserInterface::ScreenBase
 {
@@ -39,6 +42,8 @@ private:
 
     lv_obj_t* m_speedometer_label {nullptr};
     lv_obj_t* m_speedometer_unit_label {nullptr};
+
+    etl::vector<lv_obj_t*, TripComputer::kNumberOfRecentEntries> m_recent_entry_bars {};
 
     Datum m_battery;
     Datum m_temperature;

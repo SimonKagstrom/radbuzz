@@ -103,6 +103,21 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(m_screen, kBackgroundColor, 0);
 
+    // Recent power averages
+    for (auto i = 0; i < TripComputer::kNumberOfRecentEntries; ++i)
+    {
+        auto bar = lv_obj_create(m_screen);
+        lv_obj_set_size(bar, 50, 0);
+        lv_obj_set_style_bg_color(bar, lv_color_black(), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(bar, LV_OPA_100, LV_PART_MAIN);
+        lv_obj_set_style_radius(bar, 0, LV_PART_MAIN);
+        lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
+
+        lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, TripComputer::kNumberOfRecentEntries * 60 -  i * 60, 0);
+
+        m_recent_entry_bars.push_back(bar);
+    }
+
     // Big speedometer in the center of the screen
     m_speedometer_box = lv_obj_create(m_screen);
 
@@ -155,7 +170,6 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 
     m_power =
         CenterAligned("Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {0, -kPixelSize_radbuzz_font_40});
-
 
     // Never show
     lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, true);
@@ -228,6 +242,19 @@ SpeedometerOnlyScreen::Update()
         lv_label_set_text(m_trip_distance.value_unit_label, "km");
     }
     lv_label_set_text(m_trip_distance.value_label, trip_value_text.c_str());
+
+
+    auto recent_entries = m_parent.m_trip_computer.GetRecentEntries();
+    for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
+    {
+        if (i < recent_entries.size())
+        {
+            auto power = recent_entries[i].power /
+                         static_cast<float>(m_parent.m_state.Get<AS::configuration>()->max_watts);
+
+            lv_obj_set_size(m_recent_entry_bars[i], 60, static_cast<int>(power * 128));
+        }
+    }
 
 
     // Dynamic alignment
