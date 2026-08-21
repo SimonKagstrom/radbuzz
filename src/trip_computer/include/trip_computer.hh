@@ -121,6 +121,13 @@ private:
         std::optional<LogQueueEntry> m_pending_log_entry;
     };
 
+    struct RecentHistogramEntry
+    {
+        uint32_t accumulated_power;
+        uint32_t samples;
+    };
+
+
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
@@ -170,8 +177,8 @@ private:
 
     etl::circular_buffer<RecentEntry, kNumberOfRecentEntries> m_recent_entries {};
     etl::vector<RecentEntry, kNumberOfRecentEntries> m_display_recent_entries;
-    RecentEntry m_current_recent_entry {};
-    uint32_t m_recent_entry_samples {0};
+
+    RecentHistogramEntry m_current_histogram_entry {};
 
     etl::mutex m_log_mutex;
 };

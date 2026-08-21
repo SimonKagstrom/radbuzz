@@ -162,17 +162,18 @@ TripComputer::UpdateRecentEntries(uint32_t odometer)
             m_recent_entries.pop();
         }
 
-        m_current_recent_entry.power /= m_recent_entry_samples + 1;
-        m_recent_entries.push(m_current_recent_entry);
-        m_recent_entry_samples = 0;
+        PowerType average_power =
+            m_current_histogram_entry.accumulated_power / m_current_histogram_entry.samples + 1;
+        m_recent_entries.push(RecentEntry {.power = average_power});
+        m_current_histogram_entry = {};
 
         m_current_distance = distance_now;
-        m_current_recent_entry = {};
+        m_current_histogram_entry = {};
     }
     else
     {
-        m_current_recent_entry.power += power;
-        m_recent_entry_samples++;
+        m_current_histogram_entry.accumulated_power += power;
+        m_current_histogram_entry.samples++;
     }
 }
 
