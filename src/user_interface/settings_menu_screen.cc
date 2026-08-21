@@ -13,6 +13,14 @@ static_assert(std::to_underlying(SpeedometerType::kAnalog) == 0);
 static_assert(std::to_underlying(SpeedometerType::kDigital) == 1);
 static_assert(std::to_underlying(SpeedometerType::kBoth) == 2);
 
+constexpr auto kHistogramModeOptions = std::to_array<std::string_view>({
+    "Power",
+    "Consumption",
+});
+static_assert(std::to_underlying(HistogramMode::kPower) == 0);
+static_assert(std::to_underlying(HistogramMode::kConsumption) == 1);
+
+
 SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
 {
@@ -112,14 +120,28 @@ SettingsMenuScreen::OnActivation()
                                   });
 
 
+    if constexpr (false)
+    {
+        // Don't display this until we actually have an analogue speedometer
+        settings_page.AddRollerEntry(
+            "Speedometer",
+            std::span<const std::string_view>(kSpeedometerTypeOptions),
+            kSpeedometerTypeOptions[std::to_underlying(
+                ro.Get<AS::configuration>()->speedometer_type)],
+            [this](auto value) {
+                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                    .GetWritableReference<AS::configuration>()
+                    .speedometer_type = static_cast<SpeedometerType>(value);
+            });
+    }
     settings_page.AddRollerEntry(
-        "Speedometer",
-        std::span<const std::string_view>(kSpeedometerTypeOptions),
-        kSpeedometerTypeOptions[std::to_underlying(ro.Get<AS::configuration>()->speedometer_type)],
+        "Histogram display",
+        std::span<const std::string_view>(kHistogramModeOptions),
+        kHistogramModeOptions[std::to_underlying(ro.Get<AS::configuration>()->histogram_mode)],
         [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
-                .speedometer_type = static_cast<SpeedometerType>(value);
+                .histogram_mode = static_cast<HistogramMode>(value);
         });
     settings_page.AddBooleanEntry(
         "Show GPS speed", ro.Get<AS::configuration>()->show_gps_speed, [this](auto value) {

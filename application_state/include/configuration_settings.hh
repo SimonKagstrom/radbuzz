@@ -30,6 +30,14 @@ enum class SpeedometerType : uint8_t
     kValueCount,
 };
 
+enum class HistogramMode : uint8_t
+{
+    kPower,
+    kConsumption,
+
+    kValueCount,
+};
+
 struct ConfigurationSettings
 {
     // @brief the home position
@@ -43,6 +51,8 @@ struct ConfigurationSettings
     uint16_t recent_power_distance;
 
     SpeedometerType speedometer_type;
+
+    HistogramMode histogram_mode;
 
     /// Whether the map should rotate according to heading
     bool rotate_map;

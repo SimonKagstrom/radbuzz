@@ -6,6 +6,8 @@
 #include "radbuzz_font_40.h"
 #include "time_string.hh"
 
+constexpr auto kMaxHistogramBarHeight = 192;
+
 namespace
 {
 
@@ -250,12 +252,28 @@ SpeedometerOnlyScreen::Update()
 
     auto recent_entries = m_parent.m_trip_computer.GetRecentEntries();
     debug_assert(recent_entries.size() == m_recent_entry_bars.size());
-    const float max_watts = m_parent.m_state.Get<AS::configuration>()->max_watts;
-    for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
+
+    auto conf = m_parent.m_state.Get<AS::configuration>();
+    const float max_watts = conf->max_watts;
+    const float max_consumption = conf->wh_per_km_for_range_estimation + 10;
+
+    if (conf->histogram_mode == HistogramMode::kPower)
+        for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
+        {
+            lv_obj_set_size(
+                m_recent_entry_bars[i],
+                65,
+                static_cast<int>(recent_entries[i].power / max_watts * kMaxHistogramBarHeight));
+        }
+    else
     {
-        lv_obj_set_size(m_recent_entry_bars[i],
-                        65,
-                        static_cast<int>(recent_entries[i].power / max_watts * 192));
+        for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
+        {
+            lv_obj_set_size(m_recent_entry_bars[i],
+                            65,
+                            static_cast<int>(recent_entries[i].average_consumption /
+                                             max_consumption * kMaxHistogramBarHeight));
+        }
     }
 
 

@@ -38,6 +38,7 @@ public:
     struct RecentEntry
     {
         PowerType power;
+        float average_consumption;
     };
 
 
@@ -124,6 +125,8 @@ private:
     struct RecentHistogramEntry
     {
         uint32_t accumulated_power;
+        float start_consumption;
+        float start_distance;
         uint32_t samples;
     };
 

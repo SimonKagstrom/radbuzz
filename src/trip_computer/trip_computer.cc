@@ -154,21 +154,34 @@ TripComputer::UpdateRecentEntries(uint32_t odometer)
     auto current_distance = RecentDistance(m_current_distance);
     auto distance_now = RecentDistance(odometer);
     auto power = m_state.Get<AS::current_power_w>();
+    auto consumed = m_state.Get<AS::wh_consumed>() - m_state.Get<AS::wh_regenerated>();
 
     if (distance_now != current_distance)
     {
+        auto conf = m_state.Get<AS::configuration>();
         if (m_recent_entries.full())
         {
             m_recent_entries.pop();
         }
 
-        PowerType average_power =
-            m_current_histogram_entry.accumulated_power / m_current_histogram_entry.samples + 1;
-        m_recent_entries.push(RecentEntry {.power = average_power});
+        auto samples = m_current_histogram_entry.samples + 1;
+        PowerType average_power = m_current_histogram_entry.accumulated_power / samples;
+        auto average_consumption =
+            (consumed - m_current_histogram_entry.start_consumption) *
+            (1000.0f / (odometer - m_current_histogram_entry.start_distance));
+
+        average_consumption = std::min(average_consumption, 100.0f);
+
+        m_recent_entries.push(
+            RecentEntry {.power = average_power, .average_consumption = average_consumption});
         m_current_histogram_entry = {};
 
         m_current_distance = distance_now;
         m_current_histogram_entry = {};
+
+        // Store the current consumption and distance
+        m_current_histogram_entry.start_consumption = consumed;
+        m_current_histogram_entry.start_distance = odometer;
     }
     else
     {

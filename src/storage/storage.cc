@@ -30,6 +30,7 @@ enum class Key
     kSpeedometerType,
     kMaxWatts,
     kRecentPowerDistance,
+    kHistogramMode,
     kRotateMap,
     kForceC6Update,
     kShowGpsSpeed,
@@ -125,6 +126,10 @@ constexpr auto kKeyToString = std::array {
         Key::kRecentPowerDistance,
         "4",
     },
+    std::pair {
+        Key::kHistogramMode,
+        "5",
+    },
 };
 
 static_assert(kKeyToString.size() == std::to_underlying(Key::kValueCount));
@@ -180,6 +185,10 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     conf.speedometer_type =
         static_cast<SpeedometerType>(m_nvm.Get<uint8_t>(KeyToString(Key::kSpeedometerType))
                                          .value_or(std::to_underlying(SpeedometerType::kDigital)));
+
+    conf.histogram_mode =
+        static_cast<HistogramMode>(m_nvm.Get<uint8_t>(KeyToString(Key::kHistogramMode))
+                                       .value_or(std::to_underlying(HistogramMode::kPower)));
     conf.max_watts = m_nvm.Get<uint16_t>(KeyToString(Key::kMaxWatts)).value_or(1000);
     conf.force_c6_update = m_nvm.Get<bool>(KeyToString(Key::kForceC6Update)).value_or(false);
     conf.show_gps_speed = m_nvm.Get<bool>(KeyToString(Key::kShowGpsSpeed)).value_or(false);
@@ -283,6 +292,11 @@ Storage::OnActivation()
         {
             m_nvm.Set<uint8_t>(KeyToString(Key::kSpeedometerType),
                                static_cast<uint8_t>(new_conf.speedometer_type));
+        }
+        if (old_conf.histogram_mode != new_conf.histogram_mode)
+        {
+            m_nvm.Set<uint8_t>(KeyToString(Key::kHistogramMode),
+                               static_cast<uint8_t>(new_conf.histogram_mode));
         }
         if (old_conf.force_c6_update != new_conf.force_c6_update)
         {
