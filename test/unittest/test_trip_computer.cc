@@ -228,4 +228,15 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "power histograms are zeroed by default")
+{
+    auto histogram = trip_computer.GetRecentEntries();
+
+    REQUIRE(histogram.size() == 10);
+    for (const auto& entry : histogram)
+    {
+        REQUIRE(entry.power == 0);
+    }
+}
+
 TEST_SUITE_END();
