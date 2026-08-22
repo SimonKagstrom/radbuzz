@@ -3,9 +3,9 @@
 #include "map_screen.hh"
 #include "painter.hh"
 #include "radbuzz_font_120.h"
-#include "radbuzz_numbers_font_16.h"
 #include "radbuzz_font_22.h"
 #include "radbuzz_font_40.h"
+#include "radbuzz_numbers_font_16.h"
 #include "time_string.hh"
 #include "trip_utils.hh"
 
@@ -139,15 +139,24 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
         m_recent_entry_bars.push_back(bar);
     }
 
+    m_current_histogram_bar_label = lv_label_create(m_screen);
+    lv_obj_set_style_text_font(m_current_histogram_bar_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_current_histogram_bar_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_align(m_current_histogram_bar_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_label_set_text(m_current_histogram_bar_label, "•");
+
+
     for (auto i = 0; i < m_recent_entry_labels.size(); ++i)
     {
         m_recent_entry_labels[i] = lv_label_create(m_screen);
 
-        lv_obj_set_style_text_font(m_recent_entry_labels[i], &radbuzz_numbers_font_16, LV_PART_MAIN);
+        lv_obj_set_style_text_font(
+            m_recent_entry_labels[i], &radbuzz_numbers_font_16, LV_PART_MAIN);
         lv_obj_set_style_text_color(m_recent_entry_labels[i], lv_color_white(), LV_PART_MAIN);
         lv_obj_set_style_text_align(m_recent_entry_labels[i], LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
     }
-    lv_obj_align(m_recent_entry_labels[0], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight / 2 - 2);
+    lv_obj_align(
+        m_recent_entry_labels[0], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight / 2 - 2);
     lv_obj_align(m_recent_entry_labels[1], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight - 2);
 
     lv_label_set_text(m_recent_entry_labels[0], "1800W");
@@ -311,6 +320,14 @@ SpeedometerOnlyScreen::Update()
                 kHistogramBarSpacing,
                 static_cast<int>(recent_entries[i].power / max_watts * kMaxHistogramBarHeight));
         }
+
+        lv_obj_align(
+            m_current_histogram_bar_label,
+            LV_ALIGN_BOTTOM_LEFT,
+            kHistogramBarSpacing * (TripComputer::kNumberOfRecentEntries - 1) +
+                kHistogramBarWidth / 2,
+            -static_cast<int>(recent_entries.back().power / max_watts * kMaxHistogramBarHeight -
+                              kPixelSize_radbuzz_font_22 / 2));
     }
     else
     {

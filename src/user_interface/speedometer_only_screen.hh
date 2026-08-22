@@ -48,6 +48,8 @@ private:
     etl::vector<lv_obj_t*, TripComputer::kNumberOfRecentEntries> m_recent_entry_bars {};
     std::array<lv_obj_t*, 2> m_recent_entry_labels {};
 
+    lv_obj_t* m_current_histogram_bar_label {nullptr};
+
     Datum m_battery;
     Datum m_temperature;
     Datum m_trip_distance;
