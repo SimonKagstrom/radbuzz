@@ -38,12 +38,15 @@ private:
                         lv_align_t alignment,
                         Point offset);
 
+    void DrawHistogramLines(lv_layer_t* layer);
+
     lv_obj_t* m_speedometer_box {nullptr};
 
     lv_obj_t* m_speedometer_label {nullptr};
     lv_obj_t* m_speedometer_unit_label {nullptr};
 
     etl::vector<lv_obj_t*, TripComputer::kNumberOfRecentEntries> m_recent_entry_bars {};
+    std::array<lv_obj_t*, 2> m_recent_entry_labels {};
 
     Datum m_battery;
     Datum m_temperature;

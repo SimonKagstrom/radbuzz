@@ -1,12 +1,16 @@
 #include "speedometer_only_screen.hh"
 
 #include "map_screen.hh"
+#include "painter.hh"
 #include "radbuzz_font_120.h"
+#include "radbuzz_font_16.h"
 #include "radbuzz_font_22.h"
 #include "radbuzz_font_40.h"
 #include "time_string.hh"
 
-constexpr auto kMaxHistogramBarHeight = 192;
+constexpr auto kMaxHistogramBarHeight = 150;
+constexpr auto kHistogramBarWidth = 58;
+constexpr auto kHistogramBarSpacing = kHistogramBarWidth + 7;
 
 namespace
 {
@@ -103,6 +107,19 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     const lv_color_t kBackgroundColor = lv_color_make(47, 47, 58);
     const lv_color_t kBarColor = lv_color_make(128, 128, 128);
 
+    // Callback to draw histogram lines on the background
+    lv_obj_add_event_cb(
+        m_screen,
+        [](lv_event_t* e) {
+            auto* self = static_cast<SpeedometerOnlyScreen*>(lv_event_get_user_data(e));
+            auto* layer = lv_event_get_layer(e);
+
+            self->DrawHistogramLines(layer);
+        },
+        LV_EVENT_DRAW_MAIN,
+        this);
+
+
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(m_screen, kBackgroundColor, 0);
 
@@ -110,16 +127,28 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     for (auto i = 0; i < TripComputer::kNumberOfRecentEntries; ++i)
     {
         auto bar = lv_obj_create(m_screen);
-        lv_obj_set_size(bar, 58, 0);
+        lv_obj_set_size(bar, kHistogramBarWidth, 0);
         lv_obj_set_style_bg_color(bar, kBarColor, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(bar, LV_OPA_100, LV_PART_MAIN);
         lv_obj_set_style_radius(bar, 0, LV_PART_MAIN);
         lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
 
-        lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, i * 65, 0);
+        lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, i * kHistogramBarSpacing, 0);
 
         m_recent_entry_bars.push_back(bar);
     }
+
+    for (auto i = 0; i < m_recent_entry_labels.size(); ++i)
+    {
+        m_recent_entry_labels[i] = lv_label_create(m_screen);
+        lv_obj_set_style_text_font(m_recent_entry_labels[i], &radbuzz_font_16, LV_PART_MAIN);
+        lv_obj_set_style_text_color(m_recent_entry_labels[i], lv_color_white(), LV_PART_MAIN);
+    }
+    lv_obj_align(m_recent_entry_labels[0], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight / 2);
+    lv_obj_align(m_recent_entry_labels[1], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight);
+
+    lv_label_set_text(m_recent_entry_labels[0], "900W");
+    lv_label_set_text(m_recent_entry_labels[1], "1800W");
 
     // Big speedometer in the center of the screen
     m_speedometer_box = lv_obj_create(m_screen);
@@ -262,7 +291,7 @@ SpeedometerOnlyScreen::Update()
         {
             lv_obj_set_size(
                 m_recent_entry_bars[i],
-                65,
+                kHistogramBarSpacing,
                 static_cast<int>(recent_entries[i].power / max_watts * kMaxHistogramBarHeight));
         }
     else
@@ -270,7 +299,7 @@ SpeedometerOnlyScreen::Update()
         for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
         {
             lv_obj_set_size(m_recent_entry_bars[i],
-                            65,
+                            kHistogramBarSpacing,
                             static_cast<int>(recent_entries[i].average_consumption /
                                              max_consumption * kMaxHistogramBarHeight));
         }
@@ -296,6 +325,20 @@ SpeedometerOnlyScreen::Update()
         m_trip_time.value_label, m_trip_time.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
     lv_obj_align_to(
         m_temperature.value_label, m_temperature.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
+}
+
+void
+SpeedometerOnlyScreen::DrawHistogramLines(lv_layer_t* layer)
+{
+    auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
+
+    constexpr auto kWidth = kHistogramBarWidth * (TripComputer::kNumberOfRecentEntries + 1) + 8;
+
+    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
+        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth, 0xffff);
+
+    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
+        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth, 0xffff);
 }
 
 void
