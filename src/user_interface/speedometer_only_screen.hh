@@ -47,6 +47,7 @@ private:
 
     etl::vector<lv_obj_t*, TripComputer::kNumberOfRecentEntries> m_recent_entry_bars {};
     std::array<lv_obj_t*, 2> m_recent_entry_labels {};
+    std::array<lv_obj_t*, 2> m_recent_entry_horizontal_labels {};
 
     lv_obj_t* m_current_histogram_bar_label {nullptr};
 

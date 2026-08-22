@@ -67,7 +67,7 @@ convert_font(radbuzz_numbers_font_16
     ${NUMBERS_FONT}
     16
     0x30-0x39
-    "Wh+-% "
+    "Wmih+-% "
 )
 
 add_library(user_interface EXCLUDE_FROM_ALL

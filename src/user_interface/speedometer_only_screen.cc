@@ -148,16 +148,29 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 
     for (auto i = 0; i < m_recent_entry_labels.size(); ++i)
     {
-        m_recent_entry_labels[i] = lv_label_create(m_screen);
+        auto vertical = lv_label_create(m_screen);
+        auto horizontal = lv_label_create(m_screen);
 
-        lv_obj_set_style_text_font(
-            m_recent_entry_labels[i], &radbuzz_numbers_font_16, LV_PART_MAIN);
-        lv_obj_set_style_text_color(m_recent_entry_labels[i], lv_color_white(), LV_PART_MAIN);
-        lv_obj_set_style_text_align(m_recent_entry_labels[i], LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+        lv_obj_set_style_text_font(vertical, &radbuzz_numbers_font_16, LV_PART_MAIN);
+        lv_obj_set_style_text_color(vertical, lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_text_align(vertical, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+
+        lv_obj_set_style_text_font(horizontal, &radbuzz_numbers_font_16, LV_PART_MAIN);
+        lv_obj_set_style_text_color(horizontal, lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_text_align(horizontal, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+
+        m_recent_entry_labels[i] = vertical;
+        m_recent_entry_horizontal_labels[i] = horizontal;
     }
     lv_obj_align(
         m_recent_entry_labels[0], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight / 2 - 2);
     lv_obj_align(m_recent_entry_labels[1], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight - 2);
+
+    lv_obj_align(m_recent_entry_horizontal_labels[0], LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_align(m_recent_entry_horizontal_labels[1],
+                 LV_ALIGN_BOTTOM_LEFT,
+                 kHistogramBarSpacing * TripComputer::kNumberOfRecentEntries / 2,
+                 0);
 
     lv_label_set_text(m_recent_entry_labels[0], "1800W");
     lv_label_set_text(m_recent_entry_labels[1], "1800W");
@@ -351,6 +364,16 @@ SpeedometerOnlyScreen::Update()
         }
     }
 
+    lv_label_set_text(
+        m_recent_entry_horizontal_labels[0],
+        std::format("-{} m", conf->recent_power_distance * TripComputer::kNumberOfRecentEntries)
+            .c_str());
+
+    lv_label_set_text(
+        m_recent_entry_horizontal_labels[1],
+        std::format("-{} m", conf->recent_power_distance * TripComputer::kNumberOfRecentEntries / 2)
+            .c_str());
+
 
     // Dynamic alignment
     lv_obj_align_to(
@@ -385,12 +408,12 @@ SpeedometerOnlyScreen::DrawHistogramLines(lv_layer_t* layer)
 
 
     painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth - 16, kLineColor);
+        dst, {64, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth - 16, kLineColor);
     painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
         dst, {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth, kLineEndColor);
 
     painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth - 16, kLineColor);
+        dst, {64, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth - 16, kLineColor);
     painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
         dst,
         {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight / 2},
