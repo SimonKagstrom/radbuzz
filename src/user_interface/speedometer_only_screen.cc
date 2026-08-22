@@ -181,7 +181,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_scrollbar_mode(m_speedometer_box, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_align(m_speedometer_box, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(m_speedometer_box, LV_ALIGN_TOP_MID, 0, 80);
 
 
     m_speedometer_label = lv_label_create(m_speedometer_box);
@@ -215,10 +215,16 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
                           LV_ALIGN_TOP_LEFT,
                           {0, kPixelSize_radbuzz_font_40 + kPixelSize_radbuzz_font_22 + 10});
 
-    m_power = CenterAligned(
-        "Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {-80, -kPixelSize_radbuzz_font_40});
-    m_consumption = CenterAligned(
-        "Consumption", "18.9", "Wh/km", LV_ALIGN_BOTTOM_MID, {80, -kPixelSize_radbuzz_font_40});
+    m_power = CenterAligned("Power",
+                            "1800",
+                            "W",
+                            LV_ALIGN_BOTTOM_MID,
+                            {-110, -kMaxHistogramBarHeight - kPixelSize_radbuzz_font_40 - 16});
+    m_consumption = CenterAligned("Consumption",
+                                  "18.9",
+                                  "Wh/km",
+                                  LV_ALIGN_BOTTOM_MID,
+                                  {80, -kMaxHistogramBarHeight - kPixelSize_radbuzz_font_40 - 16});
 
     // Never show
     lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, true);
@@ -386,7 +392,10 @@ SpeedometerOnlyScreen::DrawHistogramLines(lv_layer_t* layer)
     painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
         dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth - 16, kLineColor);
     painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth, kLineEndColor);
+        dst,
+        {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight / 2},
+        kWidth,
+        kLineEndColor);
 }
 
 void
