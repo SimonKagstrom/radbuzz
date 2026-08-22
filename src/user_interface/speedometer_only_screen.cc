@@ -374,11 +374,19 @@ SpeedometerOnlyScreen::DrawHistogramLines(lv_layer_t* layer)
 
     constexpr auto kWidth = kHistogramBarWidth * (TripComputer::kNumberOfRecentEntries + 1) + 8;
 
-    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth, 0xffff);
+    const auto kLineColor = lv_color_to_u16(lv_color_white());
+    const auto kLineEndColor = lv_color_to_u16(lv_color_make(128, 128, 128));
+
 
     painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth, 0xffff);
+        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth - 16, kLineColor);
+    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
+        dst, {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth, kLineEndColor);
+
+    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
+        dst, {0, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth - 16, kLineColor);
+    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
+        dst, {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth, kLineEndColor);
 }
 
 void
