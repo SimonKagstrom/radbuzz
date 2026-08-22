@@ -143,13 +143,7 @@ SettingsMenuScreen::OnActivation()
                 .GetWritableReference<AS::configuration>()
                 .histogram_mode = static_cast<HistogramMode>(value);
         });
-    settings_page.AddBooleanEntry(
-        "Show GPS speed", ro.Get<AS::configuration>()->show_gps_speed, [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .show_gps_speed = value;
-        });
-    settings_page.AddNumericEntry("Power histogram distance (meters)",
+    settings_page.AddNumericEntry("Histogram distance (meters)",
                                   {25, 1000, 25},
                                   ro.Get<AS::configuration>()->recent_power_distance,
                                   [this](auto value) {
@@ -157,6 +151,12 @@ SettingsMenuScreen::OnActivation()
                                           .GetWritableReference<AS::configuration>()
                                           .recent_power_distance = static_cast<uint16_t>(value);
                                   });
+    settings_page.AddBooleanEntry(
+        "Show GPS speed", ro.Get<AS::configuration>()->show_gps_speed, [this](auto value) {
+            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                .GetWritableReference<AS::configuration>()
+                .show_gps_speed = value;
+        });
     settings_page.AddBooleanEntry(
         "Rotate map with heading", ro.Get<AS::configuration>()->rotate_map, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
