@@ -3,6 +3,7 @@
 #include "battery_utils.hh"
 #include "map_screen.hh"
 #include "time_string.hh"
+#include "trip_utils.hh"
 
 #include <algorithm>
 #include <cstddef>
@@ -253,16 +254,7 @@ TripMeterScreen::Update()
         }
 
         case StatValueKind::kTripAverageWhPerKm: {
-            // For the trip, not the odometer
-            const uint32_t total_distance_m = ro.Get<AS::odometer>();
-            const uint32_t trip_distance_m = ro.Get<AS::trip_distance>();
-
-            const float total_wh_consumed = ro.Get<AS::wh_consumed>();
-            const float trip_wh_consumed =
-                std::max(0.0f, total_wh_consumed - trip_start.start_wh_consumed);
-
-            const float average_consumption =
-                trip_distance_m > 0 ? (trip_wh_consumed * 1000.0f) / trip_distance_m : 0.0f;
+            const float average_consumption = trip::AverageConsumption(m_parent.m_state, m_parent.m_current_trip_start);
             value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
 
             break;

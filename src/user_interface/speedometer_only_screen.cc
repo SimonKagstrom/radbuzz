@@ -3,10 +3,11 @@
 #include "map_screen.hh"
 #include "painter.hh"
 #include "radbuzz_font_120.h"
-#include "radbuzz_font_16.h"
+#include "radbuzz_numbers_font_16.h"
 #include "radbuzz_font_22.h"
 #include "radbuzz_font_40.h"
 #include "time_string.hh"
+#include "trip_utils.hh"
 
 constexpr auto kMaxHistogramBarHeight = 150;
 constexpr auto kHistogramBarWidth = 58;
@@ -141,13 +142,15 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     for (auto i = 0; i < m_recent_entry_labels.size(); ++i)
     {
         m_recent_entry_labels[i] = lv_label_create(m_screen);
-        lv_obj_set_style_text_font(m_recent_entry_labels[i], &radbuzz_font_16, LV_PART_MAIN);
-        lv_obj_set_style_text_color(m_recent_entry_labels[i], lv_color_white(), LV_PART_MAIN);
-    }
-    lv_obj_align(m_recent_entry_labels[0], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight / 2);
-    lv_obj_align(m_recent_entry_labels[1], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight);
 
-    lv_label_set_text(m_recent_entry_labels[0], "900W");
+        lv_obj_set_style_text_font(m_recent_entry_labels[i], &radbuzz_numbers_font_16, LV_PART_MAIN);
+        lv_obj_set_style_text_color(m_recent_entry_labels[i], lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_text_align(m_recent_entry_labels[i], LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    }
+    lv_obj_align(m_recent_entry_labels[0], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight / 2 - 2);
+    lv_obj_align(m_recent_entry_labels[1], LV_ALIGN_BOTTOM_LEFT, 0, -kMaxHistogramBarHeight - 2);
+
+    lv_label_set_text(m_recent_entry_labels[0], "1800W");
     lv_label_set_text(m_recent_entry_labels[1], "1800W");
 
     // Big speedometer in the center of the screen
@@ -203,8 +206,10 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
                           LV_ALIGN_TOP_LEFT,
                           {0, kPixelSize_radbuzz_font_40 + kPixelSize_radbuzz_font_22 + 10});
 
-    m_power =
-        CenterAligned("Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {0, -kPixelSize_radbuzz_font_40});
+    m_power = CenterAligned(
+        "Power", "1800", "W", LV_ALIGN_BOTTOM_MID, {-80, -kPixelSize_radbuzz_font_40});
+    m_consumption = CenterAligned(
+        "Consumption", "18.9", "Wh/km", LV_ALIGN_BOTTOM_MID, {80, -kPixelSize_radbuzz_font_40});
 
     // Never show
     lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, true);
@@ -255,6 +260,12 @@ SpeedometerOnlyScreen::Update()
     }
     lv_label_set_text(m_power.value_label, power_text.c_str());
 
+    lv_label_set_text(
+        m_consumption.value_label,
+        std::format("{:.1f}",
+                    trip::AverageConsumption(m_parent.m_state, m_parent.m_current_trip_start))
+            .c_str());
+
     lv_label_set_text(m_range.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::estimated_range_km>()).c_str());
 
@@ -287,6 +298,12 @@ SpeedometerOnlyScreen::Update()
     const float max_consumption = conf->wh_per_km_for_range_estimation + 10;
 
     if (conf->histogram_mode == HistogramMode::kPower)
+    {
+        lv_label_set_text(m_recent_entry_labels[0],
+                          std::format("{:4} W", static_cast<int>(max_watts / 2)).c_str());
+        lv_label_set_text(m_recent_entry_labels[1],
+                          std::format("{:4} W", static_cast<int>(max_watts)).c_str());
+
         for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
         {
             lv_obj_set_size(
@@ -294,8 +311,14 @@ SpeedometerOnlyScreen::Update()
                 kHistogramBarSpacing,
                 static_cast<int>(recent_entries[i].power / max_watts * kMaxHistogramBarHeight));
         }
+    }
     else
     {
+        lv_label_set_text(m_recent_entry_labels[0],
+                          std::format("{} Wh", static_cast<int>(max_consumption / 2)).c_str());
+        lv_label_set_text(m_recent_entry_labels[1],
+                          std::format("{} Wh", static_cast<int>(max_consumption)).c_str());
+
         for (size_t i = 0; i < m_recent_entry_bars.size(); ++i)
         {
             lv_obj_set_size(m_recent_entry_bars[i],

@@ -54,6 +54,7 @@ private:
     Datum m_trip_time;
     Datum m_range;
     Datum m_power;
+    Datum m_consumption;
 
     lv_obj_t* m_consumption_label {nullptr};
 };

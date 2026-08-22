@@ -62,6 +62,14 @@ convert_font(radbuzz_font_16
     "W+-%"
 )
 
+# Small font, only numbers
+convert_font(radbuzz_numbers_font_16
+    ${NUMBERS_FONT}
+    16
+    0x30-0x39
+    "Wh+-% "
+)
+
 add_library(user_interface EXCLUDE_FROM_ALL
     digital_speedometer_widget.cc
     map_screen.cc
@@ -87,6 +95,7 @@ PUBLIC
     tile_cache
     trip_computer
     radbuzz_font_16_library
+    radbuzz_numbers_font_16_library
     radbuzz_font_22_library
     radbuzz_symbols_40_library
     radbuzz_font_40_library
