@@ -30,9 +30,10 @@ void
 SettingsMenuScreen::OnActivation()
 {
     // Create on activation (since it needs quite a bit of memory)
+    auto current_screen = m_parent.m_current_screen;
     m_menu_screen = std::make_unique<MenuScreen>(
-        m_parent.GetTimerManager(), m_screen, m_parent.m_lvgl_input_dev, [this]() {
-            m_parent.ActivateScreen(*m_parent.m_map_screen);
+        m_parent.GetTimerManager(), m_screen, m_parent.m_lvgl_input_dev, [this, current_screen]() {
+            m_parent.ActivateScreen(*current_screen);
         });
 
     auto& main = m_menu_screen->GetMainPage();
