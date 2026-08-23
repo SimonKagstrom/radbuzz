@@ -268,6 +268,21 @@ TEST_CASE_FIXTURE(Fixture,
         }
     }
 
+    WHEN("one negative power value has been gotten (due to regen)")
+    {
+        rw.Set<AS::current_power_w>(-100);
+        rw.Set<AS::odometer>(1000);
+
+        AdvanceTimeAndRunLoop(250ms);
+
+        THEN("the value in the histogram is capped to zero")
+        {
+            auto& last_entry = trip_computer.GetRecentEntries().back();
+
+            REQUIRE(last_entry.power == 0);
+        }
+    }
+
 
     WHEN("two samples have been gotten")
     {
@@ -307,6 +322,25 @@ TEST_CASE_FIXTURE(Fixture,
                 REQUIRE(second_last_entry.average_consumption == 100);
                 REQUIRE(last_entry.power == 300);
             }
+        }
+    }
+
+    WHEN("multiple negative samples are gotten")
+    {
+        rw.Set<AS::odometer>(conf->recent_power_distance + 1);
+        rw.Set<AS::current_power_w>(-300);
+
+        AdvanceTimeAndRunLoop(250ms);
+
+        rw.Set<AS::odometer>(conf->recent_power_distance + 1);
+        rw.Set<AS::current_power_w>(-300);
+        AdvanceTimeAndRunLoop(250ms);
+
+        THEN("the power is still 0")
+        {
+            auto& last_entry = trip_computer.GetRecentEntries().back();
+
+            REQUIRE(last_entry.power == 0);
         }
     }
 }

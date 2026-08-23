@@ -124,10 +124,10 @@ private:
 
     struct RecentHistogramEntry
     {
-        uint32_t accumulated_power;
+        int32_t accumulated_power;
         float start_consumption;
         float start_distance;
-        uint32_t samples;
+        int32_t samples;
     };
 
 
