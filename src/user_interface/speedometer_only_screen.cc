@@ -202,11 +202,28 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_text_font(m_speedometer_label, &radbuzz_font_120, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speedometer_label, lv_color_white(), LV_PART_MAIN);
 
+    m_small_speedometer_label = lv_label_create(m_speedometer_box);
+    lv_obj_align_to(
+        m_small_speedometer_label, m_speedometer_label, LV_ALIGN_OUT_BOTTOM_MID, 16, 10);
+    lv_obj_set_style_text_font(m_small_speedometer_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_small_speedometer_label, lv_color_white(), LV_PART_MAIN);
+    lv_label_set_text(m_small_speedometer_label, "19");
+
     m_speedometer_unit_label = lv_label_create(m_screen);
     lv_obj_align_to(m_speedometer_unit_label, m_speedometer_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 0, 0);
     lv_obj_set_style_text_font(m_speedometer_unit_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speedometer_unit_label, lv_color_white(), LV_PART_MAIN);
     lv_label_set_text(m_speedometer_unit_label, "km/h");
+    lv_obj_set_style_text_align(m_speedometer_unit_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+
+    m_small_speedometer_unit_label = lv_label_create(m_speedometer_box);
+    lv_obj_align_to(
+        m_small_speedometer_unit_label, m_speedometer_unit_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 4, 10);
+    lv_obj_set_style_text_font(m_small_speedometer_unit_label, &radbuzz_font_22, LV_PART_MAIN);
+    lv_obj_set_style_text_color(m_small_speedometer_unit_label, lv_color_white(), LV_PART_MAIN);
+    lv_label_set_text(m_small_speedometer_unit_label, "GPS");
+    lv_obj_set_style_text_align(m_small_speedometer_unit_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+
 
     m_battery = LeftAligned("Battery", "100", "%", LV_ALIGN_TOP_LEFT, {0, 4});
     m_temperature =
@@ -246,11 +263,26 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 void
 SpeedometerOnlyScreen::Update()
 {
+    auto conf = m_parent.m_state.Get<AS::configuration>();
+
+    if (m_parent.m_state.Get<AS::gps_position_valid>())
+    {
+        lv_label_set_text(m_small_speedometer_label,
+                          std::format("{}", m_parent.m_state.Get<AS::position>()->speed).c_str());
+    }
+    else
+    {
+        lv_label_set_text(m_small_speedometer_label, "--");
+    }
+
     lv_label_set_text(m_speedometer_label,
                       std::format("{}", m_parent.m_state.Get<AS::speed>()).c_str());
 
     lv_label_set_text(m_battery.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::battery_soc>()).c_str());
+
+    lv_obj_set_flag(m_small_speedometer_label, LV_OBJ_FLAG_HIDDEN, !conf->show_gps_speed);
+    lv_obj_set_flag(m_small_speedometer_unit_label, LV_OBJ_FLAG_HIDDEN, !conf->show_gps_speed);
 
     std::string temperature_text = "Controller";
     std::string temperature_value_text =
@@ -321,7 +353,6 @@ SpeedometerOnlyScreen::Update()
     auto recent_entries = m_parent.m_trip_computer.GetRecentEntries();
     debug_assert(recent_entries.size() == m_recent_entry_bars.size());
 
-    auto conf = m_parent.m_state.Get<AS::configuration>();
     const float max_watts = conf->max_watts;
     const float max_consumption = conf->wh_per_km_for_range_estimation + 10;
 

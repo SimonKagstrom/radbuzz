@@ -45,6 +45,9 @@ private:
     lv_obj_t* m_speedometer_label {nullptr};
     lv_obj_t* m_speedometer_unit_label {nullptr};
 
+    lv_obj_t* m_small_speedometer_label {nullptr};
+    lv_obj_t* m_small_speedometer_unit_label {nullptr};
+
     etl::vector<lv_obj_t*, TripComputer::kNumberOfRecentEntries> m_recent_entry_bars {};
     std::array<lv_obj_t*, 2> m_recent_entry_labels {};
     std::array<lv_obj_t*, 2> m_recent_entry_horizontal_labels {};
