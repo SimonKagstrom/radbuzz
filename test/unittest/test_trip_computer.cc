@@ -228,7 +228,7 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "power histograms are zeroed by default")
+TEST_CASE_FIXTURE(Fixture, "trip histograms are zeroed by default")
 {
     auto histogram = trip_computer.GetRecentEntries();
 
@@ -236,6 +236,78 @@ TEST_CASE_FIXTURE(Fixture, "power histograms are zeroed by default")
     for (const auto& entry : histogram)
     {
         REQUIRE(entry.power == 0);
+        REQUIRE(entry.average_consumption == 0);
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture,
+                  "the last entry of the trip histogram is updated with the current average")
+{
+    auto rw = state.CheckoutReadWrite();
+    auto conf = rw.Get<AS::configuration>();
+
+    rw.Set<AS::can_bus_active>(true);
+    rw.Set<AS::odometer>(0);
+    // Startup
+    AdvanceTimeAndRunLoop(100ms);
+
+    WHEN("one sample has been gotten")
+    {
+        rw.Set<AS::current_power_w>(100);
+        rw.Set<AS::wh_consumed>(100);
+        rw.Set<AS::wh_regenerated>(50);
+        rw.Set<AS::odometer>(1000);
+        AdvanceTimeAndRunLoop(250ms);
+
+        THEN("the last entry of the histogram is updated")
+        {
+            auto& last_entry = trip_computer.GetRecentEntries().back();
+
+            REQUIRE(last_entry.power == 100);
+            REQUIRE(last_entry.average_consumption == 50);
+        }
+    }
+
+
+    WHEN("two samples have been gotten")
+    {
+        rw.Set<AS::current_power_w>(100);
+        rw.Set<AS::wh_consumed>(100);
+        AdvanceTimeAndRunLoop(250ms);
+
+        // Instant
+        rw.Set<AS::current_power_w>(200);
+        // Accumulating
+        rw.Set<AS::wh_consumed>(200);
+        AdvanceTimeAndRunLoop(250ms);
+
+        THEN("the last entry of the histogram is updated with the average")
+        {
+            auto& last_entry = trip_computer.GetRecentEntries().back();
+
+            REQUIRE(last_entry.power == 150);
+            REQUIRE(last_entry.average_consumption == 100);
+        }
+
+        AND_WHEN("the moped moves")
+        {
+            rw.Set<AS::odometer>(conf->recent_power_distance + 1);
+            rw.Set<AS::current_power_w>(300);
+            rw.Set<AS::wh_consumed>(400);
+            AdvanceTimeAndRunLoop(250ms);
+
+            auto histogram_entries = trip_computer.GetRecentEntries();
+            auto& last_entry = histogram_entries[histogram_entries.size() - 1];
+            auto& second_last_entry = histogram_entries[histogram_entries.size() - 2];
+
+            THEN("the current entry is pushed and the last entry of the histogram is updated with "
+                 "the new values")
+            {
+                REQUIRE(second_last_entry.power == 150);
+                REQUIRE(second_last_entry.average_consumption == 100);
+                REQUIRE(last_entry.power == 300);
+            }
+        }
     }
 }
 

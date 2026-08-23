@@ -166,14 +166,15 @@ TripComputer::UpdateRecentEntries(uint32_t odometer)
 
         auto samples = m_current_histogram_entry.samples + 1;
         PowerType average_power = m_current_histogram_entry.accumulated_power / samples;
+        auto consumed_delta = consumed - m_current_histogram_entry.start_consumption;
         auto average_consumption =
-            (consumed - m_current_histogram_entry.start_consumption) *
+            (consumed_delta) *
             (1000.0f / (odometer - m_current_histogram_entry.start_distance));
 
         average_consumption = std::min(average_consumption, 100.0f);
 
-        m_recent_entries.push(
-            RecentEntry {.power = average_power, .average_consumption = average_consumption});
+        // Update with the current value
+        m_recent_entries.push({power, consumed_delta});
         m_current_histogram_entry = {};
 
         m_current_distance = distance_now;
