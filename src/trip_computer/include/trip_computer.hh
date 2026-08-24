@@ -44,7 +44,7 @@ public:
 
     // x MB of trip log entries
     static constexpr auto kNumberOfTripLogEntries = (128 * 1024) / sizeof(TripLogEntry);
-    static constexpr auto kNumberOfDisplayLogEntries = 64;
+    static constexpr auto kNumberOfDisplayLogEntries = 128;
     static constexpr auto kNumberOfExportLogEntries =
         kNumberOfTripLogEntries - kNumberOfDisplayLogEntries - 2;
 
