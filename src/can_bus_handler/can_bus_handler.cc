@@ -12,6 +12,7 @@ CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state)
     : m_bus(bus)
     , m_state(app_state)
     , m_state_cache(app_state)
+    , m_state_listener(m_state.AttachListener<AS::configuration>(GetSemaphore()))
 {
     m_vesc_can_state = new VescCanState();
 }
