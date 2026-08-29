@@ -97,20 +97,22 @@ CanBusHandler::OnActivation()
         }
 
 
-        if (m_controller_id && m_vesc_can_state)
-        {
-            // Controller now known and mcconf is valid
-            auto& co = m_state_cache.Pull();
-            co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
-                {
-                    if (old_conf.max_speed != new_conf.max_speed)
-                    {
-                        SetMaxSpeed(new_conf.max_speed);
-                    }
-                }
-            });
-        }
         vesc_process_can_frame(frame->Id(), d.data(), static_cast<uint8_t>(d.size()));
+    }
+
+
+    if (m_controller_id && m_vesc_can_state)
+    {
+        // Controller now known and mcconf is valid
+        auto& co = m_state_cache.Pull();
+        co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
+            {
+                if (old_conf.max_speed != new_conf.max_speed)
+                {
+                    SetMaxSpeed(new_conf.max_speed);
+                }
+            }
+        });
     }
 
     return std::nullopt;
