@@ -52,6 +52,7 @@ CanBusHandler::OnActivation()
 
 
             vesc_get_values_setup(*m_controller_id);
+            vesc_get_mcconf_temp(*m_controller_id);
 
             m_periodic_timer = StartTimer(200ms, [this]() {
                 vesc_get_values_setup_selective(*m_controller_id,
@@ -176,6 +177,29 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
             default:
                 break;
             }
+        }
+    }
+    else if (command == COMM_GET_MCCONF_TEMP)
+    {
+        vesc_mcconf_t value;
+        if (vesc_parse_mcconf(data, len, &value))
+        {
+            printf(
+                "MCConf: l_current_min_scale=%f, l_current_max_scale=%f, l_min_erpm=%f, "
+                "l_max_erpm=%f, l_min_duty=%f, l_max_duty=%f, l_watt_min=%f, l_watt_max=%f, "
+                "l_in_current_min=%f, l_in_current_max=%f, si_motor_poles=%d, si_gear_ratio=%f\n",
+                value.l_current_min_scale,
+                value.l_current_max_scale,
+                value.l_min_erpm,
+                value.l_max_erpm,
+                value.l_min_duty,
+                value.l_max_duty,
+                value.l_watt_min,
+                value.l_watt_max,
+                value.l_in_current_min,
+                value.l_in_current_max,
+                value.si_motor_poles,
+                value.si_gear_ratio);
         }
     }
 }
