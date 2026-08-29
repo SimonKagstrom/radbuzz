@@ -50,15 +50,15 @@ GpsReader::OnActivation()
     }
 
     auto qw = m_application_state
-                  .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_position_valid>();
-    if (m_application_state.Get<AS::gps_position_valid>() == GpsStatus::kSilent)
+                  .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_status>();
+    if (m_application_state.Get<AS::gps_status>() == GpsStatus::kSilent)
     {
         // We have data, so at least NoFix should be set
-        qw.Set<AS::gps_position_valid>(GpsStatus::kNoFix);
+        qw.Set<AS::gps_status>(GpsStatus::kNoFix);
         m_gps_data_timeout_timer = StartTimer(5s, [this]() {
             if (m_application_state.Get<AS::demo_mode>() == false)
             {
-                m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(
+                m_application_state.CheckoutReadWrite().Set<AS::gps_status>(
                     GpsStatus::kSilent);
             }
             return std::nullopt;
@@ -83,10 +83,10 @@ GpsReader::OnActivation()
     {
         qw.Set<AS::pixel_position>(*pixel_pos);
     }
-    qw.Set<AS::gps_position_valid>(GpsStatus::kPositionValid);
+    qw.Set<AS::gps_status>(GpsStatus::kPositionValid);
 
     m_gps_timeout_timer = StartTimer(10s, [this]() {
-        m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(GpsStatus::kNoFix);
+        m_application_state.CheckoutReadWrite().Set<AS::gps_status>(GpsStatus::kNoFix);
         return std::nullopt;
     });
     Reset();

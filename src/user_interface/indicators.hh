@@ -135,7 +135,7 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        if (state.Get<AS::gps_position_valid>() == GpsStatus::kPositionValid)
+        if (state.Get<AS::gps_status>() == GpsStatus::kPositionValid)
         {
             lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, true);
             return;
@@ -143,7 +143,7 @@ public:
 
         // Show
         lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, false);
-        if (state.Get<AS::gps_position_valid>() == GpsStatus::kNoFix)
+        if (state.Get<AS::gps_status>() == GpsStatus::kNoFix)
         {
             lv_label_set_text(m_indicator_label,
                               std::format("#ffa500 {}# ", LV_SYMBOL_GPS).c_str());

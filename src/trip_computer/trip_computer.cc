@@ -398,7 +398,7 @@ void
 TripComputer::UpdateTripLog()
 {
     auto ro = m_state.CheckoutReadonly();
-    if (ro.Get<AS::gps_position_valid>() != GpsStatus::kPositionValid)
+    if (ro.Get<AS::gps_status>() != GpsStatus::kPositionValid)
     {
         return;
     }

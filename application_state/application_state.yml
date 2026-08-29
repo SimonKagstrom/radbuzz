@@ -9,7 +9,7 @@ application_state:
   is_moving: false
   can_bus_active: false
   navigation_active: false
-  gps_position_valid: GpsStatus::kSilent
+  gps_status: GpsStatus::kSilent
   speed: 0
   controller_temperature: 0
   motor_temperature: 0

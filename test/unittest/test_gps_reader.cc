@@ -40,7 +40,7 @@ TEST_SUITE_BEGIN("gps_reader");
 
 TEST_CASE_FIXTURE(Fixture, "The GPS state is silent at start")
 {
-    REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kSilent);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
 }
 
 TEST_CASE_FIXTURE(Fixture, "When started, the GPS reader will wait for data")
@@ -54,12 +54,12 @@ TEST_CASE_FIXTURE(Fixture, "When data is received, the GPS state switches to kNo
     // Data, but not yet valid
     hal::RawGpsData raw_data {.position = std::nullopt, .heading = 1.0f, .speed = 2.0f};
 
-    REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kSilent);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
 
     REQUIRE_CALL(mock_gps, WaitForData(_)).RETURN(raw_data);
     DoRunLoop();
 
-    REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kNoFix);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kNoFix);
     REQUIRE(*state.Get<AS::pixel_position>() == stockholm);
 }
 
@@ -69,7 +69,7 @@ TEST_CASE_FIXTURE(Fixture, "When data dries up, the GPS state switches to kSilen
     hal::RawGpsData raw_data {.position = std::nullopt, .heading = 1.0f, .speed = 2.0f};
     REQUIRE_CALL(mock_gps, WaitForData(_)).RETURN(raw_data);
     DoRunLoop();
-    REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kNoFix);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kNoFix);
 
     WHEN("5 seconds without GPS input has passed")
     {
@@ -78,7 +78,7 @@ TEST_CASE_FIXTURE(Fixture, "When data dries up, the GPS state switches to kSilen
 
         THEN("the GPS state switches to kSilent")
         {
-            REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kSilent);
+            REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
         }
     }
 }
@@ -88,12 +88,12 @@ TEST_CASE_FIXTURE(Fixture, "When there is valid GPS data, the pixel position is 
     // Data, but not yet valid
     hal::RawGpsData raw_data {.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f};
 
-    REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kSilent);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
 
     REQUIRE_CALL(mock_gps, WaitForData(_)).RETURN(raw_data);
     DoRunLoop();
 
-    REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kPositionValid);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kPositionValid);
     REQUIRE(*state.Get<AS::pixel_position>() == braxen);
 
     AND_WHEN("there is no data for a few seconds")
@@ -103,7 +103,7 @@ TEST_CASE_FIXTURE(Fixture, "When there is valid GPS data, the pixel position is 
 
         THEN("the GPS state switches to kSilent")
         {
-            REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kSilent);
+            REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
         }
     }
 
@@ -115,7 +115,7 @@ TEST_CASE_FIXTURE(Fixture, "When there is valid GPS data, the pixel position is 
 
         THEN("the GPS state switches to kNoFix")
         {
-            REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kNoFix);
+            REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kNoFix);
         }
     }
 }
@@ -129,7 +129,7 @@ TEST_CASE_FIXTURE(Fixture, "When demo mode is active, the GPS state is not updat
     DoRunLoop();
 
     // No change to the pixel position, or the GPS state (set by the demo app)
-    REQUIRE(state.Get<AS::gps_position_valid>() == GpsStatus::kSilent);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
     REQUIRE(*state.Get<AS::pixel_position>() == stockholm);
 }
 
