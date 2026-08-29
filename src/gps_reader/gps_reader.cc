@@ -21,6 +21,12 @@ GpsReader::OnActivation()
 {
     auto data = m_gps.WaitForData(GetSemaphore());
 
+    if (!data)
+    {
+        // No data, wait for the next activation
+        return std::nullopt;
+    }
+
     if (data->position)
     {
         m_position = data->position;
@@ -32,6 +38,31 @@ GpsReader::OnActivation()
     if (data->heading)
     {
         m_heading = data->heading;
+    }
+
+    if (m_application_state.Get<AS::demo_mode>())
+    {
+        // No resetting of the state done while in demo mode
+        m_gps_timeout_timer = nullptr;
+        m_gps_data_timeout_timer = nullptr;
+
+        return std::nullopt;
+    }
+
+    auto qw = m_application_state
+                  .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_position_valid>();
+    if (m_application_state.Get<AS::gps_position_valid>() == GpsStatus::kSilent)
+    {
+        // We have data, so at least NoFix should be set
+        qw.Set<AS::gps_position_valid>(GpsStatus::kNoFix);
+        m_gps_data_timeout_timer = StartTimer(5s, [this]() {
+            if (m_application_state.Get<AS::demo_mode>() == false)
+            {
+                m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(
+                    GpsStatus::kSilent);
+            }
+            return std::nullopt;
+        });
     }
 
     if (!m_position || !m_speed || !m_heading)
@@ -46,25 +77,18 @@ GpsReader::OnActivation()
     mangled.heading = *m_heading;
     mangled.speed = *m_speed * 1.852f; // Convert from knots to km/h
 
-    // Disable, and restart again (for demo mode, it will be disabled completely)
-    m_gps_timeout_timer = nullptr;
-    if (m_application_state.CheckoutReadonly().Get<AS::demo_mode>() == false)
+    // Disable, and restart again
+    qw.Set<AS::position>(mangled);
+    if (auto pixel_pos = Wgs84ToOsmPoint(mangled.position, kDefaultZoom); pixel_pos)
     {
-        auto qw =
-            m_application_state
-                .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_position_valid>();
-        qw.Set<AS::position>(mangled);
-        if (auto pixel_pos = Wgs84ToOsmPoint(mangled.position, kDefaultZoom); pixel_pos)
-        {
-            qw.Set<AS::pixel_position>(*pixel_pos);
-        }
-        qw.Set<AS::gps_position_valid>(true);
-
-        m_gps_timeout_timer = StartTimer(10s, [this]() {
-            m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(false);
-            return std::nullopt;
-        });
+        qw.Set<AS::pixel_position>(*pixel_pos);
     }
+    qw.Set<AS::gps_position_valid>(GpsStatus::kPositionValid);
+
+    m_gps_timeout_timer = StartTimer(10s, [this]() {
+        m_application_state.CheckoutReadWrite().Set<AS::gps_position_valid>(GpsStatus::kNoFix);
+        return std::nullopt;
+    });
     Reset();
 
     return std::nullopt;

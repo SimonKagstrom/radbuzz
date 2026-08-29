@@ -135,7 +135,25 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, state.Get<AS::gps_position_valid>());
+        if (state.Get<AS::gps_position_valid>() == GpsStatus::kPositionValid)
+        {
+            lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, true);
+            return;
+        }
+
+        // Show
+        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, false);
+        if (state.Get<AS::gps_position_valid>() == GpsStatus::kNoFix)
+        {
+            lv_label_set_text(m_indicator_label,
+                              std::format("#ffa500 {}# ", LV_SYMBOL_GPS).c_str());
+        }
+        else
+        {
+            // Silent, i.e., no incoming data from the GPS - mark red for debugging
+            lv_label_set_text(m_indicator_label,
+                              std::format("#F44336 {}# ", LV_SYMBOL_GPS).c_str());
+        }
     }
 };
 

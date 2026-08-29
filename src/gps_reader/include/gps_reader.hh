@@ -12,15 +12,14 @@
 class GpsReader : public os::BaseThread
 {
 public:
-    explicit GpsReader(ApplicationState &application_state,
-        hal::IGps& gps);
+    explicit GpsReader(ApplicationState& application_state, hal::IGps& gps);
 
 private:
     std::optional<milliseconds> OnActivation() final;
 
     void Reset();
 
-    ApplicationState &m_application_state;
+    ApplicationState& m_application_state;
     hal::IGps& m_gps;
 
 
@@ -29,4 +28,5 @@ private:
     std::optional<float> m_heading;
 
     os::TimerHandle m_gps_timeout_timer;
+    os::TimerHandle m_gps_data_timeout_timer;
 };

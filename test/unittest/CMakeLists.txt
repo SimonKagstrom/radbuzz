@@ -44,6 +44,7 @@ add_executable(unittest_radbuzz
     test_king_shark_packet_protocol.cc
     test_speedometer_handler.cc
     test_trip_computer.cc
+    test_gps_reader.cc
 )
 
 target_link_libraries(unittest_radbuzz
@@ -51,6 +52,7 @@ target_link_libraries(unittest_radbuzz
     ble_handler_private
     mock_filesystem
     os_unittest
+    gps_reader
     speedometer_handler
     tile_cache
     trip_computer

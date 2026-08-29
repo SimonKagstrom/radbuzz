@@ -265,7 +265,7 @@ SpeedometerOnlyScreen::Update()
 {
     auto conf = m_parent.m_state.Get<AS::configuration>();
 
-    if (m_parent.m_state.Get<AS::gps_position_valid>())
+    if (m_parent.m_state.Get<AS::gps_position_valid>() == GpsStatus::kPositionValid)
     {
         lv_label_set_text(m_small_speedometer_label,
                           std::format("{}", m_parent.m_state.Get<AS::position>()->speed).c_str());
