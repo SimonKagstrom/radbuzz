@@ -82,12 +82,14 @@ SettingsMenuScreen::OnActivation()
             });
     }
 
-    settings_page.AddNumericEntry(
-        "Max speed", {25, 120, 5}, ro.Get<AS::configuration>()->max_speed, [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .max_speed = static_cast<uint8_t>(value);
-        });
+    settings_page.AddNumericEntry("Max speed",
+                                  {25, 120, 5},
+                                  ro.Get<AS::configuration>()->max_speedometer_speed,
+                                  [this](auto value) {
+                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                          .GetWritableReference<AS::configuration>()
+                                          .max_speedometer_speed = static_cast<uint8_t>(value);
+                                  });
     settings_page.AddNumericEntry("Battery cell series",
                                   {1, 36},
                                   ro.Get<AS::configuration>()->battery_cell_series,

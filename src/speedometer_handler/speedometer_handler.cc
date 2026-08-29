@@ -29,7 +29,7 @@ SpeedometerHandler::OnActivation()
     auto ro = m_state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
 
-    if (conf->max_speed == 0)
+    if (conf->max_speedometer_speed == 0)
     {
         // Configuration not valid yet
         return std::nullopt;
@@ -40,9 +40,9 @@ SpeedometerHandler::OnActivation()
         return std::nullopt;
     }
 
-    const int32_t target_speed = std::min(ro.Get<AS::speed>(), conf->max_speed);
+    const int32_t target_speed = std::min(ro.Get<AS::speed>(), conf->max_speedometer_speed);
     const auto target_position =
-        (target_speed * m_zero_to_max_steps + (conf->max_speed / 2u)) / conf->max_speed;
+        (target_speed * m_zero_to_max_steps + (conf->max_speedometer_speed / 2u)) / conf->max_speedometer_speed;
 
     if (const auto delta = target_position - m_position; delta != 0)
     {

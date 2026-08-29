@@ -58,8 +58,8 @@ struct ConfigurationSettings
     bool rotate_map;
     /// @brief Number of battery cells in series, used to calculate cell voltage from millivolts (14s3p etc)
     uint8_t battery_cell_series;
-    /// @brief Maximum speed in km/h (for the speedometer limits)
-    uint8_t max_speed;
+    /// @brief Maximum speed in km/h (for the analogue speedometer limits)
+    uint8_t max_speedometer_speed;
     /// @brief Battery capacity in ampere-hours (e.g., 20Ah)
     uint8_t battery_amp_hours;
     /// @brief Average watt-hours per kilometer for range estimation

@@ -23,7 +23,7 @@ TrimAtFirstNul(std::string_view input)
 
 enum class Key
 {
-    kMaxSpeed,
+    kMaxSpeedometerSpeed,
     kBatterySeries,
     kBatteryAmpHours,
     kWhPerKmForRangeEstimation,
@@ -50,7 +50,7 @@ enum class Key
 
 constexpr auto kKeyToString = std::array {
     std::pair {
-        Key::kMaxSpeed,
+        Key::kMaxSpeedometerSpeed,
         "M",
     },
     std::pair {
@@ -174,7 +174,8 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
 
     // Make sure all configuration values are set here, this is where defaults come from
     conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(false);
-    conf.max_speed = m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeed)).value_or(30);
+    conf.max_speedometer_speed =
+        m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeedometerSpeed)).value_or(30);
     conf.recent_power_distance =
         m_nvm.Get<uint16_t>(KeyToString(Key::kRecentPowerDistance)).value_or(100);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(KeyToString(Key::kBatterySeries)).value_or(7);
@@ -267,9 +268,10 @@ Storage::OnActivation()
     co.OnChangedValue<AS::configuration>([this, &do_commit](auto& old_conf, auto& new_conf) {
         do_commit = true;
 
-        if (old_conf.max_speed != new_conf.max_speed)
+        if (old_conf.max_speedometer_speed != new_conf.max_speedometer_speed)
         {
-            m_nvm.Set<uint8_t>(KeyToString(Key::kMaxSpeed), new_conf.max_speed);
+            m_nvm.Set<uint8_t>(KeyToString(Key::kMaxSpeedometerSpeed),
+                               new_conf.max_speedometer_speed);
         }
         if (old_conf.battery_cell_series != new_conf.battery_cell_series)
         {
