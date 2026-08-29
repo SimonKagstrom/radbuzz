@@ -24,6 +24,7 @@ TrimAtFirstNul(std::string_view input)
 enum class Key
 {
     kMaxSpeedometerSpeed,
+    kMaxSpeed,
     kBatterySeries,
     kBatteryAmpHours,
     kWhPerKmForRangeEstimation,
@@ -130,6 +131,10 @@ constexpr auto kKeyToString = std::array {
         Key::kHistogramMode,
         "5",
     },
+    std::pair {
+        Key::kMaxSpeed,
+        "6",
+    },
 };
 
 static_assert(kKeyToString.size() == std::to_underlying(Key::kValueCount));
@@ -176,6 +181,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(false);
     conf.max_speedometer_speed =
         m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeedometerSpeed)).value_or(30);
+    conf.max_speed = m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeed)).value_or(35);
     conf.recent_power_distance =
         m_nvm.Get<uint16_t>(KeyToString(Key::kRecentPowerDistance)).value_or(100);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(KeyToString(Key::kBatterySeries)).value_or(7);
@@ -272,6 +278,10 @@ Storage::OnActivation()
         {
             m_nvm.Set<uint8_t>(KeyToString(Key::kMaxSpeedometerSpeed),
                                new_conf.max_speedometer_speed);
+        }
+        if (old_conf.max_speed != new_conf.max_speed)
+        {
+            m_nvm.Set<uint8_t>(KeyToString(Key::kMaxSpeed), new_conf.max_speed);
         }
         if (old_conf.battery_cell_series != new_conf.battery_cell_series)
         {

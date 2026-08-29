@@ -3,10 +3,22 @@
 #include <vesc_buffer.h>
 #include <vesc_can_sdk.h>
 
+struct VescCanState
+{
+    std::optional<vesc_mcconf_t> mcconf;
+};
+
 CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state)
     : m_bus(bus)
     , m_state(app_state)
+    , m_state_cache(app_state)
 {
+    m_vesc_can_state = new VescCanState();
+}
+
+CanBusHandler::~CanBusHandler()
+{
+    delete m_vesc_can_state;
 }
 
 void
@@ -19,13 +31,15 @@ CanBusHandler::OnStartup()
     // storage.cc has loaded these before the thread start, so set here
     m_start_consumed_wh = ro.Get<AS::wh_consumed>();
     m_start_regen_wh = ro.Get<AS::wh_regenerated>();
-}
 
-static vesc_mcconf_t g_mcconf;
+    // Update so that conf changes can be read later
+    m_state_cache.Pull();
+}
 
 std::optional<milliseconds>
 CanBusHandler::OnActivation()
 {
+
     while (auto frame = m_bus.ReceiveFrame())
     {
         auto d = frame->Data();
@@ -53,8 +67,7 @@ CanBusHandler::OnActivation()
             });
 
 
-//            vesc_get_values_setup(*m_controller_id);
-            vesc_get_mcconf_temp(*m_controller_id);
+            vesc_get_values_setup(*m_controller_id);
 
             m_periodic_timer = StartTimer(200ms, [this]() {
                 vesc_get_values_setup_selective(*m_controller_id,
@@ -65,24 +78,54 @@ CanBusHandler::OnActivation()
 
             // Set the can bus as active once the first selective values have been received
             m_start_timer = StartTimer(300ms, [this]() {
-                m_state.CheckoutReadWrite().Set<AS::can_bus_active>(true);
-                if (g_mcconf.si_motor_poles != 0)
-                {
-                    // in m/s, so aim for 30km/h -> 8.3m/s
-                g_mcconf.l_max_erpm = 8.3;
+                std::optional<milliseconds> out = 100ms;
 
-                vesc_can_set_mcconf_temp(*m_controller_id, &g_mcconf);
-                printf("Setted mcconf\n");
+                // Wait for the mcconf state to be valid until marking the can bus as active
+                if (m_vesc_can_state->mcconf)
+                {
+                    SetMaxSpeed(m_state.Get<AS::configuration>()->max_speed);
+                    m_state.CheckoutReadWrite().Set<AS::can_bus_active>(true);
+                    out = std::nullopt;
+                }
+                else
+                {
+                    vesc_get_mcconf_temp(*m_controller_id);
                 }
 
-                return std::nullopt;
+                return out;
             });
         }
 
+
+        if (m_controller_id && m_vesc_can_state)
+        {
+            // Controller now known and mcconf is valid
+            auto& co = m_state_cache.Pull();
+            co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
+                {
+                    if (old_conf.max_speed != new_conf.max_speed)
+                    {
+                        SetMaxSpeed(new_conf.max_speed);
+                    }
+                }
+            });
+        }
         vesc_process_can_frame(frame->Id(), d.data(), static_cast<uint8_t>(d.size()));
     }
 
     return std::nullopt;
+}
+
+void
+CanBusHandler::SetMaxSpeed(uint8_t max_speed_kmh)
+{
+    if (m_vesc_can_state)
+    {
+        // max_speed is in km/h, but the setting is in m/s, so convert to m/s
+        m_vesc_can_state->mcconf->l_max_erpm = static_cast<float>(max_speed_kmh) / 3.6f;
+
+        vesc_can_set_mcconf_temp(*m_controller_id, &m_vesc_can_state->mcconf.value());
+    }
 }
 
 void
@@ -195,31 +238,23 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
         vesc_mcconf_t value;
         if (vesc_parse_mcconf(data, len, &value))
         {
-            g_mcconf = value;
-            printf(
-                "MCConf: l_current_min_scale=%f, l_current_max_scale=%f, l_min_erpm=%f, "
-                "l_max_erpm=%f, l_min_duty=%f, l_max_duty=%f, l_watt_min=%f, l_watt_max=%f, "
-                "l_in_current_min=%f, l_in_current_max=%f, si_motor_poles=%d, si_gear_ratio=%f\n",
-                value.l_current_min_scale,
-                value.l_current_max_scale,
-                value.l_min_erpm,
-                value.l_max_erpm,
-                value.l_min_duty,
-                value.l_max_duty,
-                value.l_watt_min,
-                value.l_watt_max,
-                value.l_in_current_min,
-                value.l_in_current_max,
-                value.si_motor_poles,
-                value.si_gear_ratio);
+            m_vesc_can_state->mcconf = value;
+            printf("MCConf: l_current_min_scale=%f, l_current_max_scale=%f, l_min_erpm=%f, "
+                   "l_max_erpm=%f, l_min_duty=%f, l_max_duty=%f, l_watt_min=%f, l_watt_max=%f, "
+                   "l_in_current_min=%f, l_in_current_max=%f, si_motor_poles=%d, "
+                   "si_gear_ratio=%f\n",
+                   value.l_current_min_scale,
+                   value.l_current_max_scale,
+                   value.l_min_erpm,
+                   value.l_max_erpm,
+                   value.l_min_duty,
+                   value.l_max_duty,
+                   value.l_watt_min,
+                   value.l_watt_max,
+                   value.l_in_current_min,
+                   value.l_in_current_max,
+                   value.si_motor_poles,
+                   value.si_gear_ratio);
         }
-        else
-        {
-            printf("Failed to parse MCConf\n");
-        }
-    }
-    else
-    {
-        printf("Unknown VESC response: command=%d, len=%d\n", command, len);
     }
 }
