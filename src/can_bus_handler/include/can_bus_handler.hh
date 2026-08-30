@@ -16,7 +16,7 @@ private:
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
-    void SetMaxSpeed(uint8_t max_speed_kmh);
+    void SetMaxSpeed(Profile profile);
 
     void
     VescResponseCallback(uint8_t controller_id, uint8_t command, const uint8_t* data, uint8_t len);

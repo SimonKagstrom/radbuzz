@@ -3,6 +3,16 @@
 #include <numbers>
 #include <vesc_buffer.h>
 #include <vesc_can_sdk.h>
+
+// Round up slightly above the limit
+constexpr auto kProfileSpeedTable = std::array<uint8_t, static_cast<size_t>(Profile::kValueCount)> {
+    5,
+    27,
+    33,
+    47,
+    200,
+};
+
 struct VescCanState
 {
     std::optional<vesc_mcconf_t> mcconf;
@@ -84,7 +94,7 @@ CanBusHandler::OnActivation()
                 // Wait for the mcconf state to be valid until marking the can bus as active
                 if (m_vesc_can_state->mcconf)
                 {
-                    SetMaxSpeed(m_state.Get<AS::configuration>()->max_speed);
+                    SetMaxSpeed(m_state.Get<AS::configuration>()->profile);
                     m_state.CheckoutReadWrite().Set<AS::can_bus_active>(true);
                     out = std::nullopt;
                 }
@@ -108,9 +118,9 @@ CanBusHandler::OnActivation()
         auto& co = m_state_cache.Pull();
         co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
             {
-                if (old_conf.max_speed != new_conf.max_speed)
+                if (old_conf.profile != new_conf.profile)
                 {
-                    SetMaxSpeed(new_conf.max_speed);
+                    SetMaxSpeed(new_conf.profile);
                 }
             }
         });
@@ -120,10 +130,12 @@ CanBusHandler::OnActivation()
 }
 
 void
-CanBusHandler::SetMaxSpeed(uint8_t max_speed_kmh)
+CanBusHandler::SetMaxSpeed(Profile profile)
 {
     if (m_vesc_can_state)
     {
+        auto max_speed_kmh = kProfileSpeedTable[std::to_underlying(profile)];
+
         auto mcconf = &m_vesc_can_state->mcconf.value();
         // max_speed is in km/h, but the setting is in erpm so convert
         const auto fact = ((mcconf->si_motor_poles / 2.0f) * 60.0f * mcconf->si_gear_ratio) /

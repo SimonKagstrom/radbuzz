@@ -38,6 +38,17 @@ enum class HistogramMode : uint8_t
     kValueCount,
 };
 
+enum class Profile : uint8_t
+{
+    kWalking,
+    kMoped25,
+    kMoped30,
+    kMoped45,
+    kNoLimit,
+
+    kValueCount,
+};
+
 struct ConfigurationSettings
 {
     // @brief the home position
@@ -61,7 +72,7 @@ struct ConfigurationSettings
     /// @brief Maximum speed in km/h (for the analogue speedometer limits)
     uint8_t max_speedometer_speed;
     /// @brief Maximum moped speed in km/h
-    uint8_t max_speed;
+    Profile profile;
     /// @brief Battery capacity in ampere-hours (e.g., 20Ah)
     uint8_t battery_amp_hours;
     /// @brief Average watt-hours per kilometer for range estimation

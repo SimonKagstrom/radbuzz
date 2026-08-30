@@ -13,6 +13,20 @@ static_assert(std::to_underlying(SpeedometerType::kAnalog) == 0);
 static_assert(std::to_underlying(SpeedometerType::kDigital) == 1);
 static_assert(std::to_underlying(SpeedometerType::kBoth) == 2);
 
+constexpr auto kProfileOptions = std::to_array<std::string_view>({
+    "Walk assist",
+    "Moped 25 km/h",
+    "Moped 30 km/h",
+    "Moped 45 km/h",
+    "No limit",
+});
+static_assert(kProfileOptions.size() == static_cast<size_t>(Profile::kValueCount));
+static_assert(std::to_underlying(Profile::kWalking) == 0);
+static_assert(std::to_underlying(Profile::kMoped25) == 1);
+static_assert(std::to_underlying(Profile::kMoped30) == 2);
+static_assert(std::to_underlying(Profile::kMoped45) == 3);
+static_assert(std::to_underlying(Profile::kNoLimit) == 4);
+
 constexpr auto kHistogramModeOptions = std::to_array<std::string_view>({
     "Power",
     "Consumption",
@@ -96,12 +110,14 @@ SettingsMenuScreen::OnActivation()
                                               .max_speedometer_speed = static_cast<uint8_t>(value);
                                       });
     }
-    // Don't display this until we actually have an analogue speedometer
-    settings_page.AddNumericEntry(
-        "Max speed", {25, 45, 5}, ro.Get<AS::configuration>()->max_speed, [this](auto value) {
+    settings_page.AddRollerEntry(
+        "Profile",
+        std::span<const std::string_view>(kProfileOptions),
+        kProfileOptions[std::to_underlying(ro.Get<AS::configuration>()->profile)],
+        [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
-                .max_speed = static_cast<uint8_t>(value);
+                .profile = static_cast<Profile>(value);
         });
     settings_page.AddNumericEntry("Battery cell series",
                                   {1, 36},
