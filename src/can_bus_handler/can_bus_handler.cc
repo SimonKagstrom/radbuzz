@@ -1,8 +1,8 @@
 #include "can_bus_handler.hh"
 
+#include <numbers>
 #include <vesc_buffer.h>
 #include <vesc_can_sdk.h>
-
 struct VescCanState
 {
     std::optional<vesc_mcconf_t> mcconf;
@@ -124,10 +124,13 @@ CanBusHandler::SetMaxSpeed(uint8_t max_speed_kmh)
 {
     if (m_vesc_can_state)
     {
-        // max_speed is in km/h, but the setting is in m/s, so convert to m/s
-        m_vesc_can_state->mcconf->l_max_erpm = static_cast<float>(max_speed_kmh) / 3.6f;
+        auto mcconf = &m_vesc_can_state->mcconf.value();
+        // max_speed is in km/h, but the setting is in erpm so convert
+        const auto fact = ((mcconf->si_motor_poles / 2.0f) * 60.0f * mcconf->si_gear_ratio) /
+                          (mcconf->si_wheel_diameter * std::numbers::pi_v<float>);
+        mcconf->l_max_erpm = static_cast<float>(max_speed_kmh) * fact;
 
-        vesc_can_set_mcconf_temp(*m_controller_id, &m_vesc_can_state->mcconf.value());
+        vesc_can_set_mcconf_temp(*m_controller_id, mcconf);
     }
 }
 
@@ -242,22 +245,6 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
         if (vesc_parse_mcconf(data, len, &value))
         {
             m_vesc_can_state->mcconf = value;
-            printf("MCConf: l_current_min_scale=%f, l_current_max_scale=%f, l_min_erpm=%f, "
-                   "l_max_erpm=%f, l_min_duty=%f, l_max_duty=%f, l_watt_min=%f, l_watt_max=%f, "
-                   "l_in_current_min=%f, l_in_current_max=%f, si_motor_poles=%d, "
-                   "si_gear_ratio=%f\n",
-                   value.l_current_min_scale,
-                   value.l_current_max_scale,
-                   value.l_min_erpm,
-                   value.l_max_erpm,
-                   value.l_min_duty,
-                   value.l_max_duty,
-                   value.l_watt_min,
-                   value.l_watt_max,
-                   value.l_in_current_min,
-                   value.l_in_current_max,
-                   value.si_motor_poles,
-                   value.si_gear_ratio);
         }
     }
 }
