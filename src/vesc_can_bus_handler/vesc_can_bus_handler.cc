@@ -9,7 +9,7 @@ constexpr auto kProfileSpeedTable = std::array<uint8_t, static_cast<size_t>(Prof
     5,
     27,
     33,
-    47,
+    48,
     200,
 };
 
