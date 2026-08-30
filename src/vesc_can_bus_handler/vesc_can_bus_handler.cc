@@ -137,10 +137,10 @@ VescCanBusHandler::SetMaxSpeed(Profile profile)
         auto max_speed_kmh = kProfileSpeedTable[std::to_underlying(profile)];
 
         auto mcconf = &m_vesc_can_state->mcconf.value();
-        // max_speed is in km/h, but the setting is in erpm so convert
+        // max_speed is in km/h, but the setting is in erpm so convert via m/s
         const auto fact = ((mcconf->si_motor_poles / 2.0f) * 60.0f * mcconf->si_gear_ratio) /
                           (mcconf->si_wheel_diameter * std::numbers::pi_v<float>);
-        mcconf->l_max_erpm = static_cast<float>(max_speed_kmh) * fact;
+        mcconf->l_max_erpm = static_cast<float>(max_speed_kmh) / 3.6f * fact;
 
         vesc_can_set_mcconf_temp(*m_controller_id, mcconf);
     }
