@@ -18,7 +18,7 @@ constexpr auto kProfileOptions = std::to_array<std::string_view>({
     "Moped 25 km/h",
     "Moped 30 km/h",
     "Moped 45 km/h",
-    "No limit",
+    "Motorcycle",
 });
 static_assert(kProfileOptions.size() == static_cast<size_t>(Profile::kValueCount));
 static_assert(std::to_underlying(Profile::kWalking) == 0);
