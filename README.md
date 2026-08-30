@@ -15,6 +15,7 @@ controllers. It's built for an ESP32P4 microcontroller, but can also be run on t
 <p align="center">
   <a href="doc/trip_screen.png"><img src="doc/trip_screen.png" alt="trip meter screen" width="31%"></a>
   <a href="doc/menu.png"><img src="doc/menu.png" alt="menu screen" width="31%"></a>
+  <a href="doc/menu_settings.png"><img src="doc/menu_settings.png" alt="settings menu screen" width="31%"></a>
 </p>
 
 Features:
