@@ -1,4 +1,4 @@
-#include "can_bus_handler.hh"
+#include "vesc_can_bus_handler.hh"
 
 #include <numbers>
 #include <vesc_buffer.h>
@@ -18,7 +18,7 @@ struct VescCanState
     std::optional<vesc_mcconf_t> mcconf;
 };
 
-CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state)
+VescCanBusHandler::VescCanBusHandler(hal::ICan& bus, ApplicationState& app_state)
     : m_bus(bus)
     , m_state(app_state)
     , m_state_cache(app_state)
@@ -27,13 +27,13 @@ CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state)
     m_vesc_can_state = new VescCanState();
 }
 
-CanBusHandler::~CanBusHandler()
+VescCanBusHandler::~VescCanBusHandler()
 {
     delete m_vesc_can_state;
 }
 
 void
-CanBusHandler::OnStartup()
+VescCanBusHandler::OnStartup()
 {
     m_bus_listener = m_bus.Start(GetSemaphore());
 
@@ -48,7 +48,7 @@ CanBusHandler::OnStartup()
 }
 
 std::optional<milliseconds>
-CanBusHandler::OnActivation()
+VescCanBusHandler::OnActivation()
 {
 
     while (auto frame = m_bus.ReceiveFrame())
@@ -61,7 +61,7 @@ CanBusHandler::OnActivation()
 
             vesc_can_init(
                 [](uint32_t id, const uint8_t* data, uint8_t len, void* user_cookie) {
-                    auto pThis = static_cast<CanBusHandler*>(user_cookie);
+                    auto pThis = static_cast<VescCanBusHandler*>(user_cookie);
                     return pThis->m_bus.SendFrame(id, std::span<const uint8_t> {data, len});
                 },
                 *m_controller_id, // Receiver controller ID
@@ -73,7 +73,7 @@ CanBusHandler::OnActivation()
                                           const uint8_t* data,
                                           uint8_t len,
                                           void* user_cookie) {
-                auto pThis = static_cast<CanBusHandler*>(user_cookie);
+                auto pThis = static_cast<VescCanBusHandler*>(user_cookie);
                 pThis->VescResponseCallback(controller_id, command, data, len);
             });
 
@@ -130,7 +130,7 @@ CanBusHandler::OnActivation()
 }
 
 void
-CanBusHandler::SetMaxSpeed(Profile profile)
+VescCanBusHandler::SetMaxSpeed(Profile profile)
 {
     if (m_vesc_can_state)
     {
@@ -147,10 +147,10 @@ CanBusHandler::SetMaxSpeed(Profile profile)
 }
 
 void
-CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
-                                    uint8_t command,
-                                    const uint8_t* data,
-                                    uint8_t len)
+VescCanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
+                                        uint8_t command,
+                                        const uint8_t* data,
+                                        uint8_t len)
 {
     if (len < 1)
     {

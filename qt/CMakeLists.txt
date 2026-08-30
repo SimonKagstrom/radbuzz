@@ -66,7 +66,7 @@ target_link_libraries(radbuzz_qt
     input
     pm_host
     buzz_handler
-    can_bus_handler
+    vesc_can_bus_handler
     tile_cache
     trip_computer
     speedometer_handler

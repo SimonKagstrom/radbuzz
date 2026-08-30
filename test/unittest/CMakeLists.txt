@@ -59,7 +59,7 @@ target_link_libraries(unittest_radbuzz
 
 
     # Compile tests only for now
-    can_bus_handler
+    vesc_can_bus_handler
     user_interface
 
     doctest::doctest

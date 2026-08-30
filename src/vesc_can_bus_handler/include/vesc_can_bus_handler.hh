@@ -6,11 +6,11 @@
 
 struct VescCanState;
 
-class CanBusHandler : public os::BaseThread
+class VescCanBusHandler : public os::BaseThread
 {
 public:
-    CanBusHandler(hal::ICan& bus, ApplicationState& app_state);
-    ~CanBusHandler();
+    VescCanBusHandler(hal::ICan& bus, ApplicationState& app_state);
+    ~VescCanBusHandler();
 
 private:
     void OnStartup() final;
@@ -28,7 +28,7 @@ private:
     std::unique_ptr<ListenerCookie> m_state_listener;
 
     // Unknown, so not unique_ptr
-    VescCanState *m_vesc_can_state {nullptr};
+    VescCanState* m_vesc_can_state {nullptr};
 
     std::unique_ptr<ListenerCookie> m_bus_listener;
 
