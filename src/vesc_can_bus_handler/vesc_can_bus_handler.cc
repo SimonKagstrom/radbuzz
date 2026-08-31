@@ -117,11 +117,9 @@ VescCanBusHandler::OnActivation()
         // Controller now known and mcconf is valid
         auto& co = m_state_cache.Pull();
         co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
+            if (old_conf.profile != new_conf.profile)
             {
-                if (old_conf.profile != new_conf.profile)
-                {
-                    SetMaxSpeed(new_conf.profile);
-                }
+                SetMaxSpeed(new_conf.profile);
             }
         });
     }
