@@ -41,9 +41,11 @@ Hardware:
 the pinout for the ESP32P4 can be seen in [waveshare_p4_touch_4_3/main.cc](esp32/waveshare_p4_touch_4_3/main/main.cc)
 
 ## Setup
+First install the `eim` tool (the esp-idf installation manager).
 
 ```
-source $HOME/.espressif/tools/activate_idf_v6.0.2.sh
+eim install -i v6.1
+source $HOME/.espressif/tools/activate_idf_v6.1.sh
 npm i lv_font_conv -g
 pip3 install jinja2 pyyaml
 ```
@@ -51,17 +53,29 @@ pip3 install jinja2 pyyaml
 ## Build setup (target)
 ```
 cmake -GNinja -B radbuzz_esp32p4 -DCMAKE_BUILD_TYPE=Release <path>/radbuzz/esp32/waveshare_p4_touch_4_3
+cmake --build radbuzz_esp32p4
 ```
 
-## Build setup (unittest/qt)
+## Build setup (qt/unittest)
+Install the same lvgl/Python dependencies as on target:
+
 ```
-cmake -GNinja -B radbuzz_unittest <path>/radbuzz/test/unittest/
+npm i lv_font_conv -g
+pip3 install jinja2 pyyaml
+```
+
+And then:
+
+```
+cmake -GNinja -B radbuzz_qt <path>/radbuzz/qt
+cmake --build radbuzz_qt
 ```
 
 or
 
 ```
-cmake -GNinja -B radbuzz_qt <path>/radbuzz/qt
+cmake -GNinja -B radbuzz_unittest <path>/radbuzz/test/unittest/
+cmake --build radbuzz_unittest
 ```
 
 See [doc/build_instructions.md](doc/build_instructions.md) for more details on building and flashing the firmware.
