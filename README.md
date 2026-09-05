@@ -44,8 +44,8 @@ the pinout for the ESP32P4 can be seen in [waveshare_p4_touch_4_3/main.cc](esp32
 First install the `eim` tool (the esp-idf installation manager).
 
 ```
-eim install -i v6.1
-source $HOME/.espressif/tools/activate_idf_v6.1.sh
+eim install -i v6.0.2
+source $HOME/.espressif/tools/activate_idf_v6.0.2.sh
 npm i lv_font_conv -g
 pip3 install jinja2 pyyaml
 ```
