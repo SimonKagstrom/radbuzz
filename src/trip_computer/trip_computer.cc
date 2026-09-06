@@ -77,6 +77,7 @@ TripComputer::TripComputer(ApplicationState& app_state)
     , m_state_listener(m_state.AttachListener<AS::configuration,
                                               AS::can_bus_active,
                                               AS::odometer,
+                                              AS::reset_trip,
                                               AS::pixel_position>(GetSemaphore()))
     , m_state_cache(m_state)
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
