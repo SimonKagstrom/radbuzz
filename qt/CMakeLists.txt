@@ -66,6 +66,7 @@ target_link_libraries(radbuzz_qt
     input
     pm_host
     buzz_handler
+    job_pool_thread
     vesc_can_bus_handler
     tile_cache
     trip_computer

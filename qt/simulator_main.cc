@@ -8,6 +8,7 @@
 #include "gps_reader.hh"
 #include "https_client.hh"
 #include "input.hh"
+#include "job_pool_thread.hh"
 #include "nvm_host.hh"
 #include "opportunistic_scheduler.hh"
 #include "pm_host.hh"
@@ -67,6 +68,8 @@ main(int argc, char* argv[])
 
     srand(seed);
 
+    auto job_pool = std::make_unique<JobPoolThread>();
+
     // Devices / helper classes
     auto ble_server = std::make_unique<BleServerHost>();
     auto ble_client = std::make_unique<BleClientHost>();
@@ -112,10 +115,13 @@ main(int argc, char* argv[])
     tile_cache->Start("tile_cache");
     user_interface->Start("user_interface");
     speedometer_handler->Start("speedometer_handler");
-    temperature_monitor->Start("temperature_monitor");
 
     os::Sleep(10ms);
-    app_simulator->Start("app_simulator");
+    job_pool->AttachPooledThread(std::move(app_simulator));
+    job_pool->AttachPooledThread(std::move(temperature_monitor));
+
+    job_pool->Start("job_pool");
+
 
     window.show();
 

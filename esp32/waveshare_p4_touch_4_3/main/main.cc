@@ -4,7 +4,6 @@
 #include "blitter_esp32.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
-#include "vesc_can_bus_handler.hh"
 #include "can_esp32.hh"
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
@@ -12,6 +11,7 @@
 #include "i2c_gps_esp32.hh"
 #include "image_cache.hh"
 #include "input.hh"
+#include "job_pool_thread.hh"
 #include "nvm_esp32.hh"
 #include "pm_esp32.hh"
 #include "rotary_encoder.hh"
@@ -26,6 +26,7 @@
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
+#include "vesc_can_bus_handler.hh"
 #include "wifi_client_esp32.hh"
 #include "wifi_handler.hh"
 
@@ -680,6 +681,8 @@ app_main(void)
 
     //    stepper_motor->Start();
 
+    auto job_pool = std::make_unique<JobPoolThread>();
+
     auto touch = std::make_unique<TouchEsp32>(i2c_mst_config, GPIO_NUM_NC);
     auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
     auto button_debouncer = std::make_unique<ButtonDebouncer>();
@@ -729,7 +732,6 @@ app_main(void)
     input->Start("input");
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     //  buzz_handler->Start("buzz_handler", 8192);
-    app_simulator->Start("app_simulator", 8192);
     vesc_can_bus_handler->Start("vesc_can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);
@@ -738,7 +740,11 @@ app_main(void)
 
     tile_cache->Start("tile_cache", 8192);
     gps_reader->Start("gps_reader");
-    temperature_monitor->Start("temperature_monitor");
+
+    job_pool->AttachPooledThread(std::move(app_simulator));
+    job_pool->AttachPooledThread(std::move(temperature_monitor));
+
+    job_pool->Start("job_pool", 8192);
 
 
     while (true)

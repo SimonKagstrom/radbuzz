@@ -4,7 +4,7 @@ TemperatureMonitor::TemperatureMonitor(ApplicationState& state)
     : m_state(state)
     , m_state_listener(
           m_state.AttachListener<AS::motor_temperature, AS::controller_temperature, AS::bms_data>(
-              GetSemaphore()))
+              *this))
 {
 }
 

@@ -2,11 +2,12 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
+#include "pooled_thread_base.hh"
 
-class TemperatureMonitor : public os::BaseThread
+class TemperatureMonitor : public PooledThreadBase
 {
 public:
-    TemperatureMonitor(ApplicationState& state);
+    explicit TemperatureMonitor(ApplicationState& state);
 
     std::optional<milliseconds> OnActivation() final;
 

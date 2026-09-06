@@ -1,17 +1,17 @@
 #pragma once
 
 #include "application_state.hh"
-#include "base_thread.hh"
 #include "ble_injector.hh"
 #include "bresenham.hh"
 #include "hal/i_gps.hh"
+#include "pooled_thread_base.hh"
 #include "wgs84_to_osm_point.hh"
 
 #include <random>
 #include <unordered_set>
 #include <vector>
 
-class AppSimulator : public os::BaseThread
+class AppSimulator : public PooledThreadBase
 {
 public:
     AppSimulator(ApplicationState& app_state, BleInjector& ble_server);
