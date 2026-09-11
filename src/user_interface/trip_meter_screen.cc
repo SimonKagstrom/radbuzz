@@ -196,11 +196,16 @@ TripMeterScreen::Update()
         case StatValueKind::kConsumedWh: {
 
             const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
-            const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
-            if (consumed_wh >= 1000)
+            const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed + 998;
+
+            if (static_cast<int>(consumed_wh) >= 999)
             {
                 unit_text = "kWh";
-                value_text = std::format("{:.1f}", static_cast<float>(consumed_wh) / 1000.0f);
+                value_text = std::format("{:.1f}", consumed_wh / 1000.0f);
+            }
+            else if (static_cast<int>(consumed_wh) >= 99)
+            {
+                value_text = std::format("{:.0f}", consumed_wh);
             }
             else
             {
@@ -210,14 +215,20 @@ TripMeterScreen::Update()
 
             debug_assert(row.second_column != nullptr);
             const auto regenerated_wh =
-                ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated;
+                ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated + 999;
 
-            if (regenerated_wh >= 1000)
+            if (static_cast<int>(regenerated_wh) >= 999)
             {
                 lv_label_set_text(
                     row.second_column->value,
                     std::format("{:.1f}", static_cast<float>(regenerated_wh) / 1000.0f).c_str());
                 lv_label_set_text(row.second_column->unit, "kWh");
+            }
+            else if (static_cast<int>(regenerated_wh) >= 99)
+            {
+                lv_label_set_text(
+                    row.second_column->value,
+                    std::format("{:.0f}", static_cast<float>(regenerated_wh)).c_str());
             }
             else
             {
@@ -254,7 +265,8 @@ TripMeterScreen::Update()
         }
 
         case StatValueKind::kTripAverageWhPerKm: {
-            const float average_consumption = trip::AverageConsumption(m_parent.m_state, m_parent.m_current_trip_start);
+            const float average_consumption =
+                trip::AverageConsumption(m_parent.m_state, m_parent.m_current_trip_start);
             value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
 
             break;
