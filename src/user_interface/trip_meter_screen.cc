@@ -196,7 +196,7 @@ TripMeterScreen::Update()
         case StatValueKind::kConsumedWh: {
 
             const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
-            const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed + 998;
+            const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
 
             if (static_cast<int>(consumed_wh) >= 999)
             {
@@ -215,7 +215,7 @@ TripMeterScreen::Update()
 
             debug_assert(row.second_column != nullptr);
             const auto regenerated_wh =
-                ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated + 999;
+                ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated;
 
             if (static_cast<int>(regenerated_wh) >= 999)
             {
