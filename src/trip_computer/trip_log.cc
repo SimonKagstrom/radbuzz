@@ -115,5 +115,21 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
 }
 
 
+template <size_t Entries>
+void
+TripLog<Entries>::Reset()
+{
+    while (!m_log_queue.empty())
+    {
+        auto& entry = m_log_queue.top();
+        m_parent.FreeLogEntry(entry.handle);
+        m_log_queue.pop();
+    }
+
+    m_log_queue = {};
+    m_pending_log_entry.reset();
+}
+
+
 template class TripLog<TripComputer::kNumberOfExportLogEntries>;
 template class TripLog<TripComputer::kNumberOfDisplayLogEntries>;
