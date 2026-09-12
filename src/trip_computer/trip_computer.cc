@@ -466,8 +466,11 @@ TripComputer::Log<Entries>::AddEntry(const Point& position, milliseconds timesta
 
     auto& new_entry = m_parent.WritableEntry(*handle);
 
-    new_entry = TripComputer::TripLogEntry {
-        position, timestamp, power, kInvalidLogHandle, kInvalidLogHandle};
+    new_entry = TripComputer::TripLogEntry {.timestamp = timestamp,
+                                            .position = position,
+                                            .power = power,
+                                            .predecessor = kInvalidLogHandle,
+                                            .successor = kInvalidLogHandle};
 
     if (m_pending_log_entry)
     {

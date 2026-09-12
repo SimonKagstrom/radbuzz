@@ -21,8 +21,8 @@ public:
 
     struct TripLogEntry
     {
-        Point position;
         milliseconds timestamp;
+        Point position;
         PowerType power;
         LogHandle predecessor;
         LogHandle successor;
