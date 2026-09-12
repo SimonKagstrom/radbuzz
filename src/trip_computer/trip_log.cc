@@ -67,6 +67,7 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
 
     new_entry = TripLogEntry {.timestamp = timestamp,
                               .position = position,
+                              .stale = false,
                               .power = power,
                               .predecessor = kInvalidLogHandle,
                               .successor = kInvalidLogHandle};

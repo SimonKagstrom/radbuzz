@@ -14,6 +14,7 @@ struct TripLogEntry
 {
     milliseconds timestamp;
     Point position;
+    bool stale;
     decltype(AS::current_power_w::current_power_w) power;
     LogHandle predecessor;
     LogHandle successor;
