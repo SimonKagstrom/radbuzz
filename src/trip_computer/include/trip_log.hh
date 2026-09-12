@@ -7,6 +7,7 @@
 #include <etl/vector.h>
 
 using LogHandle = uint16_t;
+using TriangleAreaType = uint16_t;
 constexpr LogHandle kInvalidLogHandle = std::numeric_limits<LogHandle>::max();
 
 struct TripLogEntry
@@ -41,7 +42,7 @@ public:
 
     struct LogQueueEntry
     {
-        uint32_t triangle_area;
+        TriangleAreaType triangle_area;
         LogHandle handle;
 
         int operator<(const LogQueueEntry& other) const
@@ -81,7 +82,7 @@ public:
     }
 
 private:
-    uint32_t TriangleArea(const TripLogEntry& entry) const;
+    TriangleAreaType TriangleArea(const TripLogEntry& entry) const;
 
     IEntryAllocator& m_parent;
 

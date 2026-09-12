@@ -10,25 +10,35 @@ static_assert(TripComputer::kNumberOfTripLogEntries <= std::numeric_limits<LogHa
 namespace
 {
 
-uint32_t
+TriangleAreaType
 TriangleArea(const Point& a, const Point& b, const Point& c)
 {
     debug_assert(a.zoom == kDefaultZoom && b.zoom == kDefaultZoom && c.zoom == kDefaultZoom);
 
     // Only the relation is important, not the absolute area
     const auto doubled_area = (a.x) * (b.y - c.y) + (b.x) * (c.y - a.y) + (c.x) * (a.y - b.y);
-    return std::abs(doubled_area);
+    static_assert(sizeof(doubled_area) > sizeof(TriangleAreaType));
+
+    const auto abs_doubled_area = std::abs(doubled_area);
+
+    // Saturate the area for large values (triangles should normally be small)
+    if (abs_doubled_area > std::numeric_limits<TriangleAreaType>::max())
+    {
+        return std::numeric_limits<TriangleAreaType>::max();
+    }
+
+    return abs_doubled_area;
 }
 
 } // namespace
 
 template <size_t Entries>
-uint32_t
+TriangleAreaType
 TripLog<Entries>::TriangleArea(const TripLogEntry& entry) const
 {
     if (entry.predecessor == kInvalidLogHandle)
     {
-        return std::numeric_limits<uint32_t>::max();
+        return std::numeric_limits<TriangleAreaType>::max();
     }
     debug_assert(entry.successor != kInvalidLogHandle);
 
@@ -97,6 +107,8 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
 
         // This is the first entry, will be fixed up above
         m_pending_log_entry = LogQueueEntry {0, *handle};
+
+        static_assert(sizeof(LogQueueEntry) == 4);
     }
 
     return *handle;
