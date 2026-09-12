@@ -1,5 +1,6 @@
 add_library(trip_computer EXCLUDE_FROM_ALL
     trip_computer.cc
+    trip_log.cc
 )
 
 target_include_directories(trip_computer
