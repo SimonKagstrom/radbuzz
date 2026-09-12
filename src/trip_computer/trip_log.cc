@@ -133,3 +133,6 @@ TripLog<Entries>::Reset()
 
 template class TripLog<TripComputer::kNumberOfExportLogEntries>;
 template class TripLog<TripComputer::kNumberOfDisplayLogEntries>;
+
+// Unit tests
+template class TripLog<4>;
