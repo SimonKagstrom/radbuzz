@@ -83,8 +83,10 @@ public:
 private:
     TriangleAreaType TriangleArea(const TripLogEntry& entry) const;
 
+    std::optional<LogHandle> Relink(LogHandle current_entry_handle);
+
     IEntryAllocator& m_parent;
 
-    etl::priority_queue<LogQueueEntry, Entries> m_log_queue;
+    etl::priority_queue<LogQueueEntry, Entries * 2> m_log_queue;
     std::optional<LogQueueEntry> m_pending_log_entry;
 };
