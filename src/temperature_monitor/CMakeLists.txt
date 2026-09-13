@@ -9,6 +9,6 @@ PUBLIC
 
 target_link_libraries(temperature_monitor
 PUBLIC
-    job_pool_thread
+    base_thread
     application_state
 )
