@@ -6,7 +6,7 @@ namespace
 {
 
 constexpr auto kNumberOfTripLogEntries = 16;
-constexpr auto kTripLogSize = 4;
+constexpr auto kTripLogSize = 6;
 
 class Allocator : public IEntryAllocator
 {
@@ -90,7 +90,29 @@ public:
         return path;
     }
 
-    Point P(auto x, auto y)
+    struct PointAndTriangleArea
+    {
+        Point point;
+        TriangleAreaType triangle_area;
+    };
+
+    auto PathToPoints(LogHandle start)
+    {
+        auto path = WalkBack(start);
+        std::vector<PointAndTriangleArea> point_path;
+
+        for (auto handle : path)
+        {
+            auto& entry = allocator.Entry(handle);
+            TriangleAreaType area = entry.successor == kInvalidLogHandle ? 65535 : trip_log.TriangleArea(entry);
+
+            point_path.push_back({entry.position, area});
+        }
+
+        return point_path;
+    }
+
+    static constexpr Point P(auto x, auto y)
     {
         return Point {x, y, kDefaultZoom};
     }
@@ -201,6 +223,74 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
                     auto path = WalkBack(*next_handle);
                     CHECK(path.front() == *next_handle);
                     CHECK(std::ranges::find(path, *handle) != path.end());
+                }
+            }
+        }
+    }
+
+    GIVEN("points that require area recalculation")
+    {
+        // Gemini gave these values as an example where removing points would require neighbor recalculation
+
+        constexpr auto kLine = std::array {
+            /* 0 */ P(0, 0),
+            /* 1 */ P(10, 10),
+            /* 2 */ P(20, 100), // A massive spike
+            /* 3 */ P(30, 101), // Right next to the spike, lowest area
+            /* 4 */ P(40, 103), // Second lowest area in initial calculation
+            /* 5 */ P(50, 0),
+            /* 6 */ P(60, 100), // Should always be kept, but make sure the end is edgy
+        };
+
+        const auto first_expected_removal = kLine[3];
+        const auto second_expected_removal = kLine[1];
+
+        for (auto& p : kLine)
+        {
+            auto handle = trip_log.AddEntry(p, 10ms, 100);
+            REQUIRE(handle.has_value());
+            handles.push_back(*handle);
+        }
+
+        WHEN("another entry is added")
+        {
+            auto path = PathToPoints(handles.back());
+            for (auto p : path)
+            {
+                printf("(%u, %u) -> %u\n", p.point.x, p.point.y, p.triangle_area);
+            }
+            printf("------\n");
+            auto new_handle = trip_log.AddEntry(P(70, 0), 10ms, 100);
+            REQUIRE(new_handle.has_value());
+
+            //THEN("the first expected removal is pruned")
+            {
+                auto path = PathToPoints(*new_handle);
+                for (auto point : path)
+                {
+                    printf("(%u, %u) -> %u\n", point.point.x, point.point.y, point.triangle_area);
+                }
+                CHECK(std::ranges::find_if(path, [&](auto& p) {
+                          return p.point == first_expected_removal;
+                      }) == path.end());
+            }
+
+            AND_WHEN("yet another is added")
+            {
+                auto new_handle = trip_log.AddEntry(P(80, 100), 10ms, 100);
+                REQUIRE(new_handle.has_value());
+
+                THEN("the second smallest should be removed")
+                {
+                    auto path = PathToPoints(*new_handle);
+                    printf("::::::::::::::\n");
+                    for (auto p : path)
+                    {
+                        printf("(%u, %u) -> %u\n", p.point.x, p.point.y, p.triangle_area);
+                    }
+                    CHECK(std::ranges::find_if(path, [&](auto& p) {
+                              return p.point == second_expected_removal;
+                          }) == path.end());
                 }
             }
         }

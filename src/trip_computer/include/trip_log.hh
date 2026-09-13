@@ -10,6 +10,13 @@ using LogHandle = uint16_t;
 using TriangleAreaType = uint16_t;
 constexpr LogHandle kInvalidLogHandle = std::numeric_limits<LogHandle>::max();
 
+namespace
+{
+
+class Fixture;
+
+}
+
 struct TripLogEntry
 {
     milliseconds timestamp;
@@ -36,6 +43,8 @@ template <size_t Entries>
 class TripLog
 {
 public:
+    friend class ::Fixture;
+
     TripLog(IEntryAllocator& parent)
         : m_parent(parent)
     {

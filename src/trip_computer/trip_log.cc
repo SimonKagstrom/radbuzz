@@ -137,3 +137,5 @@ template class TripLog<TripComputer::kNumberOfDisplayLogEntries>;
 
 // Unit tests
 template class TripLog<4>;
+template class TripLog<6>;
+template class TripLog<8>;
