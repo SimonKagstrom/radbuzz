@@ -130,6 +130,8 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
             while (m_parent.Entry(m_log_queue.top().handle).stale)
             {
                 m_parent.FreeLogEntry(m_log_queue.top().handle);
+                auto& e = m_parent.Entry(m_log_queue.top().handle);
+                printf("Pruning entry at (%d,%d)!\n", e.position.x, e.position.y);
                 m_log_queue.pop();
 
                 debug_assert(!m_log_queue.empty() &&
@@ -141,27 +143,34 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
             auto& entry_to_remove = m_parent.Entry(to_remove.handle);
             debug_assert(entry_to_remove.predecessor != kInvalidLogHandle &&
                          "Can't remove the first entry");
-            m_parent.WritableEntry(entry_to_remove.predecessor).successor =
-                entry_to_remove.successor;
+            printf("Removing entry at (%d,%d)\n",
+                   entry_to_remove.position.x,
+                   entry_to_remove.position.y);
+
+            Link(entry_to_remove.predecessor, entry_to_remove.successor);
 
             auto new_predecessor = StaleAndReplace(entry_to_remove.predecessor);
             debug_assert(new_predecessor);
 
             if (entry_to_remove.successor != kInvalidLogHandle)
             {
-                m_parent.WritableEntry(entry_to_remove.successor).predecessor =
-                    entry_to_remove.predecessor;
                 auto new_successor = StaleAndReplace(entry_to_remove.successor);
                 debug_assert(new_successor);
 
                 Link(*new_predecessor, *new_successor);
 
+                printf(" Calculating successor (%d,%d)\n",
+                       m_parent.Entry(*new_successor).position.x,
+                       m_parent.Entry(*new_successor).position.y);
                 m_log_queue.push({.triangle_area = TriangleArea(m_parent.Entry(*new_successor)),
                                   .handle = *new_successor});
             }
 
             m_log_queue.push({.triangle_area = TriangleArea(m_parent.Entry(*new_predecessor)),
                               .handle = *new_predecessor});
+            printf(" Calculatating predecessor (%d,%d)\n",
+                   m_parent.Entry(*new_predecessor).position.x,
+                   m_parent.Entry(*new_predecessor).position.y);
 
             m_parent.FreeLogEntry(to_remove.handle);
             m_log_queue.pop();
