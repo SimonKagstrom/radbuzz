@@ -83,7 +83,8 @@ public:
 private:
     TriangleAreaType TriangleArea(const TripLogEntry& entry) const;
 
-    std::optional<LogHandle> Relink(LogHandle current_entry_handle);
+    std::optional<LogHandle> StaleAndReplace(LogHandle current_entry_handle);
+    void Link(LogHandle predecessor, LogHandle successor);
 
     IEntryAllocator& m_parent;
 

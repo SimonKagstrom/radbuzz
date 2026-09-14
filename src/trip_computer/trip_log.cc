@@ -49,7 +49,7 @@ TripLog<Entries>::TriangleArea(const TripLogEntry& entry) const
 
 template <size_t Entries>
 std::optional<LogHandle>
-TripLog<Entries>::Relink(LogHandle current_entry_handle)
+TripLog<Entries>::StaleAndReplace(LogHandle current_entry_handle)
 {
     auto handle = m_parent.AllocateLogEntry();
     if (!handle)
@@ -73,6 +73,22 @@ TripLog<Entries>::Relink(LogHandle current_entry_handle)
 
     return handle;
 }
+
+template <size_t Entries>
+void
+TripLog<Entries>::Link(LogHandle predecessor, LogHandle successor)
+{
+    if (predecessor != kInvalidLogHandle)
+    {
+        m_parent.WritableEntry(predecessor).successor = successor;
+    }
+
+    if (successor != kInvalidLogHandle)
+    {
+        m_parent.WritableEntry(successor).predecessor = predecessor;
+    }
+}
+
 
 template <size_t Entries>
 std::optional<LogHandle>
@@ -126,22 +142,21 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
             m_parent.WritableEntry(entry_to_remove.predecessor).successor =
                 entry_to_remove.successor;
 
+            auto new_predecessor = StaleAndReplace(entry_to_remove.predecessor);
+            debug_assert(new_predecessor);
 
             if (entry_to_remove.successor != kInvalidLogHandle)
             {
                 m_parent.WritableEntry(entry_to_remove.successor).predecessor =
                     entry_to_remove.predecessor;
-                auto new_successor = Relink(entry_to_remove.successor);
+                auto new_successor = StaleAndReplace(entry_to_remove.successor);
                 debug_assert(new_successor);
+
+                Link(*new_predecessor, *new_successor);
 
                 m_log_queue.push({.triangle_area = TriangleArea(m_parent.Entry(*new_successor)),
                                   .handle = *new_successor});
             }
-
-
-            auto new_predecessor = Relink(entry_to_remove.predecessor);
-            debug_assert(new_predecessor);
-
 
             m_log_queue.push({.triangle_area = TriangleArea(m_parent.Entry(*new_predecessor)),
                               .handle = *new_predecessor});
