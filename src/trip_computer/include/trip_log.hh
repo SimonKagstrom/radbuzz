@@ -90,4 +90,6 @@ private:
 
     etl::priority_queue<LogQueueEntry, Entries * 2> m_log_queue;
     std::optional<LogQueueEntry> m_pending_log_entry;
+
+    unsigned int m_entry_count {0};
 };
