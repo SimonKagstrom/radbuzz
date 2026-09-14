@@ -307,6 +307,23 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
                               return p.point == second_expected_removal;
                           }) == path.end());
                 }
+
+
+                //AND_THEN("stale entries are removed")
+                {
+                    auto h3 = trip_log.AddEntry(P(90, 200), 10ms, 100);
+                    REQUIRE(h3.has_value());
+                    auto path = PathToPoints(*h3);
+                    printf("..............\n");
+                    for (auto p : path)
+                    {
+                        printf("%02d: (%u, %u) -> %u\n",
+                               p.handle,
+                               p.point.x,
+                               p.point.y,
+                               p.triangle_area);
+                    }
+                }
             }
         }
     }

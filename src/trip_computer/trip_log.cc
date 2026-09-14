@@ -115,6 +115,8 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
                               .predecessor = kInvalidLogHandle,
                               .successor = kInvalidLogHandle};
 
+    printf("Adding entry at position (%u, %u) \n", position.x, position.y);
+
     if (m_pending_log_entry)
     {
         // Update the successor of the current pending entry
@@ -123,7 +125,7 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
         new_entry.predecessor = m_pending_log_entry->handle;
         m_pending_log_entry->triangle_area = TriangleArea(last_entry);
 
-        if (m_log_queue.size() >= Entries)
+        if (m_entry_count >= Entries)
         {
             while (m_parent.Entry(m_log_queue.top().handle).stale)
             {
@@ -167,6 +169,7 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
 
         m_log_queue.push(*m_pending_log_entry);
         m_pending_log_entry = LogQueueEntry {0, *handle};
+        m_entry_count = std::min(m_entry_count + 1u, static_cast<decltype(m_entry_count)>(Entries));
     }
     else
     {
@@ -174,6 +177,7 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
 
         // This is the first entry, will be fixed up above
         m_pending_log_entry = LogQueueEntry {0, *handle};
+        m_entry_count = 1;
 
         static_assert(sizeof(LogQueueEntry) == 4);
     }
@@ -204,4 +208,4 @@ template class TripLog<TripComputer::kNumberOfDisplayLogEntries>;
 // Unit tests
 template class TripLog<4>;
 template class TripLog<6>;
-template class TripLog<8>;
+//template class TripLog<8>;

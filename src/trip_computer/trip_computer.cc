@@ -392,7 +392,7 @@ TripComputer::UpdateTripLog()
     auto now = os::GetTimeStamp();
     auto power = ro.Get<AS::current_power_w>();
 
-    m_export_log.AddEntry(position, now, power);
+//    m_export_log.AddEntry(position, now, power);
     auto new_entry_handle = m_display_log.AddEntry(position, now, power);
 
     if (new_entry_handle.has_value())
