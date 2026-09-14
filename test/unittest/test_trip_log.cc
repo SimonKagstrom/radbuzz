@@ -89,7 +89,7 @@ public:
             {
                 printf("Handle %d stale, is (%d,%d)\n", current, entry.position.x, entry.position.y);
             }
-//            CHECK(entry.stale == false);
+            CHECK(entry.stale == false);
             current = entry.predecessor;
         }
         return path;
