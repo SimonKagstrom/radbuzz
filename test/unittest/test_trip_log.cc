@@ -5,8 +5,8 @@
 namespace
 {
 
-constexpr auto kNumberOfTripLogEntries = 16;
-constexpr auto kTripLogSize = 6;
+constexpr auto kNumberOfTripLogEntries = 32;
+constexpr auto kTripLogSize = 8;
 
 class Allocator : public IEntryAllocator
 {
@@ -83,13 +83,30 @@ public:
         auto current = start;
         while (current != kInvalidLogHandle)
         {
+            if (allocator.Entry(current).stale)
+            {
+                printf("Encountered a stale entry at handle %u (%u, %u)\n", current, allocator.Entry(current).position.x, allocator.Entry(current).position.y);
+                for (auto h : path)
+                {
+                    printf("  -> handle %u (%u, %u)\n", h, allocator.Entry(h).position.x, allocator.Entry(h).position.y);
+                }
+            }
+            REQUIRE(allocator.Entry(current).stale == false);
+
+            // Guard against corrupted lists forming a cycle so the test fails
+            // instead of hanging.
+            if (std::ranges::find(path, current) != path.end())
+            {
+                printf("Detected a cycle at handle %u (%u, %u)\n", current, allocator.Entry(current).position.x, allocator.Entry(current).position.y);
+                for (auto h : path)
+                {
+                    printf("  -> handle %u (%u, %u)\n", h, allocator.Entry(h).position.x, allocator.Entry(h).position.y);
+                }
+            }
+            REQUIRE(std::ranges::find(path, current) == path.end());
+
             path.push_back(current);
             auto& entry = allocator.Entry(current);
-            if (entry.stale)
-            {
-                printf("Handle %d stale, is (%d,%d)\n", current, entry.position.x, entry.position.y);
-            }
-            CHECK(entry.stale == false);
             current = entry.predecessor;
         }
         return path;
@@ -324,8 +341,111 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
                                p.triangle_area);
                     }
                 }
+                {
+                    auto h3 = trip_log.AddEntry(P(100, 200), 10ms, 100);
+                    REQUIRE(h3.has_value());
+                    auto path = PathToPoints(*h3);
+                    printf("..............\n");
+                    for (auto p : path)
+                    {
+                        printf("%02d: (%u, %u) -> %u\n",
+                               p.handle,
+                               p.point.x,
+                               p.point.y,
+                               p.triangle_area);
+                    }
+                }
+                {
+                    auto h3 = trip_log.AddEntry(P(110, 200), 10ms, 100);
+                    REQUIRE(h3.has_value());
+                    auto path = PathToPoints(*h3);
+                    printf("..............\n");
+                    for (auto p : path)
+                    {
+                        printf("%02d: (%u, %u) -> %u\n",
+                               p.handle,
+                               p.point.x,
+                               p.point.y,
+                               p.triangle_area);
+                    }
+                }
             }
         }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the demo mode order does not cause a hang")
+{
+    constexpr auto kLine = std::array {
+        P(4614853, 2466299),
+        P(4614852, 2466297),
+        P(4614852, 2466297),
+        P(4614849, 2466292),
+        P(4614847, 2466287),
+        P(4614844, 2466282),
+        P(4614839, 2466281),
+        P(4614834, 2466284),
+        P(4614829, 2466286),
+        P(4614824, 2466289),
+        P(4614819, 2466291),
+        P(4614814, 2466294),
+    };
+
+    std::optional<LogHandle> handle;
+    for (auto entry : kLine)
+    {
+        auto h = trip_log.AddEntry(entry, 10ms, 100);
+        if (h)
+        {
+            handle = h;
+        }
+    }
+
+    auto path = PathToPoints(*handle);
+    printf("..............\n");
+    for (auto p : path)
+    {
+        printf("%02d: (%u, %u) -> %u\n", p.handle, p.point.x, p.point.y, p.triangle_area);
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "user reported crash scenario")
+{
+    constexpr auto kLine = std::array {
+        P(852, 298),
+        P(852, 297),
+        P(852, 297),
+        P(849, 292),
+        P(847, 287),
+        P(844, 282),
+        P(839, 281),
+        P(834, 284),
+        P(829, 286),
+        P(824, 289),
+        P(819, 291),
+        P(814, 294),
+        P(809, 296),
+        P(804, 299),
+        P(799, 301),
+        P(794, 304),
+        P(789, 306),
+    };
+
+    std::optional<LogHandle> handle;
+    for (auto entry : kLine)
+    {
+        auto h = trip_log.AddEntry(entry, 10ms, 100);
+        if (h)
+        {
+            handle = h;
+        }
+    }
+
+    auto path = PathToPoints(*handle);
+    printf("..............\n");
+    for (auto p : path)
+    {
+        printf("%02d: (%u, %u) -> %u\n", p.handle, p.point.x, p.point.y, p.triangle_area);
     }
 }
 

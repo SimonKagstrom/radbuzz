@@ -103,7 +103,7 @@ private:
     std::vector<LogHandle> m_free_log_entries;
 
     TripLog<kNumberOfDisplayLogEntries> m_display_log {*this};
-    TripLog<kNumberOfExportLogEntries> m_export_log {*this};
+    //TripLog<kNumberOfExportLogEntries> m_export_log {*this};
 
     std::array<std::vector<DisplayTripLogEntry>, 2> m_display_logs;
     std::atomic<uint8_t> m_current_display_log {0};

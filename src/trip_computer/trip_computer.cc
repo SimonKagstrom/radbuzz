@@ -225,7 +225,7 @@ TripComputer::ResetTrip()
     m_display_logs[0].clear();
     m_display_logs[1].clear();
     m_current_display_log = 0;
-    m_export_log.Reset();
+    //m_export_log.Reset();
     m_display_log.Reset();
 
     m_current_distance = m_trip_start_distance;

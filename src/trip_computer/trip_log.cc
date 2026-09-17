@@ -60,16 +60,45 @@ TripLog<Entries>::StaleAndReplace(LogHandle current_entry_handle)
     auto& current_entry = m_parent.WritableEntry(current_entry_handle);
 
     m_parent.WritableEntry(*handle) = current_entry;
+
     if (current_entry.predecessor != kInvalidLogHandle)
     {
-        m_parent.WritableEntry(current_entry.predecessor).successor = *handle;
-    }
+        printf("Staling entry %u(%u, %u) -> %u(%u, %u)",
+               current_entry.predecessor,
+               m_parent.Entry(current_entry.predecessor).position.x,
+               m_parent.Entry(current_entry.predecessor).position.y,
+               current_entry_handle,
+               current_entry.position.x,
+               current_entry.position.y);
 
-    if (current_entry.successor != kInvalidLogHandle)
-    {
-        m_parent.WritableEntry(current_entry.successor).predecessor = *handle;
+        if (current_entry.successor != kInvalidLogHandle)
+        {
+            printf(" -> %u(%u, %u)",
+                   current_entry.successor,
+                   m_parent.Entry(current_entry.successor).position.x,
+                   m_parent.Entry(current_entry.successor).position.y);
+        }
+
+        printf("\n");
     }
+    else if (current_entry.successor != kInvalidLogHandle)
+    {
+        printf("staling successor only -> (%u, %u) -> (%u, %u)\n",
+               current_entry.position.x,
+               current_entry.position.y,
+               m_parent.Entry(current_entry.successor).position.x,
+               m_parent.Entry(current_entry.successor).position.y);
+    }
+    Link(current_entry.predecessor, *handle);
+    Link(*handle, current_entry.successor);
+
+
     current_entry.stale = true;
+
+    if (current_entry_handle == m_pending_log_entry->handle)
+    {
+        m_pending_log_entry->handle = *handle;
+    }
 
     return handle;
 }
@@ -81,11 +110,21 @@ TripLog<Entries>::Link(LogHandle predecessor, LogHandle successor)
     if (predecessor != kInvalidLogHandle)
     {
         m_parent.WritableEntry(predecessor).successor = successor;
+        if (successor != kInvalidLogHandle)
+            debug_assert(m_parent.Entry(successor).stale == false);
     }
 
     if (successor != kInvalidLogHandle)
     {
         m_parent.WritableEntry(successor).predecessor = predecessor;
+        if (predecessor != kInvalidLogHandle)
+        {
+            if (m_parent.Entry(predecessor).stale)
+                printf("Entry at (%u, %u) is stale\n",
+                       m_parent.Entry(predecessor).position.x,
+                       m_parent.Entry(predecessor).position.y);
+            debug_assert(m_parent.Entry(predecessor).stale == false);
+        }
     }
 }
 
@@ -115,15 +154,14 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
                               .predecessor = kInvalidLogHandle,
                               .successor = kInvalidLogHandle};
 
-    printf("Adding entry at position (%u, %u) \n", position.x, position.y);
+    printf("Adding entry at position %u(%u, %u) with predecessor %u\n", *handle,position.x, position.y, m_pending_log_entry ? m_pending_log_entry->handle : kInvalidLogHandle);
 
     if (m_pending_log_entry)
     {
         // Update the successor of the current pending entry
-        auto& last_entry = m_parent.WritableEntry(m_pending_log_entry->handle);
-        last_entry.successor = *handle;
-        new_entry.predecessor = m_pending_log_entry->handle;
-        m_pending_log_entry->triangle_area = TriangleArea(last_entry);
+        Link(m_pending_log_entry->handle, *handle);
+        m_pending_log_entry->triangle_area =
+            TriangleArea(m_parent.Entry(m_pending_log_entry->handle));
 
         if (m_entry_count >= Entries)
         {
@@ -143,7 +181,8 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
             auto& entry_to_remove = m_parent.Entry(to_remove.handle);
             debug_assert(entry_to_remove.predecessor != kInvalidLogHandle &&
                          "Can't remove the first entry");
-            printf("Removing entry at (%d,%d)\n",
+            printf("Removing entry at %u(%d,%d)\n",
+                   to_remove.handle,
                    entry_to_remove.position.x,
                    entry_to_remove.position.y);
 
@@ -186,11 +225,23 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
 
         // This is the first entry, will be fixed up above
         m_pending_log_entry = LogQueueEntry {0, *handle};
+        printf("Initial add att %d,%d\n",
+               m_parent.Entry(*handle).position.x,
+               m_parent.Entry(*handle).position.y);
         m_entry_count = 1;
 
         static_assert(sizeof(LogQueueEntry) == 4);
     }
 
+    printf("DONE. List now\n");
+    auto pred_handle = *handle;
+    while (pred_handle != kInvalidLogHandle)
+    {
+        const auto& pred_entry = m_parent.Entry(pred_handle);
+        printf(" %u(%u, %u) ->", pred_handle, pred_entry.position.x, pred_entry.position.y);
+        pred_handle = pred_entry.predecessor;
+    }
+    printf("\n");
     return *handle;
 }
 
