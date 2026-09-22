@@ -133,8 +133,8 @@ SpeechBubble::Update()
     auto hidden = !on_screen || !lv_obj_is_visible(m_pointing_at);
 
     // Set visiblity
-    lv_obj_set_flag(m_bubble, LV_OBJ_FLAG_HIDDEN, hidden);
-    lv_obj_set_flag(m_bubble_tail, LV_OBJ_FLAG_HIDDEN, hidden);
+    lv_obj_set_hidden(m_bubble, hidden);
+    lv_obj_set_hidden(m_bubble_tail, hidden);
 
     UpdatePosition();
 }
