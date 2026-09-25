@@ -61,46 +61,63 @@ TripLog<Entries>::StaleAndReplace(LogHandle current_entry_handle)
 
     m_parent.WritableEntry(*handle) = current_entry;
 
-    if (current_entry.predecessor != kInvalidLogHandle)
-    {
-        printf("Staling entry %u(%u, %u) -> %u(%u, %u)",
-               current_entry.predecessor,
-               m_parent.Entry(current_entry.predecessor).position.x,
-               m_parent.Entry(current_entry.predecessor).position.y,
-               current_entry_handle,
-               current_entry.position.x,
-               current_entry.position.y);
-
-        if (current_entry.successor != kInvalidLogHandle)
-        {
-            printf(" -> %u(%u, %u)",
-                   current_entry.successor,
-                   m_parent.Entry(current_entry.successor).position.x,
-                   m_parent.Entry(current_entry.successor).position.y);
-        }
-
-        printf("\n");
-    }
-    else if (current_entry.successor != kInvalidLogHandle)
-    {
-        printf("staling successor only -> (%u, %u) -> (%u, %u)\n",
-               current_entry.position.x,
-               current_entry.position.y,
-               m_parent.Entry(current_entry.successor).position.x,
-               m_parent.Entry(current_entry.successor).position.y);
-    }
     Link(current_entry.predecessor, *handle);
     Link(*handle, current_entry.successor);
 
 
     current_entry.stale = true;
 
-    if (current_entry_handle == m_pending_log_entry->handle)
+    return handle;
+}
+
+template <size_t Entries>
+void
+TripLog<Entries>::RecalculateNeighbor(LogHandle neighbor_handle)
+{
+    // The first entry is always kept (max area), so it never needs a new queue entry
+    if (neighbor_handle == kInvalidLogHandle ||
+        m_parent.Entry(neighbor_handle).predecessor == kInvalidLogHandle)
     {
-        m_pending_log_entry->handle = *handle;
+        return;
     }
 
-    return handle;
+    // The pending entry is not in the queue yet, and gets its area calculated when pushed
+    if (neighbor_handle == m_pending_log_entry->handle)
+    {
+        return;
+    }
+
+    auto replacement = StaleAndReplace(neighbor_handle);
+    debug_assert(replacement);
+
+    m_log_queue.push(
+        {.triangle_area = TriangleArea(m_parent.Entry(*replacement)), .handle = *replacement});
+}
+
+template <size_t Entries>
+void
+TripLog<Entries>::RebuildQueue()
+{
+    // Drop everything, freeing the stale entries (live entries are still in the list)
+    while (!m_log_queue.empty())
+    {
+        const auto handle = m_log_queue.top().handle;
+        m_log_queue.pop();
+
+        if (m_parent.Entry(handle).stale)
+        {
+            m_parent.FreeLogEntry(handle);
+        }
+    }
+
+    // Everything before the pending entry belongs in the queue
+    auto current = m_parent.Entry(m_pending_log_entry->handle).predecessor;
+    while (current != kInvalidLogHandle)
+    {
+        const auto& entry = m_parent.Entry(current);
+        m_log_queue.push({.triangle_area = TriangleArea(entry), .handle = current});
+        current = entry.predecessor;
+    }
 }
 
 template <size_t Entries>
@@ -110,21 +127,13 @@ TripLog<Entries>::Link(LogHandle predecessor, LogHandle successor)
     if (predecessor != kInvalidLogHandle)
     {
         m_parent.WritableEntry(predecessor).successor = successor;
-        if (successor != kInvalidLogHandle)
-            debug_assert(m_parent.Entry(successor).stale == false);
+        debug_assert(successor == kInvalidLogHandle || m_parent.Entry(successor).stale == false);
     }
 
     if (successor != kInvalidLogHandle)
     {
         m_parent.WritableEntry(successor).predecessor = predecessor;
-        if (predecessor != kInvalidLogHandle)
-        {
-            if (m_parent.Entry(predecessor).stale)
-                printf("Entry at (%u, %u) is stale\n",
-                       m_parent.Entry(predecessor).position.x,
-                       m_parent.Entry(predecessor).position.y);
-            debug_assert(m_parent.Entry(predecessor).stale == false);
-        }
+        debug_assert(predecessor == kInvalidLogHandle || m_parent.Entry(predecessor).stale == false);
     }
 }
 
@@ -154,67 +163,49 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
                               .predecessor = kInvalidLogHandle,
                               .successor = kInvalidLogHandle};
 
-    printf("Adding entry at position %u(%u, %u) with predecessor %u\n", *handle,position.x, position.y, m_pending_log_entry ? m_pending_log_entry->handle : kInvalidLogHandle);
-
     if (m_pending_log_entry)
     {
         // Update the successor of the current pending entry
         Link(m_pending_log_entry->handle, *handle);
-        m_pending_log_entry->triangle_area =
-            TriangleArea(m_parent.Entry(m_pending_log_entry->handle));
 
         if (m_entry_count >= Entries)
         {
             while (m_parent.Entry(m_log_queue.top().handle).stale)
             {
                 m_parent.FreeLogEntry(m_log_queue.top().handle);
-                auto& e = m_parent.Entry(m_log_queue.top().handle);
-                printf("Pruning entry at (%d,%d)!\n", e.position.x, e.position.y);
                 m_log_queue.pop();
 
                 debug_assert(!m_log_queue.empty() &&
                              "the log queue can't contain of only stale entries");
             }
 
-            const auto& to_remove = m_log_queue.top();
-
-            auto& entry_to_remove = m_parent.Entry(to_remove.handle);
-            debug_assert(entry_to_remove.predecessor != kInvalidLogHandle &&
-                         "Can't remove the first entry");
-            printf("Removing entry at %u(%d,%d)\n",
-                   to_remove.handle,
-                   entry_to_remove.position.x,
-                   entry_to_remove.position.y);
-
-            Link(entry_to_remove.predecessor, entry_to_remove.successor);
-
-            auto new_predecessor = StaleAndReplace(entry_to_remove.predecessor);
-            debug_assert(new_predecessor);
-
-            if (entry_to_remove.successor != kInvalidLogHandle)
+            // A removal pushes at most two replacements, and the pending entry is pushed below
+            if (m_log_queue.size() + 3 > m_log_queue.max_size())
             {
-                auto new_successor = StaleAndReplace(entry_to_remove.successor);
-                debug_assert(new_successor);
-
-                Link(*new_predecessor, *new_successor);
-
-                printf(" Calculating successor (%d,%d)\n",
-                       m_parent.Entry(*new_successor).position.x,
-                       m_parent.Entry(*new_successor).position.y);
-                m_log_queue.push({.triangle_area = TriangleArea(m_parent.Entry(*new_successor)),
-                                  .handle = *new_successor});
+                RebuildQueue();
             }
 
-            m_log_queue.push({.triangle_area = TriangleArea(m_parent.Entry(*new_predecessor)),
-                              .handle = *new_predecessor});
-            printf(" Calculatating predecessor (%d,%d)\n",
-                   m_parent.Entry(*new_predecessor).position.x,
-                   m_parent.Entry(*new_predecessor).position.y);
-
-            m_parent.FreeLogEntry(to_remove.handle);
+            // Copy, since pushing to the queue changes what top() refers to
+            const auto to_remove_handle = m_log_queue.top().handle;
             m_log_queue.pop();
+
+            const auto& entry_to_remove = m_parent.Entry(to_remove_handle);
+            debug_assert(entry_to_remove.predecessor != kInvalidLogHandle &&
+                         "Can't remove the first entry");
+
+            const auto predecessor_handle = entry_to_remove.predecessor;
+            const auto successor_handle = entry_to_remove.successor;
+
+            Link(predecessor_handle, successor_handle);
+            m_parent.FreeLogEntry(to_remove_handle);
+
+            RecalculateNeighbor(successor_handle);
+            RecalculateNeighbor(predecessor_handle);
         }
 
+        // Calculated after the removal, since that might have changed the predecessor
+        m_pending_log_entry->triangle_area =
+            TriangleArea(m_parent.Entry(m_pending_log_entry->handle));
         m_log_queue.push(*m_pending_log_entry);
         m_pending_log_entry = LogQueueEntry {0, *handle};
         m_entry_count = std::min(m_entry_count + 1u, static_cast<decltype(m_entry_count)>(Entries));
@@ -225,23 +216,11 @@ TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_
 
         // This is the first entry, will be fixed up above
         m_pending_log_entry = LogQueueEntry {0, *handle};
-        printf("Initial add att %d,%d\n",
-               m_parent.Entry(*handle).position.x,
-               m_parent.Entry(*handle).position.y);
         m_entry_count = 1;
 
         static_assert(sizeof(LogQueueEntry) == 4);
     }
 
-    printf("DONE. List now\n");
-    auto pred_handle = *handle;
-    while (pred_handle != kInvalidLogHandle)
-    {
-        const auto& pred_entry = m_parent.Entry(pred_handle);
-        printf(" %u(%u, %u) ->", pred_handle, pred_entry.position.x, pred_entry.position.y);
-        pred_handle = pred_entry.predecessor;
-    }
-    printf("\n");
     return *handle;
 }
 
@@ -257,8 +236,14 @@ TripLog<Entries>::Reset()
         m_log_queue.pop();
     }
 
+    if (m_pending_log_entry)
+    {
+        m_parent.FreeLogEntry(m_pending_log_entry->handle);
+    }
+
     m_log_queue = {};
     m_pending_log_entry.reset();
+    m_entry_count = 0;
 }
 
 

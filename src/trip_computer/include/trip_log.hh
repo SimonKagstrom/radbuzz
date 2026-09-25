@@ -55,12 +55,9 @@ public:
         TriangleAreaType triangle_area;
         LogHandle handle;
 
-        int operator<(const LogQueueEntry& other) const
+        bool operator<(const LogQueueEntry& other) const
         {
-            if (triangle_area == other.triangle_area)
-            {
-                return rand() % 2; // Randomize order of entries with the same area to avoid bias
-            }
+            // Must be a strict weak ordering (no randomness), or the heap breaks.
             // We want the entry with the smallest triangle area to be popped first, so we invert the comparison here
             return triangle_area > other.triangle_area;
         }
@@ -84,6 +81,8 @@ private:
     TriangleAreaType TriangleArea(const TripLogEntry& entry) const;
 
     std::optional<LogHandle> StaleAndReplace(LogHandle current_entry_handle);
+    void RecalculateNeighbor(LogHandle neighbor_handle);
+    void RebuildQueue();
     void Link(LogHandle predecessor, LogHandle successor);
 
     IEntryAllocator& m_parent;
