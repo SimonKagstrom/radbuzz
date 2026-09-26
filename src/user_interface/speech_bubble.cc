@@ -32,7 +32,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at,
 
     auto tail = lv_canvas_create(lv_layer_top());
     lv_canvas_set_buffer(tail,
-                         static_cast<void*>(m_tail_canvas_buffer),
+                         static_cast<void*>(m_tail_canvas_buffer.WritableData16()),
                          kTailWidth,
                          kTailHeight,
                          LV_COLOR_FORMAT_ARGB8888);
