@@ -70,6 +70,11 @@ JsToJson(std::string_view s)
 
 } // namespace
 
+GadgetBridgeProtocol::GadgetBridgeProtocol(ApplicationState& state)
+    : m_state(state)
+{
+}
+
 std::optional<nlohmann::json>
 GadgetBridgeProtocol::ParseLine(std::string_view line)
 {

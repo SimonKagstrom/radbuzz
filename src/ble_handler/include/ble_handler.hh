@@ -3,8 +3,8 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "ble_king_shark_handler.hh"
-#include "gadget_bridge_transport.hh"
 #include "gadget_bridge_protocol.hh"
+#include "gadget_bridge_transport.hh"
 #include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 #include "image_cache.hh"
@@ -35,7 +35,7 @@ private:
 
     std::unique_ptr<ListenerCookie> m_connection_listener;
 
-    GadgetBridgeProtocol m_gadget_bridge_protocol;
+    GadgetBridgeProtocol m_gadget_bridge_protocol {m_state};
     GadgetBridgeTransport m_gadget_bridge_transport;
 
     std::unique_ptr<BleKingSharkHandler> m_king_shark_handler;
