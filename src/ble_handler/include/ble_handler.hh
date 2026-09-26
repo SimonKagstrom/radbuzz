@@ -3,6 +3,8 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "ble_king_shark_handler.hh"
+#include "gadget_bridge_transport.hh"
+#include "gadget_bridge_protocol.hh"
 #include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 #include "image_cache.hh"

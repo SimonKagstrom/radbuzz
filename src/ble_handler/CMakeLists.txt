@@ -1,3 +1,12 @@
+# "The DOWNLOAD_EXTRACT_TIMESTAMP option was not given and policy..."
+cmake_policy(SET CMP0135 NEW)
+
+include(FetchContent)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+
 add_library(ble_handler EXCLUDE_FROM_ALL
     ble_handler.cc
     ble_king_shark_handler.cc
@@ -14,6 +23,7 @@ PUBLIC
     base_thread
     image_cache
     application_state
+    nlohmann_json::nlohmann_json
 PRIVATE
     radbuzz_interface
 )
