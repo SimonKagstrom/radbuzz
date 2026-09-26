@@ -14,8 +14,9 @@ set(NUMBERS_FONT "${chivo_fonts_SOURCE_DIR}/fonts/Chivo Mono/ttf/ChivoMono-Mediu
 convert_font(radbuzz_font_22
     ${GENERAL_FONT}
     22
-    0x20-0x7F
-    "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜ•"
+    # ASCII + non-breaking space
+    0x20-0x7F,0xA0
+    "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜæøßàèçô•"
 )
 
 # Big font with numbers plus a few extras
