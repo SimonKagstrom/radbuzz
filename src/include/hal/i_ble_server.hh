@@ -24,6 +24,9 @@ public:
     AddWriteGattCharacteristics(Uuid128Span uuid,
                                 std::function<void(std::span<const uint8_t>)> data_cb) = 0;
 
+    /// Add a characteristic which the peer can subscribe to notifications from
+    virtual void AddNotifyGattCharacteristics(Uuid128Span uuid) = 0;
+
     /** @brief Start the BLE server
      */
     virtual void Start() = 0;

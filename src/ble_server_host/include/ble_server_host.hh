@@ -18,6 +18,8 @@ private:
     void AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                      std::function<void(std::span<const uint8_t>)> data) final;
 
+    void AddNotifyGattCharacteristics(hal::Uuid128Span uuid) final;
+
     void Start() final;
     void PollEvents() final;
 

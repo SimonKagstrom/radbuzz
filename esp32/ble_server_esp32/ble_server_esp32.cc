@@ -398,7 +398,7 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
 
     w->gatt_chr.arg = static_cast<void*>(w.get());
     w->gatt_chr.uuid = reinterpret_cast<const ble_uuid_t*>(&w->uuid);
-    w->gatt_chr.flags = BLE_GATT_CHR_F_WRITE;
+    w->gatt_chr.flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP;
     w->gatt_chr.access_cb = [](uint16_t conn_handle,
                                uint16_t attr_handle,
                                struct ble_gatt_access_ctxt* ctxt,
@@ -437,6 +437,26 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
     }
     m_uuid_to_characteristic_index[hal::detail::ToUuid16(uuid)] = m_characteristics.size();
     m_characteristics.push_back(std::move(w));
+}
+
+void
+BleServerEsp32::AddNotifyGattCharacteristics(hal::Uuid128Span uuid)
+{
+    auto n = std::make_unique<WriteCharacteristic>();
+
+    memcpy(n->uuid.value, uuid.data(), uuid.size());
+
+    n->gatt_chr.arg = static_cast<void*>(n.get());
+    n->gatt_chr.uuid = reinterpret_cast<const ble_uuid_t*>(&n->uuid);
+    n->gatt_chr.flags = BLE_GATT_CHR_F_NOTIFY;
+    n->gatt_chr.val_handle = &n->val_handle;
+    // Nothing to read or write, but NimBLE requires an access callback
+    n->gatt_chr.access_cb = [](uint16_t conn_handle,
+                               uint16_t attr_handle,
+                               struct ble_gatt_access_ctxt* ctxt,
+                               void* arg) { return 0; };
+
+    m_notify_characteristics.push_back(std::move(n));
 }
 
 
@@ -514,6 +534,10 @@ BleServerEsp32::Start()
     {
         m_ble_gatt_chr_defs.push_back(c->gatt_chr);
     }
+    for (const auto& c : m_notify_characteristics)
+    {
+        m_ble_gatt_chr_defs.push_back(c->gatt_chr);
+    }
     // Terminator
     m_ble_gatt_chr_defs.push_back({0});
 
@@ -533,10 +557,11 @@ BleServerEsp32::Start()
     ble_svc_ans_init();
 
     uint8_t ble_mac[6] = {};
-    std::string device_name = "radbuzz";
+    // Gadgetbridge recognizes the device as a Bangle.js from the name prefix
+    std::string device_name = "Bangle.js radbuzz";
     if (esp_read_mac(ble_mac, ESP_MAC_BT) == ESP_OK)
     {
-        device_name = std::format("radbuzz_{:02x}{:02x}", ble_mac[1], ble_mac[0]);
+        device_name = std::format("Bangle.js radbuzz_{:02x}{:02x}", ble_mac[1], ble_mac[0]);
     }
     ble_svc_gap_device_name_set(device_name.c_str());
 

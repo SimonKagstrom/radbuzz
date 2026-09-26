@@ -24,6 +24,11 @@ BleServerHost::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
 }
 
 void
+BleServerHost::AddNotifyGattCharacteristics(hal::Uuid128Span uuid)
+{
+}
+
+void
 BleServerHost::Start()
 {
     m_connection_listener(true);

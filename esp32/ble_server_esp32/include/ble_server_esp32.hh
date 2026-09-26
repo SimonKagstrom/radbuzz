@@ -50,6 +50,7 @@ private:
         ble_uuid128_t uuid {.u = {.type = BLE_UUID_TYPE_128}, .value = {}};
         struct ble_gatt_chr_def gatt_chr {};
         std::function<void(std::span<const uint8_t>)> cb;
+        uint16_t val_handle {0};
     };
 
     std::unique_ptr<ListenerCookie>
@@ -60,6 +61,7 @@ private:
     void AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                      std::function<void(std::span<const uint8_t>)> data) final;
 
+    void AddNotifyGattCharacteristics(hal::Uuid128Span uuid) final;
 
     void ScanForService(hal::Uuid128Span service_uuid,
                         const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
@@ -96,6 +98,7 @@ private:
     ble_uuid128_t m_service_uuid {.u = {.type = BLE_UUID_TYPE_128}, .value = {}};
 
     std::vector<std::unique_ptr<WriteCharacteristic>> m_characteristics;
+    std::vector<std::unique_ptr<WriteCharacteristic>> m_notify_characteristics;
     std::unordered_map<hal::Uuid16, uint8_t> m_uuid_to_characteristic_index;
 
     std::optional<hal::Uuid128> m_peer_service_uuid;
