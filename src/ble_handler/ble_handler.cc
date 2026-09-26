@@ -1,30 +1,4 @@
-// Most of this is based on https://github.com/maisonsmd/esp32-google-maps
 #include "ble_handler.hh"
-
-#include "split_string.hh"
-namespace
-{
-
-uint32_t
-StringToKey(std::span<const uint8_t> data)
-{
-    if (data.size() < 8)
-    {
-        return kInvalidIconHash;
-    }
-
-    auto s = std::string(reinterpret_cast<const char*>(data.data()), 8);
-
-    return std::stoul(s, 0, 16);
-}
-
-uint32_t
-StringToKey(const std::string& s)
-{
-    return StringToKey({reinterpret_cast<const uint8_t*>(s.data()), s.size()});
-}
-
-} // namespace
 
 BleHandler::BleHandler(hal::IBleServer& server,
                        hal::IBleClient& client,
@@ -33,6 +7,7 @@ BleHandler::BleHandler(hal::IBleServer& server,
     : m_server(server)
     , m_state(state)
     , m_image_cache(cache)
+    , m_gadget_bridge_transport(server, m_gadget_bridge_protocol)
 {
     // Add a black image for the invalid icon
     auto invalid_data = std::make_unique<uint8_t[]>(kImageByteSize);
@@ -54,23 +29,6 @@ BleHandler::OnStartup()
 
         return 20ms;
     });
-
-    m_server.SetServiceUuid128(hal::detail::StringToUuid128(kServiceUuid));
-
-    m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kChaNav),
-                                         [this](auto data) { OnChaNav(data); });
-
-    m_server.AddWriteGattCharacteristics(
-        hal::detail::StringToUuid128(kChaSettings),
-        [this](auto data) { printf(": %.*s\n", (int)data.size(), (const char*)data.data()); });
-    m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kChaNavTbtIcon),
-                                         [this](auto data) { OnIcon(data); });
-    m_server.AddWriteGattCharacteristics(
-        hal::detail::StringToUuid128(kChaNavTbtIconDesc), [this](auto data) {
-            printf("Ifondesc : %.*s\n", (int)data.size(), (const char*)data.data());
-        });
-    m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kChaGpsSpeed),
-                                         [this](auto data) {});
 
     m_connection_listener = m_server.AttachConnectionListener([this](bool connected) {
         auto rw = m_state.CheckoutReadWrite();
@@ -94,94 +52,6 @@ std::optional<milliseconds>
 BleHandler::OnActivation()
 {
     m_king_shark_handler->Update();
-    
+
     return std::nullopt;
-}
-
-void
-BleHandler::BumpNavigationActive()
-{
-    m_state.CheckoutReadWrite().Set<AS::navigation_active>(true);
-    m_navigation_active_timer = StartTimer(10s, [this]() {
-        m_state.CheckoutReadWrite().Set<AS::navigation_active>(false);
-        return std::nullopt;
-    });
-}
-
-void
-BleHandler::OnChaNav(std::span<const uint8_t> data)
-{
-    std::string next_street;
-    auto state = m_state.CheckoutReadWrite();
-
-    /*
-     * nextRd=Braxvägen
-     * nextRdDesc=
-     * distToNext=0 m
-     * totalDist=500 m
-     * eta=15:51
-     * ete=2 min
-     * iconHash=a7f7f83332
-     */
-    //printf("ChaNav: %.*s\n", (int)data.size(), (const char*)data.data());
-    for (auto line :
-         SplitString(std::string(reinterpret_cast<const char*>(data.data()), data.size()), "\n"))
-    {
-        auto key_val = SplitString(line, "=");
-        auto key = key_val[0];
-        std::string val = "";
-        if (key_val.size() >= 2)
-        {
-            val = key_val[1];
-        }
-
-        if (key == "iconHash")
-        {
-            state.Set<AS::current_icon_hash>(StringToKey(val));
-        }
-        if (key == "distToNext" && val.size() > 0)
-        {
-            if (std::isdigit(val[0]))
-            {
-                state.Set<AS::distance_to_next>(std::stoul(val));
-            }
-            else
-            {
-                // "Head towards Idvägen" or similar, so treat as navigation instructions
-                next_street = val;
-                state.Set<AS::next_street>(next_street);
-            }
-        }
-        if (key == "nextRd")
-        {
-            // Make sure it's not released on the stack (val)
-            next_street = val;
-            state.Set<AS::next_street>(next_street);
-        }
-    }
-    BumpNavigationActive();
-    //    printf("ChaNav: %.*s\n", (int)data.size(), (const char*)data.data());
-}
-
-
-void
-BleHandler::OnIcon(std::span<const uint8_t> data)
-{
-    /*
-     *           1
-     * 01234567890
-     * -----------
-     * a7f7f83332;
-     * ^^^key     ^^^data follows here
-     */
-    if (data.size() < kImageByteSize + 11)
-    {
-        printf("Not long enough: %zd\n", data.size());
-        return;
-    }
-
-    auto key = StringToKey(data);
-
-    m_image_cache.Insert(key, kImageWidth, kImageHeight, data.subspan(11));
-    BumpNavigationActive();
 }

@@ -376,27 +376,11 @@ AppSimulator::OnActivation()
                                                           AS::navigation_active,
                                                           AS::trip_max_speed>();
 
-    auto current_street = m_streets.back();
-
-    auto nav_info = std::format(R"VOBB(nextRd={}
-nextRdDesc=
-distToNext={} m
-totalDist={} m
-eta=13:25
-ete=5 min
-iconHash={:08x}32
-        )VOBB",
-                                current_street,
-                                m_distance_left,
-                                5000,
-                                kImages[m_current_image].key);
-
-    m_ble_injector.Inject(kChaNav, nav_info);
-
-    if (m_cached_images.find(kImages[m_current_image].key) == m_cached_images.end())
+    // TODO: Inject Gadgetbridge navigation messages (with icons) once supported
     {
-        m_ble_injector.Inject(kChaNavTbtIcon, kImages[m_current_image].data);
-        m_cached_images.insert(kImages[m_current_image].key);
+        auto rw = m_application_state.CheckoutReadWrite();
+        rw.Set<AS::next_street>(std::string(m_streets.back()));
+        rw.Set<AS::distance_to_next>(m_distance_left);
     }
 
     // Always navigating in demo mode

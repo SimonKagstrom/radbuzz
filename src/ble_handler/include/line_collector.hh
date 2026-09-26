@@ -7,24 +7,32 @@
 class LineCollector
 {
 public:
-    std::optional<std::string> Push(std::string_view line)
+    // Guard against a peer which never sends a newline
+    static constexpr auto kMaxLineLength = 4096;
+
+    void Push(std::string_view data)
     {
-        if (line.empty())
+        m_buffer += data;
+
+        if (m_buffer.size() > kMaxLineLength && m_buffer.find('\n') == std::string::npos)
+        {
+            m_buffer.clear();
+        }
+    }
+
+    // Return the next complete line (without the newline), if any
+    std::optional<std::string> Poll()
+    {
+        auto newline = m_buffer.find('\n');
+        if (newline == std::string::npos)
         {
             return std::nullopt;
         }
 
-        m_buffer += line;
-        if (m_buffer.back() == '\n')
-        {
-            std::string complete_line = std::move(m_buffer);
+        auto line = m_buffer.substr(0, newline);
+        m_buffer.erase(0, newline + 1);
 
-            m_buffer.clear();
-
-            return complete_line;
-        }
-
-        return std::nullopt;
+        return line;
     }
 
 private:

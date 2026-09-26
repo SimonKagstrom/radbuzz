@@ -1,4 +1,5 @@
 #include "ble_handler.hh"
+#include "line_collector.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
 
@@ -43,6 +44,10 @@ private:
         m_uuid_cb[uuid[0]] = data;
     }
 
+    void AddNotifyGattCharacteristics(std::span<const uint8_t, 16> uuid) final
+    {
+    }
+
     void Start() final
     {
     }
@@ -81,127 +86,70 @@ public:
 
 TEST_SUITE_BEGIN("ble_handler");
 
-
-TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
+TEST_CASE("the line collector splits data into lines")
 {
-    constexpr auto kPaletteSize = 8;
+    LineCollector collector;
 
-    uint32_t key = 0xa7f7f833;
-    std::string icon_header = "a7f7f83332;";
-    auto icon_data = std::array<uint8_t, kImageByteSize> {};
-
-    std::ranges::fill(icon_data, 0x7f);
-    ble.Start("ble");
-
-    WHEN("an icon with the proper data comes in")
+    WHEN("a line is split over several chunks")
     {
-        std::vector<uint8_t> full_data;
+        collector.Push("GB({\"t\":");
+        REQUIRE(collector.Poll() == std::nullopt);
+        collector.Push("\"notify\"})\n");
 
-        std::ranges::copy(
-            std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(icon_header.data()),
-                                     icon_header.size()),
-            std::back_inserter(full_data));
-
-        std::ranges::copy(icon_data, std::back_inserter(full_data));
-        // The hash + the semi-colon
-        REQUIRE(full_data.size() == 10 + 1 + kImageByteSize);
-
-
-        srv.Inject(kChaNavTbtIcon, full_data);
-        DoRunLoop();
-
-        auto in_cache = cache.Lookup(key);
-        THEN("it's placed in the cache")
+        THEN("it's returned once complete")
         {
-            REQUIRE(in_cache != nullptr);
-        }
-        AND_THEN("the image is of the correct size")
-        {
-            const auto& image_dsc = in_cache->GetDsc();
-            REQUIRE(image_dsc.data_size == kImageByteSize + kPaletteSize);
-            REQUIRE(image_dsc.header.w == kImageWidth);
-            REQUIRE(image_dsc.header.h == kImageHeight);
+            REQUIRE(collector.Poll() == "GB({\"t\":\"notify\"})");
+            REQUIRE(collector.Poll() == std::nullopt);
         }
     }
 
-    WHEN("a too short icon comes in")
+    WHEN("a chunk contains the end of one line and the start of another")
     {
-        srv.Inject(kChaNavTbtIcon, icon_header);
-        DoRunLoop();
+        collector.Push("first\nsec");
+        collector.Push("ond\n");
 
-        THEN("it's not placed in the cache")
+        THEN("both lines are returned")
         {
-            REQUIRE(cache.Lookup(key) == nullptr);
+            REQUIRE(collector.Poll() == "first");
+            REQUIRE(collector.Poll() == "second");
+            REQUIRE(collector.Poll() == std::nullopt);
         }
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle navigation info")
+TEST_CASE("gadgetbridge lines are parsed into json")
 {
-    ble.Start("ble");
-
-    auto app_state = state.CheckoutReadonly();
-    WHEN("a non-empty description comes in")
+    WHEN("a GB message arrives")
     {
-        auto non_empty = R"VOBB(nextRd=Braxvägen
-nextRdDesc=
-distToNext=
-totalDist=30 m
-eta=15:19
-ete=0 min
-iconHash=a7f7f83332
-        )VOBB";
+        auto json = GadgetBridgeProtocol::ParseLine(
+            "\x10GB({\"t\":\"notify\",\"id\":1,\"body\":\"Hall\\xe5\"})");
 
-        srv.Inject(kChaNav, non_empty);
-
-        THEN("the key is updated")
+        THEN("it's parsed, including JavaScript escapes")
         {
-            REQUIRE(app_state.Get<AS::current_icon_hash>() == 0xa7f7f833);
+            REQUIRE(json);
+            REQUIRE((*json)["t"] == "notify");
+            REQUIRE((*json)["id"] == 1);
+            REQUIRE((*json)["body"] == "Hall\u00e5");
         }
     }
 
-    WHEN("an empty description comes in")
+    WHEN("other JavaScript arrives")
     {
-        auto non_empty = R"VOBB(nextRd=
-nextRdDesc=
-distToNext=
-totalDist=
-eta=
-ete=
-iconHash=
-        )VOBB";
-
-        state.CheckoutReadWrite().Set<AS::current_icon_hash>(1976);
-        REQUIRE(app_state.Get<AS::current_icon_hash>() != kInvalidIconHash);
-        srv.Inject(kChaNav, non_empty);
-
-        THEN("the key is set to the invalid icon hash")
+        THEN("it's ignored")
         {
-            REQUIRE(app_state.Get<AS::current_icon_hash>() == kInvalidIconHash);
-        }
-    }
-
-    WHEN("navigation is starting")
-    {
-        auto non_empty = R"VOBB(nextRd=
-nextRdDesc=
-distToNext=Starting navigation...
-totalDist=
-eta=
-ete=
-iconHash=
-        )VOBB";
-
-        state.CheckoutReadWrite().Set<AS::current_icon_hash>(1976);
-        REQUIRE(app_state.Get<AS::current_icon_hash>() != kInvalidIconHash);
-        srv.Inject(kChaNav, non_empty);
-
-        THEN("the distance is still set to 0")
-        {
-            REQUIRE(app_state.Get<AS::distance_to_next>() == 0);
+            REQUIRE(GadgetBridgeProtocol::ParseLine("\x10setTime(1234);E.setTimeZone(2.0);") ==
+                    std::nullopt);
+            REQUIRE(GadgetBridgeProtocol::ParseLine("GB({broken)") == std::nullopt);
         }
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "the BLE handler accepts data on the UART characteristic")
+{
+    ble.Start("ble");
+
+    srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify\"})\n");
+    DoRunLoop();
+}
 
 TEST_SUITE_END();

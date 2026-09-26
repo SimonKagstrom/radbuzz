@@ -10,6 +10,8 @@ FetchContent_MakeAvailable(json)
 add_library(ble_handler EXCLUDE_FROM_ALL
     ble_handler.cc
     ble_king_shark_handler.cc
+    gadget_bridge_protocol.cc
+    gadget_bridge_transport.cc
     king_shark_packet_protocol.cc
 )
 
