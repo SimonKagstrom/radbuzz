@@ -29,7 +29,8 @@ Trim(std::string_view s)
     return s;
 }
 
-// Gadgetbridge sends JavaScript, which can contain \xHH escapes that aren't valid JSON
+// Gadgetbridge sends JavaScript, which can contain \xHH escapes that aren't valid JSON.
+// Strings are also ISO-8859-1 (Espruino strings are 8-bit), so convert to UTF-8.
 std::string
 JsToJson(std::string_view s)
 {
@@ -38,6 +39,14 @@ JsToJson(std::string_view s)
 
     for (size_t i = 0; i < s.size(); i++)
     {
+        const auto c = static_cast<uint8_t>(s[i]);
+        if (c >= 0x80)
+        {
+            out += static_cast<char>(0xc0 | (c >> 6));
+            out += static_cast<char>(0x80 | (c & 0x3f));
+            continue;
+        }
+
         if (s[i] == '\\' && i + 1 < s.size())
         {
             if (s[i + 1] == 'x')

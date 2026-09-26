@@ -127,9 +127,26 @@ TEST_CASE("gadgetbridge lines are parsed into json")
         THEN("it's parsed, including JavaScript escapes")
         {
             REQUIRE(json);
-            REQUIRE((*json)["t"] == "notify");
-            REQUIRE((*json)["id"] == 1);
-            REQUIRE((*json)["body"] == "Hall\u00e5");
+            CHECK((*json)["t"] == "notify");
+            CHECK((*json)["id"] == 1);
+            CHECK((*json)["body"] == "Hall\u00e5");
+        }
+    }
+
+    WHEN("Olsmässgatan arrives")
+    {
+        auto json = GadgetBridgeProtocol::ParseLine(
+            "\x10GB({\"t\":\"nav\",\"instr\":\"towards "
+            "Olsm\xe4ssgatan\",\"distance\":\"0\xa0m\",\"action\":\"continue\",\"eta\":\"13:38\"})");
+        THEN("it's parsed correctly")
+        {
+            REQUIRE(json);
+            CHECK((*json)["t"] == "nav");
+            CHECK((*json)["instr"] == "towards Olsmässgatan");
+            // Non-breaking space
+            CHECK((*json)["distance"] == "0 m");
+            CHECK((*json)["action"] == "continue");
+            CHECK((*json)["eta"] == "13:38");
         }
     }
 
