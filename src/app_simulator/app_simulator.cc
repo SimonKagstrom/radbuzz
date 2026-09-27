@@ -379,7 +379,7 @@ AppSimulator::OnActivation()
     {
         auto rw = m_application_state.CheckoutReadWrite();
         rw.Set<AS::next_street>(std::string(m_streets.back()));
-        rw.Set<AS::distance_to_next>(m_distance_left);
+        rw.Set<AS::distance_to_next>(std::format("{} m", m_distance_left));
     }
 
     // Always navigating in demo mode

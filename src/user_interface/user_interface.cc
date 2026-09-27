@@ -65,6 +65,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::tile_loaded,
                                               AS::trip_duration,
                                               AS::navigation_active,
+                                              AS::next_street,
+                                              AS::distance_to_next,
                                               AS::is_moving,
                                               AS::wh_consumed,
                                               AS::wh_regenerated>(GetSemaphore());

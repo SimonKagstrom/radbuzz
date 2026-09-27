@@ -424,7 +424,7 @@ MapScreen::Update()
 
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
-                      std::format("{} m", ro.Get<AS::distance_to_next>()).c_str());
+                      std::format("{}", *ro.Get<AS::distance_to_next>()).c_str());
 
     lv_obj_invalidate(m_screen);
 }

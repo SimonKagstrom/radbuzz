@@ -180,8 +180,7 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
 
     qw.Set<AS::navigation_active>(true);
     qw.Set<AS::next_street>(instr);
-    // TODO assumes meters
-    qw.Set<AS::distance_to_next>(std::stoi(distance));
+    qw.Set<AS::distance_to_next>(distance);
 
     // Long timeout for the case where the moped is stopped
     m_navigation_active_timer = m_timer_manager.StartTimer(1min, [this]() {

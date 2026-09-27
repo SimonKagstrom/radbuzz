@@ -2,6 +2,23 @@
 
 constexpr auto kAtDistance = 10;
 
+namespace
+{
+
+auto
+DistanceStringToValue(std::string_view distance)
+{
+    // TODO: This will not work reliably for non-meter stuff
+    if (distance.empty())
+    {
+        return 0;
+    }
+
+    return std::stoi(std::string(distance));
+}
+
+} // namespace
+
 BuzzHandler::BuzzHandler(hal::IGpio& left_buzzer,
                          hal::IGpio& right_buzzer,
                          ApplicationState& app_state)
@@ -53,7 +70,7 @@ BuzzHandler::RunStateMachine(const ApplicationState::ReadOnly& app_state)
         case State::kNear:
             [[fallthrough]];
         case State::kImminent: {
-            auto s = DistanceToState(ro.Get<AS::distance_to_next>());
+            auto s = DistanceToState(*ro.Get<AS::distance_to_next>());
             if (s != m_current_state)
             {
                 EnterState(s);
@@ -61,7 +78,7 @@ BuzzHandler::RunStateMachine(const ApplicationState::ReadOnly& app_state)
         }
         break;
         case State::kAt:
-            if (ro.Get<AS::distance_to_next>() > kAtDistance)
+            if (DistanceStringToValue(*ro.Get<AS::distance_to_next>()) > kAtDistance)
             {
                 EnterState(State::kNewTurn);
             }
@@ -103,17 +120,19 @@ BuzzHandler::EnterState(State s)
 }
 
 BuzzHandler::State
-BuzzHandler::DistanceToState(uint32_t distance) const
+BuzzHandler::DistanceToState(std::string_view distance) const
 {
-    if (distance <= kAtDistance)
+    auto distance_int = DistanceStringToValue(distance);
+
+    if (distance_int <= kAtDistance)
     {
         return State::kAt;
     }
-    if (distance < 20)
+    if (distance_int < 20)
     {
         return State::kImminent;
     }
-    if (distance < 100)
+    if (distance_int < 100)
     {
         return State::kNear;
     }

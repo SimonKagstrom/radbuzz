@@ -10,8 +10,9 @@ parameters:
   current_icon_hash:
     type: uint32_t
 
+  # 50 m etc
   distance_to_next:
-    type: uint32_t
+    type: std::string
 
   next_street:
     type: std::string

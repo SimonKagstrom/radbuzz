@@ -4,7 +4,7 @@ cpp_includes:
 
 application_state:
   current_icon_hash: kInvalidIconHash
-  distance_to_next: 0
+  distance_to_next: ""
   next_street: ""
   is_moving: false
   can_bus_active: false
