@@ -186,7 +186,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler replies to GPS status requests")
     DoRunLoop();
 
     auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
-    REQUIRE(srv.notified[tx[0]] == "{\"status\":false,\"t\":\"gps_power\"}\n");
+    REQUIRE(srv.notified[tx[0]] == "{\"status\":false,\"t\":\"gps_power\"}\r\n");
 }
 
 TEST_SUITE_END();

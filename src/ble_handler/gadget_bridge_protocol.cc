@@ -107,8 +107,9 @@ GadgetBridgeProtocol::SetSender(std::function<void(std::string_view)> sender)
 void
 GadgetBridgeProtocol::Send(const nlohmann::json& json)
 {
-    // Like the Bangle.js, send one JSON object per line
-    auto str = json.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace) + "\n";
+    // Like the Bangle.js (Espruino println), send one JSON object per line. Gadgetbridge
+    // unconditionally strips the character before the \n, so \r\n is required.
+    auto str = json.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace) + "\r\n";
     m_sender(str);
 }
 
