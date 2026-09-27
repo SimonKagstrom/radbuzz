@@ -9,6 +9,9 @@
 #include <string>
 extern "C" {
 #include <services/ans/ble_svc_ans.h>
+
+// Not declared in any public header
+void ble_store_config_init(void);
 }
 namespace
 {
@@ -577,6 +580,17 @@ BleServerEsp32::Start()
     ble_svc_gap_init();  // 4 - Initialize NimBLE configuration - gap service
     ble_svc_gatt_init(); // 4 - Initialize NimBLE configuration - gatt service
     ble_svc_ans_init();
+
+    // Gadgetbridge (i.e., the phone) might bond, and then expects encryption to work on
+    // reconnects. So keep the keys (in NVS with CONFIG_BT_NIMBLE_NVS_PERSIST).
+    ble_hs_cfg.sm_io_cap = BLE_HS_IO_NO_INPUT_OUTPUT;
+    ble_hs_cfg.sm_bonding = 1;
+    ble_hs_cfg.sm_mitm = 0;
+    ble_hs_cfg.sm_sc = 1;
+    ble_hs_cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
+    ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
+    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
+    ble_store_config_init();
 
     uint8_t ble_mac[6] = {};
     // Gadgetbridge recognizes the device as a Bangle.js from the name prefix
@@ -1204,6 +1218,48 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
     case BLE_GAP_EVENT_DATA_LEN_CHG:
         break;
     case BLE_GAP_EVENT_MTU:
+        ESP_LOGI("GAP", "MTU on handle %u: %u", event->mtu.conn_handle, event->mtu.value);
+        break;
+    case BLE_GAP_EVENT_SUBSCRIBE:
+        ESP_LOGI("GAP",
+                 "Subscribe on handle %u, attr %u: notify %d->%d, reason %d",
+                 event->subscribe.conn_handle,
+                 event->subscribe.attr_handle,
+                 event->subscribe.prev_notify,
+                 event->subscribe.cur_notify,
+                 event->subscribe.reason);
+        break;
+    case BLE_GAP_EVENT_CONN_UPDATE:
+        ESP_LOGI("GAP",
+                 "Connection update on handle %u, status %d",
+                 event->conn_update.conn_handle,
+                 event->conn_update.status);
+        break;
+    case BLE_GAP_EVENT_ENC_CHANGE:
+        ESP_LOGI("GAP",
+                 "Encryption change on handle %u, status %d",
+                 event->enc_change.conn_handle,
+                 event->enc_change.status);
+        break;
+    case BLE_GAP_EVENT_REPEAT_PAIRING: {
+        // The peer has lost its keys (e.g., unpaired on the phone). Forget ours and pair again
+        ESP_LOGI("GAP", "Repeat pairing on handle %u", event->repeat_pairing.conn_handle);
+
+        struct ble_gap_conn_desc desc;
+        if (ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc) == 0)
+        {
+            ble_store_util_delete_peer(&desc.peer_id_addr);
+        }
+        return BLE_GAP_REPEAT_PAIRING_RETRY;
+    }
+    case BLE_GAP_EVENT_CONN_UPDATE_REQ:
+    case BLE_GAP_EVENT_LINK_ESTAB:
+        break;
+    case BLE_GAP_EVENT_NOTIFY_TX:
+        if (event->notify_tx.status != 0 && event->notify_tx.status != BLE_HS_EDONE)
+        {
+            ESP_LOGI("GAP", "Notify TX failed, status %d", event->notify_tx.status);
+        }
         break;
 
     // Advertise again after completion of the event
@@ -1212,6 +1268,7 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         AppAdvertise();
         break;
     default:
+        ESP_LOGI("GAP", "Unhandled GAP event %d", event->type);
         break;
     }
 
