@@ -247,9 +247,6 @@ BleServerEsp32::WritePeerCharacteristic(uint16_t conn_handle,
 {
     if (conn_handle == BLE_HS_CONN_HANDLE_NONE || value_handle == 0)
     {
-        printf("WritePeerCharacteristic: conn_handle=%d, value_handle=%d\n",
-               conn_handle,
-               value_handle);
         return false;
     }
 
@@ -318,7 +315,6 @@ BleServerEsp32::RequestPeerNotificationSubscription(uint16_t conn_handle,
     auto cccd_handle = ResolvePeerCccdHandle(value_handle, fallback_cccd_handle);
     if (cccd_handle == 0)
     {
-        printf("CCCD handle is 0; deferring subscribe for value handle %u\n", value_handle);
         m_pending_notification_subscriptions.insert(value_handle);
         return true;
     }
@@ -337,7 +333,6 @@ void
 BleServerEsp32::RegisterNotificationCallback(uint16_t value_handle,
                                              std::function<void(std::span<const uint8_t>)> cb)
 {
-    printf("RegisterNotificationCallback: value_handle=%u\n", value_handle);
     m_notification_callbacks[value_handle] = std::move(cb);
 }
 
@@ -352,8 +347,6 @@ BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_hand
 {
     if (conn_handle == BLE_HS_CONN_HANDLE_NONE || cccd_handle == 0)
     {
-        printf(
-            "EnablePeerNotifications: conn_handle=%d, cccd_handle=%d\n", conn_handle, cccd_handle);
         return false;
     }
 
@@ -368,7 +361,7 @@ BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_hand
             return p->PeerWriteComplete(ch, error, attr);
         },
         this);
-    printf("EnablePeerNotifications: rc=%d\n", rc);
+
     return rc == 0;
 }
 
@@ -410,12 +403,6 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
         uint16_t out_sz = 0;
         auto rv = ble_hs_mbuf_to_flat(ctxt->om, flattened.get(), data_size, &out_sz);
 
-        printf(
-            "Write characteristic callback: conn_handle=%u, attr_handle=%u, data_size=%u, rv=%d\n",
-            conn_handle,
-            attr_handle,
-            static_cast<unsigned>(data_size),
-            rv);
         if (rv == 0)
         {
             auto payload_span = std::span<const uint8_t>(
@@ -649,12 +636,10 @@ BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
            disc->addr.val[2],
            disc->addr.val[1],
            disc->addr.val[0]);
+
     // Match the service UUID
-    printf(
-        "VOBB: %d 16, %d 32 %d 128\n", fields.num_uuids16, fields.num_uuids32, fields.num_uuids128);
     for (auto i = 0; i < fields.num_uuids16; i++)
     {
-        printf("Found service UUID: %04x\n", le16toh(fields.uuids16[i].value));
         if (m_peer_service_uuid &&
             UuidEquals(*m_peer_service_uuid, UuidFromBle(fields.uuids16[i].u)))
         {
@@ -1182,12 +1167,8 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         break;
     }
     case BLE_GAP_EVENT_DATA_LEN_CHG:
-        printf("LC: %d and %d\n",
-               event->data_len_chg.max_rx_octets,
-               event->data_len_chg.max_tx_octets);
         break;
     case BLE_GAP_EVENT_MTU:
-        printf("MTU: %d\n", event->mtu.value);
         break;
 
     // Advertise again after completion of the event
