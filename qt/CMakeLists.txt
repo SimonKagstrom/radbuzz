@@ -37,6 +37,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 add_subdirectory(.. radbuzz)
 add_subdirectory(../external/libmaelir/qt libradbuzz_qt)
 add_subdirectory(wifi_client_host)
+add_subdirectory(ble_server_qt)
 
 
 add_library(filesystem_implementation ALIAS std_filesystem)
@@ -59,6 +60,7 @@ target_link_libraries(radbuzz_qt
     blitter_host
     ble_handler
     ble_server_host
+    ble_server_qt
     lvgl
     opportunistic_semaphore
     gpio_host
@@ -77,3 +79,12 @@ target_link_libraries(radbuzz_qt
     wifi_client_host
     Qt6::Widgets
 )
+
+if(APPLE)
+    # macOS requires a Bluetooth usage description, also for executables without a bundle
+    target_link_options(radbuzz_qt PRIVATE
+        -Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+    )
+    set_property(TARGET radbuzz_qt APPEND PROPERTY LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
+    qt_import_plugins(radbuzz_qt INCLUDE Qt6::QDarwinBluetoothPermissionPlugin)
+endif()

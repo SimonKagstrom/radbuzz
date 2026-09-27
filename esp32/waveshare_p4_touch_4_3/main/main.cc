@@ -720,7 +720,7 @@ app_main(void)
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
 
     auto ble_server = std::make_unique<BleServerEsp32>();
-    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state);
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto ble_handler =
         std::make_unique<BleHandler>(*ble_server, *ble_server, application_state, *image_cache);

@@ -414,15 +414,6 @@ BleServerEsp32::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
         return 0;
     };
 
-    // Used for injections, so OK if there's duplicates here
-    if (m_uuid_to_characteristic_index.find(hal::detail::ToUuid16(uuid)) !=
-        m_uuid_to_characteristic_index.end())
-    {
-        MODLOG_DFLT(
-            ERROR,
-            "Duplicate characteristic UUID detected. Injections may not work as expected.\n");
-    }
-    m_uuid_to_characteristic_index[hal::detail::ToUuid16(uuid)] = m_characteristics.size();
     m_characteristics.push_back(std::move(w));
 }
 
@@ -1243,19 +1234,4 @@ BleServerEsp32::PollEvents()
             ble_npl_event_run(ev);
         }
     } while (ev);
-
-    PollInjections();
-}
-
-void
-BleServerEsp32::OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data)
-{
-    auto it = m_uuid_to_characteristic_index.find(hal::detail::ToUuid16(uuid));
-    if (it == m_uuid_to_characteristic_index.end())
-    {
-        return;
-    }
-
-    auto index = it->second;
-    m_characteristics[index]->cb(data);
 }

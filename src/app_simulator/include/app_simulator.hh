@@ -2,7 +2,6 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
-#include "ble_injector.hh"
 #include "bresenham.hh"
 #include "hal/i_gps.hh"
 #include "wgs84_to_osm_point.hh"
@@ -14,7 +13,7 @@
 class AppSimulator : public os::BaseThread
 {
 public:
-    AppSimulator(ApplicationState& app_state, BleInjector& ble_server);
+    explicit AppSimulator(ApplicationState& app_state);
 
 private:
     std::optional<milliseconds> OnActivation() final;
@@ -22,7 +21,6 @@ private:
     void SetupStreetOrder();
 
     ApplicationState& m_application_state;
-    BleInjector& m_ble_injector;
 
     std::random_device m_random_device;
     std::linear_congruential_engine<uint32_t, 48271, 0, 2147483647> m_random_engine {

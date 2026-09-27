@@ -17,10 +17,6 @@ void
 BleServerHost::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                            std::function<void(std::span<const uint8_t>)> data)
 {
-    // For now assume they are unique
-    assert(m_uuid_cb.find(uuid[0]) == m_uuid_cb.end());
-
-    m_uuid_cb[uuid[0]] = data;
 }
 
 void
@@ -43,16 +39,4 @@ BleServerHost::Start()
 void
 BleServerHost::PollEvents()
 {
-    PollInjections();
-}
-
-void
-BleServerHost::OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data)
-{
-    if (m_uuid_cb.find(uuid[0]) == m_uuid_cb.end())
-    {
-        return;
-    }
-
-    m_uuid_cb[uuid[0]]({data.data(), data.size()});
 }

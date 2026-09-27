@@ -269,9 +269,8 @@ constexpr auto kImages = std::array {
     },
 };
 
-AppSimulator::AppSimulator(ApplicationState& app_state, BleInjector& ble_server)
+AppSimulator::AppSimulator(ApplicationState& app_state)
     : m_application_state(app_state)
-    , m_ble_injector(ble_server)
     , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
     , m_state_cache(m_application_state)
     , m_bresenham(*Wgs84ToOsmPoint(kDemoPoints[0], kDefaultZoom),

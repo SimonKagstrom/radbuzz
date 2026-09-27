@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ble_injector.hh"
 #include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 
@@ -18,7 +17,7 @@
 #include <unordered_set>
 #include <vector>
 
-class BleServerEsp32 final : public hal::IBleServer, public hal::IBleClient, public BleInjector
+class BleServerEsp32 final : public hal::IBleServer, public hal::IBleClient
 {
 public:
     BleServerEsp32();
@@ -68,8 +67,6 @@ private:
     void ScanForService(hal::Uuid128Span service_uuid,
                         const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
 
-    void OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
-
     void AppAdvertise();
     void StartScanForCurrentServiceFilter();
     int BleGapEvent(struct ble_gap_event* event);
@@ -101,7 +98,6 @@ private:
 
     std::vector<std::unique_ptr<WriteCharacteristic>> m_characteristics;
     std::vector<std::unique_ptr<WriteCharacteristic>> m_notify_characteristics;
-    std::unordered_map<hal::Uuid16, uint8_t> m_uuid_to_characteristic_index;
 
     std::optional<hal::Uuid128> m_peer_service_uuid;
     std::function<void(std::unique_ptr<IPeer>)> m_peer_found_cb {[](auto x) {}};

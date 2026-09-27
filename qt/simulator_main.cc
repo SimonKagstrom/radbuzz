@@ -2,6 +2,7 @@
 #include "ble_client_host.hh"
 #include "ble_handler.hh"
 #include "ble_server_host.hh"
+#include "ble_server_qt.hh"
 #include "blitter_host.hh"
 #include "buzz_handler.hh"
 #include "filesystem.hh"
@@ -37,6 +38,7 @@ main(int argc, char* argv[])
     parser.addOptions({
         {{"s", "seed"}, "Random seed", "seed"},
         {{"u", "updated"}, "Set the application updated flag"},
+        {{"b", "ble"}, "Use real BLE (e.g., for Gadgetbridge) instead of the demo mode"},
     });
 
     parser.process(a);
@@ -51,6 +53,7 @@ main(int argc, char* argv[])
     {
         updated = true;
     }
+    const auto use_ble = parser.isSet("ble");
 
     auto scheduler = std::make_unique<os::OpportunisticSchedulerThread>();
     scheduler->Start("scheduler");
@@ -59,7 +62,7 @@ main(int argc, char* argv[])
     auto rw = application_state.CheckoutReadWrite();
 
     rw.Set<AS::wifi_connected>(true);
-    rw.Set<AS::demo_mode>(true);
+    rw.Set<AS::demo_mode>(!use_ble);
     // Stored by VESC, so update to 100km + some random number here
     rw.Set<AS::odometer>(100 * 1000 + rand() % 2000);
 
@@ -68,7 +71,16 @@ main(int argc, char* argv[])
     srand(seed);
 
     // Devices / helper classes
-    auto ble_server = std::make_unique<BleServerHost>();
+    std::unique_ptr<hal::IBleServer> ble_server;
+    if (use_ble)
+    {
+        // Gadgetbridge recognizes the device as a Bangle.js from the name prefix
+        ble_server = std::make_unique<BleServerQt>("Bangle.js radbuzz_qt");
+    }
+    else
+    {
+        ble_server = std::make_unique<BleServerHost>();
+    }
     auto ble_client = std::make_unique<BleClientHost>();
     auto image_cache = std::make_unique<ImageCache>();
     auto filesystem = std::make_unique<Filesystem>("./app_data");
@@ -83,7 +95,7 @@ main(int argc, char* argv[])
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state);
-    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler =
