@@ -446,6 +446,50 @@ BleServerEsp32::AddNotifyGattCharacteristics(hal::Uuid128Span uuid)
     m_notify_characteristics.push_back(std::move(n));
 }
 
+bool
+BleServerEsp32::Notify(hal::Uuid128Span uuid, std::span<const uint8_t> data)
+{
+    if (m_server_conn_handle == BLE_HS_CONN_HANDLE_NONE)
+    {
+        return false;
+    }
+
+    auto it = std::ranges::find_if(m_notify_characteristics, [uuid](const auto& n) {
+        return std::equal(uuid.begin(), uuid.end(), std::begin(n->uuid.value));
+    });
+    if (it == m_notify_characteristics.end() || (*it)->val_handle == 0)
+    {
+        return false;
+    }
+
+    // ATT notifications carry MTU - 3 bytes of payload
+    const size_t mtu = ble_att_mtu(m_server_conn_handle);
+    const size_t chunk_size = mtu > 3 ? mtu - 3 : BLE_ATT_MTU_DFLT - 3;
+
+    while (!data.empty())
+    {
+        auto chunk = data.first(std::min(chunk_size, data.size()));
+        auto om = ble_hs_mbuf_from_flat(chunk.data(), chunk.size());
+        if (om == nullptr)
+        {
+            MODLOG_DFLT(ERROR, "Notify: out of mbufs\n");
+            return false;
+        }
+
+        // Consumes om, also on failure
+        auto rc = ble_gatts_notify_custom(m_server_conn_handle, (*it)->val_handle, om);
+        if (rc != 0)
+        {
+            MODLOG_DFLT(ERROR, "Notify failed; rc=%d\n", rc);
+            return false;
+        }
+
+        data = data.subspan(chunk.size());
+    }
+
+    return true;
+}
+
 
 void
 BleServerEsp32::ScanForService(hal::Uuid128Span service_uuid,

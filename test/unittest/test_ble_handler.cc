@@ -48,6 +48,12 @@ private:
     {
     }
 
+    bool Notify(std::span<const uint8_t, 16> uuid, std::span<const uint8_t> data) final
+    {
+        notified[uuid[0]] += std::string(reinterpret_cast<const char*>(data.data()), data.size());
+        return true;
+    }
+
     void Start() final
     {
     }
@@ -64,6 +70,9 @@ private:
     }
 
     std::map<uint8_t, std::function<void(std::span<const uint8_t>)>> m_uuid_cb;
+
+public:
+    std::map<uint8_t, std::string> notified;
 };
 
 
@@ -167,6 +176,17 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler accepts data on the UART characteris
 
     srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify\"})\n");
     DoRunLoop();
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler replies to GPS status requests")
+{
+    ble.Start("ble");
+
+    srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"is_gps_active\"})\n");
+    DoRunLoop();
+
+    auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
+    REQUIRE(srv.notified[tx[0]] == "{\"status\":false,\"t\":\"gps_power\"}\n");
 }
 
 TEST_SUITE_END();

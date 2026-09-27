@@ -27,6 +27,10 @@ public:
     /// Add a characteristic which the peer can subscribe to notifications from
     virtual void AddNotifyGattCharacteristics(Uuid128Span uuid) = 0;
 
+    /// Send data as notifications on a characteristic added with AddNotifyGattCharacteristics.
+    /// Split into several notifications if larger than the MTU.
+    virtual bool Notify(Uuid128Span uuid, std::span<const uint8_t> data) = 0;
+
     /** @brief Start the BLE server
      */
     virtual void Start() = 0;

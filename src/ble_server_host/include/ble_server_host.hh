@@ -20,6 +20,8 @@ private:
 
     void AddNotifyGattCharacteristics(hal::Uuid128Span uuid) final;
 
+    bool Notify(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
+
     void Start() final;
     void PollEvents() final;
 

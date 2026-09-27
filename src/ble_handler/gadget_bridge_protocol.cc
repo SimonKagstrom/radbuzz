@@ -99,6 +99,20 @@ GadgetBridgeProtocol::ParseLine(std::string_view line)
 }
 
 void
+GadgetBridgeProtocol::SetSender(std::function<void(std::string_view)> sender)
+{
+    m_sender = std::move(sender);
+}
+
+void
+GadgetBridgeProtocol::Send(const nlohmann::json& json)
+{
+    // Like the Bangle.js, send one JSON object per line
+    auto str = json.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace) + "\n";
+    m_sender(str);
+}
+
+void
 GadgetBridgeProtocol::PushLine(std::string_view line)
 {
     auto json = ParseLine(line);
@@ -119,9 +133,16 @@ GadgetBridgeProtocol::PushLine(std::string_view line)
         return;
     }
 
-    if (json->at("t") == "nav")
+    const auto& type = json->at("t");
+    if (type == "nav")
     {
         HandleNavigationEvent(*json);
+    }
+    else if (type == "is_gps_active")
+    {
+        // Has GPS
+        Send({{"t", "gps_power"},
+              {"status", m_state.Get<AS::gps_status>() == GpsStatus::kPositionValid}});
     }
 }
 

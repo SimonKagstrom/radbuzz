@@ -63,6 +63,8 @@ private:
 
     void AddNotifyGattCharacteristics(hal::Uuid128Span uuid) final;
 
+    bool Notify(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
+
     void ScanForService(hal::Uuid128Span service_uuid,
                         const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
 

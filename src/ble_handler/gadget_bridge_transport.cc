@@ -8,8 +8,12 @@ GadgetBridgeTransport::GadgetBridgeTransport(hal::IBleServer& server,
     m_server.SetServiceUuid128(hal::detail::StringToUuid128(kServiceUuid));
     m_server.AddWriteGattCharacteristics(hal::detail::StringToUuid128(kRxCharacteristicUuid),
                                          [this](auto data) { OnData(data); });
-    // Gadgetbridge requires this to exist, even though nothing is sent yet
     m_server.AddNotifyGattCharacteristics(hal::detail::StringToUuid128(kTxCharacteristicUuid));
+
+    m_protocol.SetSender([this](auto data) {
+        m_server.Notify(hal::detail::StringToUuid128(kTxCharacteristicUuid),
+                        {reinterpret_cast<const uint8_t*>(data.data()), data.size()});
+    });
 }
 
 void

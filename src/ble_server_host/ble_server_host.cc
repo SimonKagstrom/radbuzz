@@ -28,6 +28,12 @@ BleServerHost::AddNotifyGattCharacteristics(hal::Uuid128Span uuid)
 {
 }
 
+bool
+BleServerHost::Notify(hal::Uuid128Span uuid, std::span<const uint8_t> data)
+{
+    return true;
+}
+
 void
 BleServerHost::Start()
 {
