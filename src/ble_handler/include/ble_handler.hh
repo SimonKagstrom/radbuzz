@@ -35,7 +35,7 @@ private:
 
     std::unique_ptr<ListenerCookie> m_connection_listener;
 
-    GadgetBridgeProtocol m_gadget_bridge_protocol {m_state};
+    GadgetBridgeProtocol m_gadget_bridge_protocol {GetTimerManager(), m_state};
     GadgetBridgeTransport m_gadget_bridge_transport;
 
     std::unique_ptr<BleKingSharkHandler> m_king_shark_handler;

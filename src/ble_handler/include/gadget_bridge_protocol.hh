@@ -1,6 +1,7 @@
 #pragma once
 
 #include "application_state.hh"
+#include "timer_manager.hh"
 
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -9,7 +10,7 @@
 class GadgetBridgeProtocol
 {
 public:
-    GadgetBridgeProtocol(ApplicationState& state);
+    GadgetBridgeProtocol(os::TimerManager& timer_manager, ApplicationState& state);
 
     // Handle a complete line (without the newline) from Gadgetbridge
     void PushLine(std::string_view line);
@@ -18,5 +19,9 @@ public:
     static std::optional<nlohmann::json> ParseLine(std::string_view line);
 
 private:
+    void HandleNavigationEvent(const nlohmann::json& json);
+
+    os::TimerManager& m_timer_manager;
     ApplicationState& m_state;
+    os::TimerHandle m_navigation_active_timer;
 };

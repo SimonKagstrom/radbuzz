@@ -70,8 +70,9 @@ JsToJson(std::string_view s)
 
 } // namespace
 
-GadgetBridgeProtocol::GadgetBridgeProtocol(ApplicationState& state)
-    : m_state(state)
+GadgetBridgeProtocol::GadgetBridgeProtocol(os::TimerManager& timer_manager, ApplicationState& state)
+    : m_timer_manager(timer_manager)
+    , m_state(state)
 {
 }
 
@@ -111,4 +112,62 @@ GadgetBridgeProtocol::PushLine(std::string_view line)
     // Replace invalid UTF-8, since dump() would otherwise throw (i.e., abort)
     auto str = json->dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
     printf("GB: %s\n", str.c_str());
+
+    // Type
+    if (!json->contains("t"))
+    {
+        return;
+    }
+
+    if (json->at("t") == "nav")
+    {
+        HandleNavigationEvent(*json);
+    }
+}
+
+void
+GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
+{
+    /*
+     * Something like
+     *
+     * {"action":"continue","distance":"0 m","eta":"06:46","instr":"towards Larsmässgatan","t":"nav"}
+     * {"action":"right","distance":"160 m","eta":"06:46","instr":"Brittmässgatan","t":"nav"}
+     *
+     * (end navigation)
+     * {"t":"nav"}
+     */
+
+    // Navigation cancelled immediately
+    if (!json.contains("action"))
+    {
+        m_navigation_active_timer = nullptr;
+        m_state.CheckoutReadWrite().Set<AS::navigation_active>(false);
+        return;
+    }
+
+    auto distance = json.contains("distance") ? json.at("distance").get<std::string>() : "0";
+    auto instr = json.contains("instr") ? json.at("instr").get<std::string>() : "";
+    auto eta = json.contains("eta") ? json.at("eta").get<std::string>() : "";
+    auto action = json.contains("action") ? json.at("action").get<std::string>() : "";
+
+    auto qw = m_state.CheckoutQueuedWriter<AS::navigation_active,
+                                           AS::next_street,
+                                           AS::distance_to_next,
+                                           AS::current_icon_hash>();
+
+    qw.Set<AS::navigation_active>(true);
+    qw.Set<AS::next_street>(instr);
+    // TODO assumes meters
+    qw.Set<AS::distance_to_next>(std::stoi(distance));
+
+    // Long timeout for the case where the moped is stopped
+    m_navigation_active_timer = m_timer_manager.StartTimer(1min, [this]() {
+        auto rw = m_state.CheckoutReadWrite();
+
+        rw.Set<AS::navigation_active>(false);
+
+        return std::nullopt;
+    });
+    //qw.Set<AS::current_icon_hash>(action);
 }
