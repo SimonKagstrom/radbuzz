@@ -14,9 +14,11 @@ set(NUMBERS_FONT "${chivo_fonts_SOURCE_DIR}/fonts/Chivo Mono/ttf/ChivoMono-Mediu
 convert_font(radbuzz_font_22
     ${GENERAL_FONT}
     22
-    # ASCII + non-breaking space
-    0x20-0x7F,0xA0
-    "°ÅÄÖåäöÁéÉíÍñÑóÓúÚüÜæøßàèçô•"
+    # ASCII, Latin-1 (Western European) and Latin Extended-A (Central European, Baltic,
+    # Turkish), plus Romanian ȘșȚț
+    0x20-0x7F,0xA0-0x17F,0x218-0x21B
+    # Typographic quotes/dashes, bullet, ellipsis, euro
+    "–—‘’‚“”„•…€"
 )
 
 # Big font with numbers plus a few extras
