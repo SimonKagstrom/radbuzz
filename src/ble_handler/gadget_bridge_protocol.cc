@@ -11,10 +11,27 @@ namespace
 constexpr std::string_view kPrefix = "GB(";
 constexpr std::string_view kSuffix = ")";
 
+// From Gadgetbridge (BangleJSDeviceSupport, NavigationInfoSpec actions)
 constexpr auto kStringToTurn = std::array {
     std::pair {"continue", TurnSymbol::kStraight},
     std::pair {"left", TurnSymbol::kTurnLeft},
+    std::pair {"left_slight", TurnSymbol::kTurnSlightLeft},
+    std::pair {"left_sharp", TurnSymbol::kTurnSharpLeft},
     std::pair {"right", TurnSymbol::kTurnRight},
+    std::pair {"right_slight", TurnSymbol::kTurnSlightRight},
+    std::pair {"right_sharp", TurnSymbol::kTurnSharpRight},
+    std::pair {"keep_left", TurnSymbol::kForkLeft},
+    std::pair {"keep_right", TurnSymbol::kForkRight},
+    std::pair {"uturn_left", TurnSymbol::kUturnLeft},
+    std::pair {"uturn_right", TurnSymbol::kUturnRight},
+    std::pair {"offroute", TurnSymbol::kNone},
+    std::pair {"roundabout_right", TurnSymbol::kRoundaboutRight},
+    std::pair {"roundabout_left", TurnSymbol::kRoundaboutLeft},
+    std::pair {"roundabout_straight", TurnSymbol::kRoundaboutStraight},
+    // No roundabout U-turn symbol. Counter-clockwise (right-hand traffic), so a left U-turn
+    std::pair {"roundabout_uturn", TurnSymbol::kUturnLeft},
+    std::pair {"finish", TurnSymbol::kDestination},
+    std::pair {"merge", TurnSymbol::kMerge},
 };
 
 TurnSymbol

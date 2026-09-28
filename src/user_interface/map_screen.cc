@@ -52,6 +52,7 @@ constexpr auto kTurnSymbolStrings = std::array {
     ToUtf8(0xeb95), // kRoundaboutStraight (same as straight)
     ToUtf8(0xeba3), // kRoundaboutRight
     ToUtf8(0xeb99), // kRoundaboutLeft
+    ToUtf8(0xeb98), // kMerge
 };
 
 static_assert(kTurnSymbolStrings.size() == static_cast<size_t>(TurnSymbol::kValueCount));

@@ -22,6 +22,7 @@ enum class TurnSymbol : uint8_t
     kRoundaboutStraight, // eb95 (same as straight)
     kRoundaboutRight,    // eba3
     kRoundaboutLeft,     // eb99
+    kMerge,              // eb98
 
     kValueCount,
 };
