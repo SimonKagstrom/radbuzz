@@ -21,12 +21,13 @@ controllers. It's built for an ESP32P4 microcontroller, but can also be run on t
 Features:
 
 * OpenStreetMap-based map (currently OpenCycleMap) with different zoom levels, via a GPS module
+* Supports receiving Google maps/OsmAnd/etc navigation instructions via the [Gadgetbridge](https://github.com/Freeyourgadget/Gadgetbridge) app
 * Speedometer, both based on VESC data and GPS
 * Trip data, with average consumption, distance etc
 * Tesla-style power meter bar on the right
-* Supports receiving navigation instructions from Google maps via an android app
 * Trip log shown on the map, with power indicator in color
 * Range estimation shown on the map
+* BMS status via BLE (currently em3ev KingShark/Ali new energy BMSes)
 * A menu for configuration
 * Written in clean and modern C++ (C++23)
 
