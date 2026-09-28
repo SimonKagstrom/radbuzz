@@ -33,10 +33,25 @@ ToUtf8(uint32_t code_point)
 
     return out;
 }
-// Static storage, since used with lv_label_set_text_static
-constexpr auto kTurnLeftUtf8 = ToUtf8(0xeba6);
+constexpr auto kTurnSymbolStrings = std::array {
+    std::pair {TurnSymbol::kDestination, ToUtf8(0xe0c8)},
+    std::pair {TurnSymbol::kStraight, ToUtf8(0xeb95)},
+    std::pair {TurnSymbol::kTurnRight, ToUtf8(0xebab)},
+    std::pair {TurnSymbol::kTurnLeft, ToUtf8(0xeba6)},
+    std::pair {TurnSymbol::kTurnSharpRight, ToUtf8(0xebaa)},
+    std::pair {TurnSymbol::kTurnSharpLeft, ToUtf8(0xeba7)},
+    std::pair {TurnSymbol::kTurnSlightRight, ToUtf8(0xeb9a)},
+    std::pair {TurnSymbol::kTurnSlightLeft, ToUtf8(0xeba4)},
+    std::pair {TurnSymbol::kUturnRight, ToUtf8(0xeba2)},
+    std::pair {TurnSymbol::kUturnLeft, ToUtf8(0xeba1)},
+    std::pair {TurnSymbol::kRampRight, ToUtf8(0xeb96)},
+    std::pair {TurnSymbol::kRampLeft, ToUtf8(0xeb9c)},
+    std::pair {TurnSymbol::kForkRight, ToUtf8(0xebac)},
+    std::pair {TurnSymbol::kForkLeft, ToUtf8(0xeba0)},
+};
 
-}
+
+} // namespace
 
 
 void
@@ -265,8 +280,6 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_font(m_current_turn_symbol, &radbuzz_turn_symbols_60, LV_PART_MAIN);
     lv_label_set_long_mode(m_current_turn_symbol, LV_LABEL_LONG_WRAP);
     lv_obj_clear_flag(m_current_turn_symbol, LV_OBJ_FLAG_SCROLLABLE);
-    // Proof of concept: Always turn left
-    lv_label_set_text_static(m_current_turn_symbol, kTurnLeftUtf8.data());
 
     m_distance_left_label = lv_label_create(m_navigation_box);
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 2);

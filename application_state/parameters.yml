@@ -3,12 +3,17 @@ cpp_includes:
   - "wgs84_to_osm_point.hh"
   - "configuration_settings.hh"
   - "bms_data.hh"
+  - "turn_symbols.hh"
   - "time.hh"
 
 
 parameters:
+  # TODO: Remove
   current_icon_hash:
     type: uint32_t
+
+  turn_symbol:
+    type: enum TurnSymbol
 
   # 50 m etc
   distance_to_next:
