@@ -17,7 +17,23 @@ namespace
 QBluetoothUuid
 ToQtUuid(hal::Uuid128Span uuid)
 {
-    return QBluetoothUuid(QUuid::fromBytes(uuid.data(), QSysInfo::LittleEndian));
+    const uint8_t* d = reinterpret_cast<const uint8_t*>(uuid.data());
+    if constexpr (QSysInfo::ByteOrder == QSysInfo::LittleEndian)
+    {
+        uint32_t l = (d[3] << 24) | (d[2] << 16) | (d[1] << 8) | d[0];
+        uint16_t w1 = (d[5] << 8) | d[4];
+        uint16_t w2 = (d[7] << 8) | d[6];
+        return QBluetoothUuid(
+            QUuid(l, w1, w2, d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]));
+    }
+    else
+    {
+        uint32_t l = (d[0] << 24) | (d[1] << 16) | (d[2] << 8) | d[3];
+        uint16_t w1 = (d[4] << 8) | d[5];
+        uint16_t w2 = (d[6] << 8) | d[7];
+        return QBluetoothUuid(
+            QUuid(l, w1, w2, d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]));
+    }
 }
 
 } // namespace
