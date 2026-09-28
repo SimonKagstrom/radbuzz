@@ -337,6 +337,7 @@ AppSimulator::OnActivation()
 
     const auto previous_distance_left = m_distance_left;
 
+    auto rw = m_application_state.CheckoutReadWrite();
     if (m_bresenham_iterator != m_bresenham.end())
     {
         m_current_point = *m_bresenham_iterator;
@@ -360,6 +361,12 @@ AppSimulator::OnActivation()
         {
             SetupStreetOrder();
         }
+        rw.Set<AS::turn_symbol>(m_turn_symbol);
+        m_turn_symbol = static_cast<TurnSymbol>(std::to_underlying(m_turn_symbol) + 1);
+        if (m_turn_symbol == TurnSymbol::kValueCount)
+        {
+            m_turn_symbol = TurnSymbol::kNone;
+        }
     }
     m_distance_left = MetersBetweenPoints(m_current_point, *m_next_point);
 
@@ -375,12 +382,8 @@ AppSimulator::OnActivation()
                                                           AS::navigation_active,
                                                           AS::trip_max_speed>();
 
-    // TODO: Inject Gadgetbridge navigation messages (with icons) once supported
-    {
-        auto rw = m_application_state.CheckoutReadWrite();
-        rw.Set<AS::next_street>(std::string(m_streets.back()));
-        rw.Set<AS::distance_to_next>(std::format("{} m", m_distance_left));
-    }
+    rw.Set<AS::next_street>(std::string(m_streets.back()));
+    rw.Set<AS::distance_to_next>(std::format("{} m", m_distance_left));
 
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);

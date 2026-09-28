@@ -3,12 +3,32 @@
 #include <cctype>
 #include <cstdio>
 #include <string>
+#include <utility>
 
 namespace
 {
 
 constexpr std::string_view kPrefix = "GB(";
 constexpr std::string_view kSuffix = ")";
+
+constexpr auto kStringToTurn = std::array {
+    std::pair {"continue", TurnSymbol::kStraight},
+    std::pair {"left", TurnSymbol::kTurnLeft},
+    std::pair {"right", TurnSymbol::kTurnRight},
+};
+
+TurnSymbol
+StringToTurn(std::string_view s)
+{
+    for (const auto& [key, value] : kStringToTurn)
+    {
+        if (s == key)
+        {
+            return value;
+        }
+    }
+    return TurnSymbol::kNone;
+}
 
 std::string_view
 Trim(std::string_view s)
@@ -176,11 +196,12 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
     auto qw = m_state.CheckoutQueuedWriter<AS::navigation_active,
                                            AS::next_street,
                                            AS::distance_to_next,
-                                           AS::current_icon_hash>();
+                                           AS::turn_symbol>();
 
     qw.Set<AS::navigation_active>(true);
     qw.Set<AS::next_street>(instr);
     qw.Set<AS::distance_to_next>(distance);
+    qw.Set<AS::turn_symbol>(StringToTurn(action));
 
     // Long timeout for the case where the moped is stopped
     m_navigation_active_timer = m_timer_manager.StartTimer(1min, [this]() {
