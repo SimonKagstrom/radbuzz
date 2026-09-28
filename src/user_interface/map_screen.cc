@@ -664,33 +664,19 @@ MapScreen::StartHomeHoldTimer()
                                 Point {touch_offset_x, touch_offset_y, m_current_view_center.zoom},
                             kDefaultZoom);
 
-        auto mbox = lv_msgbox_create(NULL);
-        lv_msgbox_add_title(mbox, "Home Position");
-        lv_msgbox_add_text(mbox, "Set home position?");
-
-        auto btn = lv_msgbox_add_footer_button(mbox, "Yes");
-        LvEventListener::Create(btn, LV_EVENT_CLICKED, [this, pixel_position](lv_event_t* e) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .home_position = pixel_position;
-
-            lv_obj_t* btn = lv_event_get_target_obj(e);
-            lv_obj_t* mbox = lv_obj_get_parent(lv_obj_get_parent(btn));
-
-            printf("Home position set\n");
-
-            lv_msgbox_close(mbox);
-        });
-        btn = lv_msgbox_add_footer_button(mbox, "Cancel");
-        lv_obj_add_event_cb(
-            btn,
-            [](lv_event_t* e) {
-                lv_obj_t* btn = lv_event_get_target_obj(e);
-                lv_obj_t* mbox = lv_obj_get_parent(lv_obj_get_parent(btn));
-                lv_msgbox_close(mbox);
-            },
-            LV_EVENT_CLICKED,
-            nullptr);
+        m_parent.ShowMessageBox(
+            "Home Position",
+            "Set home position?",
+            {
+                {"Yes",
+                 [this, pixel_position]() {
+                     m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                         .GetWritableReference<AS::configuration>()
+                         .home_position = pixel_position;
+                     printf("Home position set\n");
+                 }},
+                {"Cancel"},
+            });
         return std::nullopt;
     });
 }

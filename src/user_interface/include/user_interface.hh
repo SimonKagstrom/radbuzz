@@ -11,6 +11,7 @@
 #include "image_cache.hh"
 #include "input.hh"
 #include "menu_screen.hh"
+#include "message_box.hh"
 #include "speech_bubble.hh"
 #include "tile_cache.hh"
 #include "trip_computer.hh"
@@ -142,6 +143,11 @@ public:
         SetHelp(false);
     }
 
+    // Show a modal message box (replacing any open one). Input goes to it until it's closed.
+    void ShowMessageBox(const std::string& title,
+                        const std::string& text,
+                        std::vector<MessageBox::Button> buttons);
+
 private:
     void SetHelp(bool on);
 
@@ -229,6 +235,8 @@ private:
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
     std::vector<std::unique_ptr<IndicatorBase>> m_indicators;
     std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
+
+    std::unique_ptr<MessageBox> m_message_box;
 
     bool m_help_enabled {false};
 };

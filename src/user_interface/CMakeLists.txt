@@ -84,6 +84,7 @@ convert_font(radbuzz_numbers_font_16
 add_library(user_interface EXCLUDE_FROM_ALL
     digital_speedometer_widget.cc
     map_screen.cc
+    message_box.cc
     settings_menu_screen.cc
     speech_bubble.cc
     speedometer_only_screen.cc

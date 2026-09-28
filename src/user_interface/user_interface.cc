@@ -403,7 +403,24 @@ UserInterface::OnActivation()
             break;
         }
 
-        m_current_screen->HandleInput(input_event);
+        const auto is_touch = event == hal::IInput::EventType::kTouchDown ||
+                              event == hal::IInput::EventType::kTouchMove ||
+                              event == hal::IInput::EventType::kTouchUp;
+
+        if (m_message_box && m_message_box->IsOpen() && !is_touch)
+        {
+            // The encoder controls the message box (touch is handled by the modal LVGL object)
+            lv_indev_read(m_lvgl_input_dev);
+        }
+        else
+        {
+            m_current_screen->HandleInput(input_event);
+        }
+    }
+
+    if (m_message_box && !m_message_box->IsOpen())
+    {
+        m_message_box = nullptr;
     }
 
     auto max_power = m_pm_lock->FullPower();
@@ -448,4 +465,15 @@ UserInterface::OnActivation()
     }
 
     return std::nullopt;
+}
+
+void
+UserInterface::ShowMessageBox(const std::string& title,
+                              const std::string& text,
+                              std::vector<MessageBox::Button> buttons)
+{
+    // Close any open box first, so that the encoder group is restored in the right order
+    m_message_box = nullptr;
+    m_message_box =
+        std::make_unique<MessageBox>(m_lvgl_input_dev, title, text, std::move(buttons));
 }
