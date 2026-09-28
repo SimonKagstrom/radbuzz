@@ -5,7 +5,9 @@
 #include <QLowEnergyAdvertisingParameters>
 #include <QLowEnergyCharacteristicData>
 #include <QLowEnergyDescriptorData>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QPermissions>
+#endif
 #include <QUuid>
 
 namespace
@@ -47,8 +49,7 @@ BleServerQt::AddWriteGattCharacteristics(hal::Uuid128Span uuid,
     QLowEnergyCharacteristicData data;
 
     data.setUuid(ToQtUuid(uuid));
-    data.setProperties(QLowEnergyCharacteristic::Write |
-                       QLowEnergyCharacteristic::WriteNoResponse);
+    data.setProperties(QLowEnergyCharacteristic::Write | QLowEnergyCharacteristic::WriteNoResponse);
     data.setValueLength(0, 512);
     m_service_data.addCharacteristic(data);
 
@@ -92,7 +93,8 @@ void
 BleServerQt::Start()
 {
     // Called from the BLE handler thread, but Qt Bluetooth must be setup in the GUI thread
-    QMetaObject::invokeMethod(this, [this]() { RequestPermissionAndSetup(); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(
+        this, [this]() { RequestPermissionAndSetup(); }, Qt::QueuedConnection);
 }
 
 void
@@ -126,6 +128,8 @@ BleServerQt::PollEvents()
 void
 BleServerQt::RequestPermissionAndSetup()
 {
+// Needed for MacOS, but let e.g., Ubuntu 24.04 still be able to compile the code
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     QBluetoothPermission permission;
     permission.setCommunicationModes(QBluetoothPermission::Access |
                                      QBluetoothPermission::Advertise);
@@ -133,9 +137,8 @@ BleServerQt::RequestPermissionAndSetup()
     switch (qApp->checkPermission(permission))
     {
     case Qt::PermissionStatus::Undetermined:
-        qApp->requestPermission(permission, this, [this](const QPermission&) {
-            RequestPermissionAndSetup();
-        });
+        qApp->requestPermission(
+            permission, this, [this](const QPermission&) { RequestPermissionAndSetup(); });
         break;
     case Qt::PermissionStatus::Denied:
         qWarning("BLE: Bluetooth permission denied");
@@ -144,6 +147,7 @@ BleServerQt::RequestPermissionAndSetup()
         SetupPeripheral();
         break;
     }
+#endif
 }
 
 void
