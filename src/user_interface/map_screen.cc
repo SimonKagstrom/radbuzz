@@ -282,7 +282,7 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_clear_flag(m_navigation_box, LV_OBJ_FLAG_SCROLLABLE);
 
     m_current_turn_symbol = lv_label_create(m_navigation_box);
-    lv_obj_align(m_current_turn_symbol, LV_ALIGN_TOP_MID, 0, 8);
+    lv_obj_align(m_current_turn_symbol, LV_ALIGN_TOP_MID, 8, 0);
     lv_obj_set_style_text_font(m_current_turn_symbol, &radbuzz_turn_symbols_60, LV_PART_MAIN);
     lv_label_set_long_mode(m_current_turn_symbol, LV_LABEL_LONG_WRAP);
     lv_obj_clear_flag(m_current_turn_symbol, LV_OBJ_FLAG_SCROLLABLE);
