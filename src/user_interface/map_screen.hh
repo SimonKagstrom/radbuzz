@@ -49,10 +49,9 @@ private:
     lv_obj_t* m_position_dot_obj {nullptr};
 
     // Related to the navigation
-    uint32_t m_current_icon_hash {kInvalidIconHash};
     lv_obj_t* m_navigation_box {nullptr};
     lv_obj_t* m_navigation_description_box {nullptr};
-    lv_obj_t* m_current_icon {nullptr};
+    lv_obj_t* m_current_turn_symbol {nullptr};
     lv_obj_t* m_description_label {nullptr};
     lv_obj_t* m_distance_left_label {nullptr};
     lv_obj_t* m_home_label {nullptr};

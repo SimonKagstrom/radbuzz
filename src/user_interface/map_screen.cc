@@ -16,6 +16,27 @@
 #include <radbuzz_font_60.h>
 #include <radbuzz_symbols_22.h>
 #include <radbuzz_symbols_40.h>
+#include <radbuzz_turn_symbols_60.h>
+
+namespace
+{
+
+consteval auto
+ToUtf8(uint32_t code_point)
+{
+    // Null-terminated, for use as a C string
+    std::array<char, 4> out {};
+
+    out[0] = static_cast<char>(0xE0 | (code_point >> 12));
+    out[1] = static_cast<char>(0x80 | ((code_point >> 6) & 0x3F));
+    out[2] = static_cast<char>(0x80 | (code_point & 0x3F));
+
+    return out;
+}
+// Static storage, since used with lv_label_set_text_static
+constexpr auto kTurnLeftUtf8 = ToUtf8(0xeba6);
+
+}
 
 
 void
@@ -239,13 +260,13 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_scrollbar_mode(m_navigation_box, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_navigation_box, LV_OBJ_FLAG_SCROLLABLE);
 
-    m_current_icon = lv_image_create(m_navigation_box);
-    lv_obj_center(m_current_icon);
-    lv_obj_set_style_img_recolor(m_current_icon, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_img_recolor_opa(m_current_icon, LV_OPA_COVER, LV_PART_MAIN);
-    lv_image_set_src(m_current_icon, &m_image_cache.Lookup(kInvalidIconHash)->GetDsc());
-    lv_obj_align(m_current_icon, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_clear_flag(m_current_icon, LV_OBJ_FLAG_SCROLLABLE);
+    m_current_turn_symbol = lv_label_create(m_navigation_box);
+    lv_obj_align(m_current_turn_symbol, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_set_style_text_font(m_current_turn_symbol, &radbuzz_turn_symbols_60, LV_PART_MAIN);
+    lv_label_set_long_mode(m_current_turn_symbol, LV_LABEL_LONG_WRAP);
+    lv_obj_clear_flag(m_current_turn_symbol, LV_OBJ_FLAG_SCROLLABLE);
+    // Proof of concept: Always turn left
+    lv_label_set_text_static(m_current_turn_symbol, kTurnLeftUtf8.data());
 
     m_distance_left_label = lv_label_create(m_navigation_box);
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 2);
@@ -407,20 +428,10 @@ MapScreen::Update()
                    home_on_screen_x - lv_obj_get_width(m_home_label) / 2,
                    home_on_screen_y - lv_obj_get_height(m_home_label) / 2);
 
-    auto state_hash = ro.Get<AS::current_icon_hash>();
     auto navigation_active = ro.Get<AS::navigation_active>();
 
     lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
     lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
-
-    if (m_current_icon_hash != state_hash)
-    {
-        if (auto image = m_image_cache.Lookup(state_hash); image)
-        {
-            m_current_icon_hash = state_hash;
-            lv_image_set_src(m_current_icon, &image->GetDsc());
-        }
-    }
 
     lv_label_set_text(m_description_label, std::format("{}", *ro.Get<AS::next_street>()).c_str());
     lv_label_set_text(m_distance_left_label,
@@ -752,7 +763,7 @@ MapScreen::SetHelp(bool on)
     }
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(m_current_icon,
+        std::make_unique<SpeechBubble>(m_current_turn_symbol,
                                        SpeechBubble::Direction::kAbove,
                                        "Icon for current navigation\ndirections",
                                        Point {64, 0}));

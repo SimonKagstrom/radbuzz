@@ -43,6 +43,14 @@ convert_font(radbuzz_font_120
     ""
 )
 
+convert_font(radbuzz_turn_symbols_60
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../resources/MaterialSymbolsOutlined_FILL_GRAD_opsz_wght.ttf
+    60
+    # Right, Left
+    0xebab,0xeba6
+    ""
+)
+
 convert_symbols(radbuzz_symbols_40
     40
     # Battery, GPS, WiFi, BLE, home, pause, warning (see lv_symbol_def.h), " "
@@ -96,6 +104,10 @@ PUBLIC
     tile_cache
     trip_computer
     radbuzz_font_16_library
+    ui_menu
+PRIVATE
+    bresenham
+    cohen_sutherland
     radbuzz_numbers_font_16_library
     radbuzz_font_22_library
     radbuzz_symbols_40_library
@@ -103,8 +115,5 @@ PUBLIC
     radbuzz_font_60_library
     radbuzz_font_120_library
     radbuzz_symbols_22_library
-    ui_menu
-PRIVATE
-    bresenham
-    cohen_sutherland
+    radbuzz_turn_symbols_60_library
 )
