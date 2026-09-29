@@ -3,8 +3,6 @@ cpp_includes:
   - "tile_constants.hh"
 
 application_state:
-  # TODO: Remove
-  current_icon_hash: kInvalidIconHash
   turn_symbol: TurnSymbol::kNone
   distance_to_next: ""
   next_street: ""

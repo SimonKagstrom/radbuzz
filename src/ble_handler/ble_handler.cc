@@ -9,15 +9,6 @@ BleHandler::BleHandler(hal::IBleServer& server,
     , m_image_cache(cache)
     , m_gadget_bridge_transport(server, m_gadget_bridge_protocol)
 {
-    // Add a black image for the invalid icon
-    auto invalid_data = std::make_unique<uint8_t[]>(kImageByteSize);
-    memset(invalid_data.get(), 0, kImageByteSize);
-    m_image_cache.Insert(kInvalidIconHash,
-                         kImageWidth,
-                         kImageHeight,
-                         {static_cast<const uint8_t*>(invalid_data.get()), kImageByteSize});
-
-
     m_king_shark_handler = std::make_unique<BleKingSharkHandler>(*this, client);
 }
 

@@ -44,7 +44,7 @@ private:
 
     // State data
     State m_current_state {State::kNoNavigation};
-    uint32_t m_current_hash;
+    TurnSymbol m_current_turn {TurnSymbol::kNone};
 
     os::TimerHandle m_off_timer;
 };

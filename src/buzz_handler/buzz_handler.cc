@@ -26,7 +26,7 @@ BuzzHandler::BuzzHandler(hal::IGpio& left_buzzer,
     , m_right_buzzer(right_buzzer)
     , m_state(app_state)
     , m_state_listener(
-          m_state.AttachListener<AS::current_icon_hash, AS::distance_to_next>(GetSemaphore()))
+          m_state.AttachListener<AS::turn_symbol, AS::distance_to_next>(GetSemaphore()))
     , m_off_timer(StartTimer(0ms))
 {
 }
@@ -38,7 +38,7 @@ BuzzHandler::OnActivation()
 
     RunStateMachine(app_state);
 
-    m_current_hash = app_state.Get<AS::current_icon_hash>();
+    m_current_turn = app_state.Get<AS::turn_symbol>();
 
     return std::nullopt;
 }
@@ -56,7 +56,7 @@ BuzzHandler::RunStateMachine(const ApplicationState::ReadOnly& app_state)
         switch (m_current_state)
         {
         case State::kNoNavigation:
-            if (ro.Get<AS::current_icon_hash>() != m_current_hash)
+            if (ro.Get<AS::turn_symbol>() != m_current_turn)
             {
                 EnterState(State::kNewTurn);
             }
@@ -150,27 +150,37 @@ BuzzHandler::Indicate()
 
     auto delay = 100ms;
 
-    switch (m_state.CheckoutReadonly().Get<AS::current_icon_hash>())
+    switch (m_state.CheckoutReadonly().Get<AS::turn_symbol>())
     {
-    case 0x27d9a40f: // Left
+    case TurnSymbol::kTurnLeft:
+    case TurnSymbol::kRampLeft:
+    case TurnSymbol::kForkLeft:
+    case TurnSymbol::kTurnSharpLeft:
+    case TurnSymbol::kUturnLeft:
+    case TurnSymbol::kRoundaboutLeft:
         m_left_buzzer.SetState(true);
         m_right_buzzer.SetState(false);
         break;
-    case 0x09cefe42: // Route target + road
-        m_left_buzzer.SetState(true);
+    case TurnSymbol::kTurnRight:
+    case TurnSymbol::kRampRight:
+    case TurnSymbol::kForkRight:
+    case TurnSymbol::kTurnSharpRight:
+    case TurnSymbol::kUturnRight:
+    case TurnSymbol::kRoundaboutRight:
+        m_left_buzzer.SetState(false);
         m_right_buzzer.SetState(true);
         delay = 200ms;
         break;
-    case 0x3db5d6ba:
-        [[fallthrough]];
-    case 0x28936c85: // Roundabout straight ahead
+    case TurnSymbol::kStraight:
+    case TurnSymbol::kMerge:
         m_left_buzzer.SetState(true);
         m_right_buzzer.SetState(true);
         break;
-    case 0x9a84a956: // Destination reached
+    case TurnSymbol::kDestination:
         m_left_buzzer.SetState(true);
         m_right_buzzer.SetState(true);
         delay = 400ms;
+        break;
     default:
         break;
     }

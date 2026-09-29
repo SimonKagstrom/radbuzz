@@ -8,10 +8,6 @@ cpp_includes:
 
 
 parameters:
-  # TODO: Remove
-  current_icon_hash:
-    type: uint32_t
-
   turn_symbol:
     type: enum TurnSymbol
 

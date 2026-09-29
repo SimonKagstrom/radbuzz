@@ -228,5 +228,4 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
 
         return std::nullopt;
     });
-    //qw.Set<AS::current_icon_hash>(action);
 }

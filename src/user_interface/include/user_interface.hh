@@ -219,8 +219,6 @@ private:
     os::TimerHandle m_show_all_indicators_timer;
     os::TimerHandle m_show_help_timer;
 
-    uint32_t m_current_icon_hash {kInvalidIconHash};
-
     lv_indev_t* m_lvgl_input_dev {nullptr};
     lv_indev_t* m_lvgl_touch_input_dev {nullptr};
 
