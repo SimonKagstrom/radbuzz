@@ -31,6 +31,7 @@ MessageBox::MessageBox(lv_indev_t* encoder,
         auto btn = lv_msgbox_add_footer_button(m_box, button.text.c_str());
         lv_obj_add_style(btn, &style_fixed_btn, LV_PART_MAIN);
         lv_obj_set_style_radius(btn, 8, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(btn, button.color, LV_PART_MAIN);
 
         lv_group_add_obj(m_group, btn);
         LvEventListener::Create(btn, LV_EVENT_CLICKED, [this, &button](lv_event_t*) {

@@ -14,8 +14,33 @@ class MessageBox final
 public:
     struct Button
     {
+        explicit Button(std::string_view text)
+            : text(text)
+        {
+        }
+
+        Button(std::string_view text, std::function<void()> on_click)
+            : text(text)
+            , on_click(std::move(on_click))
+        {
+        }
+
+        Button(std::string_view text, std::function<void()> on_click, lv_color_t color)
+            : text(text)
+            , on_click(std::move(on_click))
+            , color(color)
+        {
+        }
+
+        Button(std::string_view text, lv_color_t color)
+            : text(text)
+            , color(color)
+        {
+        }
+
         std::string text;
         std::function<void()> on_click {[]() {}};
+        lv_color_t color {lv_theme_get_color_primary(nullptr)};
     };
 
     // The box is closed when any of the buttons are clicked
