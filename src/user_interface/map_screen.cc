@@ -668,14 +668,14 @@ MapScreen::StartHomeHoldTimer()
             "Home Position",
             "Set home position?",
             {
-                {"Yes",
-                 [this, pixel_position]() {
-                     m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                         .GetWritableReference<AS::configuration>()
-                         .home_position = pixel_position;
-                     printf("Home position set\n");
-                 }},
-                {"Cancel"},
+                MessageBox::Button("Yes",
+                                   [this, pixel_position]() {
+                                       m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                           .GetWritableReference<AS::configuration>()
+                                           .home_position = pixel_position;
+                                       printf("Home position set\n");
+                                   }),
+                MessageBox::Button("Cancel"),
             });
         return std::nullopt;
     });
