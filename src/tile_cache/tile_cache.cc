@@ -316,7 +316,7 @@ TileCache::FillFromColdStore()
                 m_tiles[index] = tile_id;
 
                 // Awake anyone waiting for tiles (i.e., the UI)
-                m_post_office.Send<MSG::tile_loaded>({});
+                m_post_office.Send<MSG::tile_loaded>();
             }
             else
             {
