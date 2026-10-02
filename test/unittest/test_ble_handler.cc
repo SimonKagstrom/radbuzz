@@ -157,9 +157,9 @@ TEST_CASE("gadgetbridge lines are parsed into json")
 
     WHEN("Olsmässgatan arrives")
     {
-        auto json = GadgetBridgeProtocol::ParseLine(
-            "\x10GB({\"t\":\"nav\",\"instr\":\"towards "
-            "Olsm\xe4ssgatan\",\"distance\":\"0\xa0m\",\"action\":\"continue\",\"eta\":\"13:38\"})");
+        auto json = GadgetBridgeProtocol::ParseLine("\x10GB({\"t\":\"nav\",\"instr\":\"towards "
+                                                    "Olsm\xe4ssgatan\",\"distance\":\"0\xa0m\","
+                                                    "\"action\":\"continue\",\"eta\":\"13:38\"})");
         THEN("it's parsed correctly")
         {
             REQUIRE(json);
@@ -224,19 +224,28 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
             CHECK(msg->As<MSG::incoming_call>()->caller_name == "Gregor Samsa");
             CHECK(msg->As<MSG::incoming_call>()->caller_number == "+46701234567");
         }
-    }
-
-    WHEN("the call ends")
-    {
-        srv.Inject(kRxCharacteristicUuid,
-                   "\x10GB({\"t\":\"call\",\"cmd\":\"end\",\"name\":\"\",\"number\":\"\"})\n");
-        DoRunLoop();
-
-        THEN("that is sent as a message")
+        AND_THEN("the call ongoing status is updated")
         {
-            auto msg = mailbox->Pop();
-            REQUIRE(msg);
-            REQUIRE(msg->Is<MSG::call_ended>());
+            CHECK(state.Get<AS::call_ongoing>() == true);
+        }
+
+        AND_WHEN("the call ends")
+        {
+            srv.Inject(kRxCharacteristicUuid,
+                       "\x10GB({\"t\":\"call\",\"cmd\":\"end\",\"name\":\"\",\"number\":\"\"})\n");
+            DoRunLoop();
+
+            THEN("that is sent as a message")
+            {
+                bool ended = false;
+
+                mailbox->Collect().On<MSG::call_ended>([&ended]() { ended = true; });
+                REQUIRE(ended);
+            }
+            AND_THEN("the call ongoing status is updated")
+            {
+                CHECK(state.Get<AS::call_ongoing>() == false);
+            }
         }
     }
 

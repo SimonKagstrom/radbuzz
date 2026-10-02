@@ -11,6 +11,9 @@ parameters:
   turn_symbol:
     type: enum TurnSymbol
 
+  call_ongoing:
+    type: bool
+
   # 50 m etc
   distance_to_next:
     type: std::string

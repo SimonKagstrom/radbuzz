@@ -23,6 +23,7 @@ application_state:
   position: {}
   pixel_position: {}
   trip_distance: 0
+  call_ongoing: false
   trip_duration: 0s
   trip_max_speed: 0
   trip_average_speed: 0

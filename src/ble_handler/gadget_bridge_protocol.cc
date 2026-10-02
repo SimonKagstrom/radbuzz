@@ -131,8 +131,14 @@ GadgetBridgeProtocol::Poll()
 {
     m_mailbox->Collect()
         .On<MSG::answer_call>([this]() { SendCallControl("accept"); })
-        .On<MSG::decline_call>([this]() { SendCallControl("reject"); })
-        .On<MSG::hangup_call>([this]() { SendCallControl("end"); });
+        .On<MSG::decline_call>([this]() {
+            SendCallControl("reject");
+            m_state.CheckoutReadWrite().Set<AS::call_ongoing>(false);
+        })
+        .On<MSG::hangup_call>([this]() {
+            SendCallControl("end");
+            m_state.CheckoutReadWrite().Set<AS::call_ongoing>(false);
+        });
 }
 
 std::optional<nlohmann::json>
@@ -236,10 +242,12 @@ GadgetBridgeProtocol::HandleCallEvent(const nlohmann::json& json)
     if (cmd == "incoming")
     {
         m_post_office.Send<MSG::incoming_call>({get_string("number"), get_string("name")});
+        m_state.CheckoutReadWrite().Set<AS::call_ongoing>(true);
     }
     else if (cmd == "end" || cmd == "reject")
     {
         m_post_office.Send<MSG::call_ended>();
+        m_state.CheckoutReadWrite().Set<AS::call_ongoing>(false);
     }
     // TODO: "start" (answered, possibly on the phone) for the ongoing call indicator
 }
