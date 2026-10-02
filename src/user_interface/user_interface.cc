@@ -196,11 +196,12 @@ UserInterface::OnStartup()
                  m_speedometer_only_screen.get(),
                  m_settings_menu_screen.get()};
 
-    // Before the widget and indicators on the top layer, so that they are drawn on top of it
-    m_side_pane = std::make_unique<SidePane>(lv_layer_top());
-
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
+
+    // After the speedometer, which is partly hidden below it when the pane is shown. Before the
+    // indicators, so that they are drawn on top of it
+    m_side_pane = std::make_unique<SidePane>(lv_layer_top());
 
     // The battery icon is at the top right, and the rest in a column to the lright
     constexpr auto kIndicatorRowSpacing = 46;
@@ -226,7 +227,7 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
-    ActivateScreen(*m_speedometer_only_screen);
+    ActivateScreen(*m_map_screen);
     ResetTrip();
 
     // Allow placing the objects first, so delay a bit
@@ -478,7 +479,12 @@ UserInterface::OnActivation()
     m_current_screen->Update();
     m_current_screen->UpdateHelp();
 
-    m_digital_speedometer->Update(m_state, !OnSpeedometerScreen(), OnMapScreen());
+    // The distance box is hidden, and the speedometer moved right, when the side pane is shown
+    const auto side_pane_shown = SidePaneShown();
+    m_digital_speedometer->Update(m_state,
+                                  !OnSpeedometerScreen(),
+                                  OnMapScreen() && !side_pane_shown,
+                                  side_pane_shown ? SidePane::kWidth : 0);
     for (auto& indicator : m_indicators)
     {
         indicator->Update(m_state);

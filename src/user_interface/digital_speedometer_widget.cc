@@ -18,6 +18,9 @@ constexpr int kDistanceFirstRowYOffset = 26;
 constexpr int kDistanceRowSpacing = 34;
 constexpr int kDistanceValueToUnitGap = 4;
 
+// Pushed outside the screen, so that only the lower right corner is rounded
+constexpr int kSpeedometerBoxOffset = -32;
+
 DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
 {
     // Push left rounded corners off-screen for the navigation pane while keeping right corners.
@@ -43,7 +46,8 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
         lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_clear_flag(box, LV_OBJ_FLAG_CLICKABLE);
     }
-    lv_obj_align(m_boxes[kSpeedometerBox], LV_ALIGN_TOP_LEFT, -32, -32);
+    lv_obj_align(
+        m_boxes[kSpeedometerBox], LV_ALIGN_TOP_LEFT, kSpeedometerBoxOffset, kSpeedometerBoxOffset);
     lv_obj_align(m_boxes[kDistanceBox], LV_ALIGN_TOP_RIGHT, 32, -32);
 
     m_speed_digits_label = lv_label_create(m_boxes[kSpeedometerBox]);
@@ -98,8 +102,21 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
 }
 
 void
-DigitalSpeedometerWidget::Update(ApplicationState& state, bool show_speedometer, bool show_distance)
+DigitalSpeedometerWidget::Update(ApplicationState& state,
+                                 bool show_speedometer,
+                                 bool show_distance,
+                                 int32_t left_x)
 {
+    if (left_x != m_left_x)
+    {
+        // Next to the side pane, which is drawn on top and hides the left corners
+        m_left_x = left_x;
+        lv_obj_align(m_boxes[kSpeedometerBox],
+                     LV_ALIGN_TOP_LEFT,
+                     m_left_x + kSpeedometerBoxOffset,
+                     kSpeedometerBoxOffset);
+    }
+
     auto ro = state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
     auto gps_speed = std::max(0.0f, ro.Get<AS::position>()->speed);

@@ -9,7 +9,7 @@ namespace
 {
 
 // Pushed outside the left edge of the screen, so that only the right corners are rounded
-constexpr int32_t kCornerRadius = 18;
+constexpr int32_t kCornerRadius = 0;
 
 constexpr int32_t kTopMargin = 44;
 
