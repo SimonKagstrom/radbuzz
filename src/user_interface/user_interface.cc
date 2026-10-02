@@ -1,5 +1,6 @@
 #include "user_interface.hh"
 
+#include "incoming_call_screen.hh"
 #include "indicators.hh"
 #include "map_screen.hh"
 #include "painter.hh"
@@ -182,6 +183,7 @@ UserInterface::OnStartup()
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_speedometer_only_screen = std::make_unique<SpeedometerOnlyScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
+    m_incoming_call_screen = std::make_unique<IncomingCallScreen>(*this);
 
     m_screens = {m_map_screen.get(),
                  m_trip_meter_screen.get(),
@@ -353,9 +355,7 @@ UserInterface::ResetTrip()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
-    m_mailbox->Collect().On<MSG::incoming_call>([this](auto call) {
-        // NYI
-    });
+    m_mailbox->Collect().On<MSG::incoming_call>([this](auto call) { ShowIncomingCall(*call); });
 
     auto& co = m_state_cache.Pull();
     if (co.IsChanged<AS::pixel_position>())
@@ -471,6 +471,34 @@ UserInterface::OnActivation()
     }
 
     return std::nullopt;
+}
+
+void
+UserInterface::ShowIncomingCall(const MSG::incoming_call& call)
+{
+    auto call_screen = static_cast<IncomingCallScreen*>(m_incoming_call_screen.get());
+
+    call_screen->SetCaller(call);
+    if (m_current_screen == call_screen)
+    {
+        // Already shown, just update the caller
+        return;
+    }
+
+    // The call takes over the encoder, so close any message box
+    m_message_box = nullptr;
+
+    m_screen_before_call = m_current_screen;
+    ActivateScreen(*call_screen, true);
+}
+
+void
+UserInterface::EndIncomingCall()
+{
+    auto previous = m_screen_before_call ? m_screen_before_call : m_speedometer_only_screen.get();
+
+    m_screen_before_call = nullptr;
+    ActivateScreen(*previous, true);
 }
 
 void

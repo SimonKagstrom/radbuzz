@@ -27,6 +27,7 @@ class TripMeterScreen;
 class SettingsMenuScreen;
 class SpeedometerOnlyScreen;
 class HomeIndicator;
+class IncomingCallScreen;
 
 constexpr auto kPowerBarWidth = 10;
 
@@ -38,6 +39,7 @@ public:
     friend class SettingsMenuScreen;
     friend class SpeedometerOnlyScreen;
     friend class HomeIndicator;
+    friend class IncomingCallScreen;
 
     class ScreenBase
     {
@@ -167,9 +169,14 @@ private:
     void ResetTrip();
     void DrawPowerBar(uint16_t* dst);
 
-    void ActivateScreen(ScreenBase& screen)
+    void ShowIncomingCall(const MSG::incoming_call& call);
+    // Return to the screen which was active before the call
+    void EndIncomingCall();
+
+    // Force activates even during the startup indicator display
+    void ActivateScreen(ScreenBase& screen, bool force = false)
     {
-        if (m_show_all_indicators_timer && !m_show_all_indicators_timer->IsExpired())
+        if (!force && m_show_all_indicators_timer && !m_show_all_indicators_timer->IsExpired())
         {
             // Don't allow switching until indicators have shown
             return;
@@ -231,6 +238,9 @@ private:
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
     std::unique_ptr<ScreenBase> m_speedometer_only_screen;
     std::unique_ptr<ScreenBase> m_settings_menu_screen;
+    // Not part of m_screens, since it's only shown on calls
+    std::unique_ptr<ScreenBase> m_incoming_call_screen;
+    ScreenBase* m_screen_before_call {nullptr};
 
     etl::vector<ScreenBase*, 4> m_screens;
     ScreenBase* m_current_screen {nullptr};

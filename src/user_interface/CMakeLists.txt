@@ -48,8 +48,8 @@ convert_font(radbuzz_font_120
 convert_font(radbuzz_turn_symbols_60
     ${CMAKE_CURRENT_SOURCE_DIR}/../../resources/MaterialSymbolsOutlined_FILL_GRAD_opsz_wght.ttf
     60
-    # kDestination kStraight kTurnRight kTurnLeft kTurnSharpRight kTurnSharpLeft kTurnSlightRight kTurnSlightLeft kUturnRight kUturnLeft kRampRight kRampLeft kForkRight kForkLeft kRoundaboutRight kRoundaboutLeft kMerge
-    0xe0c8,0xeb95,0xebab,0xeba6,0xebaa,0xeba7,0xeb9a,0xeba4,0xeba2,0xeba1,0xeb96,0xeb9c,0xebac,0xeba0,0xeba3,0xeb99,0xeb98
+    # kDestination kStraight kTurnRight kTurnLeft kTurnSharpRight kTurnSharpLeft kTurnSlightRight kTurnSlightLeft kUturnRight kUturnLeft kRampRight kRampLeft kForkRight kForkLeft kRoundaboutRight kRoundaboutLeft kMerge (phone)
+    0xe0c8,0xeb95,0xebab,0xeba6,0xebaa,0xeba7,0xeb9a,0xeba4,0xeba2,0xeba1,0xeb96,0xeb9c,0xebac,0xeba0,0xeba3,0xeb99,0xeb98,0xe0b0
     ""
 )
 
@@ -83,6 +83,7 @@ convert_font(radbuzz_numbers_font_16
 
 add_library(user_interface EXCLUDE_FROM_ALL
     digital_speedometer_widget.cc
+    incoming_call_screen.cc
     map_screen.cc
     message_box.cc
     settings_menu_screen.cc

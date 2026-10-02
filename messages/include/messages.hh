@@ -23,7 +23,29 @@ struct reset_trip
 {
 };
 
-using AllMessages = std::tuple<incoming_call, tile_loaded, reset_trip>;
+struct answer_call
+{
+};
+
+struct decline_call
+{
+};
+
+struct hangup_call
+{
+};
+
+struct call_ended
+{
+};
+
+using AllMessages = std::tuple<incoming_call,
+                               tile_loaded,
+                               reset_trip,
+                               answer_call,
+                               decline_call,
+                               hangup_call,
+                               call_ended>;
 
 constexpr auto kMessageCount = std::tuple_size_v<AllMessages>;
 
