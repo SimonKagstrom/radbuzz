@@ -108,6 +108,7 @@ PUBLIC
     trip_computer
     radbuzz_font_16_library
     ui_menu
+    radbuzz_messages
 PRIVATE
     bresenham
     cohen_sutherland

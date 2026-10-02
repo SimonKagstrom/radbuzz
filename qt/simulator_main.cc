@@ -59,6 +59,8 @@ main(int argc, char* argv[])
     scheduler->Start("scheduler");
 
     ApplicationState application_state;
+    PostOffice<MSG::AllMessages> post_office;
+
     auto rw = application_state.CheckoutReadWrite();
 
     rw.Set<AS::wifi_connected>(true);
@@ -97,7 +99,7 @@ main(int argc, char* argv[])
     auto trip_computer = std::make_unique<TripComputer>(application_state);
     auto app_simulator = std::make_unique<AppSimulator>(application_state);
     auto tile_cache = std::make_unique<TileCache>(
-        application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
+        application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler =
         std::make_unique<BleHandler>(*ble_server, *ble_client, application_state, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
@@ -108,6 +110,7 @@ main(int argc, char* argv[])
                                                           pm->CreateFullPowerLock(),
                                                           *input, // IInput
                                                           application_state,
+                                                          post_office,
                                                           *image_cache,
                                                           *tile_cache,
                                                           *trip_computer);

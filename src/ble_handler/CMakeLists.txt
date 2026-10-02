@@ -26,6 +26,7 @@ PUBLIC
     image_cache
     application_state
     nlohmann_json::nlohmann_json
+    post_office
 PRIVATE
     radbuzz_interface
 )

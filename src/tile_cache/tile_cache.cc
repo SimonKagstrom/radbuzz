@@ -116,10 +116,12 @@ private:
 } // namespace
 
 TileCache::TileCache(ApplicationState& application_state,
+                     PostOffice<MSG::AllMessages>& post_office,
                      std::unique_ptr<hal::IPm::ILock> pm_lock,
                      Filesystem& filesystem,
                      HttpsClient& https_client)
     : m_application_state(application_state)
+    , m_post_office(post_office)
     , m_pm_lock(std::move(pm_lock))
     , m_filesystem(filesystem)
     , m_https_client(https_client)
@@ -314,7 +316,7 @@ TileCache::FillFromColdStore()
                 m_tiles[index] = tile_id;
 
                 // Awake anyone waiting for tiles (i.e., the UI)
-                m_application_state.CheckoutReadWrite().Post<AS::tile_loaded>();
+                m_post_office.Send<MSG::tile_loaded>({});
             }
             else
             {

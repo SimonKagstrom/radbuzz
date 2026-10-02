@@ -35,6 +35,7 @@ if(NOT TARGET display_properties)
     add_library(display_properties ALIAS display_800x800)
 endif()
 add_library(generated_application_state ALIAS radbuzz_unittest_application_state)
+add_library(messages ALIAS radbuzz_messages)
 
 
 

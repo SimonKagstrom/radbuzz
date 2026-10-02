@@ -4,7 +4,6 @@
 #include "blitter_esp32.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
-#include "vesc_can_bus_handler.hh"
 #include "can_esp32.hh"
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
@@ -26,6 +25,7 @@
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
+#include "vesc_can_bus_handler.hh"
 #include "wifi_client_esp32.hh"
 #include "wifi_handler.hh"
 
@@ -539,6 +539,7 @@ app_main(void)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     ApplicationState application_state;
+    PostOffice<MSG::AllMessages> post_office;
 
     gpio_config_t io_conf = {};
     //
@@ -692,7 +693,7 @@ app_main(void)
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
     auto tile_cache = std::make_unique<TileCache>(
-        application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
+        application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
 
     auto trip_computer = std::make_unique<TripComputer>(application_state);
 
@@ -705,6 +706,7 @@ app_main(void)
                                                           pm->CreateFullPowerLock(),
                                                           *input,
                                                           application_state,
+                                                          post_office,
                                                           *image_cache,
                                                           *tile_cache,
                                                           *trip_computer);

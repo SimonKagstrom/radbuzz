@@ -43,6 +43,7 @@ add_subdirectory(ble_server_qt)
 add_library(filesystem_implementation ALIAS std_filesystem)
 add_library(display_properties ALIAS display_800x480)
 add_library(generated_application_state ALIAS radbuzz_application_state)
+add_library(messages ALIAS radbuzz_messages)
 
 add_executable(radbuzz_qt
     simulator_main.cc

@@ -42,6 +42,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                              std::unique_ptr<hal::IPm::ILock> pm_lock,
                              hal::IInput& input,
                              ApplicationState& state,
+                             PostOffice<MSG::AllMessages>& post_office,
                              ImageCache& cache,
                              TileCache& tile_cache,
                              TripComputer& trip_computer)
@@ -50,6 +51,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_pm_lock(std::move(pm_lock))
     , m_input(input)
     , m_state(state)
+    , m_post_office(post_office)
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
     , m_trip_computer(trip_computer)
@@ -62,7 +64,6 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::bluetooth_connected,
                                               AS::wifi_connected,
                                               AS::speed,
-                                              AS::tile_loaded,
                                               AS::trip_duration,
                                               AS::navigation_active,
                                               AS::next_street,
@@ -72,6 +73,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::wh_consumed,
                                               AS::wh_regenerated>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
+    m_mailbox = m_post_office.Subscribe<MSG::incoming_call, MSG::tile_loaded>(GetSemaphore());
 
     // Context: Interrupt/anoteher thread
     m_input_listener = m_input.AttachListener([this](auto event) {
@@ -351,6 +353,10 @@ UserInterface::ResetTrip()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
+    m_mailbox->Collect().On<MSG::incoming_call>([this](auto call) {
+        // NYI
+    });
+
     auto& co = m_state_cache.Pull();
     if (co.IsChanged<AS::pixel_position>())
     {
@@ -474,6 +480,5 @@ UserInterface::ShowMessageBox(const std::string& title,
 {
     // Close any open box first, so that the encoder group is restored in the right order
     m_message_box = nullptr;
-    m_message_box =
-        std::make_unique<MessageBox>(m_lvgl_input_dev, title, text, std::move(buttons));
+    m_message_box = std::make_unique<MessageBox>(m_lvgl_input_dev, title, text, std::move(buttons));
 }

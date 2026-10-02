@@ -23,7 +23,6 @@ application_state:
   position: {}
   pixel_position: {}
   reset_trip: 0
-  tile_loaded: 0
   trip_distance: 0
   trip_duration: 0s
   trip_max_speed: 0

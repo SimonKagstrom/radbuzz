@@ -12,6 +12,8 @@
 #include "input.hh"
 #include "menu_screen.hh"
 #include "message_box.hh"
+#include "messages.hh"
+#include "post_office.hh"
 #include "speech_bubble.hh"
 #include "tile_cache.hh"
 #include "trip_computer.hh"
@@ -114,6 +116,7 @@ public:
                   std::unique_ptr<hal::IPm::ILock> pm_lock,
                   hal::IInput& input,
                   ApplicationState& state,
+                  PostOffice<MSG::AllMessages>& post_office,
                   ImageCache& cache,
                   TileCache& tile_cache,
                   TripComputer& trip_computer);
@@ -188,6 +191,7 @@ private:
     hal::IInput& m_input;
 
     ApplicationState& m_state;
+    PostOffice<MSG::AllMessages>& m_post_office;
 
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;
@@ -213,6 +217,7 @@ private:
     std::unique_ptr<ListenerCookie> m_state_listener;
     std::unique_ptr<ListenerCookie> m_cache_listener;
     std::unique_ptr<ListenerCookie> m_input_listener;
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 
     os::TimerHandle m_trip_start_initial_timer;
     os::TimerHandle m_menu_destructor;
