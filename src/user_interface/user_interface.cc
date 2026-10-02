@@ -204,7 +204,6 @@ UserInterface::OnStartup()
 
     // The battery icon is at the top right, and the rest in a column to the lright
     constexpr auto kIndicatorRowSpacing = 46;
-    constexpr auto kIndicatorColumn = hal::kDisplayWidth - kPowerBarWidth - 48;
     auto indicator_row_y = DigitalSpeedometerWidget::kBoxDimensions - 46;
 
 

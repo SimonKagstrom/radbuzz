@@ -6,6 +6,7 @@
 #include "radbuzz_font_22.h"
 #include "radbuzz_font_40.h"
 #include "radbuzz_numbers_font_16.h"
+#include "side_pane.hh"
 #include "time_string.hh"
 #include "trip_utils.hh"
 
@@ -13,91 +14,94 @@ constexpr auto kMaxHistogramBarHeight = 150;
 constexpr auto kHistogramBarWidth = 58;
 constexpr auto kHistogramBarSpacing = kHistogramBarWidth + 7;
 
+constexpr auto kSpeedometerBoxY = 80;
+// With the side pane: centered between the pane and the indicator icons (and vertically)
+constexpr auto kSpeedometerBoxSidePaneXOffset =
+    (SidePane::kWidth + kIndicatorColumn) / 2 - hal::kDisplayWidth / 2;
+
+constexpr Point kBatteryPosition {0, 4};
+// Just right of the side pane
+constexpr Point kBatterySidePanePosition {SidePane::kWidth + 8, 4};
+
+// The bottom of the power/consumption descriptions, above the histogram
+constexpr auto kPowerDescriptionBottom =
+    hal::kDisplayHeight - kMaxHistogramBarHeight - kPixelSize_radbuzz_font_40 - 16;
+constexpr auto kPowerX = -110;
+constexpr auto kConsumptionX = 80;
+
 namespace
 {
 
-auto
-CreateDatum(lv_obj_t* screen, const char* label_text, const char* value_text, const char* unit_text)
+// A transparent container, sized after the contents
+lv_obj_t*
+CreateContainer(lv_obj_t* parent, lv_flex_flow_t flow)
 {
-    SpeedometerOnlyScreen::Datum datum;
+    auto obj = lv_obj_create(parent);
 
-    datum.description_label = lv_label_create(screen);
-    lv_obj_set_style_text_font(datum.description_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(datum.description_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_remove_style_all(obj);
+    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_flex_flow(obj, flow);
 
-    datum.value_unit_label = lv_label_create(screen);
-    lv_obj_set_style_text_font(datum.value_unit_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(datum.value_unit_label, lv_color_white(), LV_PART_MAIN);
+    return obj;
+}
 
-    datum.value_label = lv_label_create(screen);
-    lv_obj_set_style_text_font(datum.value_label, &radbuzz_font_40, LV_PART_MAIN);
-    lv_obj_set_style_text_color(datum.value_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+lv_obj_t*
+CreateLabel(lv_obj_t* parent, const lv_font_t* font, const char* text)
+{
+    auto label = lv_label_create(parent);
 
-    lv_label_set_text(datum.description_label, label_text);
-    lv_label_set_text(datum.value_label, value_text);
-    lv_label_set_text(datum.value_unit_label, unit_text);
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
+    lv_label_set_text(label, text);
 
-    return datum;
+    return label;
+}
+
+// The top of the power/consumption datums
+int32_t
+PowerY()
+{
+    return kPowerDescriptionBottom - lv_font_get_line_height(&radbuzz_font_22);
 }
 
 } // namespace
 
 SpeedometerOnlyScreen::Datum
-SpeedometerOnlyScreen::LeftAligned(const char* label_text,
+SpeedometerOnlyScreen::CreateDatum(DatumAlignment alignment,
+                                   const char* label_text,
                                    const char* value_text,
-                                   const char* unit_text,
-                                   lv_align_t alignment,
-                                   Point offset)
+                                   const char* unit_text)
 {
-    auto datum = CreateDatum(m_screen, label_text, value_text, unit_text);
+    Datum datum;
 
-    lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
-    lv_obj_align_to(datum.value_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 4);
-    lv_obj_align_to(datum.value_unit_label, datum.value_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 4, -4);
+    const auto cross_alignment = alignment == DatumAlignment::kLeft     ? LV_FLEX_ALIGN_START
+                                 : alignment == DatumAlignment::kCenter ? LV_FLEX_ALIGN_CENTER
+                                                                        : LV_FLEX_ALIGN_END;
 
+    // The description, with the value + unit under it
+    datum.container = CreateContainer(m_screen, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(datum.container, LV_FLEX_ALIGN_START, cross_alignment, cross_alignment);
+    lv_obj_set_style_pad_row(datum.container, 4, LV_PART_MAIN);
+
+    datum.description_label = CreateLabel(datum.container, &radbuzz_font_22, label_text);
+
+    // The bottom of the unit and value aligned
+    auto value_row = CreateContainer(datum.container, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(value_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
+    lv_obj_set_style_pad_column(value_row, 4, LV_PART_MAIN);
+
+    // At least as wide as the initial text, and right aligned in that. Keeps the unit in place
+    // for shorter values
+    datum.value_label = CreateLabel(value_row, &radbuzz_font_40, value_text);
     lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-
-    return datum;
-}
-
-SpeedometerOnlyScreen::Datum
-SpeedometerOnlyScreen::CenterAligned(const char* label_text,
-                                     const char* value_text,
-                                     const char* unit_text,
-                                     lv_align_t alignment,
-                                     Point offset)
-{
-    auto datum = CreateDatum(m_screen, label_text, value_text, unit_text);
-
-    lv_obj_set_style_text_align(datum.description_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-
-    lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
-    lv_obj_align_to(datum.value_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_MID, -16, 4);
-    lv_obj_align_to(datum.value_unit_label, datum.value_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 4, -4);
-
-    return datum;
-}
-
-SpeedometerOnlyScreen::Datum
-SpeedometerOnlyScreen::RightAligned(const char* label_text,
-                                    const char* value_text,
-                                    const char* unit_text,
-                                    lv_align_t alignment,
-                                    Point offset)
-{
-    auto datum = CreateDatum(m_screen, label_text, value_text, unit_text);
-
-    lv_obj_set_style_text_align(datum.value_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.description_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-    lv_obj_set_style_text_align(datum.value_unit_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-
-    lv_obj_align(datum.description_label, alignment, offset.x, offset.y);
-    lv_obj_align_to(
-        datum.value_unit_label, datum.description_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 4 + 7);
-    lv_obj_align_to(datum.value_label, datum.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
+    lv_obj_update_layout(datum.value_label);
+    lv_obj_set_style_min_width(
+        datum.value_label, lv_obj_get_width(datum.value_label), LV_PART_MAIN);
+    datum.value_unit_label = CreateLabel(value_row, &radbuzz_font_22, unit_text);
+    // Slightly above the bottom of the (larger) value font
+    lv_obj_set_style_pad_bottom(datum.value_unit_label, 4, LV_PART_MAIN);
 
     return datum;
 }
@@ -108,9 +112,25 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     const lv_color_t kBackgroundColor = lv_color_make(47, 47, 58);
     const lv_color_t kBarColor = lv_color_make(128, 128, 128);
 
-    // Callback to draw histogram lines on the background
+    lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(m_screen, kBackgroundColor, 0);
+
+    // The histogram (bars, labels and lines), so that it can be hidden as a whole. Covers the
+    // screen, so that the alignments are the same as for the screen
+    m_histogram = lv_obj_create(m_screen);
+    lv_obj_set_size(m_histogram, hal::kDisplayWidth, hal::kDisplayHeight);
+    lv_obj_set_pos(m_histogram, 0, 0);
+    lv_obj_set_style_bg_opa(m_histogram, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(m_histogram, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(m_histogram, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(m_histogram, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(m_histogram, LV_OBJ_FLAG_SCROLLABLE);
+    // Let touch (swipes) through to the screen
+    lv_obj_clear_flag(m_histogram, LV_OBJ_FLAG_CLICKABLE);
+
+    // Callback to draw histogram lines on the background (not called when hidden)
     lv_obj_add_event_cb(
-        m_screen,
+        m_histogram,
         [](lv_event_t* e) {
             auto* self = static_cast<SpeedometerOnlyScreen*>(lv_event_get_user_data(e));
             auto* layer = lv_event_get_layer(e);
@@ -120,14 +140,10 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
         LV_EVENT_DRAW_MAIN,
         this);
 
-
-    lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(m_screen, kBackgroundColor, 0);
-
     // Recent power averages
     for (auto i = 0; i < TripComputer::kNumberOfRecentEntries; ++i)
     {
-        auto bar = lv_obj_create(m_screen);
+        auto bar = lv_obj_create(m_histogram);
         lv_obj_set_size(bar, kHistogramBarWidth, 0);
         lv_obj_set_style_bg_color(bar, kBarColor, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(bar, LV_OPA_100, LV_PART_MAIN);
@@ -139,7 +155,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
         m_recent_entry_bars.push_back(bar);
     }
 
-    m_current_histogram_bar_label = lv_label_create(m_screen);
+    m_current_histogram_bar_label = lv_label_create(m_histogram);
     lv_obj_set_style_text_font(m_current_histogram_bar_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_current_histogram_bar_label, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_align(m_current_histogram_bar_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -148,8 +164,8 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 
     for (auto i = 0; i < m_recent_entry_labels.size(); ++i)
     {
-        auto vertical = lv_label_create(m_screen);
-        auto horizontal = lv_label_create(m_screen);
+        auto vertical = lv_label_create(m_histogram);
+        auto horizontal = lv_label_create(m_histogram);
 
         lv_obj_set_style_text_font(vertical, &radbuzz_numbers_font_16, LV_PART_MAIN);
         lv_obj_set_style_text_color(vertical, lv_color_white(), LV_PART_MAIN);
@@ -194,7 +210,6 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_scrollbar_mode(m_speedometer_box, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(m_speedometer_box, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_align(m_speedometer_box, LV_ALIGN_TOP_MID, 0, 80);
 
 
     m_speedometer_label = lv_label_create(m_speedometer_box);
@@ -209,7 +224,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_text_color(m_small_speedometer_label, lv_color_white(), LV_PART_MAIN);
     lv_label_set_text(m_small_speedometer_label, "19");
 
-    m_speedometer_unit_label = lv_label_create(m_screen);
+    m_speedometer_unit_label = lv_label_create(m_speedometer_box);
     lv_obj_align_to(m_speedometer_unit_label, m_speedometer_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 0, 0);
     lv_obj_set_style_text_font(m_speedometer_unit_label, &radbuzz_font_22, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_speedometer_unit_label, lv_color_white(), LV_PART_MAIN);
@@ -225,36 +240,28 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     lv_obj_set_style_text_align(m_small_speedometer_unit_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
 
-    m_battery = LeftAligned("Battery", "100", "%", LV_ALIGN_TOP_LEFT, {0, 4});
+    m_battery = CreateDatum(DatumAlignment::kLeft, "Battery", "100", "%");
+    m_range = CreateDatum(DatumAlignment::kLeft, "Range", "999", "km");
+    m_range.Align(LV_ALIGN_TOP_LEFT,
+                  {0, kPixelSize_radbuzz_font_40 + kPixelSize_radbuzz_font_22 + 10});
+
     m_temperature =
-        RightAligned("Controller/Motor/BMS/Cell", "0/0/0/0", "°C", LV_ALIGN_TOP_RIGHT, {-16, 4});
+        CreateDatum(DatumAlignment::kRight, "Controller/Motor/BMS/Cell", "0/0/0/0", "°C");
+    m_temperature.Align(LV_ALIGN_TOP_RIGHT, {-16, 4});
 
     // Align both these to the longest realistic distance
     constexpr auto kMaxGoodLookingDistance = "99.9";
-    m_trip_distance = RightAligned("Trip",
-                                   kMaxGoodLookingDistance,
-                                   "m",
-                                   LV_ALIGN_BOTTOM_RIGHT,
-                                   {-20, -kPixelSize_radbuzz_font_40 * 2});
-    m_trip_time = RightAligned(
-        "", kMaxGoodLookingDistance, "", LV_ALIGN_BOTTOM_RIGHT, {-14, -kPixelSize_radbuzz_font_40});
+    m_trip_distance = CreateDatum(DatumAlignment::kRight, "Trip", kMaxGoodLookingDistance, "m");
+    m_trip_distance.Align(LV_ALIGN_BOTTOM_RIGHT, {-20, -kPixelSize_radbuzz_font_40});
+    m_trip_time = CreateDatum(DatumAlignment::kRight, "", kMaxGoodLookingDistance, "");
+    m_trip_time.Align(LV_ALIGN_BOTTOM_RIGHT, {-14, 0});
 
-    m_range = LeftAligned("Range",
-                          "999",
-                          "km",
-                          LV_ALIGN_TOP_LEFT,
-                          {0, kPixelSize_radbuzz_font_40 + kPixelSize_radbuzz_font_22 + 10});
+    m_power = CreateDatum(DatumAlignment::kCenter, "Power", "1800", "W");
+    m_consumption = CreateDatum(DatumAlignment::kCenter, "Consumption", "18.9", "Wh/km");
+    m_consumption.Align(LV_ALIGN_TOP_MID, {kConsumptionX, PowerY()});
 
-    m_power = CenterAligned("Power",
-                            "1800",
-                            "W",
-                            LV_ALIGN_BOTTOM_MID,
-                            {-110, -kMaxHistogramBarHeight - kPixelSize_radbuzz_font_40 - 16});
-    m_consumption = CenterAligned("Consumption",
-                                  "18.9",
-                                  "Wh/km",
-                                  LV_ALIGN_BOTTOM_MID,
-                                  {80, -kMaxHistogramBarHeight - kPixelSize_radbuzz_font_40 - 16});
+    // The battery, power and speedometer are moved when the side pane is shown
+    LayoutForSidePane(false);
 
     // Never show
     lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, true);
@@ -350,6 +357,12 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_trip_distance.value_label, trip_value_text.c_str());
 
 
+    if (const auto side_pane_shown = m_parent.SidePaneShown();
+        side_pane_shown != m_laid_out_for_side_pane)
+    {
+        LayoutForSidePane(side_pane_shown);
+    }
+
     auto recent_entries = m_parent.m_trip_computer.GetRecentEntries();
     debug_assert(recent_entries.size() == m_recent_entry_bars.size());
 
@@ -406,25 +419,40 @@ SpeedometerOnlyScreen::Update()
             .c_str());
 
 
-    // Dynamic alignment
-    lv_obj_align_to(
-        m_battery.value_label, m_battery.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
-    lv_obj_align_to(m_power.value_label, m_power.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
-    lv_obj_align_to(m_range.value_label, m_range.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
-    lv_obj_align_to(m_trip_distance.value_unit_label,
-                    m_trip_distance.description_label,
-                    LV_ALIGN_OUT_BOTTOM_RIGHT,
-                    0,
-                    4 + 7);
-    lv_obj_align_to(m_trip_distance.value_label,
-                    m_trip_distance.value_unit_label,
-                    LV_ALIGN_OUT_LEFT_BOTTOM,
-                    -4,
-                    4);
-    lv_obj_align_to(
-        m_trip_time.value_label, m_trip_time.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
-    lv_obj_align_to(
-        m_temperature.value_label, m_temperature.value_unit_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 4);
+    // Re-align the datums placed relative to other objects, since the values change size
+    for (auto datum : {&m_battery,
+                       &m_temperature,
+                       &m_trip_distance,
+                       &m_trip_time,
+                       &m_range,
+                       &m_power,
+                       &m_consumption})
+    {
+        datum->Refresh();
+    }
+}
+
+void
+SpeedometerOnlyScreen::LayoutForSidePane(bool shown)
+{
+    m_laid_out_for_side_pane = shown;
+
+    lv_obj_set_flag(m_histogram, LV_OBJ_FLAG_HIDDEN, shown);
+    m_range.SetHidden(shown);
+    m_consumption.SetHidden(shown);
+
+    if (shown)
+    {
+        lv_obj_align(m_speedometer_box, LV_ALIGN_CENTER, kSpeedometerBoxSidePaneXOffset, 0);
+        m_battery.Align(LV_ALIGN_TOP_LEFT, kBatterySidePanePosition);
+        m_power.AlignTo(m_speedometer_box, LV_ALIGN_OUT_BOTTOM_MID, {0, 8});
+    }
+    else
+    {
+        lv_obj_align(m_speedometer_box, LV_ALIGN_TOP_MID, 0, kSpeedometerBoxY);
+        m_battery.Align(LV_ALIGN_TOP_LEFT, kBatteryPosition);
+        m_power.Align(LV_ALIGN_TOP_MID, {kPowerX, PowerY()});
+    }
 }
 
 void

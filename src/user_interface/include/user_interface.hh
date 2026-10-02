@@ -31,6 +31,8 @@ class IncomingCallScreen;
 class SidePane;
 
 constexpr auto kPowerBarWidth = 10;
+// The x position of the indicator icons at the right
+constexpr auto kIndicatorColumn = hal::kDisplayWidth - kPowerBarWidth - 48;
 
 class UserInterface : public os::BaseThread
 {
