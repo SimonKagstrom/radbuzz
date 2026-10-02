@@ -79,9 +79,6 @@ parameters:
   pixel_position:
     type: struct Point
 
-  reset_trip:
-    type: Event
-
   overheated:
     type: bool
 

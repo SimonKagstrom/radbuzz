@@ -339,7 +339,7 @@ UserInterface::DrawPowerBar(uint16_t* dst)
 void
 UserInterface::ResetTrip()
 {
-    m_state.CheckoutReadWrite().Post<AS::reset_trip>();
+    m_post_office.Send<MSG::reset_trip>();
 
     auto ro = m_state.CheckoutReadonly();
 

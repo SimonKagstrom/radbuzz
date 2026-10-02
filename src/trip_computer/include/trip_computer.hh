@@ -2,7 +2,9 @@
 
 #include "application_state.hh"
 #include "base_thread.hh"
+#include "messages.hh"
 #include "os/memory.hh"
+#include "post_office.hh"
 #include "trip_computer.hh"
 #include "trip_log.hh"
 #include "wgs84_to_osm_point.hh"
@@ -42,7 +44,7 @@ public:
 
     static constexpr auto kNumberOfRecentEntries = 10;
 
-    explicit TripComputer(ApplicationState& app_state);
+    explicit TripComputer(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office);
 
     std::pair<std::unique_lock<etl::mutex>, std::span<const DisplayTripLogEntry>> GetDisplayLog();
     std::span<const RecentEntry> GetRecentEntries();
@@ -88,9 +90,9 @@ private:
     ApplicationState& m_state;
 
     std::unique_ptr<ListenerCookie> m_state_listener;
-    ApplicationState::PartialReadOnlyCache<AS::reset_trip> m_state_cache;
     os::TimerHandle m_soc_timer;
     uint8_t m_last_soc {0};
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 
     os::TimerHandle m_moving_timer;
     uint32_t m_trip_start_distance {0};

@@ -13,6 +13,7 @@ PUBLIC
     base_thread
     wgs84_to_osm_point
     bresenham
+    radbuzz_messages
 PRIVATE
     ble_handler
 )

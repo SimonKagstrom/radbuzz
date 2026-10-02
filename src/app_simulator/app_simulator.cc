@@ -269,8 +269,9 @@ constexpr auto kImages = std::array {
     },
 };
 
-AppSimulator::AppSimulator(ApplicationState& app_state)
+AppSimulator::AppSimulator(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office)
     : m_application_state(app_state)
+    , m_post_office(post_office)
     , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
     , m_state_cache(m_application_state)
     , m_bresenham(*Wgs84ToOsmPoint(kDemoPoints[0], kDefaultZoom),
@@ -326,7 +327,7 @@ AppSimulator::OnActivation()
             rw.Set<AS::bms_data>(BmsData {});
         }
 
-        rw.Post<AS::reset_trip>();
+        m_post_office.Send<MSG::reset_trip>();
     });
 
     if (demo_active == false)

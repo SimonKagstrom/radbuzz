@@ -24,7 +24,6 @@ constexpr auto kMillivoltSocTable = std::array {std::pair<uint16_t, uint8_t> {32
                                                 std::pair<uint16_t, uint8_t> {4200, 100}};
 
 
-
 uint8_t
 InterpolateSoc(uint16_t millivolts, uint8_t battery_series)
 {
@@ -56,16 +55,16 @@ InterpolateSoc(uint16_t millivolts, uint8_t battery_series)
 }
 } // namespace
 
-TripComputer::TripComputer(ApplicationState& app_state)
+TripComputer::TripComputer(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office)
     : m_state(app_state)
     , m_state_listener(m_state.AttachListener<AS::configuration,
                                               AS::can_bus_active,
                                               AS::odometer,
-                                              AS::reset_trip,
                                               AS::pixel_position>(GetSemaphore()))
-    , m_state_cache(m_state)
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
+    m_mailbox = post_office.Subscribe<MSG::reset_trip>(GetSemaphore());
+
     // Fill with zeroes to start from the rightmost point
     for (auto i = 0; i < kNumberOfRecentEntries; ++i)
     {
@@ -320,12 +319,7 @@ TripComputer::FreeLogEntry(LogHandle handle)
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
-    auto& co = m_state_cache.Pull();
-
-    if (co.IsChanged<AS::reset_trip>())
-    {
-        ResetTrip();
-    }
+    m_mailbox->Collect().On<MSG::reset_trip>([this]() { ResetTrip(); });
 
     UpdateTripLog();
 
@@ -392,7 +386,7 @@ TripComputer::UpdateTripLog()
     auto now = os::GetTimeStamp();
     auto power = ro.Get<AS::current_power_w>();
 
-//    m_export_log.AddEntry(position, now, power);
+    //    m_export_log.AddEntry(position, now, power);
     auto new_entry_handle = m_display_log.AddEntry(position, now, power);
 
     if (new_entry_handle.has_value())

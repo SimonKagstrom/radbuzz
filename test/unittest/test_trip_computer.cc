@@ -21,7 +21,9 @@ public:
 
 
     ApplicationState state;
-    TripComputer trip_computer {state};
+    PostOffice<MSG::AllMessages> post_office;
+
+    TripComputer trip_computer {state, post_office};
 };
 
 } // namespace
@@ -130,7 +132,7 @@ TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
 
         WHEN("the trip is reset")
         {
-            rw.Post<AS::reset_trip>();
+            post_office.Send<MSG::reset_trip>();
             DoRunLoop();
 
             THEN("the trip duration is reset")
@@ -199,7 +201,8 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
 
         WHEN("the trip is reset")
         {
-            rw.Post<AS::reset_trip>();
+            post_office.Send<MSG::reset_trip>();
+
             DoRunLoop();
 
             THEN("the trip speed and distance are reset")

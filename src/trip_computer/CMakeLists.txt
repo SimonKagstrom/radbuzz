@@ -13,4 +13,5 @@ PUBLIC
     base_thread
     application_state
     wgs84_to_osm_point
+    radbuzz_messages
 )

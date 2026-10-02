@@ -4,6 +4,8 @@
 #include "base_thread.hh"
 #include "bresenham.hh"
 #include "hal/i_gps.hh"
+#include "messages.hh"
+#include "post_office.hh"
 #include "wgs84_to_osm_point.hh"
 
 #include <random>
@@ -13,7 +15,7 @@
 class AppSimulator : public os::BaseThread
 {
 public:
-    explicit AppSimulator(ApplicationState& app_state);
+    explicit AppSimulator(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office);
 
 private:
     std::optional<milliseconds> OnActivation() final;
@@ -21,6 +23,7 @@ private:
     void SetupStreetOrder();
 
     ApplicationState& m_application_state;
+    PostOffice<MSG::AllMessages>& m_post_office;
 
     std::random_device m_random_device;
     std::linear_congruential_engine<uint32_t, 48271, 0, 2147483647> m_random_engine {

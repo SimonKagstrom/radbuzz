@@ -96,8 +96,8 @@ main(int argc, char* argv[])
     auto storage = std::make_unique<Storage>(application_state, *nvm_host);
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
-    auto trip_computer = std::make_unique<TripComputer>(application_state);
-    auto app_simulator = std::make_unique<AppSimulator>(application_state);
+    auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler =

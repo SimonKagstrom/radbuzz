@@ -19,7 +19,11 @@ struct tile_loaded
 {
 };
 
-using AllMessages = std::tuple<incoming_call, tile_loaded>;
+struct reset_trip
+{
+};
+
+using AllMessages = std::tuple<incoming_call, tile_loaded, reset_trip>;
 
 constexpr auto kMessageCount = std::tuple_size_v<AllMessages>;
 

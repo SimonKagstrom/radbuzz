@@ -695,7 +695,7 @@ app_main(void)
     auto tile_cache = std::make_unique<TileCache>(
         application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
 
-    auto trip_computer = std::make_unique<TripComputer>(application_state);
+    auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
 
     //    constexpr auto kFullRotation = 2400;
     //    auto speedometer_handler =
@@ -722,7 +722,7 @@ app_main(void)
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
 
     auto ble_server = std::make_unique<BleServerEsp32>();
-    auto app_simulator = std::make_unique<AppSimulator>(application_state);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
     auto ble_handler =
         std::make_unique<BleHandler>(*ble_server, *ble_server, application_state, *image_cache);
