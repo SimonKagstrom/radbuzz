@@ -204,3 +204,26 @@ public:
 private:
     std::string m_text;
 };
+
+
+class CallIndicator final : public UserInterface::IndicatorBase
+{
+public:
+    using UserInterface::IndicatorBase::IndicatorBase;
+
+    CallIndicator(UserInterface& parent, const Point& position)
+        : UserInterface::IndicatorBase(parent, position)
+    {
+        lv_label_set_text(m_indicator_label, std::format("#4CAF50 {}# ", LV_SYMBOL_CALL).c_str());
+    }
+
+    void Update(ApplicationState& state) final
+    {
+        lv_obj_set_flag(m_indicator_label,
+                        LV_OBJ_FLAG_HIDDEN,
+                        !state.Get<AS::call_ongoing>() || m_parent.OnCallScreen());
+    }
+
+private:
+    std::string m_text;
+};

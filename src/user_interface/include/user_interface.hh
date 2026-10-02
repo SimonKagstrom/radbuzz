@@ -138,6 +138,11 @@ public:
         return m_current_screen == m_speedometer_only_screen.get();
     }
 
+    bool OnCallScreen() const
+    {
+        return m_current_screen == m_incoming_call_screen.get();
+    }
+
     void ShowHelp()
     {
         SetHelp(true);

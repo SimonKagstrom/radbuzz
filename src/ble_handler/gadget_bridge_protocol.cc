@@ -297,3 +297,22 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
         return std::nullopt;
     });
 }
+
+
+// Todo: Handle messages:
+//GB : {
+//    "actions" : [ {"title" : "Archive"}, {"title" : "Delete"}, {"title" : "Mark as read"} ],
+//    "body" :
+//        "Logga in för att behålla ditt konto\nSpara pengar med Prisjakt\nLadda ner appen\nDagens "
+//        "deals\nLadda ner appen\nDags att logga in!\nFör att behålla ditt konto på Prisjakt "
+//        "behöver du logga in – snarast. Annars stänger vi kontot enligt våra regler för inaktiva "
+//        "konton, och du förlorar sparade produkter, listor och prisbevakningar. Det vore väldigt "
+//        "tråkigt, tycker vi.\nDessutom har Prisjakt blivit ännu sm...",
+//    "id" : 1790422616,
+//    "reply" : true,
+//    "sender" : "",
+//    "src" : "Gmail",
+//    "subject" : "",
+//    "t" : "notify",
+//    "title" : "Prisjakt"
+//}

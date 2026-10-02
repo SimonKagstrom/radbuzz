@@ -511,7 +511,7 @@ SpeedometerOnlyScreen::SetHelp(bool on)
         std::make_unique<SpeechBubble>(m_temperature.description_label,
                                        SpeechBubble::Direction::kLeft,
                                        "Temperatures of the controller etc,\nif available",
-                                       Point {0, 16}));
+                                       Point {0, 20}));
     m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(m_trip_time.value_label,
                                                                    SpeechBubble::Direction::kLeft,
                                                                    "Current trip time and distance",

@@ -20,6 +20,7 @@ enum IndicatorType
     kPaused,
     kWifi,
     kBluetooth,
+    kCallOngoing,
 
     kValueCount,
 };
@@ -72,7 +73,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::turn_symbol,
                                               AS::is_moving,
                                               AS::wh_consumed,
-                                              AS::wh_regenerated>(GetSemaphore());
+                                              AS::wh_regenerated,
+                                              AS::call_ongoing>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
     m_mailbox = m_post_office.Subscribe<MSG::incoming_call, MSG::tile_loaded, MSG::call_ended>(
         GetSemaphore());
@@ -203,6 +205,8 @@ UserInterface::OnStartup()
     m_indicators.resize(std::to_underlying(IndicatorType::kValueCount));
     m_indicators[IndicatorType::kBattery] = std::make_unique<BatteryIndicator>(
         *this, Point {hal::kDisplayWidth - DigitalSpeedometerWidget::kBoxDimensions - 72, 0});
+    m_indicators[IndicatorType::kCallOngoing] =
+        std::make_unique<CallIndicator>(*this, Point {hal::kDisplayWidth / 2, 0});
 
     m_indicators[IndicatorType::kOverheated] = std::make_unique<OverheatedIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
@@ -250,6 +254,11 @@ UserInterface::SetHelp(bool on)
         return;
     }
 
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kCallOngoing]->m_indicator_label,
+                                       SpeechBubble::Direction::kBelow,
+                                       "Call ongoing",
+                                    Point {4, 30}));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kOverheated]->m_indicator_label,
