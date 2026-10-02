@@ -107,10 +107,32 @@ JsToJson(std::string_view s)
 
 } // namespace
 
-GadgetBridgeProtocol::GadgetBridgeProtocol(os::TimerManager& timer_manager, ApplicationState& state)
+GadgetBridgeProtocol::GadgetBridgeProtocol(os::TimerManager& timer_manager,
+                                           ApplicationState& state,
+                                           PostOffice<MSG::AllMessages>& post_office,
+                                           IEventNotifier& notifier)
     : m_timer_manager(timer_manager)
     , m_state(state)
+    , m_post_office(post_office)
 {
+    m_mailbox =
+        m_post_office.Subscribe<MSG::answer_call, MSG::decline_call, MSG::hangup_call>(notifier);
+}
+
+void
+GadgetBridgeProtocol::SendCallControl(std::string_view command)
+{
+    // Gadgetbridge maps "n" (case insensitive) to GBDeviceEventCallControl.Event
+    Send({{"t", "call"}, {"n", command}});
+}
+
+void
+GadgetBridgeProtocol::Poll()
+{
+    m_mailbox->Collect()
+        .On<MSG::answer_call>([this]() { SendCallControl("accept"); })
+        .On<MSG::decline_call>([this]() { SendCallControl("reject"); })
+        .On<MSG::hangup_call>([this]() { SendCallControl("end"); });
 }
 
 std::optional<nlohmann::json>
@@ -176,12 +198,50 @@ GadgetBridgeProtocol::PushLine(std::string_view line)
     {
         HandleNavigationEvent(*json);
     }
+    else if (type == "call")
+    {
+        HandleCallEvent(*json);
+    }
     else if (type == "is_gps_active")
     {
         // Has GPS
         Send({{"t", "gps_power"},
               {"status", m_state.Get<AS::gps_status>() == GpsStatus::kPositionValid}});
     }
+}
+
+void
+GadgetBridgeProtocol::HandleCallEvent(const nlohmann::json& json)
+{
+    /*
+     * The cmd is the CallSpec command, so something like
+     *
+     * {"t":"call","cmd":"incoming","name":"Gregor Samsa","number":"+46701234567"}
+     * {"t":"call","cmd":"start","name":"","number":""}   (answered)
+     * {"t":"call","cmd":"end","name":"","number":""}     (hung up, rejected or missed)
+     *
+     * cmd can also be "outgoing", "accept", "reject" or "undefined".
+     */
+    if (!json.contains("cmd") || !json.at("cmd").is_string())
+    {
+        return;
+    }
+
+    auto get_string = [&json](const char* key) {
+        return json.contains(key) && json.at(key).is_string() ? json.at(key).get<std::string>()
+                                                              : std::string();
+    };
+    const auto cmd = get_string("cmd");
+
+    if (cmd == "incoming")
+    {
+        m_post_office.Send<MSG::incoming_call>({get_string("number"), get_string("name")});
+    }
+    else if (cmd == "end" || cmd == "reject")
+    {
+        m_post_office.Send<MSG::call_ended>();
+    }
+    // TODO: "start" (answered, possibly on the phone) for the ongoing call indicator
 }
 
 void

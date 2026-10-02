@@ -106,6 +106,10 @@ IncomingCallScreen::OnActivation()
 {
     Select(std::nullopt);
     m_exit_requested = false;
+    m_exit_timer = m_parent.StartTimer(30s, [this]() {
+        m_parent.HideIncomingCall();
+        return std::nullopt;
+    });
 }
 
 void

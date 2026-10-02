@@ -170,6 +170,8 @@ private:
     void DrawPowerBar(uint16_t* dst);
 
     void ShowIncomingCall(const MSG::incoming_call& call);
+    // The call ended on the phone side (hung up, missed, ...)
+    void HideIncomingCall();
     // Return to the screen which was active before the call
     void EndIncomingCall();
 

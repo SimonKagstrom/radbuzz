@@ -76,6 +76,18 @@ public:
 };
 
 
+class NullNotifier : public IEventNotifier
+{
+public:
+    void Notify() final
+    {
+    }
+
+    void NotifyFromIsr() final
+    {
+    }
+};
+
 class Fixture : public ThreadFixture
 {
 public:
@@ -86,9 +98,10 @@ public:
 
     BleServerStub srv;
     ApplicationState state;
+    PostOffice<MSG::AllMessages> post_office;
     ImageCache cache;
 
-    BleHandler ble {srv, srv, state, cache};
+    BleHandler ble {srv, srv, state, post_office, cache};
 };
 
 } // namespace
@@ -187,6 +200,96 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler replies to GPS status requests")
 
     auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
     REQUIRE(srv.notified[tx[0]] == "{\"status\":false,\"t\":\"gps_power\"}\r\n");
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbridge")
+{
+    NullNotifier notifier;
+    auto mailbox = post_office.Subscribe<MSG::incoming_call, MSG::call_ended>(notifier);
+
+    ble.Start("ble");
+
+    WHEN("an incoming call is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"call\",\"cmd\":\"incoming\",\"name\":\"Gregor "
+                   "Samsa\",\"number\":\"+46701234567\"})\n");
+        DoRunLoop();
+
+        THEN("the caller is sent as a message")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::incoming_call>());
+            CHECK(msg->As<MSG::incoming_call>()->caller_name == "Gregor Samsa");
+            CHECK(msg->As<MSG::incoming_call>()->caller_number == "+46701234567");
+        }
+    }
+
+    WHEN("the call ends")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"call\",\"cmd\":\"end\",\"name\":\"\",\"number\":\"\"})\n");
+        DoRunLoop();
+
+        THEN("that is sent as a message")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::call_ended>());
+        }
+    }
+
+    WHEN("the call is answered")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"call\",\"cmd\":\"start\",\"name\":\"\",\"number\":\"\"})\n");
+        DoRunLoop();
+
+        THEN("no message is sent (for now)")
+        {
+            REQUIRE(mailbox->Pop() == std::nullopt);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler sends call control to Gadgetbridge")
+{
+    ble.Start("ble");
+    auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
+
+    WHEN("the call is answered")
+    {
+        post_office.Send<MSG::answer_call>();
+        DoRunLoop();
+
+        THEN("accept is sent")
+        {
+            REQUIRE(srv.notified[tx[0]] == "{\"n\":\"accept\",\"t\":\"call\"}\r\n");
+        }
+    }
+
+    WHEN("the call is declined")
+    {
+        post_office.Send<MSG::decline_call>();
+        DoRunLoop();
+
+        THEN("reject is sent")
+        {
+            REQUIRE(srv.notified[tx[0]] == "{\"n\":\"reject\",\"t\":\"call\"}\r\n");
+        }
+    }
+
+    WHEN("the call is hung up")
+    {
+        post_office.Send<MSG::hangup_call>();
+        DoRunLoop();
+
+        THEN("end is sent")
+        {
+            REQUIRE(srv.notified[tx[0]] == "{\"n\":\"end\",\"t\":\"call\"}\r\n");
+        }
+    }
 }
 
 TEST_SUITE_END();

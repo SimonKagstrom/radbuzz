@@ -3,9 +3,11 @@
 BleHandler::BleHandler(hal::IBleServer& server,
                        hal::IBleClient& client,
                        ApplicationState& state,
+                       PostOffice<MSG::AllMessages>& post_office,
                        ImageCache& cache)
     : m_server(server)
     , m_state(state)
+    , m_post_office(post_office)
     , m_image_cache(cache)
     , m_gadget_bridge_transport(server, m_gadget_bridge_protocol)
 {
@@ -42,6 +44,7 @@ BleHandler::OnStartup()
 std::optional<milliseconds>
 BleHandler::OnActivation()
 {
+    m_gadget_bridge_protocol.Poll();
     m_king_shark_handler->Update();
 
     return std::nullopt;

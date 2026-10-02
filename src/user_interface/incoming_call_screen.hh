@@ -41,4 +41,6 @@ private:
     std::optional<Choice> m_selected;
     // Leave the screen on the next Update, so that the input isn't passed on to the next screen
     bool m_exit_requested {false};
+
+    os::TimerHandle m_exit_timer {nullptr};
 };

@@ -101,7 +101,8 @@ main(int argc, char* argv[])
     auto tile_cache = std::make_unique<TileCache>(
         application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler =
-        std::make_unique<BleHandler>(*ble_server, *ble_client, application_state, *image_cache);
+        std::make_unique<BleHandler>(
+            *ble_server, *ble_client, application_state, post_office, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);

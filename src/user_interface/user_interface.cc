@@ -74,7 +74,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::wh_consumed,
                                               AS::wh_regenerated>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
-    m_mailbox = m_post_office.Subscribe<MSG::incoming_call, MSG::tile_loaded>(GetSemaphore());
+    m_mailbox = m_post_office.Subscribe<MSG::incoming_call, MSG::tile_loaded, MSG::call_ended>(
+        GetSemaphore());
 
     // Context: Interrupt/anoteher thread
     m_input_listener = m_input.AttachListener([this](auto event) {
@@ -355,7 +356,9 @@ UserInterface::ResetTrip()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
-    m_mailbox->Collect().On<MSG::incoming_call>([this](auto call) { ShowIncomingCall(*call); });
+    m_mailbox->Collect()
+        .On<MSG::incoming_call>([this](auto call) { ShowIncomingCall(*call); })
+        .On<MSG::call_ended>([this](auto) { HideIncomingCall(); });
 
     auto& co = m_state_cache.Pull();
     if (co.IsChanged<AS::pixel_position>())
@@ -490,6 +493,18 @@ UserInterface::ShowIncomingCall(const MSG::incoming_call& call)
 
     m_screen_before_call = m_current_screen;
     ActivateScreen(*call_screen, true);
+}
+
+void
+UserInterface::HideIncomingCall()
+{
+    // Already left (e.g., declined here, and this is the phone confirming it)
+    if (m_current_screen != m_incoming_call_screen.get())
+    {
+        return;
+    }
+
+    EndIncomingCall();
 }
 
 void

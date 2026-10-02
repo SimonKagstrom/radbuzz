@@ -27,6 +27,7 @@ PUBLIC
     application_state
     nlohmann_json::nlohmann_json
     post_office
+    radbuzz_messages
 PRIVATE
     radbuzz_interface
 )
