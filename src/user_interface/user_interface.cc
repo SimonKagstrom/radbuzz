@@ -5,6 +5,7 @@
 #include "map_screen.hh"
 #include "painter.hh"
 #include "settings_menu_screen.hh"
+#include "side_pane.hh"
 #include "speedometer_only_screen.hh"
 #include "trip_meter_screen.hh"
 
@@ -85,6 +86,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
         Awake();
     });
 }
+
+UserInterface::~UserInterface() = default;
 
 void
 UserInterface::OnStartup()
@@ -193,6 +196,9 @@ UserInterface::OnStartup()
                  m_speedometer_only_screen.get(),
                  m_settings_menu_screen.get()};
 
+    // Before the widget and indicators on the top layer, so that they are drawn on top of it
+    m_side_pane = std::make_unique<SidePane>(lv_layer_top());
+
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
 
@@ -236,6 +242,20 @@ UserInterface::OnStartup()
 
     m_show_all_indicators_timer = StartTimer(3s, [this]() {
         HideHelp();
+
+        // TMP: Until messages come from Gadgetbridge
+        m_side_pane->AddMessage({
+            .id = 1,
+            .source = "gmail",
+            .title = "Investment proposal",
+            .body = "Dear Sir/Madam,\n\nI am writing to you about a unique investment "
+                    "opportunity. My late uncle left a considerable sum in a bank account, "
+                    "and I need a trustworthy partner to help me move it.\n\nIn return, you "
+                    "will receive 30% of the funds.\n\nPlease reply at your earliest "
+                    "convenience.\n\nYours sincerely,\nA. Prince",
+        });
+        UpdateSidePane();
+
         return std::nullopt;
     });
 }
@@ -258,7 +278,7 @@ UserInterface::SetHelp(bool on)
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kCallOngoing]->m_indicator_label,
                                        SpeechBubble::Direction::kBelow,
                                        "Call ongoing",
-                                    Point {4, 30}));
+                                       Point {4, 30}));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kOverheated]->m_indicator_label,
@@ -368,6 +388,7 @@ UserInterface::OnActivation()
     m_mailbox->Collect()
         .On<MSG::incoming_call>([this](auto call) { ShowIncomingCall(*call); })
         .On<MSG::call_ended>([this](auto) { HideIncomingCall(); });
+    UpdateSidePane();
 
     auto& co = m_state_cache.Pull();
     if (co.IsChanged<AS::pixel_position>())
@@ -382,6 +403,8 @@ UserInterface::OnActivation()
     while (m_input_queue.pop(input_event))
     {
         auto event = input_event.type;
+        // Before the event, since a touch might dismiss it
+        const auto side_pane_shown = m_side_pane->IsShown();
 
         m_enc_diff = 0;
 
@@ -430,11 +453,21 @@ UserInterface::OnActivation()
             // The encoder controls the message box (touch is handled by the modal LVGL object)
             lv_indev_read(m_lvgl_input_dev);
         }
+        else if (side_pane_shown && !is_touch)
+        {
+            // The encoder controls the side pane
+            m_side_pane->HandleInput(input_event);
+        }
+        else if (side_pane_shown && m_side_pane->Contains(input_event.x, input_event.y))
+        {
+            // Touch on the side pane is handled by LVGL
+        }
         else
         {
             m_current_screen->HandleInput(input_event);
         }
     }
+    UpdateSidePane();
 
     if (m_message_box && !m_message_box->IsOpen())
     {
@@ -502,6 +535,18 @@ UserInterface::ShowIncomingCall(const MSG::incoming_call& call)
 
     m_screen_before_call = m_current_screen;
     ActivateScreen(*call_screen, true);
+}
+
+void
+UserInterface::UpdateSidePane()
+{
+    m_side_pane->SetSuppressed(OnCallScreen());
+}
+
+bool
+UserInterface::SidePaneShown() const
+{
+    return m_side_pane->IsShown();
 }
 
 void

@@ -28,6 +28,7 @@ class SettingsMenuScreen;
 class SpeedometerOnlyScreen;
 class HomeIndicator;
 class IncomingCallScreen;
+class SidePane;
 
 constexpr auto kPowerBarWidth = 10;
 
@@ -123,6 +124,8 @@ public:
                   TileCache& tile_cache,
                   TripComputer& trip_computer);
 
+    ~UserInterface() override;
+
     bool OnMapScreen() const
     {
         return m_current_screen == m_map_screen.get();
@@ -142,6 +145,10 @@ public:
     {
         return m_current_screen == m_incoming_call_screen.get();
     }
+
+
+    bool SidePaneShown() const;
+
 
     void ShowHelp()
     {
@@ -177,6 +184,10 @@ private:
     void ShowIncomingCall(const MSG::incoming_call& call);
     // The call ended on the phone side (hung up, missed, ...)
     void HideIncomingCall();
+
+    // Hide the pane during calls
+    void UpdateSidePane();
+
     // Return to the screen which was active before the call
     void EndIncomingCall();
 
@@ -257,6 +268,8 @@ private:
     std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
 
     std::unique_ptr<MessageBox> m_message_box;
+
+    std::unique_ptr<SidePane> m_side_pane;
 
     bool m_help_enabled {false};
 };

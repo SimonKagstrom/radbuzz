@@ -87,6 +87,7 @@ add_library(user_interface EXCLUDE_FROM_ALL
     map_screen.cc
     message_box.cc
     settings_menu_screen.cc
+    side_pane.cc
     speech_bubble.cc
     speedometer_only_screen.cc
     trip_meter_screen.cc
