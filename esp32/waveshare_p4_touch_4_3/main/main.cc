@@ -538,8 +538,9 @@ app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    ApplicationState application_state;
-    PostOffice<MSG::AllMessages> post_office;
+    // Avoid stack allocation
+    static ApplicationState application_state;
+    static PostOffice<MSG::AllMessages> post_office;
 
     gpio_config_t io_conf = {};
     //
