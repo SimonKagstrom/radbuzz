@@ -4,6 +4,7 @@
 #include "cohen_sutherland.hh"
 #include "digital_speedometer_widget.hh"
 #include "lv_event_listener.hh"
+#include "side_pane.hh"
 
 #include <algorithm>
 #include <cmath>
@@ -63,7 +64,6 @@ static_assert(kTurnSymbolStrings.size() == static_cast<size_t>(TurnSymbol::kValu
 void
 MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width)
 {
-    constexpr auto kDisplayCenterX = hal::kDisplayWidth / 2;
     constexpr auto kDisplayCenterY = hal::kDisplayHeight / 2;
 
     const auto vehicle_point = OsmPointToPoint(m_current_range_circle_center, m_zoom);
@@ -75,7 +75,7 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8
                                   kMinRangeCircleRadiusPx,
                                   static_cast<int>(std::numeric_limits<uint16_t>::max()));
 
-    const int center_x = kDisplayCenterX + (vehicle_point.x - m_current_view_center.x);
+    const int center_x = m_center_x + (vehicle_point.x - m_current_view_center.x);
     const int center_y = kDisplayCenterY + (vehicle_point.y - m_current_view_center.y);
 
     lv_draw_arc_dsc_t arc_dsc;
@@ -107,7 +107,6 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
 
     auto it = log.begin();
     auto last = it;
-    constexpr int kDisplayCenterX = hal::kDisplayWidth / 2;
     constexpr int kDisplayCenterY = hal::kDisplayHeight / 2;
 
     const auto kLowPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
@@ -123,9 +122,9 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
         auto current_position = OsmPointToPoint(it->position, m_zoom);
 
         // Transform from map-world coordinates to display coordinates.
-        last_position.x = (last_position.x - m_current_view_center.x) + kDisplayCenterX;
+        last_position.x = (last_position.x - m_current_view_center.x) + m_center_x;
         last_position.y = (last_position.y - m_current_view_center.y) + kDisplayCenterY;
-        current_position.x = (current_position.x - m_current_view_center.x) + kDisplayCenterX;
+        current_position.x = (current_position.x - m_current_view_center.x) + m_center_x;
         current_position.y = (current_position.y - m_current_view_center.y) + kDisplayCenterY;
 
         if (!cs::ClipLineToDisplay(
@@ -251,22 +250,23 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
 
     // Left pane
-    auto left_box = lv_obj_create(m_screen);
-    lv_obj_set_size(left_box, 128 + 10, hal::kDisplayHeight + 10);
-    lv_obj_align(left_box, LV_ALIGN_TOP_LEFT, -10, -10);
-    lv_obj_set_style_bg_opa(left_box, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(left_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(left_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(left_box, 0, LV_PART_MAIN);
-    lv_obj_set_scrollbar_mode(left_box, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(left_box, LV_OBJ_FLAG_SCROLLABLE);
+    // Clips the navigation box, so that its left corners are hidden. Positioned in
+    // LayoutForSidePane()
+    m_left_box = lv_obj_create(m_screen);
+    lv_obj_set_size(m_left_box, 128 + 10, hal::kDisplayHeight + 10);
+    lv_obj_set_style_bg_opa(m_left_box, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(m_left_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(m_left_box, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(m_left_box, 0, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(m_left_box, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(m_left_box, LV_OBJ_FLAG_SCROLLABLE);
 
     // Push left rounded corners off-screen for the navigation pane while keeping right corners.
     constexpr int kLeftCornerClipPx = 16;
     constexpr int kPaneCornerRadius = 18;
 
     // Navigation
-    m_navigation_box = lv_obj_create(left_box);
+    m_navigation_box = lv_obj_create(m_left_box);
     lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, 128);
     lv_obj_align(m_navigation_box, LV_ALIGN_BOTTOM_LEFT, -32, 32);
     lv_obj_set_style_border_width(m_navigation_box, 0, LV_PART_MAIN);
@@ -294,11 +294,8 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_clear_flag(m_distance_left_label, LV_OBJ_FLAG_SCROLLABLE);
     // ... to here
 
+    // Positioned and sized in LayoutForSidePane()
     m_navigation_description_box = lv_obj_create(m_screen);
-    lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, 128 - kNavigationBoxHeight, 0);
-    lv_obj_set_size(m_navigation_description_box,
-                    hal::kDisplayWidth - lv_obj_get_width(m_navigation_box),
-                    kNavigationBoxHeight);
     lv_obj_set_style_border_width(m_navigation_description_box, 0, LV_PART_MAIN);
     lv_obj_set_style_outline_width(m_navigation_description_box, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(m_navigation_description_box, 0, LV_PART_MAIN);
@@ -320,7 +317,25 @@ MapScreen::MapScreen(UserInterface& parent,
     const uint8_t battery_soc =
         std::min<uint8_t>(m_parent.m_state.CheckoutReadonly().Get<AS::battery_soc>(), 100);
 
+    LayoutForSidePane(false);
     SetZoom(m_zoom);
+}
+
+void
+MapScreen::LayoutForSidePane(bool shown)
+{
+    const auto left_x = shown ? SidePane::kWidth : 0;
+
+    m_laid_out_for_side_pane = shown;
+    m_center_x = (left_x + hal::kDisplayWidth) / 2;
+
+    lv_obj_align(m_left_box, LV_ALIGN_TOP_LEFT, left_x - 10, -10);
+
+    // To the right edge (the power bar ends above it)
+    const auto description_x = left_x + 128 - kNavigationBoxHeight;
+    lv_obj_align(m_navigation_description_box, LV_ALIGN_BOTTOM_LEFT, description_x, 0);
+    lv_obj_set_size(
+        m_navigation_description_box, hal::kDisplayWidth - description_x, kNavigationBoxHeight);
 }
 
 void
@@ -369,18 +384,24 @@ MapScreen::Update()
     auto ro = m_parent.m_state.CheckoutReadonly();
     auto conf = ro.Get<AS::configuration>();
 
+    if (const auto side_pane_shown = m_parent.SidePaneShown();
+        side_pane_shown != m_laid_out_for_side_pane)
+    {
+        LayoutForSidePane(side_pane_shown);
+    }
+
     auto pixel_position = OsmPointToPoint(m_parent.m_state_cache.Get<AS::pixel_position>(), m_zoom);
 
-    constexpr int kFollowAnchorX = hal::kDisplayWidth / 2;
+    const int follow_anchor_x = m_center_x;
     constexpr int kFollowAnchorY = (hal::kDisplayHeight * 2) / 3;
-    constexpr int kDisplayCenterX = hal::kDisplayWidth / 2;
+    const int display_center_x = m_center_x;
     constexpr int kDisplayCenterY = hal::kDisplayHeight / 2;
     const bool follow_mode =
         m_touch_timer->IsExpired() && (m_zoom == kDefaultZoom) && conf->rotate_map;
 
     m_rotation_enabled = conf->rotate_map;
 
-    m_rotation_pivot_x = kDisplayCenterX;
+    m_rotation_pivot_x = display_center_x;
     m_rotation_pivot_y = kDisplayCenterY;
     m_rotation = 0;
 
@@ -392,7 +413,7 @@ MapScreen::Update()
             const float heading = ro.Get<AS::position>()->heading;
             const float normalized_rotation = std::fmod(heading + 180, 360.0f);
             m_rotation = static_cast<uint16_t>(std::lround(normalized_rotation));
-            m_rotation_pivot_x = kFollowAnchorX;
+            m_rotation_pivot_x = follow_anchor_x;
             m_rotation_pivot_y = kFollowAnchorY;
         }
     }
@@ -408,11 +429,11 @@ MapScreen::Update()
     }
 
     // Calculate the center of the display
-    int display_cx = kDisplayCenterX;
-    int display_cy = kDisplayCenterY;
+    const int display_cx = display_center_x;
+    const int display_cy = kDisplayCenterY;
 
     const int dot_center_x =
-        follow_mode ? kFollowAnchorX : (display_cx + (pixel_position.x - m_current_view_center.x));
+        follow_mode ? follow_anchor_x : (display_cx + (pixel_position.x - m_current_view_center.x));
     const int dot_center_y =
         follow_mode ? kFollowAnchorY : (display_cy + (pixel_position.y - m_current_view_center.y));
     lv_obj_set_pos(m_position_dot_obj,
@@ -476,8 +497,8 @@ MapScreen::PrepareNonRotatedBlits()
     constexpr auto kNumTilesX = (hal::kDisplayWidth + kTileSize - 1) / kTileSize + 1;
     constexpr auto kNumTilesY = (hal::kDisplayHeight + kTileSize - 1) / kTileSize + 1;
 
-    // Calculate the center of the display
-    int display_cx = hal::kDisplayWidth / 2;
+    // Calculate the center of the (visible) map
+    int display_cx = m_center_x;
     int display_cy = hal::kDisplayHeight / 2;
 
     // Calculate the top-left pixel in OSM coordinates that should be at (0,0) on the display
@@ -655,7 +676,7 @@ MapScreen::StartHomeHoldTimer()
             return std::nullopt;
         }
         const int32_t touch_offset_x =
-            static_cast<int32_t>(m_home_hold_x) - static_cast<int32_t>(hal::kDisplayWidth / 2);
+            static_cast<int32_t>(m_home_hold_x) - m_center_x;
         const int32_t touch_offset_y =
             static_cast<int32_t>(m_home_hold_y) - static_cast<int32_t>(hal::kDisplayHeight / 2);
 

@@ -337,8 +337,11 @@ UserInterface::DrawPowerBar(uint16_t* dst)
         {
             height -= MapScreen::kNavigationBoxHeight;
         }
-        // The distance box is only shown on the map
-        y_start = DigitalSpeedometerWidget::kBoxDimensions;
+        // The distance box is only shown on the map, and not together with the side pane
+        if (!SidePaneShown())
+        {
+            y_start = DigitalSpeedometerWidget::kBoxDimensions;
+        }
     }
 
     const int pixels_at_max_power = height / 2;
