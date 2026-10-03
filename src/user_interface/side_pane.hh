@@ -5,9 +5,11 @@
 #include <cstdint>
 #include <lvgl.h>
 #include <string>
+#include <vector>
 
 /**
- * A pane at the left side of the screen, showing a message.
+ * A pane at the left side of the screen, showing a queue of messages. The encoder scrolls
+ * through them as one long text.
  */
 class SidePane
 {
@@ -29,12 +31,13 @@ public:
     SidePane(const SidePane&) = delete;
     SidePane& operator=(const SidePane&) = delete;
 
-    // For now, replaces the shown message
+    // Queued last, or updated if a message with the same id is already queued
     void AddMessage(const Message& message);
 
+    // E.g., dismissed on the phone
     void RemoveMessage(uint32_t id);
 
-    // Dismiss the shown message
+    // Dismiss the shown message, and show the next one (if any)
     void Dismiss();
 
     // Shown if there is a message, and it's not suppressed (e.g., during a call)
@@ -48,9 +51,14 @@ public:
     void HandleInput(const Input::Event& event);
 
 private:
+    // Show m_messages[m_current], at the start or (when going backwards) the end of the text
+    void ShowCurrentMessage(bool at_end = false);
+    void RemoveMessageAt(size_t index);
+
     // Scroll by dy pixels (positive = further down in the text)
     void Scroll(int32_t dy);
-    // The scroll position, including a running scroll animation, has reached the end
+    // The scroll position, including a running scroll animation, has reached the start/end
+    bool AtTop() const;
     bool AtBottom() const;
     // Gray until the end of the message has been reached (for the encoder)
     void UpdateOkButton();
@@ -63,7 +71,9 @@ private:
     lv_obj_t* m_ok_button {nullptr};
     lv_obj_t* m_counter_label {nullptr};
 
-    bool m_has_message {false};
-    uint32_t m_message_id {0};
     bool m_suppressed {false};
+
+    std::vector<Message> m_messages;
+    // The shown message
+    size_t m_current {0};
 };

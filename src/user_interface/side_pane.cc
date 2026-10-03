@@ -3,6 +3,7 @@
 #include "lv_event_listener.hh"
 
 #include <algorithm>
+#include <format>
 #include <radbuzz_font_22.h>
 
 namespace
@@ -125,44 +126,118 @@ SidePane::~SidePane()
 void
 SidePane::AddMessage(const Message& message)
 {
-    const auto title =
-        message.source.empty() ? message.title : message.source + ": " + message.title;
+    auto it = std::find_if(m_messages.begin(), m_messages.end(), [&message](const Message& m) {
+        return m.id == message.id;
+    });
 
-    lv_label_set_text(m_title_label, title.c_str());
-    lv_label_set_text(m_body_label, message.body.c_str());
-    lv_label_set_text(m_counter_label, "1/1");
-    lv_obj_scroll_to_y(m_body, 0, LV_ANIM_OFF);
+    if (it != m_messages.end())
+    {
+        *it = message;
+        if (static_cast<size_t>(it - m_messages.begin()) != m_current)
+        {
+            // Not shown, so nothing to redraw
+            return;
+        }
+    }
+    else
+    {
+        m_messages.push_back(message);
+        if (m_messages.size() > 1)
+        {
+            // Don't interrupt the shown message, just update the counter
+            lv_label_set_text(m_counter_label,
+                              std::format("{}/{}", m_current + 1, m_messages.size()).c_str());
+            return;
+        }
+        m_current = 0;
+    }
 
-    m_message_id = message.id;
-    m_has_message = true;
-    UpdateVisibility();
-
-    // The text size is needed to know if it fits
-    lv_obj_update_layout(m_pane);
-    UpdateOkButton();
+    ShowCurrentMessage();
 }
 
 void
 SidePane::RemoveMessage(uint32_t id)
 {
-    // Only one message for now
-    if (m_has_message && id == m_message_id)
+    auto it = std::find_if(m_messages.begin(), m_messages.end(), [id](const Message& message) {
+        return message.id == id;
+    });
+
+    if (it != m_messages.end())
     {
-        Dismiss();
+        RemoveMessageAt(it - m_messages.begin());
     }
 }
 
 void
 SidePane::Dismiss()
 {
-    m_has_message = false;
+    if (!m_messages.empty())
+    {
+        RemoveMessageAt(m_current);
+    }
+}
+
+void
+SidePane::RemoveMessageAt(size_t index)
+{
+    const auto was_shown = index == m_current;
+
+    m_messages.erase(m_messages.begin() + index);
+
+    if (m_messages.empty())
+    {
+        m_current = 0;
+        UpdateVisibility();
+        return;
+    }
+
+    if (index < m_current)
+    {
+        // The shown message moved one step forward in the queue
+        m_current--;
+    }
+    // The next message takes the place of the removed one, unless it was the last
+    m_current = std::min(m_current, m_messages.size() - 1);
+
+    if (was_shown)
+    {
+        ShowCurrentMessage();
+    }
+    else
+    {
+        lv_label_set_text(m_counter_label,
+                          std::format("{}/{}", m_current + 1, m_messages.size()).c_str());
+    }
+}
+
+void
+SidePane::ShowCurrentMessage(bool at_end)
+{
+    const auto& message = m_messages[m_current];
+    const auto title =
+        message.source.empty() ? message.title : message.source + ": " + message.title;
+
+    lv_label_set_text(m_title_label, title.c_str());
+    lv_label_set_text(m_body_label, message.body.c_str());
+    lv_label_set_text(m_counter_label,
+                      std::format("{}/{}", m_current + 1, m_messages.size()).c_str());
+
     UpdateVisibility();
+
+    // The text size is needed to know where the end is, and if it fits
+    lv_obj_update_layout(m_pane);
+    lv_obj_scroll_to_y(m_body, 0, LV_ANIM_OFF);
+    if (at_end)
+    {
+        lv_obj_scroll_to_y(m_body, lv_obj_get_scroll_bottom(m_body), LV_ANIM_OFF);
+    }
+    UpdateOkButton();
 }
 
 bool
 SidePane::IsShown() const
 {
-    return m_has_message && !m_suppressed;
+    return !m_messages.empty() && !m_suppressed;
 }
 
 void
@@ -188,10 +263,28 @@ SidePane::HandleInput(const Input::Event& event)
     switch (event.type)
     {
     case hal::IInput::EventType::kLeft:
-        Scroll(-kScrollStep);
+        // Past the start, continue at the end of the previous message
+        if (AtTop() && m_current > 0)
+        {
+            m_current--;
+            ShowCurrentMessage(true);
+        }
+        else
+        {
+            Scroll(-kScrollStep);
+        }
         break;
     case hal::IInput::EventType::kRight:
-        Scroll(kScrollStep);
+        // Past the end, continue with the next message
+        if (AtBottom() && m_current + 1 < m_messages.size())
+        {
+            m_current++;
+            ShowCurrentMessage();
+        }
+        else
+        {
+            Scroll(kScrollStep);
+        }
         break;
     case hal::IInput::EventType::kButtonUp:
         // On release, so that the press doesn't reach the screen below
@@ -222,6 +315,15 @@ SidePane::Scroll(int32_t dy)
 
     lv_obj_scroll_to_y(m_body, y, LV_ANIM_ON);
     UpdateOkButton();
+}
+
+bool
+SidePane::AtTop() const
+{
+    lv_point_t scroll_end;
+    lv_obj_get_scroll_end(m_body, &scroll_end);
+
+    return scroll_end.y <= 0;
 }
 
 bool
