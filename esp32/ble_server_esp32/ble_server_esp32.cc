@@ -19,11 +19,6 @@ namespace
 constexpr auto kBluetoothBaseUuid =
     hal::detail::StringToUuid128("00000000-0000-1000-8000-00805f9b34fb");
 
-// Advertising addresses are stored in little-endian byte order in NimBLE.
-//constexpr std::array<uint8_t, 6> kPreferredPeerMac = {0xf8, 0xcf, 0x6a, 0x03, 0xee, 0x84};
-//constexpr std::array<uint8_t, 6> kPreferredPeerMac = {0x20, 0x24, 0x09, 0x21, 0x1b, 0xcf};
-constexpr std::array<uint8_t, 6> kPreferredPeerMac = {0xcf, 0x1b, 0x21, 0x09, 0x24, 0x20};
-
 constexpr hal::Uuid128
 UuidFrom16(uint16_t value)
 {
@@ -487,10 +482,12 @@ BleServerEsp32::Notify(hal::Uuid128Span uuid, std::span<const uint8_t> data)
 
 void
 BleServerEsp32::ScanForService(hal::Uuid128Span service_uuid,
+                               const ScanFilter& filter,
                                const std::function<void(std::unique_ptr<IPeer>)>& cb)
 {
     m_peer_service_uuid = hal::Uuid128 {};
     std::copy(service_uuid.begin(), service_uuid.end(), m_peer_service_uuid->begin());
+    m_peer_scan_filter = filter;
     m_peer_found_cb = cb;
     m_peer_matched_requested_service = false;
 
@@ -523,10 +520,10 @@ BleServerEsp32::StartScanForCurrentServiceFilter()
     disc_params.filter_duplicates = 1;
 
     /**
-     * Perform a passive scan.  I.e., don't send follow-up scan requests to
-     * each advertiser.
+     * Perform an active scan, i.e., send scan requests to each advertiser. Some devices (e.g., the
+     * BMS) only have the service UUID in the scan response.
      */
-    disc_params.passive = 1;
+    disc_params.passive = 0;
 
     /* Use defaults for the rest of the parameters. */
     disc_params.itvl = 0;
@@ -654,16 +651,15 @@ BleServerEsp32::AppAdvertise()
 bool
 BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
 {
-    /* The device has to be advertising connectability. */
-    if (disc->event_type != BLE_HCI_ADV_RPT_EVTYPE_ADV_IND &&
-        disc->event_type != BLE_HCI_ADV_RPT_EVTYPE_DIR_IND)
+    if (!m_peer_service_uuid)
     {
         return false;
     }
 
-    const bool mac_match =
-        std::equal(std::begin(disc->addr.val), std::end(disc->addr.val), kPreferredPeerMac.begin());
-    if (!mac_match)
+    /* The device has to be advertising connectability, or respond to the (active) scan. */
+    if (disc->event_type != BLE_HCI_ADV_RPT_EVTYPE_ADV_IND &&
+        disc->event_type != BLE_HCI_ADV_RPT_EVTYPE_DIR_IND &&
+        disc->event_type != BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP)
     {
         return false;
     }
@@ -674,11 +670,44 @@ BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
     {
         return false;
     }
-    if (fields.name != nullptr && fields.name_len > 0)
+
+    // The service, or the filter (the service is verified via GATT after connecting)
+    auto uuid_matches = [this](const hal::Uuid128& uuid) {
+        return UuidEquals(*m_peer_service_uuid, uuid) ||
+               (m_peer_scan_filter.advertised_uuid &&
+                UuidEquals(*m_peer_scan_filter.advertised_uuid, uuid));
+    };
+
+    auto matches = false;
+    for (auto i = 0; i < fields.num_uuids16; i++)
     {
-        printf("Found name: %.*s\n", fields.name_len, reinterpret_cast<const char*>(fields.name));
+        matches |= uuid_matches(UuidFromBle(fields.uuids16[i].u));
     }
-    printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+    for (auto i = 0; i < fields.num_uuids32; i++)
+    {
+        matches |= uuid_matches(UuidFromBle(fields.uuids32[i].u));
+    }
+    for (auto i = 0; i < fields.num_uuids128; i++)
+    {
+        matches |= uuid_matches(UuidFromBle(fields.uuids128[i].u));
+    }
+
+    if (const auto& prefix = m_peer_scan_filter.name_prefix; !prefix.empty() && fields.name)
+    {
+        const auto name =
+            std::string_view(reinterpret_cast<const char*>(fields.name), fields.name_len);
+        matches |= name.starts_with(prefix);
+    }
+
+    if (!matches)
+    {
+        return false;
+    }
+
+    // Advertising addresses are stored in little-endian byte order in NimBLE
+    printf("Found peer '%.*s', MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+           fields.name ? fields.name_len : 0,
+           fields.name ? reinterpret_cast<const char*>(fields.name) : "",
            disc->addr.val[5],
            disc->addr.val[4],
            disc->addr.val[3],
@@ -686,61 +715,7 @@ BleServerEsp32::ConnectIfPeerMatches(const struct ble_gap_disc_desc* disc)
            disc->addr.val[1],
            disc->addr.val[0]);
 
-    // Match the service UUID
-    for (auto i = 0; i < fields.num_uuids16; i++)
-    {
-        if (m_peer_service_uuid &&
-            UuidEquals(*m_peer_service_uuid, UuidFromBle(fields.uuids16[i].u)))
-        {
-            return true;
-        }
-    }
-
-    for (auto i = 0; i < fields.sol_num_uuids16; i++)
-    {
-        printf("Found service sol UUID: %04x\n", fields.sol_uuids16[i].value);
-    }
-
-
-    for (auto i = 0; i < fields.num_uuids128; i++)
-    {
-        auto uuid = UuidFromBle(fields.uuids128[i].u);
-        if (m_peer_service_uuid && UuidEquals(*m_peer_service_uuid, uuid))
-        {
-            return true;
-        }
-        printf("Found service UUID: "
-               "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
-               fields.uuids128[i].value[15],
-               fields.uuids128[i].value[14],
-               fields.uuids128[i].value[13],
-               fields.uuids128[i].value[12],
-               fields.uuids128[i].value[11],
-               fields.uuids128[i].value[10],
-               fields.uuids128[i].value[9],
-               fields.uuids128[i].value[8],
-               fields.uuids128[i].value[7],
-               fields.uuids128[i].value[6],
-               fields.uuids128[i].value[5],
-               fields.uuids128[i].value[4],
-               fields.uuids128[i].value[3],
-               fields.uuids128[i].value[2],
-               fields.uuids128[i].value[1],
-               fields.uuids128[i].value[0]);
-    }
-
-    for (auto i = 0; i < fields.num_uuids32; i++)
-    {
-        printf("Found service UUID: %08x\n", fields.uuids32[i].value);
-        if (m_peer_service_uuid &&
-            UuidEquals(*m_peer_service_uuid, UuidFromBle(fields.uuids32[i].u)))
-        {
-            return true;
-        }
-    }
-
-    // Some devices omit the desired UUID in advertising data; verify after connect via GATT.
-    return m_peer_service_uuid.has_value();
+    return true;
 }
 
 int

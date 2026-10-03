@@ -65,6 +65,7 @@ private:
     bool Notify(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
 
     void ScanForService(hal::Uuid128Span service_uuid,
+                        const ScanFilter& filter,
                         const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
 
     void AppAdvertise();
@@ -100,6 +101,7 @@ private:
     std::vector<std::unique_ptr<WriteCharacteristic>> m_notify_characteristics;
 
     std::optional<hal::Uuid128> m_peer_service_uuid;
+    ScanFilter m_peer_scan_filter;
     std::function<void(std::unique_ptr<IPeer>)> m_peer_found_cb {[](auto x) {}};
     std::unordered_map<uint16_t, std::function<void(std::span<const uint8_t>)>>
         m_notification_callbacks;
