@@ -29,15 +29,14 @@ constexpr auto kPowerDescriptionBottom =
     hal::kDisplayHeight - kMaxHistogramBarHeight - kPixelSize_radbuzz_font_40 - 16;
 constexpr auto kPowerX = -110;
 
-// The trip distance/time at the bottom right, or (when navigating) above the navigation
-// description box and to the left of the indicator icons
+// The trip distance/time at the bottom right. When navigating, on a single line above the
+// navigation description box, with the distance growing leftwards from the time
 constexpr Point kTripDistancePosition {-20, -kPixelSize_radbuzz_font_40};
-constexpr Point kTripTimePosition {-14, 0};
-constexpr auto kTripNavigationX = kIndicatorColumn - 8 - hal::kDisplayWidth;
-constexpr auto kTripNavigationY = -NavigationWidget::kDescriptionBoxHeight - 4;
-constexpr Point kTripDistanceNavigationPosition {kTripNavigationX - 6,
-                                                 kTripNavigationY - kPixelSize_radbuzz_font_40};
-constexpr Point kTripTimeNavigationPosition {kTripNavigationX, kTripNavigationY};
+constexpr Point kTripTimePosition {-10, 0};
+// Only moved up, above the navigation description box
+constexpr Point kTripTimeNavigationPosition {kTripTimePosition.x,
+                                             -NavigationWidget::kDescriptionBoxHeight - 4};
+constexpr Point kTripDistanceNavigationOffset {-20, 0};
 constexpr auto kConsumptionX = 80;
 
 namespace
@@ -263,7 +262,12 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     // Align both these to the longest realistic distance
     constexpr auto kMaxGoodLookingDistance = "99.9";
     m_trip_distance = CreateDatum(DatumAlignment::kRight, "Trip", kMaxGoodLookingDistance, "m");
-    m_trip_time = CreateDatum(DatumAlignment::kRight, "", kMaxGoodLookingDistance, "");
+    // "Trip" is only shown here when navigating, the trip distance has it otherwise
+    m_trip_time = CreateDatum(DatumAlignment::kRight, "Trip", kMaxGoodLookingDistance, "");
+    // At the same x as when it's above the trip distance, so that it only moves vertically
+    lv_obj_set_style_translate_x(m_trip_time.description_label,
+                                 kTripDistancePosition.x - kTripTimePosition.x,
+                                 LV_PART_MAIN);
 
     m_power = CreateDatum(DatumAlignment::kCenter, "Power", "1800", "W");
     m_consumption = CreateDatum(DatumAlignment::kCenter, "Consumption", "18.9", "Wh/km");
@@ -272,8 +276,6 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     // The battery, power, speedometer and trip are moved with the side pane and navigation
     Layout(false, false);
 
-    // Never show
-    lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, true);
 }
 
 void
@@ -453,11 +455,20 @@ SpeedometerOnlyScreen::Layout(bool side_pane_shown, bool navigating)
     m_range.SetHidden(side_pane_shown);
     m_consumption.SetHidden(side_pane_shown);
 
-    // Above the navigation description box, and clear of the indicator icons
-    m_trip_distance.Align(LV_ALIGN_BOTTOM_RIGHT,
-                          navigating ? kTripDistanceNavigationPosition : kTripDistancePosition);
+    // A single line above the navigation description box, with "Trip" above the time
     m_trip_time.Align(LV_ALIGN_BOTTOM_RIGHT,
                       navigating ? kTripTimeNavigationPosition : kTripTimePosition);
+    lv_obj_set_flag(m_trip_distance.description_label, LV_OBJ_FLAG_HIDDEN, navigating);
+    lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, !navigating);
+    if (navigating)
+    {
+        m_trip_distance.AlignTo(
+            m_trip_time.container, LV_ALIGN_OUT_LEFT_BOTTOM, kTripDistanceNavigationOffset);
+    }
+    else
+    {
+        m_trip_distance.Align(LV_ALIGN_BOTTOM_RIGHT, kTripDistancePosition);
+    }
 
     if (side_pane_shown)
     {
