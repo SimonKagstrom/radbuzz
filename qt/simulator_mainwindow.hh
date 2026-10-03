@@ -4,6 +4,8 @@
 #include "display_qt.hh"
 #include "gpio_host.hh"
 #include "hal/i_input.hh"
+#include "messages.hh"
+#include "post_office.hh"
 #include "rotary_encoder.hh"
 #include "speedometer_qt.hh"
 
@@ -24,7 +26,9 @@ class MainWindow final : public QMainWindow, public RotaryEncoder
     Q_OBJECT
 
 public:
-    explicit MainWindow(ApplicationState& application_state, QWidget* parent = nullptr);
+    explicit MainWindow(ApplicationState& application_state,
+                        PostOffice<MSG::AllMessages>& post_office,
+                        QWidget* parent = nullptr);
     ~MainWindow() final;
 
     hal::IDisplay& GetDisplay();
@@ -47,7 +51,7 @@ private:
     AttachIrqListener(std::function<void(RotaryEncoder::Direction)> on_rotation) final;
 
     ApplicationState& m_application_state;
-
+    PostOffice<MSG::AllMessages>& m_post_office;
     Ui::MainWindow* m_ui {nullptr};
 
     std::unique_ptr<QGraphicsScene> m_scene;

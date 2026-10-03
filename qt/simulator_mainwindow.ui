@@ -162,6 +162,58 @@
      <string>Screenshot</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="callButton">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>420</y>
+      <width>100</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Call</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="callEndedButton">
+    <property name="geometry">
+     <rect>
+      <x>1070</x>
+      <y>420</y>
+      <width>100</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Call ended</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="messageButton">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>470</y>
+      <width>100</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Message</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="dismissMessageButton">
+    <property name="geometry">
+     <rect>
+      <x>1070</x>
+      <y>470</y>
+      <width>100</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Dismiss</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

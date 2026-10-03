@@ -68,7 +68,7 @@ main(int argc, char* argv[])
     // Stored by VESC, so update to 100km + some random number here
     rw.Set<AS::odometer>(100 * 1000 + rand() % 2000);
 
-    MainWindow window(application_state);
+    MainWindow window(application_state, post_office);
 
     srand(seed);
 
