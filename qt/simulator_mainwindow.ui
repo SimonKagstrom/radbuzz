@@ -214,6 +214,19 @@
      <string>Dismiss</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="demoModeCheckBox">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>0</y>
+      <width>171</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Demo mode</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
