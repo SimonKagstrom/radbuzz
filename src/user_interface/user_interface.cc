@@ -268,8 +268,7 @@ UserInterface::SetHelp(bool on)
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kCallOngoing]->m_indicator_label,
                                        SpeechBubble::Direction::kBelow,
-                                       "Call ongoing",
-                                       Point {4, 30}));
+                                       "Call ongoing /\nunread messages"));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kOverheated]->m_indicator_label,
@@ -597,4 +596,10 @@ UserInterface::ShowMessageBox(const std::string& title,
     // Close any open box first, so that the encoder group is restored in the right order
     m_message_box = nullptr;
     m_message_box = std::make_unique<MessageBox>(m_lvgl_input_dev, title, text, std::move(buttons));
+}
+
+bool
+UserInterface::ShowMessagesIcon() const
+{
+    return m_side_pane->HasMessages() && !m_side_pane->IsShown();
 }

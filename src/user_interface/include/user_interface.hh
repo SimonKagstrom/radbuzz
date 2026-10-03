@@ -162,6 +162,8 @@ public:
         SetHelp(false);
     }
 
+    bool ShowMessagesIcon() const;
+
     // Show a modal message box (replacing any open one). Input goes to it until it's closed.
     void ShowMessageBox(const std::string& title,
                         const std::string& text,

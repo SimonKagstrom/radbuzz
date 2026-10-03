@@ -50,6 +50,11 @@ public:
     // Encoder input (touch is handled by LVGL)
     void HandleInput(const Input::Event& event);
 
+    bool HasMessages() const
+    {
+        return !m_messages.empty();
+    }
+
 private:
     // Show m_messages[m_current], at the start or (when going backwards) the end of the text
     void ShowCurrentMessage(bool at_end = false);

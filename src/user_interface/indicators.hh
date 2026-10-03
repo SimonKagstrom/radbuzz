@@ -214,14 +214,32 @@ public:
     CallIndicator(UserInterface& parent, const Point& position)
         : UserInterface::IndicatorBase(parent, position)
     {
-        lv_label_set_text(m_indicator_label, std::format("#4CAF50 {}# ", LV_SYMBOL_CALL).c_str());
     }
 
     void Update(ApplicationState& state) final
     {
-        lv_obj_set_flag(m_indicator_label,
-                        LV_OBJ_FLAG_HIDDEN,
-                        !state.Get<AS::call_ongoing>() || m_parent.OnCallScreen());
+        auto has_messages = m_parent.ShowMessagesIcon();
+
+        if (state.Get<AS::call_ongoing>())
+        {
+            if (has_messages && m_parent.OnCallScreen())
+            {
+                lv_label_set_text(m_indicator_label,
+                                  std::format("#4CAF50 {}# ", LV_SYMBOL_DRIVE).c_str());
+            }
+            else
+            {
+                lv_label_set_text(m_indicator_label,
+                                  std::format("#4CAF50 {}# ", LV_SYMBOL_CALL).c_str());
+            }
+            lv_obj_set_hidden(m_indicator_label, m_parent.OnCallScreen() && !has_messages);
+        }
+        else
+        {
+            lv_label_set_text(m_indicator_label,
+                              std::format("#4CAF50 {}# ", LV_SYMBOL_DRIVE).c_str());
+            lv_obj_set_hidden(m_indicator_label, !has_messages);
+        }
     }
 
 private:
