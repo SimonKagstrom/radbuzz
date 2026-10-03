@@ -2,6 +2,7 @@
 
 #include "battery_utils.hh"
 #include "map_screen.hh"
+#include "side_pane.hh"
 #include "time_string.hh"
 #include "trip_utils.hh"
 
@@ -23,6 +24,15 @@ constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
 constexpr int kSecondColumnRightXOffset = 260;
 constexpr int kSingleColumnValueWidth =
     kValueColumnWidth + (kSecondColumnRightXOffset - kValueRightXOffset);
+
+// With the side pane: a single column between the pane and the indicator icons, below the
+// speedometer box. The right edge of the values, leaving room for the unit ("Wh/km")
+constexpr int kSidePaneUnitWidth = 80;
+constexpr int kSidePaneValueRight = kIndicatorColumn - 8 - kSidePaneUnitWidth - kValueToUnitGap;
+constexpr int kSidePaneFirstRowYOffset = DigitalSpeedometerWidget::kBoxDimensions + 8;
+// The labels in a column next to the pane, right aligned (fits "Consumption")
+constexpr int kSidePaneLabelX = SidePane::kWidth + 8;
+constexpr int kSidePaneLabelWidth = 150;
 
 namespace
 {
@@ -46,12 +56,19 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     m_stat_rows.reserve(7);
-    m_stat_rows.emplace_back(StatRow {
-        "SoC/trip usage", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("%")});
-    m_stat_rows.emplace_back(StatRow {"Trip time", "", StatValueKind::kTime});
-    m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
+    m_stat_rows.emplace_back(StatRow {"SoC/trip usage",
+                                      "%",
+                                      StatValueKind::kSoc,
+                                      std::make_unique<SecondColumnStatRow>("%"),
+                                      "Battery"});
+    m_stat_rows.emplace_back(StatRow {"Trip time", "", StatValueKind::kTime, nullptr, "Trip time"});
     m_stat_rows.emplace_back(
-        StatRow {"Trip consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
+        StatRow {"Distance", "m", StatValueKind::kTripDistance, nullptr, "Distance"});
+    m_stat_rows.emplace_back(StatRow {"Trip consumption",
+                                      "Wh/km",
+                                      StatValueKind::kTripAverageWhPerKm,
+                                      nullptr,
+                                      "Consumption"});
     m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
                                       "Wh",
                                       StatValueKind::kConsumedWh,
@@ -60,7 +77,8 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
                                       "km/h",
                                       StatValueKind::kTripMaxSpeed,
                                       std::make_unique<SecondColumnStatRow>("km/h")});
-    m_stat_rows.emplace_back(StatRow {"Odometer", "km", StatValueKind::kOdometer});
+    m_stat_rows.emplace_back(
+        StatRow {"Odometer", "km", StatValueKind::kOdometer, nullptr, "Odometer"});
 
     const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
@@ -169,14 +187,33 @@ TripMeterScreen::Update()
     const int side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     auto trip_start = m_parent.m_current_trip_start;
+    const auto side_pane_shown = m_parent.SidePaneShown();
 
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
     {
-        const int y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
+        // Only some rows, and no second columns, with the side pane
+        const auto hidden = side_pane_shown && row.side_pane_label_text == nullptr;
+        for (auto obj : {row.label, row.value, row.unit})
+        {
+            lv_obj_set_flag(obj, LV_OBJ_FLAG_HIDDEN, hidden);
+        }
+        if (row.second_column)
+        {
+            lv_obj_set_flag(row.second_column->value, LV_OBJ_FLAG_HIDDEN, side_pane_shown);
+            lv_obj_set_flag(row.second_column->unit, LV_OBJ_FLAG_HIDDEN, side_pane_shown);
+        }
+        if (hidden)
+        {
+            continue;
+        }
+
+        const int y_offset =
+            (side_pane_shown ? kSidePaneFirstRowYOffset : kFirstRowYOffset) +
+            static_cast<int>(row_index) * kRowSpacing;
         std::string value_text {"0"};
         std::string unit_text {row.unit_text};
-        std::string label_text {row.label_text};
+        std::string label_text {side_pane_shown ? row.side_pane_label_text : row.label_text};
 
         switch (row.value_kind)
         {
@@ -293,8 +330,16 @@ TripMeterScreen::Update()
         lv_label_set_text(row.value, value_text.c_str());
         lv_label_set_text(row.unit, unit_text.c_str());
 
-        if (row.second_column)
+        if (side_pane_shown)
         {
+            // Sized after the text, and right aligned, so that long values grow to the left
+            lv_obj_set_width(row.value, LV_SIZE_CONTENT);
+            lv_obj_align(
+                row.value, LV_ALIGN_TOP_RIGHT, kSidePaneValueRight - hal::kDisplayWidth, y_offset);
+        }
+        else if (row.second_column)
+        {
+            lv_obj_set_width(row.value, kValueColumnWidth);
             lv_obj_align(row.value,
                          LV_ALIGN_TOP_MID,
                          kValueRightXOffset - (kValueColumnWidth / 2),
@@ -302,16 +347,23 @@ TripMeterScreen::Update()
         }
         else
         {
+            lv_obj_set_width(row.value, kSingleColumnValueWidth);
             lv_obj_align(row.value,
                          LV_ALIGN_TOP_MID,
                          kSecondColumnRightXOffset - (kSingleColumnValueWidth / 2),
                          y_offset);
         }
+        lv_obj_set_width(row.label, side_pane_shown ? kSidePaneLabelWidth : kLabelColumnWidth);
         lv_obj_align_to(row.label,
                         row.value,
                         LV_ALIGN_OUT_LEFT_BOTTOM,
                         -kLabelToValueGap,
                         side_text_baseline_y_offset);
+        if (side_pane_shown)
+        {
+            // Same baseline as the value, but in the column next to the pane
+            lv_obj_set_x(row.label, kSidePaneLabelX);
+        }
         lv_obj_align_to(row.unit,
                         row.value,
                         LV_ALIGN_OUT_RIGHT_BOTTOM,

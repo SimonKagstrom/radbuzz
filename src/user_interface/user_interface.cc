@@ -227,7 +227,7 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
-    ActivateScreen(*m_map_screen);
+    ActivateScreen(*m_trip_meter_screen);
     ResetTrip();
 
     // Allow placing the objects first, so delay a bit
