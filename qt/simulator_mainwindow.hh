@@ -9,6 +9,7 @@
 #include "rotary_encoder.hh"
 #include "speedometer_qt.hh"
 
+#include <queue>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>
 #include <QImage>
@@ -74,4 +75,6 @@ private:
     std::function<void(RotaryEncoder::Direction)> m_on_rotation {[](auto) { /* NOP */ }};
 
     int m_screenshot_index {0};
+    uint32_t m_message_index {9957};
+    std::queue<uint32_t> m_message_ids;
 };

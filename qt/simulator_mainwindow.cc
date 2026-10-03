@@ -56,19 +56,35 @@ MainWindow::MainWindow(ApplicationState& application_state,
         m_post_office.Send(MSG::call_ended {});
     });
     connect(m_ui->messageButton, &QPushButton::clicked, [this]() {
-        m_post_office.Send(MSG::message {
-            1234,
-            "gmail",
-            "Investment proposal",
-            "Dear Sir/Madam,\n\nI am writing to you about a unique investment "
-            "opportunity. My late uncle left a considerable sum in a bank account, "
-            "and I need a trustworthy partner to help me move it.\n\nIn return, you "
-            "will receive 30% of the funds.\n\nPlease reply at your earliest "
-            "convenience.\n\nYours sincerely,\nA. Prince",
-        });
+        m_message_ids.push(m_message_index);
+
+        if (m_message_index % 2 == 0)
+        {
+            m_post_office.Send(MSG::message {
+                m_message_index++,
+                "gmail",
+                "Investment proposal",
+                "Dear Sir/Madam,\n\nI am writing to you about a unique investment "
+                "opportunity. My late uncle left a considerable sum in a bank account, "
+                "and I need a trustworthy partner to help me move it.\n\nIn return, you "
+                "will receive 30% of the funds.\n\nPlease reply at your earliest "
+                "convenience.\n\nYours sincerely,\nA. Prince",
+            });
+        }
+        else
+        {
+            m_post_office.Send(MSG::message {
+                m_message_index++, "signal", "Secrets", "The password is 'Ken sent me'"});
+        }
     });
     connect(m_ui->dismissMessageButton, &QPushButton::clicked, [this]() {
-        m_post_office.Send(MSG::dismiss_message {.id = 1234});
+        if (m_message_ids.empty())
+        {
+            // Nothing to dismiss
+            return;
+        }
+        m_post_office.Send(MSG::dismiss_message {.id = m_message_ids.front()});
+        m_message_ids.pop();
     });
 
     m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(m_ui->socSlider->value());
