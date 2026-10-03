@@ -262,6 +262,92 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbridge")
+{
+    NullNotifier notifier;
+    auto mailbox = post_office.Subscribe<MSG::message, MSG::dismiss_message>(notifier);
+
+    ble.Start("ble");
+
+    WHEN("a notification is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"notify\",\"id\":1790422616,\"src\":\"Gmail\",\"title\":"
+                   "\"Prisjakt\",\"subject\":\"\",\"sender\":\"\",\"body\":\"Logga in\\nDags\","
+                   "\"reply\":true,\"actions\":[{\"title\":\"Archive\"}]})\n");
+        DoRunLoop();
+
+        THEN("it is sent as a message")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::message>());
+            auto message = msg->As<MSG::message>();
+            CHECK(message->id == 1790422616);
+            CHECK(message->source == "Gmail");
+            CHECK(message->title == "Prisjakt");
+            CHECK(message->body == "Logga in\nDags");
+        }
+    }
+
+    WHEN("a notification without a title is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"notify\",\"id\":-2,\"src\":\"SMS Message\",\"title\":\"\","
+                   "\"subject\":\"Hello\",\"sender\":\"+46701234567\",\"body\":\"Hi\"})\n");
+        DoRunLoop();
+
+        THEN("the sender is the title, and the subject goes first in the body")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::message>());
+            auto message = msg->As<MSG::message>();
+            CHECK(message->id == static_cast<uint32_t>(-2));
+            CHECK(message->title == "+46701234567");
+            CHECK(message->body == "Hello\nHi");
+        }
+    }
+
+    WHEN("a notification without an id is received")
+    {
+        srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify\",\"body\":\"Hi\"})\n");
+        DoRunLoop();
+
+        THEN("it is ignored")
+        {
+            REQUIRE(mailbox->Pop() == std::nullopt);
+        }
+    }
+
+    WHEN("a notification with a broken id is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"notify\",\"id\":\"Simon\",\"body\":\"Hi\"})\n");
+        srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify-\",\"id\":\"Simon\"})\n");
+        DoRunLoop();
+
+        THEN("they are ignored")
+        {
+            REQUIRE(mailbox->Pop() == std::nullopt);
+        }
+    }
+
+    WHEN("a notification is dismissed on the phone")
+    {
+        srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify-\",\"id\":1790422616})\n");
+        DoRunLoop();
+
+        THEN("that is sent as a message")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::dismiss_message>());
+            CHECK(msg->As<MSG::dismiss_message>()->id == 1790422616);
+        }
+    }
+}
+
 TEST_CASE_FIXTURE(Fixture, "the BLE handler sends call control to Gadgetbridge")
 {
     ble.Start("ble");

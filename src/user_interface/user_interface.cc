@@ -77,8 +77,11 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::wh_regenerated,
                                               AS::call_ongoing>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
-    m_mailbox = m_post_office.Subscribe<MSG::incoming_call, MSG::tile_loaded, MSG::call_ended>(
-        GetSemaphore());
+    m_mailbox = m_post_office.Subscribe<MSG::incoming_call,
+                                        MSG::tile_loaded,
+                                        MSG::call_ended,
+                                        MSG::dismiss_message,
+                                        MSG::message>(GetSemaphore());
 
     // Context: Interrupt/anoteher thread
     m_input_listener = m_input.AttachListener([this](auto event) {
@@ -227,7 +230,7 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
-    ActivateScreen(*m_trip_meter_screen);
+    ActivateScreen(*m_speedometer_only_screen);
     ResetTrip();
 
     // Allow placing the objects first, so delay a bit
@@ -242,18 +245,6 @@ UserInterface::OnStartup()
 
     m_show_all_indicators_timer = StartTimer(3s, [this]() {
         HideHelp();
-
-        // TMP: Until messages come from Gadgetbridge
-        m_side_pane->AddMessage({
-            .id = 1,
-            .source = "gmail",
-            .title = "Investment proposal",
-            .body = "Dear Sir/Madam,\n\nI am writing to you about a unique investment "
-                    "opportunity. My late uncle left a considerable sum in a bank account, "
-                    "and I need a trustworthy partner to help me move it.\n\nIn return, you "
-                    "will receive 30% of the funds.\n\nPlease reply at your earliest "
-                    "convenience.\n\nYours sincerely,\nA. Prince",
-        });
         UpdateSidePane();
 
         return std::nullopt;
@@ -390,7 +381,9 @@ UserInterface::OnActivation()
 {
     m_mailbox->Collect()
         .On<MSG::incoming_call>([this](auto call) { ShowIncomingCall(*call); })
-        .On<MSG::call_ended>([this](auto) { HideIncomingCall(); });
+        .On<MSG::call_ended>([this](auto) { HideIncomingCall(); })
+        .On<MSG::dismiss_message>([this](auto msg) { DismissMessage(*msg); })
+        .On<MSG::message>([this](auto msg) { ShowMessage(*msg); });
     UpdateSidePane();
 
     auto& co = m_state_cache.Pull();
@@ -577,6 +570,24 @@ UserInterface::EndIncomingCall()
     m_screen_before_call = nullptr;
     ActivateScreen(*previous, true);
 }
+
+void
+UserInterface::DismissMessage(const MSG::dismiss_message& msg)
+{
+    m_side_pane->RemoveMessage(msg.id);
+}
+
+void
+UserInterface::ShowMessage(const MSG::message& msg)
+{
+    m_side_pane->AddMessage({
+        .id = msg.id,
+        .source = msg.source,
+        .title = msg.title,
+        .body = msg.body,
+    });
+}
+
 
 void
 UserInterface::ShowMessageBox(const std::string& title,

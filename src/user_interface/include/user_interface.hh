@@ -187,6 +187,9 @@ private:
     // The call ended on the phone side (hung up, missed, ...)
     void HideIncomingCall();
 
+    void DismissMessage(const MSG::dismiss_message& msg);
+    void ShowMessage(const MSG::message& msg);
+
     // Hide the pane during calls
     void UpdateSidePane();
 

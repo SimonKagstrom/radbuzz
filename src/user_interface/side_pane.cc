@@ -133,12 +133,23 @@ SidePane::AddMessage(const Message& message)
     lv_label_set_text(m_counter_label, "1/1");
     lv_obj_scroll_to_y(m_body, 0, LV_ANIM_OFF);
 
+    m_message_id = message.id;
     m_has_message = true;
     UpdateVisibility();
 
     // The text size is needed to know if it fits
     lv_obj_update_layout(m_pane);
     UpdateOkButton();
+}
+
+void
+SidePane::RemoveMessage(uint32_t id)
+{
+    // Only one message for now
+    if (m_has_message && id == m_message_id)
+    {
+        Dismiss();
+    }
 }
 
 void

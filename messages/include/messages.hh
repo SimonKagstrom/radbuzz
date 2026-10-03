@@ -39,13 +39,29 @@ struct call_ended
 {
 };
 
+struct message
+{
+    uint32_t id;
+    std::string source;
+    std::string title;
+    std::string body;
+};
+
+// Phone dismisses message
+struct dismiss_message
+{
+    uint32_t id;
+};
+
 using AllMessages = std::tuple<incoming_call,
                                tile_loaded,
                                reset_trip,
                                answer_call,
                                decline_call,
                                hangup_call,
-                               call_ended>;
+                               call_ended,
+                               message,
+                               dismiss_message>;
 
 constexpr auto kMessageCount = std::tuple_size_v<AllMessages>;
 

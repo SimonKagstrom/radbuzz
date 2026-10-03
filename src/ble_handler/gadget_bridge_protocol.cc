@@ -105,6 +105,26 @@ JsToJson(std::string_view s)
     return out;
 }
 
+// A string field, or empty if missing or of another type (no exceptions on target)
+std::string
+GetString(const nlohmann::json& json, const char* key)
+{
+    return json.contains(key) && json.at(key).is_string() ? json.at(key).get<std::string>()
+                                                          : std::string();
+}
+
+// The notification id (a Java int, so possibly negative), or nullopt if missing
+std::optional<uint32_t>
+GetNotificationId(const nlohmann::json& json)
+{
+    if (!json.contains("id") || !json.at("id").is_number_integer())
+    {
+        return std::nullopt;
+    }
+
+    return static_cast<uint32_t>(json.at("id").get<int64_t>());
+}
+
 } // namespace
 
 GadgetBridgeProtocol::GadgetBridgeProtocol(os::TimerManager& timer_manager,
@@ -208,6 +228,14 @@ GadgetBridgeProtocol::PushLine(std::string_view line)
     {
         HandleCallEvent(*json);
     }
+    else if (type == "notify")
+    {
+        HandleNotification(*json);
+    }
+    else if (type == "notify-")
+    {
+        HandleNotificationRemoval(*json);
+    }
     else if (type == "is_gps_active")
     {
         // Has GPS
@@ -233,15 +261,12 @@ GadgetBridgeProtocol::HandleCallEvent(const nlohmann::json& json)
         return;
     }
 
-    auto get_string = [&json](const char* key) {
-        return json.contains(key) && json.at(key).is_string() ? json.at(key).get<std::string>()
-                                                              : std::string();
-    };
-    const auto cmd = get_string("cmd");
+    const auto cmd = GetString(json, "cmd");
 
     if (cmd == "incoming")
     {
-        m_post_office.Send<MSG::incoming_call>({get_string("number"), get_string("name")});
+        m_post_office.Send<MSG::incoming_call>(
+            {GetString(json, "number"), GetString(json, "name")});
         m_state.CheckoutReadWrite().Set<AS::call_ongoing>(true);
     }
     else if (cmd == "end" || cmd == "reject")
@@ -298,21 +323,46 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
     });
 }
 
+void
+GadgetBridgeProtocol::HandleNotification(const nlohmann::json& json)
+{
+    /*
+     * Something like (the text is cut by Gadgetbridge)
+     *
+     * {"t":"notify","id":1790422616,"src":"Gmail","title":"Prisjakt","subject":"","sender":"",
+     *  "body":"Logga in för att behålla ditt konto\n...","reply":true,
+     *  "actions":[{"title":"Archive"},{"title":"Delete"},{"title":"Mark as read"}]}
+     *
+     * For SMS, src is "SMS Message", the title the contact and sender/tel the number.
+     */
+    const auto id = GetNotificationId(json);
+    if (!id)
+    {
+        return;
+    }
 
-// Todo: Handle messages:
-//GB : {
-//    "actions" : [ {"title" : "Archive"}, {"title" : "Delete"}, {"title" : "Mark as read"} ],
-//    "body" :
-//        "Logga in för att behålla ditt konto\nSpara pengar med Prisjakt\nLadda ner appen\nDagens "
-//        "deals\nLadda ner appen\nDags att logga in!\nFör att behålla ditt konto på Prisjakt "
-//        "behöver du logga in – snarast. Annars stänger vi kontot enligt våra regler för inaktiva "
-//        "konton, och du förlorar sparade produkter, listor och prisbevakningar. Det vore väldigt "
-//        "tråkigt, tycker vi.\nDessutom har Prisjakt blivit ännu sm...",
-//    "id" : 1790422616,
-//    "reply" : true,
-//    "sender" : "",
-//    "src" : "Gmail",
-//    "subject" : "",
-//    "t" : "notify",
-//    "title" : "Prisjakt"
-//}
+    auto title = GetString(json, "title");
+    if (title.empty())
+    {
+        title = GetString(json, "sender");
+    }
+
+    // E.g., an e-mail subject, which goes first in the text
+    auto body = GetString(json, "body");
+    if (auto subject = GetString(json, "subject"); !subject.empty())
+    {
+        body = body.empty() ? subject : subject + "\n" + body;
+    }
+
+    m_post_office.Send<MSG::message>({*id, GetString(json, "src"), title, body});
+}
+
+void
+GadgetBridgeProtocol::HandleNotificationRemoval(const nlohmann::json& json)
+{
+    // Dismissed on the phone: {"t":"notify-","id":1790422616}
+    if (const auto id = GetNotificationId(json))
+    {
+        m_post_office.Send<MSG::dismiss_message>({*id});
+    }
+}

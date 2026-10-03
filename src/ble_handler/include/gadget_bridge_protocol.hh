@@ -32,6 +32,8 @@ public:
 private:
     void HandleNavigationEvent(const nlohmann::json& json);
     void HandleCallEvent(const nlohmann::json& json);
+    void HandleNotification(const nlohmann::json& json);
+    void HandleNotificationRemoval(const nlohmann::json& json);
     void SendCallControl(std::string_view command);
     void Send(const nlohmann::json& json);
 

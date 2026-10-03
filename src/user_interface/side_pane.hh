@@ -32,6 +32,8 @@ public:
     // For now, replaces the shown message
     void AddMessage(const Message& message);
 
+    void RemoveMessage(uint32_t id);
+
     // Dismiss the shown message
     void Dismiss();
 
@@ -62,5 +64,6 @@ private:
     lv_obj_t* m_counter_label {nullptr};
 
     bool m_has_message {false};
+    uint32_t m_message_id {0};
     bool m_suppressed {false};
 };
