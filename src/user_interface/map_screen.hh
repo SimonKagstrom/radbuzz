@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_thread.hh"
+#include "navigation_widget.hh"
 #include "os/memory.hh"
 #include "painter.hh"
 #include "user_interface.hh"
@@ -10,8 +11,6 @@
 class MapScreen : public UserInterface::ScreenBase
 {
 public:
-    static constexpr auto kNavigationBoxHeight = 32;
-
     MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache, uint8_t zoom);
 
     void SetZoom(uint8_t zoom);
@@ -51,13 +50,7 @@ private:
     BlankAlphaImage m_position_dot {32, 32};
     lv_obj_t* m_position_dot_obj {nullptr};
 
-    // Related to the navigation
-    lv_obj_t* m_left_box {nullptr};
-    lv_obj_t* m_navigation_box {nullptr};
-    lv_obj_t* m_navigation_description_box {nullptr};
-    lv_obj_t* m_current_turn_symbol {nullptr};
-    lv_obj_t* m_description_label {nullptr};
-    lv_obj_t* m_distance_left_label {nullptr};
+    std::unique_ptr<NavigationWidget> m_navigation;
     lv_obj_t* m_home_label {nullptr};
 
     // The horizontal center of the visible map (moved right by the side pane)

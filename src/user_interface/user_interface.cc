@@ -3,6 +3,7 @@
 #include "incoming_call_screen.hh"
 #include "indicators.hh"
 #include "map_screen.hh"
+#include "navigation_widget.hh"
 #include "painter.hh"
 #include "settings_menu_screen.hh"
 #include "side_pane.hh"
@@ -325,7 +326,7 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     {
         if (ro.Get<AS::navigation_active>())
         {
-            height -= MapScreen::kNavigationBoxHeight;
+            height -= NavigationWidget::kDescriptionBoxHeight;
         }
         // The distance box is only shown on the map, and not together with the side pane
         if (!SidePaneShown())

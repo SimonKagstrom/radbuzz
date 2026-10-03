@@ -86,6 +86,7 @@ add_library(user_interface EXCLUDE_FROM_ALL
     incoming_call_screen.cc
     map_screen.cc
     message_box.cc
+    navigation_widget.cc
     settings_menu_screen.cc
     side_pane.cc
     speech_bubble.cc
