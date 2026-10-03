@@ -28,6 +28,8 @@ Features:
 * Trip log shown on the map, with power indicator in color
 * Range estimation shown on the map
 * BMS status via BLE (currently em3ev KingShark/Ali new energy BMSes)
+* Incoming phone calls can accepted/declined
+* SMS:es and emails are forwarded from the phone
 * A menu for configuration
 * Written in clean and modern C++ (C++23)
 

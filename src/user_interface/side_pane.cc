@@ -69,6 +69,13 @@ SidePane::SidePane(lv_obj_t* parent)
     lv_obj_set_style_pad_bottom(m_pane, kPadding, LV_PART_MAIN);
     lv_obj_set_style_pad_row(m_pane, kPadding, LV_PART_MAIN);
     lv_obj_clear_flag(m_pane, LV_OBJ_FLAG_SCROLLABLE);
+    // Don't pass drags on to the top layer, which is scrollable since widgets stick out of the
+    // screen. It would otherwise move everything on it sideways on horizontal drags, and no
+    // gestures are detected while scrolling
+    lv_obj_clear_flag(m_pane, LV_OBJ_FLAG_SCROLL_CHAIN);
+    // Swipes anywhere on the pane end up here (the text only scrolls vertically)
+    lv_obj_clear_flag(m_pane, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    LvEventListener::Create(m_pane, LV_EVENT_GESTURE, [this](lv_event_t*) { OnGesture(); });
     lv_obj_set_flex_flow(m_pane, LV_FLEX_FLOW_COLUMN);
 
     // <source>: <title>, on one line
@@ -84,6 +91,7 @@ SidePane::SidePane(lv_obj_t* parent)
     lv_obj_set_width(m_body, LV_PCT(100));
     lv_obj_set_flex_grow(m_body, 1);
     lv_obj_set_scroll_dir(m_body, LV_DIR_VER);
+    lv_obj_clear_flag(m_body, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);
     lv_obj_set_scrollbar_mode(m_body, LV_SCROLLBAR_MODE_OFF);
     // Both for the encoder and touch drags
     LvEventListener::Create(m_body, LV_EVENT_SCROLL, [this](lv_event_t*) { UpdateOkButton(); });
@@ -234,6 +242,43 @@ SidePane::ShowCurrentMessage(bool at_end)
     UpdateOkButton();
 }
 
+void
+SidePane::ShowNextMessage()
+{
+    if (m_current + 1 < m_messages.size())
+    {
+        m_current++;
+        ShowCurrentMessage();
+    }
+}
+
+void
+SidePane::ShowPreviousMessage(bool at_end)
+{
+    if (m_current > 0)
+    {
+        m_current--;
+        ShowCurrentMessage(at_end);
+    }
+}
+
+void
+SidePane::OnGesture()
+{
+    switch (lv_indev_get_gesture_dir(lv_indev_active()))
+    {
+    case LV_DIR_RIGHT:
+        // From the start, unlike the encoder which continues backwards through the text
+        ShowPreviousMessage(false);
+        break;
+    case LV_DIR_LEFT:
+        ShowNextMessage();
+        break;
+    default:
+        break;
+    }
+}
+
 bool
 SidePane::IsShown() const
 {
@@ -266,8 +311,7 @@ SidePane::HandleInput(const Input::Event& event)
         // Past the start, continue at the end of the previous message
         if (AtTop() && m_current > 0)
         {
-            m_current--;
-            ShowCurrentMessage(true);
+            ShowPreviousMessage(true);
         }
         else
         {
@@ -278,8 +322,7 @@ SidePane::HandleInput(const Input::Event& event)
         // Past the end, continue with the next message
         if (AtBottom() && m_current + 1 < m_messages.size())
         {
-            m_current++;
-            ShowCurrentMessage();
+            ShowNextMessage();
         }
         else
         {

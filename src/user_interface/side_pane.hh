@@ -53,6 +53,12 @@ public:
 private:
     // Show m_messages[m_current], at the start or (when going backwards) the end of the text
     void ShowCurrentMessage(bool at_end = false);
+    // Does nothing at the first/last message (no wrapping)
+    void ShowNextMessage();
+    void ShowPreviousMessage(bool at_end);
+    // Touch swipes between messages
+    void OnGesture();
+
     void RemoveMessageAt(size_t index);
 
     // Scroll by dy pixels (positive = further down in the text)
