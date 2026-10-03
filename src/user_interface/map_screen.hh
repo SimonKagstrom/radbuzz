@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base_thread.hh"
-#include "navigation_widget.hh"
 #include "os/memory.hh"
 #include "painter.hh"
 #include "user_interface.hh"
@@ -28,6 +27,10 @@ private:
     void LayoutForSidePane(bool shown);
 
     void Update() final;
+    bool ShowsNavigation() const final
+    {
+        return true;
+    }
     void HandleInput(const Input::Event& event) final;
     void SetHelp(bool on) final;
 
@@ -50,7 +53,6 @@ private:
     BlankAlphaImage m_position_dot {32, 32};
     lv_obj_t* m_position_dot_obj {nullptr};
 
-    std::unique_ptr<NavigationWidget> m_navigation;
     lv_obj_t* m_home_label {nullptr};
 
     // The horizontal center of the visible map (moved right by the side pane)

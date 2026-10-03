@@ -117,6 +117,7 @@ NavigationWidget::NavigationWidget(lv_obj_t* parent)
 void
 NavigationWidget::SetLeftX(int32_t left_x)
 {
+    m_left_x = left_x;
     lv_obj_align(m_left_box, LV_ALIGN_TOP_LEFT, left_x - 10, -10);
 
     // To the right edge (the power bar ends above it)
@@ -127,10 +128,15 @@ NavigationWidget::SetLeftX(int32_t left_x)
 }
 
 void
-NavigationWidget::Update(ApplicationState& state)
+NavigationWidget::Update(ApplicationState& state, bool show, int32_t left_x)
 {
+    if (left_x != m_left_x)
+    {
+        SetLeftX(left_x);
+    }
+
     auto ro = state.CheckoutReadonly();
-    auto navigation_active = ro.Get<AS::navigation_active>();
+    auto navigation_active = show && ro.Get<AS::navigation_active>();
 
     lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
     lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);

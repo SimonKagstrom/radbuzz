@@ -70,6 +70,11 @@ private:
     void HandleInput(const Input::Event& event) final;
     void SetHelp(bool on) final;
 
+    bool ShowsNavigation() const final
+    {
+        return true;
+    }
+
     // Place it with Align() or AlignTo() afterwards
     Datum CreateDatum(DatumAlignment alignment,
                       const char* label_text,
@@ -78,8 +83,8 @@ private:
 
     void DrawHistogramLines(lv_layer_t* layer);
 
-    // Move/hide things to make room for the side pane
-    void LayoutForSidePane(bool shown);
+    // Move/hide things to make room for the side pane and the navigation widget
+    void Layout(bool side_pane_shown, bool navigating);
 
     lv_obj_t* m_speedometer_box {nullptr};
 
@@ -108,4 +113,5 @@ private:
     lv_obj_t* m_consumption_label {nullptr};
 
     bool m_laid_out_for_side_pane {false};
+    bool m_laid_out_for_navigation {false};
 };

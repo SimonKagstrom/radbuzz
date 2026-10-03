@@ -215,8 +215,6 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_color(m_home_label, lv_color_black(), LV_PART_MAIN);
     lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
 
-    m_navigation = std::make_unique<NavigationWidget>(m_screen);
-
     const uint8_t battery_soc =
         std::min<uint8_t>(m_parent.m_state.CheckoutReadonly().Get<AS::battery_soc>(), 100);
 
@@ -232,7 +230,6 @@ MapScreen::LayoutForSidePane(bool shown)
     m_laid_out_for_side_pane = shown;
     m_center_x = (left_x + hal::kDisplayWidth) / 2;
 
-    m_navigation->SetLeftX(left_x);
 }
 
 void
@@ -364,8 +361,6 @@ MapScreen::Update()
     lv_obj_set_pos(m_home_label,
                    home_on_screen_x - lv_obj_get_width(m_home_label) / 2,
                    home_on_screen_y - lv_obj_get_height(m_home_label) / 2);
-
-    m_navigation->Update(m_parent.m_state);
 
     lv_obj_invalidate(m_screen);
 }
@@ -679,12 +674,12 @@ MapScreen::SetHelp(bool on)
     }
 
     m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(m_navigation->GetTurnSymbolLabel(),
+        std::make_unique<SpeechBubble>(m_parent.m_navigation->GetTurnSymbolLabel(),
                                        SpeechBubble::Direction::kAbove,
                                        "Icon for current navigation\ndirections",
                                        Point {64, 0}));
     m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
-        m_navigation->GetDescriptionLabel(),
+        m_parent.m_navigation->GetDescriptionLabel(),
         SpeechBubble::Direction::kAbove,
         "Next street name",
         Point {256, 0}));

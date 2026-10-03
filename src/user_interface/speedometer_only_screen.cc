@@ -1,6 +1,7 @@
 #include "speedometer_only_screen.hh"
 
 #include "map_screen.hh"
+#include "navigation_widget.hh"
 #include "painter.hh"
 #include "radbuzz_font_120.h"
 #include "radbuzz_font_22.h"
@@ -27,6 +28,16 @@ constexpr Point kBatterySidePanePosition {SidePane::kWidth + 8, 4};
 constexpr auto kPowerDescriptionBottom =
     hal::kDisplayHeight - kMaxHistogramBarHeight - kPixelSize_radbuzz_font_40 - 16;
 constexpr auto kPowerX = -110;
+
+// The trip distance/time at the bottom right, or (when navigating) above the navigation
+// description box and to the left of the indicator icons
+constexpr Point kTripDistancePosition {-20, -kPixelSize_radbuzz_font_40};
+constexpr Point kTripTimePosition {-14, 0};
+constexpr auto kTripNavigationX = kIndicatorColumn - 8 - hal::kDisplayWidth;
+constexpr auto kTripNavigationY = -NavigationWidget::kDescriptionBoxHeight - 4;
+constexpr Point kTripDistanceNavigationPosition {kTripNavigationX - 6,
+                                                 kTripNavigationY - kPixelSize_radbuzz_font_40};
+constexpr Point kTripTimeNavigationPosition {kTripNavigationX, kTripNavigationY};
 constexpr auto kConsumptionX = 80;
 
 namespace
@@ -252,16 +263,14 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     // Align both these to the longest realistic distance
     constexpr auto kMaxGoodLookingDistance = "99.9";
     m_trip_distance = CreateDatum(DatumAlignment::kRight, "Trip", kMaxGoodLookingDistance, "m");
-    m_trip_distance.Align(LV_ALIGN_BOTTOM_RIGHT, {-20, -kPixelSize_radbuzz_font_40});
     m_trip_time = CreateDatum(DatumAlignment::kRight, "", kMaxGoodLookingDistance, "");
-    m_trip_time.Align(LV_ALIGN_BOTTOM_RIGHT, {-14, 0});
 
     m_power = CreateDatum(DatumAlignment::kCenter, "Power", "1800", "W");
     m_consumption = CreateDatum(DatumAlignment::kCenter, "Consumption", "18.9", "Wh/km");
     m_consumption.Align(LV_ALIGN_TOP_MID, {kConsumptionX, PowerY()});
 
-    // The battery, power and speedometer are moved when the side pane is shown
-    LayoutForSidePane(false);
+    // The battery, power, speedometer and trip are moved with the side pane and navigation
+    Layout(false, false);
 
     // Never show
     lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, true);
@@ -357,10 +366,11 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_trip_distance.value_label, trip_value_text.c_str());
 
 
-    if (const auto side_pane_shown = m_parent.SidePaneShown();
-        side_pane_shown != m_laid_out_for_side_pane)
+    const auto side_pane_shown = m_parent.SidePaneShown();
+    const auto navigating = m_parent.m_state.Get<AS::navigation_active>();
+    if (side_pane_shown != m_laid_out_for_side_pane || navigating != m_laid_out_for_navigation)
     {
-        LayoutForSidePane(side_pane_shown);
+        Layout(side_pane_shown, navigating);
     }
 
     auto recent_entries = m_parent.m_trip_computer.GetRecentEntries();
@@ -433,15 +443,23 @@ SpeedometerOnlyScreen::Update()
 }
 
 void
-SpeedometerOnlyScreen::LayoutForSidePane(bool shown)
+SpeedometerOnlyScreen::Layout(bool side_pane_shown, bool navigating)
 {
-    m_laid_out_for_side_pane = shown;
+    m_laid_out_for_side_pane = side_pane_shown;
+    m_laid_out_for_navigation = navigating;
 
-    lv_obj_set_flag(m_histogram, LV_OBJ_FLAG_HIDDEN, shown);
-    m_range.SetHidden(shown);
-    m_consumption.SetHidden(shown);
+    // The navigation widget covers the bottom left part of the histogram
+    lv_obj_set_flag(m_histogram, LV_OBJ_FLAG_HIDDEN, side_pane_shown || navigating);
+    m_range.SetHidden(side_pane_shown);
+    m_consumption.SetHidden(side_pane_shown);
 
-    if (shown)
+    // Above the navigation description box, and clear of the indicator icons
+    m_trip_distance.Align(LV_ALIGN_BOTTOM_RIGHT,
+                          navigating ? kTripDistanceNavigationPosition : kTripDistancePosition);
+    m_trip_time.Align(LV_ALIGN_BOTTOM_RIGHT,
+                      navigating ? kTripTimeNavigationPosition : kTripTimePosition);
+
+    if (side_pane_shown)
     {
         lv_obj_align(m_speedometer_box, LV_ALIGN_CENTER, kSpeedometerBoxSidePaneXOffset, 0);
         m_battery.Align(LV_ALIGN_TOP_LEFT, kBatterySidePanePosition);

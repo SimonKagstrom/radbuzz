@@ -29,6 +29,7 @@ class SpeedometerOnlyScreen;
 class HomeIndicator;
 class IncomingCallScreen;
 class SidePane;
+class NavigationWidget;
 
 constexpr auto kPowerBarWidth = 10;
 // The x position of the indicator icons at the right
@@ -56,6 +57,12 @@ public:
         virtual ~ScreenBase() = default;
         virtual void Update() = 0;
         virtual void HandleInput(const Input::Event& event) = 0;
+
+        // The navigation widget is shown (during navigation) on screens which want it
+        virtual bool ShowsNavigation() const
+        {
+            return false;
+        }
 
         virtual void OnActivation()
         {
@@ -276,6 +283,7 @@ private:
     ScreenBase* m_current_screen {nullptr};
 
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
+    std::unique_ptr<NavigationWidget> m_navigation;
     std::vector<std::unique_ptr<IndicatorBase>> m_indicators;
     std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
 

@@ -203,6 +203,9 @@ UserInterface::OnStartup()
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
 
+    // Below the side pane, which hides the left corners when moved next to it
+    m_navigation = std::make_unique<NavigationWidget>(lv_layer_top());
+
     // After the speedometer, which is partly hidden below it when the pane is shown. Before the
     // indicators, so that they are drawn on top of it
     m_side_pane = std::make_unique<SidePane>(lv_layer_top());
@@ -322,12 +325,14 @@ UserInterface::DrawPowerBar(uint16_t* dst)
 
     auto height = hal::kDisplayHeight;
     auto y_start = 0;
+    // Above the navigation description box
+    if (m_current_screen && m_current_screen->ShowsNavigation() &&
+        ro.Get<AS::navigation_active>())
+    {
+        height -= NavigationWidget::kDescriptionBoxHeight;
+    }
     if (OnMapScreen())
     {
-        if (ro.Get<AS::navigation_active>())
-        {
-            height -= NavigationWidget::kDescriptionBoxHeight;
-        }
         // The distance box is only shown on the map, and not together with the side pane
         if (!SidePaneShown())
         {
@@ -481,6 +486,8 @@ UserInterface::OnActivation()
                                   !OnSpeedometerScreen(),
                                   OnMapScreen() && !side_pane_shown,
                                   side_pane_shown ? SidePane::kWidth : 0);
+    m_navigation->Update(
+        m_state, m_current_screen->ShowsNavigation(), side_pane_shown ? SidePane::kWidth : 0);
     for (auto& indicator : m_indicators)
     {
         indicator->Update(m_state);
