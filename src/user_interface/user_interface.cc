@@ -540,7 +540,7 @@ UserInterface::ShowIncomingCall(const MSG::incoming_call& call)
 void
 UserInterface::UpdateSidePane()
 {
-    m_side_pane->SetSuppressed(OnCallScreen());
+    m_side_pane->SetSuppressed(OnCallScreen() || OnMenuScreen() || m_state.Get<AS::is_moving>());
 }
 
 bool

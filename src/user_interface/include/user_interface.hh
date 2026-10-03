@@ -148,6 +148,11 @@ public:
         return m_current_screen == m_incoming_call_screen.get();
     }
 
+    bool OnMenuScreen() const
+    {
+        return m_current_screen == m_settings_menu_screen.get();
+    }
+
 
     bool SidePaneShown() const;
 
