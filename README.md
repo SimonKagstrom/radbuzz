@@ -17,6 +17,10 @@ controllers. It's built for an ESP32P4 microcontroller, but can also be run on t
   <a href="doc/menu.png"><img src="doc/menu.png" alt="menu screen" width="31%"></a>
   <a href="doc/menu_settings.png"><img src="doc/menu_settings.png" alt="settings menu screen" width="31%"></a>
 </p>
+<p align="center">
+  <a href="doc/incoming_call.png"><img src="doc/incoming_call.png" alt="incoming call screen" width="31%"></a>
+  <a href="doc/message_on_speedometer_screen.png"><img src="doc/message_on_speedometer_screen.png" alt="message on the speedometer screen" width="31%"></a>
+</p>
 
 Features:
 
