@@ -628,10 +628,16 @@ app_main(void)
 
     auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
 
+    // Over the regular Wifi connection (started from the menu)
+    auto httpd_ota_updater =
+        std::make_unique<TargetHttpdOtaUpdater>(*display, TargetHttpdOtaUpdater::Mode::kStation);
+    auto ota_updater = std::make_unique<OtaUpdater>(*httpd_ota_updater, application_state);
+
     auto user_interface = std::make_unique<UserInterface>(*display,
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),
                                                           *input,
+                                                          *ota_updater,
                                                           application_state,
                                                           post_office,
                                                           *image_cache,
@@ -736,7 +742,6 @@ app_main(void)
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
 
-    auto ota_updater = std::make_unique<OtaUpdater>(*httpd_ota_updater, application_state);
 
     //    constexpr auto kFullRotation = 2400;
     //    auto speedometer_handler =

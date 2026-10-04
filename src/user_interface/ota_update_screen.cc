@@ -35,12 +35,11 @@ ProgressToString(uint8_t progress)
 OtaUpdateScreen::OtaUpdateScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
 {
-    auto instructions = parent.m_ota_updater.GetInstructions();
     m_label = lv_label_create(m_screen);
 
     lv_obj_set_style_text_font(m_label, &lv_font_montserrat_22, LV_PART_MAIN);
 
-    lv_label_set_text(m_label, instructions);
+    lv_label_set_text(m_label, "");
 
     lv_obj_set_style_text_align(m_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(m_label, LV_ALIGN_CENTER, 0, 0);
@@ -58,7 +57,17 @@ OtaUpdateScreen::Update()
 {
     auto progress_now = m_progress.load();
 
-    if (progress_now > 0)
+    if (progress_now == 0)
+    {
+        // Until the upload starts (the address is known once Wifi is connected)
+        if (auto instructions = m_parent.m_ota_updater.GetInstructions();
+            instructions != m_instructions)
+        {
+            m_instructions = instructions;
+            lv_label_set_text(m_label, m_instructions.c_str());
+        }
+    }
+    else
     {
         auto text = ProgressToString(progress_now);
 

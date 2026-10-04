@@ -21,6 +21,7 @@ private:
     }
 
     lv_obj_t* m_label;
+    std::string m_instructions;
 
     std::unique_ptr<ListenerCookie> m_progress_cookie;
     std::atomic<uint8_t> m_progress {0};

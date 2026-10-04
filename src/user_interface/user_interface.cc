@@ -3,11 +3,8 @@
 #include "incoming_call_screen.hh"
 #include "indicators.hh"
 #include "map_screen.hh"
-<<<<<<< HEAD
-#include "ota_update_screen.hh"
-=======
 #include "navigation_widget.hh"
->>>>>>> main
+#include "ota_update_screen.hh"
 #include "painter.hh"
 #include "settings_menu_screen.hh"
 #include "side_pane.hh"
@@ -199,21 +196,14 @@ UserInterface::OnStartup()
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
     m_speedometer_only_screen = std::make_unique<SpeedometerOnlyScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
-<<<<<<< HEAD
+    m_incoming_call_screen = std::make_unique<IncomingCallScreen>(*this);
     m_ota_update_screen = std::make_unique<OtaUpdateScreen>(*this);
 
     m_screens = {m_map_screen.get(),
                  m_trip_meter_screen.get(),
+                 m_speedometer_only_screen.get(),
                  m_settings_menu_screen.get(),
                  m_ota_update_screen.get()};
-=======
-    m_incoming_call_screen = std::make_unique<IncomingCallScreen>(*this);
-
-    m_screens = {m_map_screen.get(),
-                 m_trip_meter_screen.get(),
-                 m_speedometer_only_screen.get(),
-                 m_settings_menu_screen.get()};
->>>>>>> main
 
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());

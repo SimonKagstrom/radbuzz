@@ -11,13 +11,10 @@
 #include "image_cache.hh"
 #include "input.hh"
 #include "menu_screen.hh"
-<<<<<<< HEAD
-#include "ota_updater.hh"
-=======
 #include "message_box.hh"
 #include "messages.hh"
+#include "ota_updater.hh"
 #include "post_office.hh"
->>>>>>> main
 #include "speech_bubble.hh"
 #include "tile_cache.hh"
 #include "trip_computer.hh"
@@ -294,7 +291,7 @@ private:
     std::unique_ptr<ScreenBase> m_incoming_call_screen;
     ScreenBase* m_screen_before_call {nullptr};
 
-    etl::vector<ScreenBase*, 4> m_screens;
+    etl::vector<ScreenBase*, 5> m_screens;
     ScreenBase* m_current_screen {nullptr};
 
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
