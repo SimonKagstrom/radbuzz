@@ -30,6 +30,25 @@ enum class SpeedometerType : uint8_t
     kValueCount,
 };
 
+enum class HistogramMode : uint8_t
+{
+    kPower,
+    kConsumption,
+
+    kValueCount,
+};
+
+enum class Profile : uint8_t
+{
+    kWalking,
+    kMoped25,
+    kMoped30,
+    kMoped45,
+    kNoLimit,
+
+    kValueCount,
+};
+
 struct ConfigurationSettings
 {
     // @brief the home position
@@ -39,14 +58,21 @@ struct ConfigurationSettings
     /// @brief Maximum power in watts
     uint16_t max_watts;
 
+    /// Distance in meters between power bars on the speedometer screen
+    uint16_t recent_power_distance;
+
     SpeedometerType speedometer_type;
+
+    HistogramMode histogram_mode;
 
     /// Whether the map should rotate according to heading
     bool rotate_map;
     /// @brief Number of battery cells in series, used to calculate cell voltage from millivolts (14s3p etc)
     uint8_t battery_cell_series;
-    /// @brief Maximum speed in km/h (for the speedometer limits)
-    uint8_t max_speed;
+    /// @brief Maximum speed in km/h (for the analogue speedometer limits)
+    uint8_t max_speedometer_speed;
+    /// @brief Maximum moped speed in km/h
+    Profile profile;
     /// @brief Battery capacity in ampere-hours (e.g., 20Ah)
     uint8_t battery_amp_hours;
     /// @brief Average watt-hours per kilometer for range estimation

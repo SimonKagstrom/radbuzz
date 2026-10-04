@@ -15,7 +15,7 @@ public:
         auto& ref = ps.GetWritableReference<AS::configuration>();
 
         ref.speedometer_type = SpeedometerType::kAnalog;
-        ref.max_speed = 60;
+        ref.max_speedometer_speed = 60;
 
         SetThread(&speedo);
     }

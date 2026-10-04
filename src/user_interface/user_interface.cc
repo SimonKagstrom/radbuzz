@@ -1,10 +1,17 @@
 #include "user_interface.hh"
 
+#include "incoming_call_screen.hh"
 #include "indicators.hh"
 #include "map_screen.hh"
+<<<<<<< HEAD
 #include "ota_update_screen.hh"
+=======
+#include "navigation_widget.hh"
+>>>>>>> main
 #include "painter.hh"
 #include "settings_menu_screen.hh"
+#include "side_pane.hh"
+#include "speedometer_only_screen.hh"
 #include "trip_meter_screen.hh"
 
 #include <radbuzz_font_22.h>
@@ -19,6 +26,7 @@ enum IndicatorType
     kPaused,
     kWifi,
     kBluetooth,
+    kCallOngoing,
 
     kValueCount,
 };
@@ -43,6 +51,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                              hal::IInput& input,
                              OtaUpdater& ota_updater,
                              ApplicationState& state,
+                             PostOffice<MSG::AllMessages>& post_office,
                              ImageCache& cache,
                              TileCache& tile_cache,
                              TripComputer& trip_computer)
@@ -52,6 +61,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     , m_input(input)
     , m_ota_updater(ota_updater)
     , m_state(state)
+    , m_post_office(post_office)
     , m_image_cache(cache)
     , m_tile_cache(tile_cache)
     , m_trip_computer(trip_computer)
@@ -64,13 +74,21 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::bluetooth_connected,
                                               AS::wifi_connected,
                                               AS::speed,
-                                              AS::tile_loaded,
                                               AS::trip_duration,
                                               AS::navigation_active,
+                                              AS::next_street,
+                                              AS::distance_to_next,
+                                              AS::turn_symbol,
                                               AS::is_moving,
                                               AS::wh_consumed,
-                                              AS::wh_regenerated>(GetSemaphore());
+                                              AS::wh_regenerated,
+                                              AS::call_ongoing>(GetSemaphore());
     m_cache_listener = m_image_cache.ListenToChanges(GetSemaphore());
+    m_mailbox = m_post_office.Subscribe<MSG::incoming_call,
+                                        MSG::tile_loaded,
+                                        MSG::call_ended,
+                                        MSG::dismiss_message,
+                                        MSG::message>(GetSemaphore());
 
     // Context: Interrupt/anoteher thread
     m_input_listener = m_input.AttachListener([this](auto event) {
@@ -78,6 +96,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
         Awake();
     });
 }
+
+UserInterface::~UserInterface() = default;
 
 void
 UserInterface::OnStartup()
@@ -177,26 +197,44 @@ UserInterface::OnStartup()
 
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache, kDefaultZoom);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
+    m_speedometer_only_screen = std::make_unique<SpeedometerOnlyScreen>(*this);
     m_settings_menu_screen = std::make_unique<SettingsMenuScreen>(*this);
+<<<<<<< HEAD
     m_ota_update_screen = std::make_unique<OtaUpdateScreen>(*this);
 
     m_screens = {m_map_screen.get(),
                  m_trip_meter_screen.get(),
                  m_settings_menu_screen.get(),
                  m_ota_update_screen.get()};
+=======
+    m_incoming_call_screen = std::make_unique<IncomingCallScreen>(*this);
+
+    m_screens = {m_map_screen.get(),
+                 m_trip_meter_screen.get(),
+                 m_speedometer_only_screen.get(),
+                 m_settings_menu_screen.get()};
+>>>>>>> main
 
     // Keep this widget above any active screen (map, trip meter, settings, ...).
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
 
+    // Below the side pane, which hides the left corners when moved next to it
+    m_navigation = std::make_unique<NavigationWidget>(lv_layer_top());
+
+    // After the speedometer, which is partly hidden below it when the pane is shown. Before the
+    // indicators, so that they are drawn on top of it
+    m_side_pane = std::make_unique<SidePane>(lv_layer_top());
+
     // The battery icon is at the top right, and the rest in a column to the lright
     constexpr auto kIndicatorRowSpacing = 46;
-    constexpr auto kIndicatorColumn = hal::kDisplayWidth - kPowerBarWidth - 48;
     auto indicator_row_y = DigitalSpeedometerWidget::kBoxDimensions - 46;
 
 
     m_indicators.resize(std::to_underlying(IndicatorType::kValueCount));
     m_indicators[IndicatorType::kBattery] = std::make_unique<BatteryIndicator>(
         *this, Point {hal::kDisplayWidth - DigitalSpeedometerWidget::kBoxDimensions - 72, 0});
+    m_indicators[IndicatorType::kCallOngoing] =
+        std::make_unique<CallIndicator>(*this, Point {hal::kDisplayWidth / 2, 0});
 
     m_indicators[IndicatorType::kOverheated] = std::make_unique<OverheatedIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
@@ -211,7 +249,7 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
-    ActivateScreen(*m_map_screen);
+    ActivateScreen(*m_speedometer_only_screen);
     ResetTrip();
 
     // Allow placing the objects first, so delay a bit
@@ -226,6 +264,8 @@ UserInterface::OnStartup()
 
     m_show_all_indicators_timer = StartTimer(3s, [this]() {
         HideHelp();
+        UpdateSidePane();
+
         return std::nullopt;
     });
 }
@@ -244,6 +284,10 @@ UserInterface::SetHelp(bool on)
         return;
     }
 
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kCallOngoing]->m_indicator_label,
+                                       SpeechBubble::Direction::kBelow,
+                                       "Call ongoing /\nunread messages"));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kOverheated]->m_indicator_label,
@@ -296,14 +340,19 @@ UserInterface::DrawPowerBar(uint16_t* dst)
 
     auto height = hal::kDisplayHeight;
     auto y_start = 0;
+    // Above the navigation description box
+    if (m_current_screen && m_current_screen->ShowsNavigation() &&
+        ro.Get<AS::navigation_active>())
+    {
+        height -= NavigationWidget::kDescriptionBoxHeight;
+    }
     if (OnMapScreen())
     {
-        if (ro.Get<AS::navigation_active>())
+        // The distance box is only shown on the map, and not together with the side pane
+        if (!SidePaneShown())
         {
-            height -= MapScreen::kNavigationBoxHeight;
+            y_start = DigitalSpeedometerWidget::kBoxDimensions;
         }
-        // The distance box is only shown on the map
-        y_start = DigitalSpeedometerWidget::kBoxDimensions;
     }
 
     const int pixels_at_max_power = height / 2;
@@ -336,7 +385,7 @@ UserInterface::DrawPowerBar(uint16_t* dst)
 void
 UserInterface::ResetTrip()
 {
-    m_state.CheckoutReadWrite().Post<AS::reset_trip>();
+    m_post_office.Send<MSG::reset_trip>();
 
     auto ro = m_state.CheckoutReadonly();
 
@@ -350,6 +399,13 @@ UserInterface::ResetTrip()
 std::optional<milliseconds>
 UserInterface::OnActivation()
 {
+    m_mailbox->Collect()
+        .On<MSG::incoming_call>([this](auto call) { ShowIncomingCall(*call); })
+        .On<MSG::call_ended>([this](auto) { HideIncomingCall(); })
+        .On<MSG::dismiss_message>([this](auto msg) { DismissMessage(*msg); })
+        .On<MSG::message>([this](auto msg) { ShowMessage(*msg); });
+    UpdateSidePane();
+
     auto& co = m_state_cache.Pull();
     if (co.IsChanged<AS::pixel_position>())
     {
@@ -363,6 +419,8 @@ UserInterface::OnActivation()
     while (m_input_queue.pop(input_event))
     {
         auto event = input_event.type;
+        // Before the event, since a touch might dismiss it
+        const auto side_pane_shown = m_side_pane->IsShown();
 
         m_enc_diff = 0;
 
@@ -402,7 +460,34 @@ UserInterface::OnActivation()
             break;
         }
 
-        m_current_screen->HandleInput(input_event);
+        const auto is_touch = event == hal::IInput::EventType::kTouchDown ||
+                              event == hal::IInput::EventType::kTouchMove ||
+                              event == hal::IInput::EventType::kTouchUp;
+
+        if (m_message_box && m_message_box->IsOpen() && !is_touch)
+        {
+            // The encoder controls the message box (touch is handled by the modal LVGL object)
+            lv_indev_read(m_lvgl_input_dev);
+        }
+        else if (side_pane_shown && !is_touch)
+        {
+            // The encoder controls the side pane
+            m_side_pane->HandleInput(input_event);
+        }
+        else if (side_pane_shown && m_side_pane->Contains(input_event.x, input_event.y))
+        {
+            // Touch on the side pane is handled by LVGL
+        }
+        else
+        {
+            m_current_screen->HandleInput(input_event);
+        }
+    }
+    UpdateSidePane();
+
+    if (m_message_box && !m_message_box->IsOpen())
+    {
+        m_message_box = nullptr;
     }
 
     auto max_power = m_pm_lock->FullPower();
@@ -410,7 +495,14 @@ UserInterface::OnActivation()
     m_current_screen->Update();
     m_current_screen->UpdateHelp();
 
-    m_digital_speedometer->Update(m_state, OnMapScreen());
+    // The distance box is hidden, and the speedometer moved right, when the side pane is shown
+    const auto side_pane_shown = SidePaneShown();
+    m_digital_speedometer->Update(m_state,
+                                  !OnSpeedometerScreen(),
+                                  OnMapScreen() && !side_pane_shown,
+                                  side_pane_shown ? SidePane::kWidth : 0);
+    m_navigation->Update(
+        m_state, m_current_screen->ShowsNavigation(), side_pane_shown ? SidePane::kWidth : 0);
     for (auto& indicator : m_indicators)
     {
         indicator->Update(m_state);
@@ -421,7 +513,7 @@ UserInterface::OnActivation()
     {
         for (auto& indicator : m_indicators)
         {
-            lv_obj_clear_flag(indicator->m_indicator_label, LV_OBJ_FLAG_HIDDEN);
+            indicator->ForceShow();
         }
     }
 
@@ -447,4 +539,90 @@ UserInterface::OnActivation()
     }
 
     return std::nullopt;
+}
+
+void
+UserInterface::ShowIncomingCall(const MSG::incoming_call& call)
+{
+    auto call_screen = static_cast<IncomingCallScreen*>(m_incoming_call_screen.get());
+
+    call_screen->SetCaller(call);
+    if (m_current_screen == call_screen)
+    {
+        // Already shown, just update the caller
+        return;
+    }
+
+    // The call takes over the encoder, so close any message box
+    m_message_box = nullptr;
+
+    m_screen_before_call = m_current_screen;
+    ActivateScreen(*call_screen, true);
+}
+
+void
+UserInterface::UpdateSidePane()
+{
+    m_side_pane->SetSuppressed(OnCallScreen() || OnMenuScreen() || m_state.Get<AS::is_moving>());
+}
+
+bool
+UserInterface::SidePaneShown() const
+{
+    return m_side_pane->IsShown();
+}
+
+void
+UserInterface::HideIncomingCall()
+{
+    // Already left (e.g., declined here, and this is the phone confirming it)
+    if (m_current_screen != m_incoming_call_screen.get())
+    {
+        return;
+    }
+
+    EndIncomingCall();
+}
+
+void
+UserInterface::EndIncomingCall()
+{
+    auto previous = m_screen_before_call ? m_screen_before_call : m_speedometer_only_screen.get();
+
+    m_screen_before_call = nullptr;
+    ActivateScreen(*previous, true);
+}
+
+void
+UserInterface::DismissMessage(const MSG::dismiss_message& msg)
+{
+    m_side_pane->RemoveMessage(msg.id);
+}
+
+void
+UserInterface::ShowMessage(const MSG::message& msg)
+{
+    m_side_pane->AddMessage({
+        .id = msg.id,
+        .source = msg.source,
+        .title = msg.title,
+        .body = msg.body,
+    });
+}
+
+
+void
+UserInterface::ShowMessageBox(const std::string& title,
+                              const std::string& text,
+                              std::vector<MessageBox::Button> buttons)
+{
+    // Close any open box first, so that the encoder group is restored in the right order
+    m_message_box = nullptr;
+    m_message_box = std::make_unique<MessageBox>(m_lvgl_input_dev, title, text, std::move(buttons));
+}
+
+bool
+UserInterface::ShowMessagesIcon() const
+{
+    return m_side_pane->HasMessages() && !m_side_pane->IsShown();
 }

@@ -51,6 +51,7 @@ jobs:
             qt6-base-dev \
             qt6-base-dev-tools \
             qt6-tools-dev \
+            qt6-connectivity-dev \
             libgl1-mesa-dev
 
       - name: Install codegen dependencies

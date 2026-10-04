@@ -10,8 +10,6 @@
 class MapScreen : public UserInterface::ScreenBase
 {
 public:
-    static constexpr auto kNavigationBoxHeight = 32;
-
     MapScreen(UserInterface& parent, ImageCache& image_cache, TileCache& tile_cache, uint8_t zoom);
 
     void SetZoom(uint8_t zoom);
@@ -25,7 +23,14 @@ private:
     void PrepareNonRotatedBlits();
     void RotateBackground(int32_t angle_deg10, uint16_t* dst);
 
+    // Move the map center and navigation boxes to the right of the side pane
+    void LayoutForSidePane(bool shown);
+
     void Update() final;
+    bool ShowsNavigation() const final
+    {
+        return true;
+    }
     void HandleInput(const Input::Event& event) final;
     void SetHelp(bool on) final;
 
@@ -48,14 +53,11 @@ private:
     BlankAlphaImage m_position_dot {32, 32};
     lv_obj_t* m_position_dot_obj {nullptr};
 
-    // Related to the navigation
-    uint32_t m_current_icon_hash {kInvalidIconHash};
-    lv_obj_t* m_navigation_box {nullptr};
-    lv_obj_t* m_navigation_description_box {nullptr};
-    lv_obj_t* m_current_icon {nullptr};
-    lv_obj_t* m_description_label {nullptr};
-    lv_obj_t* m_distance_left_label {nullptr};
     lv_obj_t* m_home_label {nullptr};
+
+    // The horizontal center of the visible map (moved right by the side pane)
+    int32_t m_center_x {hal::kDisplayWidth / 2};
+    bool m_laid_out_for_side_pane {false};
 
     Point m_current_view_center {0, 0, kDefaultZoom};
     Point m_current_range_circle_center {0, 0, kDefaultZoom};

@@ -1,3 +1,3 @@
 #pragma once
 
-constexpr auto kInvalidIconHash = 0;
+// For now nothing, but might be something later...

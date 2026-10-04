@@ -11,7 +11,13 @@
 #include "image_cache.hh"
 #include "input.hh"
 #include "menu_screen.hh"
+<<<<<<< HEAD
 #include "ota_updater.hh"
+=======
+#include "message_box.hh"
+#include "messages.hh"
+#include "post_office.hh"
+>>>>>>> main
 #include "speech_bubble.hh"
 #include "tile_cache.hh"
 #include "trip_computer.hh"
@@ -24,9 +30,15 @@ class MapScreen;
 class TripMeterScreen;
 class SettingsMenuScreen;
 class OtaUpdateScreen;
+class SpeedometerOnlyScreen;
 class HomeIndicator;
+class IncomingCallScreen;
+class SidePane;
+class NavigationWidget;
 
 constexpr auto kPowerBarWidth = 10;
+// The x position of the indicator icons at the right
+constexpr auto kIndicatorColumn = hal::kDisplayWidth - kPowerBarWidth - 48;
 
 class UserInterface : public os::BaseThread
 {
@@ -35,7 +47,9 @@ public:
     friend class TripMeterScreen;
     friend class SettingsMenuScreen;
     friend class OtaUpdateScreen;
+    friend class SpeedometerOnlyScreen;
     friend class HomeIndicator;
+    friend class IncomingCallScreen;
 
     class ScreenBase
     {
@@ -49,6 +63,12 @@ public:
         virtual ~ScreenBase() = default;
         virtual void Update() = 0;
         virtual void HandleInput(const Input::Event& event) = 0;
+
+        // The navigation widget is shown (during navigation) on screens which want it
+        virtual bool ShowsNavigation() const
+        {
+            return false;
+        }
 
         virtual void OnActivation()
         {
@@ -98,6 +118,12 @@ public:
 
         virtual void Update(ApplicationState& state) = 0;
 
+        // Force showing, assuming it's on a compatible screen
+        virtual void ForceShow()
+        {
+            lv_obj_clear_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN);
+        }
+
     protected:
         UserInterface& m_parent;
         lv_obj_t* m_indicator_label {nullptr};
@@ -109,9 +135,18 @@ public:
                   hal::IInput& input,
                   OtaUpdater& ota_updater,
                   ApplicationState& state,
+                  PostOffice<MSG::AllMessages>& post_office,
                   ImageCache& cache,
                   TileCache& tile_cache,
                   TripComputer& trip_computer);
+
+    ~UserInterface() override;
+
+    // The background of the (non-map) screens. Also used to fill the display at startup
+    static lv_color_t GetBackgroundColor()
+    {
+        return lv_color_make(47, 47, 58);
+    }
 
     bool OnMapScreen() const
     {
@@ -123,6 +158,25 @@ public:
         return m_current_screen == m_trip_meter_screen.get();
     }
 
+    bool OnSpeedometerScreen() const
+    {
+        return m_current_screen == m_speedometer_only_screen.get();
+    }
+
+    bool OnCallScreen() const
+    {
+        return m_current_screen == m_incoming_call_screen.get();
+    }
+
+    bool OnMenuScreen() const
+    {
+        return m_current_screen == m_settings_menu_screen.get();
+    }
+
+
+    bool SidePaneShown() const;
+
+
     void ShowHelp()
     {
         SetHelp(true);
@@ -132,6 +186,13 @@ public:
     {
         SetHelp(false);
     }
+
+    bool ShowMessagesIcon() const;
+
+    // Show a modal message box (replacing any open one). Input goes to it until it's closed.
+    void ShowMessageBox(const std::string& title,
+                        const std::string& text,
+                        std::vector<MessageBox::Button> buttons);
 
 private:
     void SetHelp(bool on);
@@ -149,10 +210,23 @@ private:
     void ResetTrip();
     void DrawPowerBar(uint16_t* dst);
 
-    void ActivateScreen(ScreenBase& screen)
+    void ShowIncomingCall(const MSG::incoming_call& call);
+    // The call ended on the phone side (hung up, missed, ...)
+    void HideIncomingCall();
+
+    void DismissMessage(const MSG::dismiss_message& msg);
+    void ShowMessage(const MSG::message& msg);
+
+    // Hide the pane during calls
+    void UpdateSidePane();
+
+    // Return to the screen which was active before the call
+    void EndIncomingCall();
+
+    // Force activates even during the startup indicator display
+    void ActivateScreen(ScreenBase& screen, bool force = false)
     {
-        printf("ACTIVATING SCREEN %p\n", &screen);
-        if (m_show_all_indicators_timer && !m_show_all_indicators_timer->IsExpired())
+        if (!force && m_show_all_indicators_timer && !m_show_all_indicators_timer->IsExpired())
         {
             // Don't allow switching until indicators have shown
             return;
@@ -175,6 +249,7 @@ private:
     OtaUpdater& m_ota_updater;
 
     ApplicationState& m_state;
+    PostOffice<MSG::AllMessages>& m_post_office;
 
     ImageCache& m_image_cache;
     TileCache& m_tile_cache;
@@ -200,28 +275,36 @@ private:
     std::unique_ptr<ListenerCookie> m_state_listener;
     std::unique_ptr<ListenerCookie> m_cache_listener;
     std::unique_ptr<ListenerCookie> m_input_listener;
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 
     os::TimerHandle m_trip_start_initial_timer;
     os::TimerHandle m_menu_destructor;
     os::TimerHandle m_show_all_indicators_timer;
     os::TimerHandle m_show_help_timer;
 
-    uint32_t m_current_icon_hash {kInvalidIconHash};
-
     lv_indev_t* m_lvgl_input_dev {nullptr};
     lv_indev_t* m_lvgl_touch_input_dev {nullptr};
 
     std::unique_ptr<ScreenBase> m_map_screen;
     std::unique_ptr<ScreenBase> m_trip_meter_screen;
+    std::unique_ptr<ScreenBase> m_speedometer_only_screen;
     std::unique_ptr<ScreenBase> m_settings_menu_screen;
     std::unique_ptr<ScreenBase> m_ota_update_screen;
+    // Not part of m_screens, since it's only shown on calls
+    std::unique_ptr<ScreenBase> m_incoming_call_screen;
+    ScreenBase* m_screen_before_call {nullptr};
 
     etl::vector<ScreenBase*, 4> m_screens;
     ScreenBase* m_current_screen {nullptr};
 
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
+    std::unique_ptr<NavigationWidget> m_navigation;
     std::vector<std::unique_ptr<IndicatorBase>> m_indicators;
     std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
+
+    std::unique_ptr<MessageBox> m_message_box;
+
+    std::unique_ptr<SidePane> m_side_pane;
 
     bool m_help_enabled {false};
 };

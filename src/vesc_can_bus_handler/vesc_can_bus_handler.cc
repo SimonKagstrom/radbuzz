@@ -1,16 +1,39 @@
-#include "can_bus_handler.hh"
+#include "vesc_can_bus_handler.hh"
 
+#include <numbers>
 #include <vesc_buffer.h>
 #include <vesc_can_sdk.h>
 
-CanBusHandler::CanBusHandler(hal::ICan& bus, ApplicationState& app_state)
+// Round up slightly above the limit
+constexpr auto kProfileSpeedTable = std::array<uint8_t, static_cast<size_t>(Profile::kValueCount)> {
+    5,
+    27,
+    33,
+    48,
+    200,
+};
+
+struct VescCanState
+{
+    std::optional<vesc_mcconf_t> mcconf;
+};
+
+VescCanBusHandler::VescCanBusHandler(hal::ICan& bus, ApplicationState& app_state)
     : m_bus(bus)
     , m_state(app_state)
+    , m_state_cache(app_state)
+    , m_state_listener(m_state.AttachListener<AS::configuration>(GetSemaphore()))
 {
+    m_vesc_can_state = new VescCanState();
+}
+
+VescCanBusHandler::~VescCanBusHandler()
+{
+    delete m_vesc_can_state;
 }
 
 void
-CanBusHandler::OnStartup()
+VescCanBusHandler::OnStartup()
 {
     m_bus_listener = m_bus.Start(GetSemaphore());
 
@@ -19,11 +42,15 @@ CanBusHandler::OnStartup()
     // storage.cc has loaded these before the thread start, so set here
     m_start_consumed_wh = ro.Get<AS::wh_consumed>();
     m_start_regen_wh = ro.Get<AS::wh_regenerated>();
+
+    // Update so that conf changes can be read later
+    m_state_cache.Pull();
 }
 
 std::optional<milliseconds>
-CanBusHandler::OnActivation()
+VescCanBusHandler::OnActivation()
 {
+
     while (auto frame = m_bus.ReceiveFrame())
     {
         auto d = frame->Data();
@@ -34,7 +61,7 @@ CanBusHandler::OnActivation()
 
             vesc_can_init(
                 [](uint32_t id, const uint8_t* data, uint8_t len, void* user_cookie) {
-                    auto pThis = static_cast<CanBusHandler*>(user_cookie);
+                    auto pThis = static_cast<VescCanBusHandler*>(user_cookie);
                     return pThis->m_bus.SendFrame(id, std::span<const uint8_t> {data, len});
                 },
                 *m_controller_id, // Receiver controller ID
@@ -46,7 +73,7 @@ CanBusHandler::OnActivation()
                                           const uint8_t* data,
                                           uint8_t len,
                                           void* user_cookie) {
-                auto pThis = static_cast<CanBusHandler*>(user_cookie);
+                auto pThis = static_cast<VescCanBusHandler*>(user_cookie);
                 pThis->VescResponseCallback(controller_id, command, data, len);
             });
 
@@ -62,22 +89,66 @@ CanBusHandler::OnActivation()
 
             // Set the can bus as active once the first selective values have been received
             m_start_timer = StartTimer(300ms, [this]() {
-                m_state.CheckoutReadWrite().Set<AS::can_bus_active>(true);
-                return std::nullopt;
+                std::optional<milliseconds> out = 100ms;
+
+                // Wait for the mcconf state to be valid until marking the can bus as active
+                if (m_vesc_can_state->mcconf)
+                {
+                    SetMaxSpeed(m_state.Get<AS::configuration>()->profile);
+                    m_state.CheckoutReadWrite().Set<AS::can_bus_active>(true);
+                    out = std::nullopt;
+                }
+                else
+                {
+                    vesc_get_mcconf_temp(*m_controller_id);
+                }
+
+                return out;
             });
         }
 
+
         vesc_process_can_frame(frame->Id(), d.data(), static_cast<uint8_t>(d.size()));
+    }
+
+
+    if (m_controller_id && m_vesc_can_state)
+    {
+        // Controller now known and mcconf is valid
+        auto& co = m_state_cache.Pull();
+        co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
+            if (old_conf.profile != new_conf.profile)
+            {
+                SetMaxSpeed(new_conf.profile);
+            }
+        });
     }
 
     return std::nullopt;
 }
 
 void
-CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
-                                    uint8_t command,
-                                    const uint8_t* data,
-                                    uint8_t len)
+VescCanBusHandler::SetMaxSpeed(Profile profile)
+{
+    if (m_vesc_can_state)
+    {
+        auto max_speed_kmh = kProfileSpeedTable[std::to_underlying(profile)];
+
+        auto mcconf = &m_vesc_can_state->mcconf.value();
+        // max_speed is in km/h, but the setting is in erpm so convert via m/s
+        const auto fact = ((mcconf->si_motor_poles / 2.0f) * 60.0f * mcconf->si_gear_ratio) /
+                          (mcconf->si_wheel_diameter * std::numbers::pi_v<float>);
+        mcconf->l_max_erpm = static_cast<float>(max_speed_kmh) / 3.6f * fact;
+
+        vesc_can_set_mcconf_temp(*m_controller_id, mcconf);
+    }
+}
+
+void
+VescCanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
+                                        uint8_t command,
+                                        const uint8_t* data,
+                                        uint8_t len)
 {
     if (len < 1)
     {
@@ -176,6 +247,14 @@ CanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
             default:
                 break;
             }
+        }
+    }
+    else if (command == COMM_GET_MCCONF_TEMP)
+    {
+        vesc_mcconf_t value;
+        if (vesc_parse_mcconf(data, len, &value))
+        {
+            m_vesc_can_state->mcconf = value;
         }
     }
 }

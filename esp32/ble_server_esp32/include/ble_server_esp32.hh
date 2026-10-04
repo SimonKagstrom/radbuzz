@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ble_injector.hh"
 #include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 
@@ -18,7 +17,7 @@
 #include <unordered_set>
 #include <vector>
 
-class BleServerEsp32 final : public hal::IBleServer, public hal::IBleClient, public BleInjector
+class BleServerEsp32 final : public hal::IBleServer, public hal::IBleClient
 {
 public:
     BleServerEsp32();
@@ -50,6 +49,7 @@ private:
         ble_uuid128_t uuid {.u = {.type = BLE_UUID_TYPE_128}, .value = {}};
         struct ble_gatt_chr_def gatt_chr {};
         std::function<void(std::span<const uint8_t>)> cb;
+        uint16_t val_handle {0};
     };
 
     std::unique_ptr<ListenerCookie>
@@ -60,11 +60,13 @@ private:
     void AddWriteGattCharacteristics(hal::Uuid128Span uuid,
                                      std::function<void(std::span<const uint8_t>)> data) final;
 
+    void AddNotifyGattCharacteristics(hal::Uuid128Span uuid) final;
+
+    bool Notify(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
 
     void ScanForService(hal::Uuid128Span service_uuid,
+                        const ScanFilter& filter,
                         const std::function<void(std::unique_ptr<IPeer>)>& cb) final;
-
-    void OnInjection(hal::Uuid128Span uuid, std::span<const uint8_t> data) final;
 
     void AppAdvertise();
     void StartScanForCurrentServiceFilter();
@@ -96,9 +98,10 @@ private:
     ble_uuid128_t m_service_uuid {.u = {.type = BLE_UUID_TYPE_128}, .value = {}};
 
     std::vector<std::unique_ptr<WriteCharacteristic>> m_characteristics;
-    std::unordered_map<hal::Uuid16, uint8_t> m_uuid_to_characteristic_index;
+    std::vector<std::unique_ptr<WriteCharacteristic>> m_notify_characteristics;
 
     std::optional<hal::Uuid128> m_peer_service_uuid;
+    ScanFilter m_peer_scan_filter;
     std::function<void(std::unique_ptr<IPeer>)> m_peer_found_cb {[](auto x) {}};
     std::unordered_map<uint16_t, std::function<void(std::span<const uint8_t>)>>
         m_notification_callbacks;

@@ -6,6 +6,8 @@
 #include "hal/i_pm.hh"
 #include "https_client.hh"
 #include "image.hh"
+#include "messages.hh"
+#include "post_office.hh"
 #include "wgs84_to_osm_point.hh"
 
 #include <array>
@@ -66,6 +68,7 @@ class TileCache : public os::BaseThread
 {
 public:
     TileCache(ApplicationState& application_state,
+              PostOffice<MSG::AllMessages>& post_office,
               std::unique_ptr<hal::IPm::ILock> pm_lock,
               Filesystem& filesystem,
               HttpsClient& https_client);
@@ -128,6 +131,7 @@ private:
     void SavePendingCityTiles();
 
     ApplicationState& m_application_state;
+    PostOffice<MSG::AllMessages>& m_post_office;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     Filesystem& m_filesystem;
     HttpsClient& m_https_client;

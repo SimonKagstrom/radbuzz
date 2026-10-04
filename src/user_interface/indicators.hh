@@ -48,10 +48,21 @@ public:
         lv_label_set_text(m_indicator_label, m_text.c_str());
         lv_label_set_text(m_bms_label, bms_text);
 
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, m_parent.OnTripMeterScreen());
+        lv_obj_set_flag(m_indicator_label,
+                        LV_OBJ_FLAG_HIDDEN,
+                        m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen());
         lv_obj_set_flag(m_bms_label,
                         LV_OBJ_FLAG_HIDDEN,
-                        m_parent.OnTripMeterScreen() || !state.Get<AS::bms_data>()->valid);
+                        m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen() ||
+                            !state.Get<AS::bms_data>()->valid);
+    }
+
+    void ForceShow() final
+    {
+        if (m_parent.OnMapScreen())
+        {
+            IndicatorBase::ForceShow();
+        }
     }
 
 private:
@@ -124,7 +135,25 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, state.Get<AS::gps_position_valid>());
+        if (state.Get<AS::gps_status>() == GpsStatus::kPositionValid)
+        {
+            lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, true);
+            return;
+        }
+
+        // Show
+        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, false);
+        if (state.Get<AS::gps_status>() == GpsStatus::kNoFix)
+        {
+            lv_label_set_text(m_indicator_label,
+                              std::format("#ffa500 {}# ", LV_SYMBOL_GPS).c_str());
+        }
+        else
+        {
+            // Silent, i.e., no incoming data from the GPS - mark red for debugging
+            lv_label_set_text(m_indicator_label,
+                              std::format("#F44336 {}# ", LV_SYMBOL_GPS).c_str());
+        }
     }
 };
 
@@ -170,6 +199,47 @@ public:
 
         lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, hide);
         lv_label_set_text(m_indicator_label, m_text.c_str());
+    }
+
+private:
+    std::string m_text;
+};
+
+
+class CallIndicator final : public UserInterface::IndicatorBase
+{
+public:
+    using UserInterface::IndicatorBase::IndicatorBase;
+
+    CallIndicator(UserInterface& parent, const Point& position)
+        : UserInterface::IndicatorBase(parent, position)
+    {
+    }
+
+    void Update(ApplicationState& state) final
+    {
+        auto has_messages = m_parent.ShowMessagesIcon();
+
+        if (state.Get<AS::call_ongoing>())
+        {
+            if (has_messages && m_parent.OnCallScreen())
+            {
+                lv_label_set_text(m_indicator_label,
+                                  std::format("#4CAF50 {}# ", LV_SYMBOL_DRIVE).c_str());
+            }
+            else
+            {
+                lv_label_set_text(m_indicator_label,
+                                  std::format("#4CAF50 {}# ", LV_SYMBOL_CALL).c_str());
+            }
+            lv_obj_set_hidden(m_indicator_label, m_parent.OnCallScreen() && !has_messages);
+        }
+        else
+        {
+            lv_label_set_text(m_indicator_label,
+                              std::format("#4CAF50 {}# ", LV_SYMBOL_DRIVE).c_str());
+            lv_obj_set_hidden(m_indicator_label, !has_messages);
+        }
     }
 
 private:

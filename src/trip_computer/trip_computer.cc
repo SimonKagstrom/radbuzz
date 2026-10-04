@@ -1,14 +1,9 @@
 #include "trip_computer.hh"
 
+#include "battery_utils.hh"
 #include "debug_assert.hh"
 
 #include <numeric>
-
-static_assert(TripComputer::kNumberOfTripLogEntries <=
-                  std::numeric_limits<TripComputer::LogHandle>::max(),
-              "Handle type too small for number of entries");
-static constexpr TripComputer::LogHandle kInvalidLogHandle =
-    std::numeric_limits<TripComputer::LogHandle>::max();
 
 namespace
 {
@@ -27,17 +22,6 @@ constexpr auto kMillivoltSocTable = std::array {std::pair<uint16_t, uint8_t> {32
                                                 std::pair<uint16_t, uint8_t> {4050, 80},
                                                 std::pair<uint16_t, uint8_t> {4130, 90},
                                                 std::pair<uint16_t, uint8_t> {4200, 100}};
-
-
-uint32_t
-TriangleArea(const Point& a, const Point& b, const Point& c)
-{
-    debug_assert(a.zoom == kDefaultZoom && b.zoom == kDefaultZoom && c.zoom == kDefaultZoom);
-
-    // Only the relation is important, not the absolute area
-    const auto doubled_area = (a.x) * (b.y - c.y) + (b.x) * (c.y - a.y) + (c.x) * (a.y - b.y);
-    return std::abs(doubled_area);
-}
 
 
 uint8_t
@@ -71,15 +55,21 @@ InterpolateSoc(uint16_t millivolts, uint8_t battery_series)
 }
 } // namespace
 
-TripComputer::TripComputer(ApplicationState& app_state)
+TripComputer::TripComputer(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office)
     : m_state(app_state)
     , m_state_listener(m_state.AttachListener<AS::configuration,
                                               AS::can_bus_active,
                                               AS::odometer,
                                               AS::pixel_position>(GetSemaphore()))
-    , m_state_cache(m_state)
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
+    m_mailbox = post_office.Subscribe<MSG::reset_trip>(GetSemaphore());
+
+    // Fill with zeroes to start from the rightmost point
+    for (auto i = 0; i < kNumberOfRecentEntries; ++i)
+    {
+        m_recent_entries.push(RecentEntry {0});
+    }
 }
 
 void
@@ -120,12 +110,79 @@ TripComputer::StartMonitoring()
             }
         }
 
-        UpdateSpeedAndTime();
+        auto rw = m_state.CheckoutReadWrite();
+        auto odometer = rw.Get<AS::odometer>();
+
+        UpdateSpeedAndTime(odometer);
         UpdateRange();
+        UpdateRecentEntries(odometer);
+        m_current_distance = odometer;
 
         return 250ms;
     });
 }
+
+
+TripComputer::DistanceType
+TripComputer::RecentDistance(TripComputer::DistanceType distance) const
+{
+    auto resolution = m_state.Get<AS::configuration>()->recent_power_distance;
+
+    // Round to the nearest X meters
+    return (distance / resolution) * resolution;
+}
+
+void
+TripComputer::UpdateRecentEntries(uint32_t odometer)
+{
+    auto current_distance = RecentDistance(m_current_distance);
+    auto distance_now = RecentDistance(odometer);
+    auto power = m_state.Get<AS::current_power_w>();
+    auto consumed = m_state.Get<AS::wh_consumed>() - m_state.Get<AS::wh_regenerated>();
+
+    if (distance_now != current_distance)
+    {
+        auto conf = m_state.Get<AS::configuration>();
+        if (m_recent_entries.full())
+        {
+            m_recent_entries.pop();
+        }
+
+        auto samples = m_current_histogram_entry.samples + 1;
+
+        auto consumed_delta = consumed - m_current_histogram_entry.start_consumption;
+
+        // Update with the current value
+        m_recent_entries.push({std::max(power, static_cast<PowerType>(0)), consumed_delta});
+        m_current_histogram_entry = {};
+
+        m_current_distance = distance_now;
+        m_current_histogram_entry = {};
+
+        // Store the current consumption and distance
+        m_current_histogram_entry.start_consumption = consumed;
+        m_current_histogram_entry.start_distance = odometer;
+    }
+    else
+    {
+        m_current_histogram_entry.accumulated_power += power;
+        m_current_histogram_entry.samples++;
+
+        PowerType average_power = std::max(m_current_histogram_entry.accumulated_power /
+                                               m_current_histogram_entry.samples,
+                                           static_cast<int32_t>(0));
+        auto average_consumption =
+            (consumed - m_current_histogram_entry.start_consumption) *
+            (1000.0f / (odometer - m_current_histogram_entry.start_distance));
+
+        average_consumption = std::min(average_consumption, 100.0f);
+
+        // Live update of the current entry
+        m_recent_entries.back().power = average_power;
+        m_recent_entries.back().average_consumption = average_consumption;
+    }
+}
+
 
 void
 TripComputer::UpdateRange()
@@ -144,11 +201,7 @@ TripComputer::UpdateRange()
     const auto conf = rw.Get<AS::configuration>();
     const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
 
-    // Estimate Wh left from configured pack size and SoC to avoid noisy voltage-based range.
-    constexpr float kNominalCellVoltageV = 3.7f;
-    const float pack_nominal_voltage_v =
-        static_cast<float>(conf->battery_cell_series) * kNominalCellVoltageV;
-    const float full_pack_wh = static_cast<float>(conf->battery_amp_hours) * pack_nominal_voltage_v;
+    auto full_pack_wh = battery::FullPackWh(conf);
     const float wh_left = full_pack_wh * (static_cast<float>(soc) / 100.0f);
     uint32_t range = std::max(1.0f, wh_left / static_cast<float>(wh_per_km));
 
@@ -171,7 +224,7 @@ TripComputer::ResetTrip()
     m_display_logs[0].clear();
     m_display_logs[1].clear();
     m_current_display_log = 0;
-    m_export_log.Reset();
+    //m_export_log.Reset();
     m_display_log.Reset();
 
     m_current_distance = m_trip_start_distance;
@@ -225,7 +278,23 @@ TripComputer::GetDisplayLog()
     return {std::move(lock), m_display_logs[m_current_display_log]};
 }
 
-std::optional<TripComputer::LogHandle>
+std::span<const TripComputer::RecentEntry>
+TripComputer::GetRecentEntries()
+{
+    m_display_recent_entries = {};
+    m_display_recent_entries.clear();
+
+    std::lock_guard<etl::mutex> lock(m_log_mutex);
+    for (const auto& entry : m_recent_entries)
+    {
+        m_display_recent_entries.push_back(entry);
+    }
+
+    return m_display_recent_entries;
+}
+
+
+std::optional<LogHandle>
 TripComputer::AllocateLogEntry()
 {
     if (m_free_log_entries.empty())
@@ -250,12 +319,7 @@ TripComputer::FreeLogEntry(LogHandle handle)
 std::optional<milliseconds>
 TripComputer::OnActivation()
 {
-    auto& co = m_state_cache.Pull();
-
-    if (co.IsChanged<AS::reset_trip>())
-    {
-        ResetTrip();
-    }
+    m_mailbox->Collect().On<MSG::reset_trip>([this]() { ResetTrip(); });
 
     UpdateTripLog();
 
@@ -263,10 +327,9 @@ TripComputer::OnActivation()
 }
 
 void
-TripComputer::UpdateSpeedAndTime()
+TripComputer::UpdateSpeedAndTime(uint32_t distance_now)
 {
     auto rw = m_state.CheckoutReadWrite();
-    auto distance_now = rw.Get<AS::odometer>();
 
     auto is_moving_now = distance_now != m_current_distance;
     auto now = std::chrono::duration_cast<seconds>(os::GetTimeStamp());
@@ -289,11 +352,10 @@ TripComputer::UpdateSpeedAndTime()
         });
     }
 
-    m_current_distance = distance_now;
     if (rw.Get<AS::is_moving>())
     {
         auto trip_duration = now - m_current_trip_movement_second;
-        auto trip_distance = m_current_distance - m_trip_start_distance;
+        auto trip_distance = distance_now - m_trip_start_distance;
 
         rw.Set<AS::trip_duration>(trip_duration);
         rw.Set<AS::trip_distance>(trip_distance);
@@ -315,7 +377,7 @@ void
 TripComputer::UpdateTripLog()
 {
     auto ro = m_state.CheckoutReadonly();
-    if (!ro.Get<AS::gps_position_valid>())
+    if (ro.Get<AS::gps_status>() != GpsStatus::kPositionValid)
     {
         return;
     }
@@ -324,7 +386,7 @@ TripComputer::UpdateTripLog()
     auto now = os::GetTimeStamp();
     auto power = ro.Get<AS::current_power_w>();
 
-    m_export_log.AddEntry(position, now, power);
+    //    m_export_log.AddEntry(position, now, power);
     auto new_entry_handle = m_display_log.AddEntry(position, now, power);
 
     if (new_entry_handle.has_value())
@@ -347,81 +409,4 @@ TripComputer::UpdateTripLog()
         auto lock = std::lock_guard(m_log_mutex);
         m_current_display_log = update_log;
     }
-}
-
-template <size_t Entries>
-uint32_t
-TripComputer::Log<Entries>::TriangleArea(const TripLogEntry& entry) const
-{
-    if (entry.predecessor == kInvalidLogHandle)
-    {
-        return std::numeric_limits<uint32_t>::max();
-    }
-    debug_assert(entry.successor != kInvalidLogHandle);
-
-    return ::TriangleArea(m_parent.Entry(entry.predecessor).position,
-                          entry.position,
-                          m_parent.Entry(entry.successor).position);
-}
-
-template <size_t Entries>
-std::optional<TripComputer::LogHandle>
-TripComputer::Log<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_t power)
-{
-    if (m_pending_log_entry &&
-        std::abs(position.x - m_parent.Entry(m_pending_log_entry->handle).position.x) < 5 &&
-        std::abs(position.y - m_parent.Entry(m_pending_log_entry->handle).position.y) < 5)
-    {
-        // Wait for a position further away
-        return std::nullopt;
-    }
-    auto handle = m_parent.AllocateLogEntry();
-
-    // We should have enough entries, so for now just assert
-    debug_assert(handle);
-
-    auto& new_entry = m_parent.WritableEntry(*handle);
-
-    new_entry = TripComputer::TripLogEntry {
-        position, timestamp, power, kInvalidLogHandle, kInvalidLogHandle};
-
-    if (m_pending_log_entry)
-    {
-        // Update the successor of the current pending entry
-        auto& last_entry = m_parent.WritableEntry(m_pending_log_entry->handle);
-        last_entry.successor = *handle;
-        new_entry.predecessor = m_pending_log_entry->handle;
-        m_pending_log_entry->triangle_area = TriangleArea(last_entry);
-
-        if (m_log_queue.full())
-        {
-            const auto& to_remove = m_log_queue.top();
-
-            auto& entry_to_remove = m_parent.Entry(to_remove.handle);
-            debug_assert(entry_to_remove.predecessor != kInvalidLogHandle &&
-                         "Can't remove the first entry");
-            m_parent.WritableEntry(entry_to_remove.predecessor).successor =
-                entry_to_remove.successor;
-            if (entry_to_remove.successor != kInvalidLogHandle)
-            {
-                m_parent.WritableEntry(entry_to_remove.successor).predecessor =
-                    entry_to_remove.predecessor;
-            }
-
-            m_parent.FreeLogEntry(to_remove.handle);
-            m_log_queue.pop();
-        }
-
-        m_log_queue.push(*m_pending_log_entry);
-        m_pending_log_entry = LogQueueEntry {0, *handle};
-    }
-    else
-    {
-        debug_assert(m_log_queue.empty());
-
-        // This is the first entry, will be fixed up above
-        m_pending_log_entry = LogQueueEntry {0, *handle};
-    }
-
-    return *handle;
 }

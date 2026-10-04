@@ -5,10 +5,13 @@
 GpioHost MainWindow::m_pin_a;
 GpioHost MainWindow::m_pin_b;
 
-MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
+MainWindow::MainWindow(ApplicationState& application_state,
+                       PostOffice<MSG::AllMessages>& post_office,
+                       QWidget* parent)
     : QMainWindow(parent)
     , RotaryEncoder(m_pin_a, m_pin_b)
     , m_application_state(application_state)
+    , m_post_office(post_office)
     , m_ui(new Ui::MainWindow)
 {
     m_ui->setupUi(this);
@@ -44,6 +47,49 @@ MainWindow::MainWindow(ApplicationState& application_state, QWidget* parent)
         printf("Saved screenshot '%s'\n", filename.c_str());
         m_display->SaveScreenshot(filename.c_str());
         m_screenshot_index++;
+    });
+
+    connect(m_ui->callButton, &QPushButton::clicked, [this]() {
+        m_post_office.Send(MSG::incoming_call {"+1555-132634", "Donald Trunk"});
+    });
+    connect(m_ui->callEndedButton, &QPushButton::clicked, [this]() {
+        m_post_office.Send(MSG::call_ended {});
+    });
+    connect(m_ui->messageButton, &QPushButton::clicked, [this]() {
+        m_message_ids.push(m_message_index);
+
+        if (m_message_index % 2 == 0)
+        {
+            m_post_office.Send(MSG::message {
+                m_message_index++,
+                "gmail",
+                "Investment proposal",
+                "Dear Sir/Madam,\n\nI am writing to you about a unique investment "
+                "opportunity. My late uncle left a considerable sum in a bank account, "
+                "and I need a trustworthy partner to help me move it.\n\nIn return, you "
+                "will receive 30% of the funds.\n\nPlease reply at your earliest "
+                "convenience.\n\nYours sincerely,\nA. Prince",
+            });
+        }
+        else
+        {
+            m_post_office.Send(MSG::message {
+                m_message_index++, "signal", "Secrets", "The password is 'Ken sent me'"});
+        }
+    });
+    connect(m_ui->dismissMessageButton, &QPushButton::clicked, [this]() {
+        if (m_message_ids.empty())
+        {
+            // Nothing to dismiss
+            return;
+        }
+        m_post_office.Send(MSG::dismiss_message {.id = m_message_ids.front()});
+        m_message_ids.pop();
+    });
+
+    m_ui->demoModeCheckBox->setChecked(m_application_state.Get<AS::demo_mode>());
+    connect(m_ui->demoModeCheckBox, &QCheckBox::toggled, [this](bool checked) {
+        m_application_state.CheckoutReadWrite().Set<AS::demo_mode>(checked);
     });
 
     m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(m_ui->socSlider->value());

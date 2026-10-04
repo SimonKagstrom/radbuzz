@@ -14,8 +14,16 @@ BleKingSharkHandler::BleKingSharkHandler(BleHandler& parent, hal::IBleClient& bl
 void
 BleKingSharkHandler::OnStartup()
 {
+    // The BMS doesn't advertise the ffe0 service, but these instead
+    const hal::IBleClient::ScanFilter filter {
+        .advertised_uuid = hal::detail::StringToUuid128("000061c9-0000-1000-8000-00805f9b34fb"),
+        .name_prefix = "A&BT-",
+    };
+
     m_ble_client.ScanForService(
-        hal::detail::StringToUuid128("0000ffe0-0000-1000-8000-00805f9b34fb"), [this](auto peer) {
+        hal::detail::StringToUuid128("0000ffe0-0000-1000-8000-00805f9b34fb"),
+        filter,
+        [this](auto peer) {
             m_battery_peer = std::move(peer);
             if (!m_battery_peer)
             {

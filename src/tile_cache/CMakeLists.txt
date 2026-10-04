@@ -25,6 +25,7 @@ PUBLIC
     filesystem_interface
     wgs84_to_osm_point
     filesystem_implementation
+    radbuzz_messages
 PRIVATE
     pngdec
 )

@@ -1,4 +1,5 @@
 #include "ble_handler.hh"
+#include "line_collector.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
 
@@ -43,6 +44,16 @@ private:
         m_uuid_cb[uuid[0]] = data;
     }
 
+    void AddNotifyGattCharacteristics(std::span<const uint8_t, 16> uuid) final
+    {
+    }
+
+    bool Notify(std::span<const uint8_t, 16> uuid, std::span<const uint8_t> data) final
+    {
+        notified[uuid[0]] += std::string(reinterpret_cast<const char*>(data.data()), data.size());
+        return true;
+    }
+
     void Start() final
     {
     }
@@ -53,14 +64,30 @@ private:
 
     void
     ScanForService(hal::Uuid128Span service_uuid,
+                   const ScanFilter& filter,
                    const std::function<void(std::unique_ptr<hal::IBleClient::IPeer>)>& cb) final
     {
         // Not relevant for now
     }
 
     std::map<uint8_t, std::function<void(std::span<const uint8_t>)>> m_uuid_cb;
+
+public:
+    std::map<uint8_t, std::string> notified;
 };
 
+
+class NullNotifier : public IEventNotifier
+{
+public:
+    void Notify() final
+    {
+    }
+
+    void NotifyFromIsr() final
+    {
+    }
+};
 
 class Fixture : public ThreadFixture
 {
@@ -72,136 +99,293 @@ public:
 
     BleServerStub srv;
     ApplicationState state;
+    PostOffice<MSG::AllMessages> post_office;
     ImageCache cache;
 
-    BleHandler ble {srv, srv, state, cache};
+    BleHandler ble {srv, srv, state, post_office, cache};
 };
 
 } // namespace
 
 TEST_SUITE_BEGIN("ble_handler");
 
-
-TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle icons")
+TEST_CASE("the line collector splits data into lines")
 {
-    constexpr auto kPaletteSize = 8;
+    LineCollector collector;
 
-    uint32_t key = 0xa7f7f833;
-    std::string icon_header = "a7f7f83332;";
-    auto icon_data = std::array<uint8_t, kImageByteSize> {};
-
-    std::ranges::fill(icon_data, 0x7f);
-    ble.Start("ble");
-
-    WHEN("an icon with the proper data comes in")
+    WHEN("a line is split over several chunks")
     {
-        std::vector<uint8_t> full_data;
+        collector.Push("GB({\"t\":");
+        REQUIRE(collector.Poll() == std::nullopt);
+        collector.Push("\"notify\"})\n");
 
-        std::ranges::copy(
-            std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(icon_header.data()),
-                                     icon_header.size()),
-            std::back_inserter(full_data));
-
-        std::ranges::copy(icon_data, std::back_inserter(full_data));
-        // The hash + the semi-colon
-        REQUIRE(full_data.size() == 10 + 1 + kImageByteSize);
-
-
-        srv.Inject(kChaNavTbtIcon, full_data);
-        DoRunLoop();
-
-        auto in_cache = cache.Lookup(key);
-        THEN("it's placed in the cache")
+        THEN("it's returned once complete")
         {
-            REQUIRE(in_cache != nullptr);
-        }
-        AND_THEN("the image is of the correct size")
-        {
-            const auto& image_dsc = in_cache->GetDsc();
-            REQUIRE(image_dsc.data_size == kImageByteSize + kPaletteSize);
-            REQUIRE(image_dsc.header.w == kImageWidth);
-            REQUIRE(image_dsc.header.h == kImageHeight);
+            REQUIRE(collector.Poll() == "GB({\"t\":\"notify\"})");
+            REQUIRE(collector.Poll() == std::nullopt);
         }
     }
 
-    WHEN("a too short icon comes in")
+    WHEN("a chunk contains the end of one line and the start of another")
     {
-        srv.Inject(kChaNavTbtIcon, icon_header);
-        DoRunLoop();
+        collector.Push("first\nsec");
+        collector.Push("ond\n");
 
-        THEN("it's not placed in the cache")
+        THEN("both lines are returned")
         {
-            REQUIRE(cache.Lookup(key) == nullptr);
+            REQUIRE(collector.Poll() == "first");
+            REQUIRE(collector.Poll() == "second");
+            REQUIRE(collector.Poll() == std::nullopt);
         }
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "the BLE handler can handle navigation info")
+TEST_CASE("gadgetbridge lines are parsed into json")
 {
-    ble.Start("ble");
-
-    auto app_state = state.CheckoutReadonly();
-    WHEN("a non-empty description comes in")
+    WHEN("a GB message arrives")
     {
-        auto non_empty = R"VOBB(nextRd=Braxvägen
-nextRdDesc=
-distToNext=
-totalDist=30 m
-eta=15:19
-ete=0 min
-iconHash=a7f7f83332
-        )VOBB";
+        auto json = GadgetBridgeProtocol::ParseLine(
+            "\x10GB({\"t\":\"notify\",\"id\":1,\"body\":\"Hall\\xe5\"})");
 
-        srv.Inject(kChaNav, non_empty);
-
-        THEN("the key is updated")
+        THEN("it's parsed, including JavaScript escapes")
         {
-            REQUIRE(app_state.Get<AS::current_icon_hash>() == 0xa7f7f833);
+            REQUIRE(json);
+            CHECK((*json)["t"] == "notify");
+            CHECK((*json)["id"] == 1);
+            CHECK((*json)["body"] == "Hall\u00e5");
         }
     }
 
-    WHEN("an empty description comes in")
+    WHEN("Olsmässgatan arrives")
     {
-        auto non_empty = R"VOBB(nextRd=
-nextRdDesc=
-distToNext=
-totalDist=
-eta=
-ete=
-iconHash=
-        )VOBB";
-
-        state.CheckoutReadWrite().Set<AS::current_icon_hash>(1976);
-        REQUIRE(app_state.Get<AS::current_icon_hash>() != kInvalidIconHash);
-        srv.Inject(kChaNav, non_empty);
-
-        THEN("the key is set to the invalid icon hash")
+        auto json = GadgetBridgeProtocol::ParseLine("\x10GB({\"t\":\"nav\",\"instr\":\"towards "
+                                                    "Olsm\xe4ssgatan\",\"distance\":\"0\xa0m\","
+                                                    "\"action\":\"continue\",\"eta\":\"13:38\"})");
+        THEN("it's parsed correctly")
         {
-            REQUIRE(app_state.Get<AS::current_icon_hash>() == kInvalidIconHash);
+            REQUIRE(json);
+            CHECK((*json)["t"] == "nav");
+            CHECK((*json)["instr"] == "towards Olsmässgatan");
+            // Non-breaking space
+            CHECK((*json)["distance"] == "0 m");
+            CHECK((*json)["action"] == "continue");
+            CHECK((*json)["eta"] == "13:38");
         }
     }
 
-    WHEN("navigation is starting")
+    WHEN("other JavaScript arrives")
     {
-        auto non_empty = R"VOBB(nextRd=
-nextRdDesc=
-distToNext=Starting navigation...
-totalDist=
-eta=
-ete=
-iconHash=
-        )VOBB";
-
-        state.CheckoutReadWrite().Set<AS::current_icon_hash>(1976);
-        REQUIRE(app_state.Get<AS::current_icon_hash>() != kInvalidIconHash);
-        srv.Inject(kChaNav, non_empty);
-
-        THEN("the distance is still set to 0")
+        THEN("it's ignored")
         {
-            REQUIRE(app_state.Get<AS::distance_to_next>() == 0);
+            REQUIRE(GadgetBridgeProtocol::ParseLine("\x10setTime(1234);E.setTimeZone(2.0);") ==
+                    std::nullopt);
+            REQUIRE(GadgetBridgeProtocol::ParseLine("GB({broken)") == std::nullopt);
         }
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "the BLE handler accepts data on the UART characteristic")
+{
+    ble.Start("ble");
+
+    srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify\"})\n");
+    DoRunLoop();
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler replies to GPS status requests")
+{
+    ble.Start("ble");
+
+    srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"is_gps_active\"})\n");
+    DoRunLoop();
+
+    auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
+    REQUIRE(srv.notified[tx[0]] == "{\"status\":false,\"t\":\"gps_power\"}\r\n");
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbridge")
+{
+    NullNotifier notifier;
+    auto mailbox = post_office.Subscribe<MSG::incoming_call, MSG::call_ended>(notifier);
+
+    ble.Start("ble");
+
+    WHEN("an incoming call is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"call\",\"cmd\":\"incoming\",\"name\":\"Gregor "
+                   "Samsa\",\"number\":\"+46701234567\"})\n");
+        DoRunLoop();
+
+        THEN("the caller is sent as a message")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::incoming_call>());
+            CHECK(msg->As<MSG::incoming_call>()->caller_name == "Gregor Samsa");
+            CHECK(msg->As<MSG::incoming_call>()->caller_number == "+46701234567");
+        }
+        AND_THEN("the call ongoing status is updated")
+        {
+            CHECK(state.Get<AS::call_ongoing>() == true);
+        }
+
+        AND_WHEN("the call ends")
+        {
+            srv.Inject(kRxCharacteristicUuid,
+                       "\x10GB({\"t\":\"call\",\"cmd\":\"end\",\"name\":\"\",\"number\":\"\"})\n");
+            DoRunLoop();
+
+            THEN("that is sent as a message")
+            {
+                bool ended = false;
+
+                mailbox->Collect().On<MSG::call_ended>([&ended]() { ended = true; });
+                REQUIRE(ended);
+            }
+            AND_THEN("the call ongoing status is updated")
+            {
+                CHECK(state.Get<AS::call_ongoing>() == false);
+            }
+        }
+    }
+
+    WHEN("the call is answered")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"call\",\"cmd\":\"start\",\"name\":\"\",\"number\":\"\"})\n");
+        DoRunLoop();
+
+        THEN("no message is sent (for now)")
+        {
+            REQUIRE(mailbox->Pop() == std::nullopt);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbridge")
+{
+    NullNotifier notifier;
+    auto mailbox = post_office.Subscribe<MSG::message, MSG::dismiss_message>(notifier);
+
+    ble.Start("ble");
+
+    WHEN("a notification is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"notify\",\"id\":1790422616,\"src\":\"Gmail\",\"title\":"
+                   "\"Prisjakt\",\"subject\":\"\",\"sender\":\"\",\"body\":\"Logga in\\nDags\","
+                   "\"reply\":true,\"actions\":[{\"title\":\"Archive\"}]})\n");
+        DoRunLoop();
+
+        THEN("it is sent as a message")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::message>());
+            auto message = msg->As<MSG::message>();
+            CHECK(message->id == 1790422616);
+            CHECK(message->source == "Gmail");
+            CHECK(message->title == "Prisjakt");
+            CHECK(message->body == "Logga in\nDags");
+        }
+    }
+
+    WHEN("a notification without a title is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"notify\",\"id\":-2,\"src\":\"SMS Message\",\"title\":\"\","
+                   "\"subject\":\"Hello\",\"sender\":\"+46701234567\",\"body\":\"Hi\"})\n");
+        DoRunLoop();
+
+        THEN("the sender is the title, and the subject goes first in the body")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::message>());
+            auto message = msg->As<MSG::message>();
+            CHECK(message->id == static_cast<uint32_t>(-2));
+            CHECK(message->title == "+46701234567");
+            CHECK(message->body == "Hello\nHi");
+        }
+    }
+
+    WHEN("a notification without an id is received")
+    {
+        srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify\",\"body\":\"Hi\"})\n");
+        DoRunLoop();
+
+        THEN("it is ignored")
+        {
+            REQUIRE(mailbox->Pop() == std::nullopt);
+        }
+    }
+
+    WHEN("a notification with a broken id is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"notify\",\"id\":\"Simon\",\"body\":\"Hi\"})\n");
+        srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify-\",\"id\":\"Simon\"})\n");
+        DoRunLoop();
+
+        THEN("they are ignored")
+        {
+            REQUIRE(mailbox->Pop() == std::nullopt);
+        }
+    }
+
+    WHEN("a notification is dismissed on the phone")
+    {
+        srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"notify-\",\"id\":1790422616})\n");
+        DoRunLoop();
+
+        THEN("that is sent as a message")
+        {
+            auto msg = mailbox->Pop();
+            REQUIRE(msg);
+            REQUIRE(msg->Is<MSG::dismiss_message>());
+            CHECK(msg->As<MSG::dismiss_message>()->id == 1790422616);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler sends call control to Gadgetbridge")
+{
+    ble.Start("ble");
+    auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
+
+    WHEN("the call is answered")
+    {
+        post_office.Send<MSG::answer_call>();
+        DoRunLoop();
+
+        THEN("accept is sent")
+        {
+            REQUIRE(srv.notified[tx[0]] == "{\"n\":\"accept\",\"t\":\"call\"}\r\n");
+        }
+    }
+
+    WHEN("the call is declined")
+    {
+        post_office.Send<MSG::decline_call>();
+        DoRunLoop();
+
+        THEN("reject is sent")
+        {
+            REQUIRE(srv.notified[tx[0]] == "{\"n\":\"reject\",\"t\":\"call\"}\r\n");
+        }
+    }
+
+    WHEN("the call is hung up")
+    {
+        post_office.Send<MSG::hangup_call>();
+        DoRunLoop();
+
+        THEN("end is sent")
+        {
+            REQUIRE(srv.notified[tx[0]] == "{\"n\":\"end\",\"t\":\"call\"}\r\n");
+        }
+    }
+}
 
 TEST_SUITE_END();

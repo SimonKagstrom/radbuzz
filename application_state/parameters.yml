@@ -3,15 +3,20 @@ cpp_includes:
   - "wgs84_to_osm_point.hh"
   - "configuration_settings.hh"
   - "bms_data.hh"
+  - "turn_symbols.hh"
   - "time.hh"
 
 
 parameters:
-  current_icon_hash:
-    type: uint32_t
+  turn_symbol:
+    type: enum TurnSymbol
 
+  call_ongoing:
+    type: bool
+
+  # 50 m etc
   distance_to_next:
-    type: uint32_t
+    type: std::string
 
   next_street:
     type: std::string
@@ -76,12 +81,6 @@ parameters:
 
   pixel_position:
     type: struct Point
-
-  reset_trip:
-    type: Event
-
-  tile_loaded:
-    type: Event
 
   overheated:
     type: bool

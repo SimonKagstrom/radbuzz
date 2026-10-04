@@ -9,5 +9,5 @@ PUBLIC
 
 target_link_libraries(ble_server_host
 PUBLIC
-    ble_injector
+    radbuzz_interface
 )

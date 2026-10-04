@@ -1,5 +1,6 @@
 add_library(trip_computer EXCLUDE_FROM_ALL
     trip_computer.cc
+    trip_log.cc
 )
 
 target_include_directories(trip_computer
@@ -12,4 +13,5 @@ PUBLIC
     base_thread
     application_state
     wgs84_to_osm_point
+    radbuzz_messages
 )

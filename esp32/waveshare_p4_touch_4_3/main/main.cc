@@ -4,7 +4,6 @@
 #include "blitter_esp32.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
-#include "can_bus_handler.hh"
 #include "can_esp32.hh"
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
@@ -28,9 +27,11 @@
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
+#include "vesc_can_bus_handler.hh"
 #include "wifi_client_esp32.hh"
 #include "wifi_handler.hh"
 
+#include <algorithm>
 #include <driver/ledc.h>
 #include <driver/sdmmc_host.h>
 #include <esp_app_format.h>
@@ -52,6 +53,7 @@ namespace
 {
 
 constexpr auto kTftBacklight = GPIO_NUM_26;
+constexpr auto kBacklightOnLevel = 0;
 
 constexpr auto kPinLeftBuzzer = GPIO_NUM_25;  // TODO
 constexpr auto kPinRightBuzzer = GPIO_NUM_49; // TODO
@@ -355,6 +357,30 @@ PerformC6SlaveOtaFromPartition(bool force)
         printf("C6 OTA: forced update requested\n");
     }
 
+    // Check the version first, since reading the partition disturbs the display (it stalls the
+    // caches and the other core), so don't do that unless an update is needed
+    esp_hosted_coprocessor_fwver_t current_fw {};
+    const int fwver_ret = esp_hosted_get_coprocessor_fwversion(&current_fw);
+    if (fwver_ret != ESP_OK)
+    {
+        printf("C6 OTA: failed to read current C6 fw version (%s)\n", esp_err_to_name(fwver_ret));
+    }
+
+    if (current_fw.major1 == ESP_HOSTED_VERSION_MAJOR_1 &&
+        current_fw.minor1 == ESP_HOSTED_VERSION_MINOR_1 &&
+        current_fw.patch1 == ESP_HOSTED_VERSION_PATCH_1)
+    {
+        printf("C6 OTA: already up to date (%lu.%lu.%lu)\n",
+               current_fw.major1,
+               current_fw.minor1,
+               current_fw.patch1);
+
+        if (!force)
+        {
+            return false;
+        }
+    }
+
     const auto* partition = esp_partition_find_first(
         ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, kC6FwPartitionLabel);
     if (partition == nullptr)
@@ -380,28 +406,6 @@ PerformC6SlaveOtaFromPartition(bool force)
                kC6FwPartitionLabel,
                esp_err_to_name(ret));
         return false;
-    }
-
-    esp_hosted_coprocessor_fwver_t current_fw {};
-    const int fwver_ret = esp_hosted_get_coprocessor_fwversion(&current_fw);
-    if (fwver_ret != ESP_OK)
-    {
-        printf("C6 OTA: failed to read current C6 fw version (%s)\n", esp_err_to_name(fwver_ret));
-    }
-
-    if (current_fw.major1 == ESP_HOSTED_VERSION_MAJOR_1 &&
-        current_fw.minor1 == ESP_HOSTED_VERSION_MINOR_1 &&
-        current_fw.patch1 == ESP_HOSTED_VERSION_PATCH_1)
-    {
-        printf("C6 OTA: already up to date (%lu.%lu.%lu)\n",
-               current_fw.major1,
-               current_fw.minor1,
-               current_fw.patch1);
-
-        if (!force)
-        {
-            return false;
-        }
     }
 
     printf("C6 OTA: update required current=%lu.%lu.%lu target=%u.%u.%u\n",
@@ -540,7 +544,9 @@ app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    ApplicationState application_state;
+    // Avoid stack allocation
+    static ApplicationState application_state;
+    static PostOffice<MSG::AllMessages> post_office;
 
     gpio_config_t io_conf = {};
     //
@@ -560,19 +566,88 @@ app_main(void)
     gpio_config(&io_conf);
 
 
-    // Turn on the backlight
-    gpio_set_level(kTftBacklight, 0);
-
+    // Keep the backlight off until there is something on the display
+    io_conf = {};
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = 1ull << kTftBacklight;
+    gpio_config(&io_conf);
+    gpio_set_level(kTftBacklight, !kBacklightOnLevel);
 
     auto display = CreateDisplay();
 
-    // Create before SD card (see below)
-    auto wifi_client = std::make_unique<WifiClientEsp32>();
+    // Start with the background color, and let the UI draw on top of that. Flip, since that
+    // also writes the frame buffer back from the cache
+    std::fill_n(display->GetFrameBuffer(hal::IDisplay::Owner::kSoftware),
+                hal::kDisplayWidth * hal::kDisplayHeight,
+                lv_color_to_u16(UserInterface::GetBackgroundColor()));
+    display->Flip();
+    gpio_set_level(kTftBacklight, kBacklightOnLevel);
 
     auto nvm = std::make_unique<NvmEsp32>();
     auto storage = std::make_unique<Storage>(application_state, *nvm);
     storage->Start("storage");
 
+
+    // The user interface first, so that the display comes up quickly. The rest (C6, SD card,
+    // BLE etc) is setup afterwards
+    const i2c_master_bus_config_t i2c_mst_config = {
+        .i2c_port = I2C_NUM_1,
+        .sda_io_num = static_cast<gpio_num_t>(kI2cSdaPin),
+        .scl_io_num = static_cast<gpio_num_t>(kI2cSclPin),
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .intr_priority = 0,
+        .trans_queue_depth = 0,
+        .flags =
+            {
+                .enable_internal_pullup = true,
+                .allow_pd = false,
+            },
+    };
+
+    auto image_cache = std::make_unique<ImageCache>();
+    auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
+
+    auto https_client = std::make_unique<HttpsClient>();
+
+    auto blitter = std::make_unique<BlitterEsp32>();
+    auto pm = std::make_unique<PmEsp32>();
+    auto pin_a = std::make_unique<GpioEsp32>(kRotaryEncoderPinA);
+    auto pin_b = std::make_unique<GpioEsp32>(kRotaryEncoderPinB);
+
+    auto touch = std::make_unique<TouchEsp32>(i2c_mst_config, GPIO_NUM_NC);
+    auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
+    auto button_debouncer = std::make_unique<ButtonDebouncer>();
+    auto debounced_button = button_debouncer->AddButton(
+        std::make_unique<GpioEsp32>(kButtonGpio, GpioEsp32::Polarity::kActiveLow));
+
+    auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder, *touch);
+
+    auto tile_cache = std::make_unique<TileCache>(
+        application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
+
+    auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
+
+    auto user_interface = std::make_unique<UserInterface>(*display,
+                                                          *blitter,
+                                                          pm->CreateFullPowerLock(),
+                                                          *input,
+                                                          application_state,
+                                                          post_office,
+                                                          *image_cache,
+                                                          *tile_cache,
+                                                          *trip_computer);
+
+
+    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
+    input->Start("input");
+    button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
+
+
+    // Create before SD card (see below)
+    auto wifi_client = std::make_unique<WifiClientEsp32>();
+
+    os::Sleep(3s);
     auto force_upgrade =
         application_state.CheckoutReadonly().Get<AS::configuration>()->force_c6_update;
     application_state.CheckoutPartialSnapshot<AS::configuration>()
@@ -635,70 +710,31 @@ app_main(void)
         sdmmc_card_print_info(stdout, card);
     }
 
-    const i2c_master_bus_config_t i2c_mst_config = {
-        .i2c_port = I2C_NUM_1,
-        .sda_io_num = static_cast<gpio_num_t>(kI2cSdaPin),
-        .scl_io_num = static_cast<gpio_num_t>(kI2cSclPin),
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .intr_priority = 0,
-        .trans_queue_depth = 0,
-        .flags =
-            {
-                .enable_internal_pullup = true,
-                .allow_pd = false,
-            },
-    };
-
     esp_hosted_bt_controller_init();
     esp_hosted_bt_controller_enable();
 
     // Devices / helper classes
     //auto left_buzzer_gpio = std::make_unique<GpioEsp32>(kPinLeftBuzzer);
     //auto right_buzzer_gpio = std::make_unique<GpioEsp32>(kPinRightBuzzer);
-    auto image_cache = std::make_unique<ImageCache>();
     auto uart_gps = std::make_unique<UartEsp32>(UART_NUM_2,
                                                 9600,
                                                 kGpsUartRxPin,  // RX
                                                 kGpsUartTxPin); // TX
     auto gps = std::make_unique<UartGps>(*uart_gps);
-    auto filesystem = std::make_unique<Filesystem>("/sdcard/app_data/");
-
-    auto https_client = std::make_unique<HttpsClient>();
-
-    auto blitter = std::make_unique<BlitterEsp32>();
-    auto pm = std::make_unique<PmEsp32>();
     auto can = std::make_unique<CanEsp32>(kCanBusTxPin, kCanBusRxPin, 500000);
     //auto stepper_sleep_gpio =
     //    std::make_unique<GpioEsp32>(kPinStepperSleepGpio, GpioEsp32::Polarity::kActiveHigh);
     //auto stepper_dir_gpio =
     //    std::make_unique<GpioEsp32>(kPinStepperDirGpio, GpioEsp32::Polarity::kActiveLow);
-    auto pin_a = std::make_unique<GpioEsp32>(kRotaryEncoderPinA);
-    auto pin_b = std::make_unique<GpioEsp32>(kRotaryEncoderPinB);
-
     //    auto stepper_motor =
     //        std::make_unique<StepperMotorEsp32>(*stepper_sleep_gpio, *stepper_dir_gpio, kPinStepGpio);
     //
 
     //    stepper_motor->Start();
 
-    auto touch = std::make_unique<TouchEsp32>(i2c_mst_config, GPIO_NUM_NC);
-    auto rotary_encoder = std::make_unique<RotaryEncoder>(*pin_a, *pin_b);
-    auto button_debouncer = std::make_unique<ButtonDebouncer>();
-    auto debounced_button = button_debouncer->AddButton(
-        std::make_unique<GpioEsp32>(kButtonGpio, GpioEsp32::Polarity::kActiveLow));
-
-    auto input = std::make_unique<Input>(*debounced_button, *rotary_encoder, *touch);
-
-    auto httpd_ota_updater = std::make_unique<TargetHttpdOtaUpdater>(*display);
-
     // Threads
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
-    auto tile_cache = std::make_unique<TileCache>(
-        application_state, pm->CreateFullPowerLock(), *filesystem, *https_client);
-
-    auto trip_computer = std::make_unique<TripComputer>(application_state);
 
     auto ota_updater = std::make_unique<OtaUpdater>(*httpd_ota_updater, application_state);
 
@@ -706,38 +742,23 @@ app_main(void)
     //    auto speedometer_handler =
     //        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
 
-    auto user_interface = std::make_unique<UserInterface>(*display,
-                                                          *blitter,
-                                                          pm->CreateFullPowerLock(),
-                                                          *input,
-                                                          *ota_updater,
-                                                          application_state,
-                                                          *image_cache,
-                                                          *tile_cache,
-                                                          *trip_computer);
-
-
     // application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
 
-    user_interface->Start("user_interface", os::ThreadCore::kCore1, 8192);
-
-    auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state);
+    auto vesc_can_bus_handler = std::make_unique<VescCanBusHandler>(*can, application_state);
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
 
     auto ble_server = std::make_unique<BleServerEsp32>();
-    auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
-    auto ble_handler =
-        std::make_unique<BleHandler>(*ble_server, *ble_server, application_state, *image_cache);
+    auto ble_handler = std::make_unique<BleHandler>(
+        *ble_server, *ble_server, application_state, post_office, *image_cache);
 
 
-    input->Start("input");
-    button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     //  buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);
-    can_bus_handler->Start("can_bus_handler", 4096);
+    vesc_can_bus_handler->Start("vesc_can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);
     ota_updater->Start("ota_updater", 8192);

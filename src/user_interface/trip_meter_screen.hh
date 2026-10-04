@@ -17,8 +17,8 @@ private:
         kTripAverageWhPerKm,
         kTripMaxSpeed,
         kTripDistance,
-        kTemperature,
         kTime,
+        kOdometer,
 
         kValueCount,
     };
@@ -28,6 +28,11 @@ private:
         const char* unit_text {nullptr};
         lv_obj_t* value {nullptr};
         lv_obj_t* unit {nullptr};
+
+        SecondColumnStatRow(const char* unit_text)
+            : unit_text(unit_text)
+        {
+        }
     };
 
     struct StatRow
@@ -36,6 +41,8 @@ private:
         const char* unit_text {nullptr};
         StatValueKind value_kind {StatValueKind::kConsumedWh};
         std::unique_ptr<SecondColumnStatRow> second_column {nullptr};
+        // The label when the side pane is shown, or nullptr to hide the row then
+        const char* side_pane_label_text {nullptr};
         lv_obj_t* label {nullptr};
         lv_obj_t* value {nullptr};
         lv_obj_t* unit {nullptr};

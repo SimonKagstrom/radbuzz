@@ -23,12 +23,15 @@ TrimAtFirstNul(std::string_view input)
 
 enum class Key
 {
-    kMaxSpeed,
+    kMaxSpeedometerSpeed,
+    kProfile,
     kBatterySeries,
     kBatteryAmpHours,
     kWhPerKmForRangeEstimation,
     kSpeedometerType,
     kMaxWatts,
+    kRecentPowerDistance,
+    kHistogramMode,
     kRotateMap,
     kForceC6Update,
     kShowGpsSpeed,
@@ -48,7 +51,7 @@ enum class Key
 
 constexpr auto kKeyToString = std::array {
     std::pair {
-        Key::kMaxSpeed,
+        Key::kMaxSpeedometerSpeed,
         "M",
     },
     std::pair {
@@ -120,6 +123,18 @@ constexpr auto kKeyToString = std::array {
         Key::kCellOverheatTemperature,
         "3",
     },
+    std::pair {
+        Key::kRecentPowerDistance,
+        "4",
+    },
+    std::pair {
+        Key::kHistogramMode,
+        "5",
+    },
+    std::pair {
+        Key::kProfile,
+        "6",
+    },
 };
 
 static_assert(kKeyToString.size() == std::to_underlying(Key::kValueCount));
@@ -164,7 +179,11 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
 
     // Make sure all configuration values are set here, this is where defaults come from
     conf.rotate_map = m_nvm.Get<bool>(KeyToString(Key::kRotateMap)).value_or(false);
-    conf.max_speed = m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeed)).value_or(30);
+    conf.max_speedometer_speed =
+        m_nvm.Get<uint8_t>(KeyToString(Key::kMaxSpeedometerSpeed)).value_or(30);
+    conf.profile = m_nvm.Get<Profile>(KeyToString(Key::kProfile)).value_or(Profile::kMoped30);
+    conf.recent_power_distance =
+        m_nvm.Get<uint16_t>(KeyToString(Key::kRecentPowerDistance)).value_or(100);
     conf.battery_cell_series = m_nvm.Get<uint8_t>(KeyToString(Key::kBatterySeries)).value_or(7);
     conf.battery_amp_hours = m_nvm.Get<uint8_t>(KeyToString(Key::kBatteryAmpHours)).value_or(20);
     conf.wh_per_km_for_range_estimation =
@@ -173,6 +192,10 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     conf.speedometer_type =
         static_cast<SpeedometerType>(m_nvm.Get<uint8_t>(KeyToString(Key::kSpeedometerType))
                                          .value_or(std::to_underlying(SpeedometerType::kDigital)));
+
+    conf.histogram_mode =
+        static_cast<HistogramMode>(m_nvm.Get<uint8_t>(KeyToString(Key::kHistogramMode))
+                                       .value_or(std::to_underlying(HistogramMode::kPower)));
     conf.max_watts = m_nvm.Get<uint16_t>(KeyToString(Key::kMaxWatts)).value_or(1000);
     conf.force_c6_update = m_nvm.Get<bool>(KeyToString(Key::kForceC6Update)).value_or(false);
     conf.show_gps_speed = m_nvm.Get<bool>(KeyToString(Key::kShowGpsSpeed)).value_or(false);
@@ -251,9 +274,14 @@ Storage::OnActivation()
     co.OnChangedValue<AS::configuration>([this, &do_commit](auto& old_conf, auto& new_conf) {
         do_commit = true;
 
-        if (old_conf.max_speed != new_conf.max_speed)
+        if (old_conf.max_speedometer_speed != new_conf.max_speedometer_speed)
         {
-            m_nvm.Set<uint8_t>(KeyToString(Key::kMaxSpeed), new_conf.max_speed);
+            m_nvm.Set<uint8_t>(KeyToString(Key::kMaxSpeedometerSpeed),
+                               new_conf.max_speedometer_speed);
+        }
+        if (old_conf.profile != new_conf.profile)
+        {
+            m_nvm.Set<Profile>(KeyToString(Key::kProfile), new_conf.profile);
         }
         if (old_conf.battery_cell_series != new_conf.battery_cell_series)
         {
@@ -277,6 +305,11 @@ Storage::OnActivation()
             m_nvm.Set<uint8_t>(KeyToString(Key::kSpeedometerType),
                                static_cast<uint8_t>(new_conf.speedometer_type));
         }
+        if (old_conf.histogram_mode != new_conf.histogram_mode)
+        {
+            m_nvm.Set<uint8_t>(KeyToString(Key::kHistogramMode),
+                               static_cast<uint8_t>(new_conf.histogram_mode));
+        }
         if (old_conf.force_c6_update != new_conf.force_c6_update)
         {
             m_nvm.Set<bool>(KeyToString(Key::kForceC6Update), new_conf.force_c6_update);
@@ -299,6 +332,11 @@ Storage::OnActivation()
         if (old_conf.rotate_map != new_conf.rotate_map)
         {
             m_nvm.Set<bool>(KeyToString(Key::kRotateMap), new_conf.rotate_map);
+        }
+        if (old_conf.recent_power_distance != new_conf.recent_power_distance)
+        {
+            m_nvm.Set<uint16_t>(KeyToString(Key::kRecentPowerDistance),
+                                new_conf.recent_power_distance);
         }
         if (old_conf.show_gps_speed != new_conf.show_gps_speed)
         {

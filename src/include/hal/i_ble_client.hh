@@ -4,7 +4,9 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace hal
@@ -53,9 +55,23 @@ public:
         virtual std::vector<IService*> GetServices() = 0;
     };
 
+    // Other ways to recognize the peer in a scan, since some don't advertise the service itself
+    struct ScanFilter
+    {
+        // A (different) advertised service UUID
+        std::optional<Uuid128> advertised_uuid;
+        // The start of the advertised name (empty = not used)
+        std::string name_prefix;
+    };
+
     virtual ~IBleClient() = default;
 
+    /**
+     * Connect to a peer advertising the service, or matching the filter. The service is then
+     * verified after connecting.
+     */
     virtual void ScanForService(Uuid128Span service_uuid,
+                                const ScanFilter& filter,
                                 const std::function<void(std::unique_ptr<IPeer>)>& cb) = 0;
 };
 

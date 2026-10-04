@@ -4,6 +4,8 @@
 #include "base_thread.hh"
 #include "hal/i_gpio.hh"
 
+#include <string_view>
+
 class BuzzHandler : public os::BaseThread
 {
 public:
@@ -30,7 +32,7 @@ private:
 
     void EnterState(State s);
 
-    State DistanceToState(uint32_t distance) const;
+    State DistanceToState(std::string_view distance) const;
 
     hal::IGpio& m_left_buzzer;
     hal::IGpio& m_right_buzzer;
@@ -42,7 +44,7 @@ private:
 
     // State data
     State m_current_state {State::kNoNavigation};
-    uint32_t m_current_hash;
+    TurnSymbol m_current_turn {TurnSymbol::kNone};
 
     os::TimerHandle m_off_timer;
 };

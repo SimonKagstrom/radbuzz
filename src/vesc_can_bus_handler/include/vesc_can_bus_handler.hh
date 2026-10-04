@@ -4,14 +4,19 @@
 #include "base_thread.hh"
 #include "hal/i_can.hh"
 
-class CanBusHandler : public os::BaseThread
+struct VescCanState;
+
+class VescCanBusHandler : public os::BaseThread
 {
 public:
-    CanBusHandler(hal::ICan& bus, ApplicationState& app_state);
+    VescCanBusHandler(hal::ICan& bus, ApplicationState& app_state);
+    ~VescCanBusHandler();
 
 private:
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
+
+    void SetMaxSpeed(Profile profile);
 
     void
     VescResponseCallback(uint8_t controller_id, uint8_t command, const uint8_t* data, uint8_t len);
@@ -19,6 +24,11 @@ private:
     hal::ICan& m_bus;
     ApplicationState& m_state;
     std::optional<uint8_t> m_controller_id;
+    ApplicationState::PartialReadOnlyCache<AS::configuration> m_state_cache;
+    std::unique_ptr<ListenerCookie> m_state_listener;
+
+    // Unknown, so not unique_ptr
+    VescCanState* m_vesc_can_state {nullptr};
 
     std::unique_ptr<ListenerCookie> m_bus_listener;
 

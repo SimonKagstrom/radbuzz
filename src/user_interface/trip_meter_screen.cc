@@ -1,7 +1,10 @@
 #include "trip_meter_screen.hh"
 
+#include "battery_utils.hh"
 #include "map_screen.hh"
+#include "side_pane.hh"
 #include "time_string.hh"
+#include "trip_utils.hh"
 
 #include <algorithm>
 #include <cstddef>
@@ -16,11 +19,20 @@ constexpr int kValueColumnWidth = 160;
 constexpr int kUnitColumnWidth = 70;
 constexpr int kLabelToValueGap = 20;
 constexpr int kValueToUnitGap = 5;
-constexpr int kFirstRowYOffset = 0;
+constexpr int kFirstRowYOffset = 4;
 constexpr int kRowSpacing = kPixelSize_radbuzz_font_60 + 10;
 constexpr int kSecondColumnRightXOffset = 260;
 constexpr int kSingleColumnValueWidth =
     kValueColumnWidth + (kSecondColumnRightXOffset - kValueRightXOffset);
+
+// With the side pane: a single column between the pane and the indicator icons, below the
+// speedometer box. The right edge of the values, leaving room for the unit ("Wh/km")
+constexpr int kSidePaneUnitWidth = 80;
+constexpr int kSidePaneValueRight = kIndicatorColumn - 8 - kSidePaneUnitWidth - kValueToUnitGap;
+constexpr int kSidePaneFirstRowYOffset = DigitalSpeedometerWidget::kBoxDimensions + 8;
+// The labels in a column next to the pane, right aligned (fits "Consumption")
+constexpr int kSidePaneLabelX = SidePane::kWidth + 8;
+constexpr int kSidePaneLabelWidth = 150;
 
 namespace
 {
@@ -35,22 +47,27 @@ GetSideTextBaselineYOffset()
 TripMeterScreen::TripMeterScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
 {
-    const lv_color_t kTripMeterBackgroundColor = lv_color_make(47, 47, 58);
 
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(m_screen, kTripMeterBackgroundColor, 0);
+    lv_obj_set_style_bg_color(m_screen, UserInterface::GetBackgroundColor(), 0);
 
     lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     m_stat_rows.reserve(7);
-    m_stat_rows.emplace_back(StatRow {
-        "SoC/range", "%", StatValueKind::kSoc, std::make_unique<SecondColumnStatRow>("km")});
-    m_stat_rows.emplace_back(StatRow {"MOSFET/Motor", "°C", StatValueKind::kTemperature});
-    m_stat_rows.emplace_back(StatRow {"Trip time", "s", StatValueKind::kTime});
-    m_stat_rows.emplace_back(StatRow {"Distance", "m", StatValueKind::kTripDistance});
+    m_stat_rows.emplace_back(StatRow {"SoC/trip usage",
+                                      "%",
+                                      StatValueKind::kSoc,
+                                      std::make_unique<SecondColumnStatRow>("%"),
+                                      "Battery"});
+    m_stat_rows.emplace_back(StatRow {"Trip time", "", StatValueKind::kTime, nullptr, "Trip time"});
     m_stat_rows.emplace_back(
-        StatRow {"Trip consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm});
+        StatRow {"Distance", "m", StatValueKind::kTripDistance, nullptr, "Distance"});
+    m_stat_rows.emplace_back(StatRow {"Trip consumption",
+                                      "Wh/km",
+                                      StatValueKind::kTripAverageWhPerKm,
+                                      nullptr,
+                                      "Consumption"});
     m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
                                       "Wh",
                                       StatValueKind::kConsumedWh,
@@ -59,6 +76,8 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
                                       "km/h",
                                       StatValueKind::kTripMaxSpeed,
                                       std::make_unique<SecondColumnStatRow>("km/h")});
+    m_stat_rows.emplace_back(
+        StatRow {"Odometer", "km", StatValueKind::kOdometer, nullptr, "Odometer"});
 
     const auto side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
@@ -167,30 +186,62 @@ TripMeterScreen::Update()
     const int side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     auto trip_start = m_parent.m_current_trip_start;
+    const auto side_pane_shown = m_parent.SidePaneShown();
 
     std::size_t row_index = 0;
     for (auto& row : m_stat_rows)
     {
-        const int y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
+        // Only some rows, and no second columns, with the side pane
+        const auto hidden = side_pane_shown && row.side_pane_label_text == nullptr;
+        for (auto obj : {row.label, row.value, row.unit})
+        {
+            lv_obj_set_flag(obj, LV_OBJ_FLAG_HIDDEN, hidden);
+        }
+        if (row.second_column)
+        {
+            lv_obj_set_flag(row.second_column->value, LV_OBJ_FLAG_HIDDEN, side_pane_shown);
+            lv_obj_set_flag(row.second_column->unit, LV_OBJ_FLAG_HIDDEN, side_pane_shown);
+        }
+        if (hidden)
+        {
+            continue;
+        }
+
+        const int y_offset =
+            (side_pane_shown ? kSidePaneFirstRowYOffset : kFirstRowYOffset) +
+            static_cast<int>(row_index) * kRowSpacing;
         std::string value_text {"0"};
         std::string unit_text {row.unit_text};
-        std::string label_text {row.label_text};
+        std::string label_text {side_pane_shown ? row.side_pane_label_text : row.label_text};
 
         switch (row.value_kind)
         {
-        case StatValueKind::kSoc:
+        case StatValueKind::kSoc: {
+            const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
+            const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
+
+            const int wh_percent_used =
+                (consumed_wh /
+                 static_cast<float>(battery::FullPackWh(ro.Get<AS::configuration>()))) *
+                100.0f;
+
             value_text = std::format("{}", ro.Get<AS::battery_soc>());
-            lv_label_set_text(row.second_column->value,
-                              std::format("{}", ro.Get<AS::estimated_range_km>()).c_str());
+            lv_label_set_text(row.second_column->value, std::format("{}", wh_percent_used).c_str());
             break;
+        }
         case StatValueKind::kConsumedWh: {
 
             const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
             const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
-            if (consumed_wh >= 1000)
+
+            if (static_cast<int>(consumed_wh) >= 999)
             {
                 unit_text = "kWh";
-                value_text = std::format("{:.1f}", static_cast<float>(consumed_wh) / 1000.0f);
+                value_text = std::format("{:.1f}", consumed_wh / 1000.0f);
+            }
+            else if (static_cast<int>(consumed_wh) >= 99)
+            {
+                value_text = std::format("{:.0f}", consumed_wh);
             }
             else
             {
@@ -202,12 +253,18 @@ TripMeterScreen::Update()
             const auto regenerated_wh =
                 ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated;
 
-            if (regenerated_wh >= 1000)
+            if (static_cast<int>(regenerated_wh) >= 999)
             {
                 lv_label_set_text(
                     row.second_column->value,
                     std::format("{:.1f}", static_cast<float>(regenerated_wh) / 1000.0f).c_str());
                 lv_label_set_text(row.second_column->unit, "kWh");
+            }
+            else if (static_cast<int>(regenerated_wh) >= 99)
+            {
+                lv_label_set_text(
+                    row.second_column->value,
+                    std::format("{:.0f}", static_cast<float>(regenerated_wh)).c_str());
             }
             else
             {
@@ -227,7 +284,6 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripDistance: {
-            auto odometer_m = ro.Get<AS::odometer>();
             auto distance_m = ro.Get<AS::trip_distance>();
 
             if (distance_m >= 1000)
@@ -245,56 +301,26 @@ TripMeterScreen::Update()
         }
 
         case StatValueKind::kTripAverageWhPerKm: {
-            // For the trip, not the odometer
-            const uint32_t total_distance_m = ro.Get<AS::odometer>();
-            const uint32_t trip_distance_m = ro.Get<AS::trip_distance>();
-
-            const float total_wh_consumed = ro.Get<AS::wh_consumed>();
-            const float trip_wh_consumed =
-                std::max(0.0f, total_wh_consumed - trip_start.start_wh_consumed);
-
             const float average_consumption =
-                trip_distance_m > 0 ? (trip_wh_consumed * 1000.0f) / trip_distance_m : 0.0f;
+                trip::AverageConsumption(m_parent.m_state, m_parent.m_current_trip_start);
             value_text = std::format("{:.1f}", std::min(average_consumption, 60.0f));
 
             break;
         }
 
-        case StatValueKind::kTemperature: {
-            const auto controller_temp = ro.Get<AS::controller_temperature>();
-            const auto motor_temp = ro.Get<AS::motor_temperature>();
-            auto bms_data = ro.Get<AS::bms_data>();
-
-            value_text = "";
-            label_text = "";
-
-            // Not mounted on all motors (like mine)
-            if (motor_temp != 0)
-            {
-                value_text += std::format("{}/", motor_temp);
-                label_text += "Motor/";
-            }
-            // Might not be valid
-            if (bms_data->valid)
-            {
-                value_text +=
-                    std::format("{}/{}/", bms_data->bms_temperature, bms_data->highest_cell_temp);
-                label_text += "BMS/Cell/";
-            }
-
-
-            // Should always be valid, since it comes from the VESC
-            value_text += std::format("{}", controller_temp);
-            label_text += "MOSFET";
-            break;
-        }
         case StatValueKind::kTime: {
             auto seconds = ro.Get<AS::trip_duration>().count();
 
             value_text = SecondsToString(seconds);
-            unit_text = seconds > 60 ? "" : "s";
         }
         break;
+        case StatValueKind::kOdometer: {
+            auto odometer_m = ro.Get<AS::odometer>();
+            float distance_km = odometer_m / 1000.0f;
+            unit_text = "km";
+            value_text = std::format("{:.1f}", distance_km);
+            break;
+        }
         case StatValueKind::kValueCount:
             break;
         }
@@ -303,8 +329,16 @@ TripMeterScreen::Update()
         lv_label_set_text(row.value, value_text.c_str());
         lv_label_set_text(row.unit, unit_text.c_str());
 
-        if (row.second_column)
+        if (side_pane_shown)
         {
+            // Sized after the text, and right aligned, so that long values grow to the left
+            lv_obj_set_width(row.value, LV_SIZE_CONTENT);
+            lv_obj_align(
+                row.value, LV_ALIGN_TOP_RIGHT, kSidePaneValueRight - hal::kDisplayWidth, y_offset);
+        }
+        else if (row.second_column)
+        {
+            lv_obj_set_width(row.value, kValueColumnWidth);
             lv_obj_align(row.value,
                          LV_ALIGN_TOP_MID,
                          kValueRightXOffset - (kValueColumnWidth / 2),
@@ -312,16 +346,23 @@ TripMeterScreen::Update()
         }
         else
         {
+            lv_obj_set_width(row.value, kSingleColumnValueWidth);
             lv_obj_align(row.value,
                          LV_ALIGN_TOP_MID,
                          kSecondColumnRightXOffset - (kSingleColumnValueWidth / 2),
                          y_offset);
         }
+        lv_obj_set_width(row.label, side_pane_shown ? kSidePaneLabelWidth : kLabelColumnWidth);
         lv_obj_align_to(row.label,
                         row.value,
                         LV_ALIGN_OUT_LEFT_BOTTOM,
                         -kLabelToValueGap,
                         side_text_baseline_y_offset);
+        if (side_pane_shown)
+        {
+            // Same baseline as the value, but in the column next to the pane
+            lv_obj_set_x(row.label, kSidePaneLabelX);
+        }
         lv_obj_align_to(row.unit,
                         row.value,
                         LV_ALIGN_OUT_RIGHT_BOTTOM,
@@ -372,8 +413,7 @@ TripMeterScreen::HandleInput(const Input::Event& event)
 
     if (dx == -1)
     {
-        map_screen->SetZoom(kDefaultZoom);
-        m_parent.ActivateScreen(*m_parent.m_map_screen);
+        m_parent.ActivateScreen(*m_parent.m_speedometer_only_screen);
     }
     else if (dx == 1)
     {
@@ -391,17 +431,11 @@ TripMeterScreen::SetHelp(bool on)
         return;
     }
 
-    m_explanatory_bubbles.push_back(
-        std::make_unique<SpeechBubble>(m_stat_rows[0].second_column->value,
-                                       SpeechBubble::Direction::kLeft,
-                                       "Estimated range based on the\nconfigurable Wh/km value",
-                                       Point {80, 0}));
-
     m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
-        m_stat_rows[1].value,
+        m_stat_rows[0].second_column->value,
         SpeechBubble::Direction::kLeft,
-        "Battery, motor and controller temperature,\nfor those that report temperature",
-        Point {240, 0}));
+        "Estimated trip battery usage,\nfrom the configurable battery Ah",
+        Point {80, 0}));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_stat_rows[2].value,

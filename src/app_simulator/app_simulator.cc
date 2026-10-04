@@ -269,9 +269,9 @@ constexpr auto kImages = std::array {
     },
 };
 
-AppSimulator::AppSimulator(ApplicationState& app_state, BleInjector& ble_server)
+AppSimulator::AppSimulator(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office)
     : m_application_state(app_state)
-    , m_ble_injector(ble_server)
+    , m_post_office(post_office)
     , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
     , m_state_cache(m_application_state)
     , m_bresenham(*Wgs84ToOsmPoint(kDemoPoints[0], kDefaultZoom),
@@ -327,7 +327,7 @@ AppSimulator::OnActivation()
             rw.Set<AS::bms_data>(BmsData {});
         }
 
-        rw.Post<AS::reset_trip>();
+        m_post_office.Send<MSG::reset_trip>();
     });
 
     if (demo_active == false)
@@ -338,6 +338,7 @@ AppSimulator::OnActivation()
 
     const auto previous_distance_left = m_distance_left;
 
+    auto rw = m_application_state.CheckoutReadWrite();
     if (m_bresenham_iterator != m_bresenham.end())
     {
         m_current_point = *m_bresenham_iterator;
@@ -361,6 +362,12 @@ AppSimulator::OnActivation()
         {
             SetupStreetOrder();
         }
+        rw.Set<AS::turn_symbol>(m_turn_symbol);
+        m_turn_symbol = static_cast<TurnSymbol>(std::to_underlying(m_turn_symbol) + 1);
+        if (m_turn_symbol == TurnSymbol::kValueCount)
+        {
+            m_turn_symbol = TurnSymbol::kNone;
+        }
     }
     m_distance_left = MetersBetweenPoints(m_current_point, *m_next_point);
 
@@ -376,28 +383,8 @@ AppSimulator::OnActivation()
                                                           AS::navigation_active,
                                                           AS::trip_max_speed>();
 
-    auto current_street = m_streets.back();
-
-    auto nav_info = std::format(R"VOBB(nextRd={}
-nextRdDesc=
-distToNext={} m
-totalDist={} m
-eta=13:25
-ete=5 min
-iconHash={:08x}32
-        )VOBB",
-                                current_street,
-                                m_distance_left,
-                                5000,
-                                kImages[m_current_image].key);
-
-    m_ble_injector.Inject(kChaNav, nav_info);
-
-    if (m_cached_images.find(kImages[m_current_image].key) == m_cached_images.end())
-    {
-        m_ble_injector.Inject(kChaNavTbtIcon, kImages[m_current_image].data);
-        m_cached_images.insert(kImages[m_current_image].key);
-    }
+    rw.Set<AS::next_street>(std::string(m_streets.back()));
+    rw.Set<AS::distance_to_next>(std::format("{} m", m_distance_left));
 
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);
@@ -425,7 +412,7 @@ iconHash={:08x}32
         m_target_speed = m_random_engine() % kMaxSpeed;
     }
     const int speed_delta = static_cast<int>(speed) - current_speed;
-    constexpr int kWattsPerKmh = 10;
+    constexpr int kWattsPerKmh = 20;
     auto target_power = static_cast<int>(speed) * kWattsPerKmh;
 
     if (speed_delta < 0)
@@ -483,7 +470,7 @@ iconHash={:08x}32
 
     auto qw = m_application_state.CheckoutQueuedWriter<AS::position,
                                                        AS::pixel_position,
-                                                       AS::gps_position_valid,
+                                                       AS::gps_status,
                                                        AS::controller_temperature,
                                                        AS::overheated,
                                                        AS::battery_soc,
@@ -491,7 +478,7 @@ iconHash={:08x}32
 
     qw.Set<AS::position>(mangled);
     qw.Set<AS::pixel_position>(m_current_point);
-    qw.Set<AS::gps_position_valid>(true);
+    qw.Set<AS::gps_status>(GpsStatus::kPositionValid);
     qw.Set<AS::controller_temperature>(controller_temperature);
     qw.Set<AS::battery_soc>(m_soc);
     qw.Set<AS::bms_data>(bms);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "image.hh"
 #include "radbuzz_font_16.h"
 #include "wgs84_to_osm_point.hh"
 
@@ -37,5 +38,6 @@ private:
     lv_obj_t* m_text_label {nullptr};
     lv_obj_t* m_bubble {nullptr};
     lv_obj_t* m_bubble_tail {nullptr};
-    uint8_t m_tail_canvas_buffer[kTailWidth * kTailHeight * 4] = {};
+
+    BlankAlphaImage m_tail_canvas_buffer {kTailWidth, kTailHeight};
 };

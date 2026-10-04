@@ -4,7 +4,7 @@
 #include "blitter_esp32.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
-#include "can_bus_handler.hh"
+#include "vesc_can_bus_handler.hh"
 #include "can_esp32.hh"
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
@@ -481,7 +481,7 @@ app_main(void)
     //auto ble_server = std::make_unique<BleServerEsp32>();
     auto ble_server = std::make_unique<BleServerHost>();
     auto app_simulator = std::make_unique<AppSimulator>(application_state, *ble_server);
-    //auto can_bus_handler = std::make_unique<CanBusHandler>(*can, application_state);
+    //auto vesc_can_bus_handler = std::make_unique<VescCanBusHandler>(*can, application_state);
 
     //auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto tile_cache = std::make_unique<TileCache>(
@@ -510,7 +510,7 @@ app_main(void)
     button_debouncer->Start("button_debouncer", os::ThreadPriority::kHigh);
     buzz_handler->Start("buzz_handler", 8192);
     app_simulator->Start("app_simulator", 8192);
-    //can_bus_handler->Start("can_bus_handler", 4096);
+    //vesc_can_bus_handler->Start("vesc_can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);
     speedometer_handler->Start("speedometer_handler");

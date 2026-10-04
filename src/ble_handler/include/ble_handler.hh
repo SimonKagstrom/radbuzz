@@ -3,21 +3,17 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "ble_king_shark_handler.hh"
+#include "gadget_bridge_protocol.hh"
+#include "gadget_bridge_transport.hh"
 #include "hal/i_ble_client.hh"
 #include "hal/i_ble_server.hh"
 #include "image_cache.hh"
+#include "messages.hh"
+#include "post_office.hh"
 
 constexpr auto kImageWidth = 64;
 constexpr auto kImageHeight = 62;
 constexpr auto kImageByteSize = (kImageWidth * kImageHeight) / 8;
-
-constexpr auto kServiceUuid = "ec91d7ab-e87c-48d5-adfa-cc4b2951298a";
-
-constexpr auto kChaSettings = "9d37a346-63d3-4df6-8eee-f0242949f59f";
-constexpr auto kChaNav = "0b11deef-1563-447f-aece-d3dfeb1c1f20";
-constexpr auto kChaNavTbtIcon = "d4d8fcca-16b2-4b8e-8ed5-90137c44a8ad";
-constexpr auto kChaNavTbtIconDesc = "d63a466e-5271-4a5d-a942-a34ccdb013d9";
-constexpr auto kChaGpsSpeed = "98b6073a-5cf3-4e73-b6d3-f8e05fa018a9";
 
 class BleHandler : public os::BaseThread
 {
@@ -26,6 +22,7 @@ public:
     BleHandler(hal::IBleServer& server,
                hal::IBleClient& client,
                ApplicationState& state,
+               PostOffice<MSG::AllMessages>& post_office,
                ImageCache& cache);
 
 private:
@@ -33,20 +30,18 @@ private:
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
-    void OnChaNav(std::span<const uint8_t> data);
-    void OnIcon(std::span<const uint8_t> data);
-
-    void BumpNavigationActive();
-
     os::TimerHandle m_ble_poller;
     os::TimerHandle m_client_startup;
     hal::IBleServer& m_server;
     ApplicationState& m_state;
+    PostOffice<MSG::AllMessages>& m_post_office;
     ImageCache& m_image_cache;
 
     std::unique_ptr<ListenerCookie> m_connection_listener;
 
-    os::TimerHandle m_navigation_active_timer;
+    GadgetBridgeProtocol m_gadget_bridge_protocol {
+        GetTimerManager(), m_state, m_post_office, GetSemaphore()};
+    GadgetBridgeTransport m_gadget_bridge_transport;
 
     std::unique_ptr<BleKingSharkHandler> m_king_shark_handler;
 };

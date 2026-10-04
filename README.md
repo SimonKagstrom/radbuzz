@@ -10,21 +10,30 @@ controllers. It's built for an ESP32P4 microcontroller, but can also be run on t
 <p align="center">
   <a href="doc/city_zoom.png"><img src="doc/city_zoom.png" alt="maximum zoom with range" width="31%"></a>
   <a href="doc/help_bubbles.png"><img src="doc/help_bubbles.png" alt="speech bubbles with help text" width="31%"></a>
+  <a href="doc/speedometer_only.png"><img src="doc/speedometer_only.png" alt="speedometer only screen" width="31%"></a>
 </p>
 <p align="center">
   <a href="doc/trip_screen.png"><img src="doc/trip_screen.png" alt="trip meter screen" width="31%"></a>
   <a href="doc/menu.png"><img src="doc/menu.png" alt="menu screen" width="31%"></a>
+  <a href="doc/menu_settings.png"><img src="doc/menu_settings.png" alt="settings menu screen" width="31%"></a>
+</p>
+<p align="center">
+  <a href="doc/incoming_call.png"><img src="doc/incoming_call.png" alt="incoming call screen" width="31%"></a>
+  <a href="doc/message_on_speedometer_screen.png"><img src="doc/message_on_speedometer_screen.png" alt="message on the speedometer screen" width="31%"></a>
 </p>
 
 Features:
 
 * OpenStreetMap-based map (currently OpenCycleMap) with different zoom levels, via a GPS module
+* Supports receiving Google maps/OsmAnd/etc navigation instructions via the [Gadgetbridge](https://github.com/Freeyourgadget/Gadgetbridge) app
 * Speedometer, both based on VESC data and GPS
 * Trip data, with average consumption, distance etc
 * Tesla-style power meter bar on the right
-* Supports receiving navigation instructions from Google maps via an android app
 * Trip log shown on the map, with power indicator in color
 * Range estimation shown on the map
+* BMS status via BLE (currently em3ev KingShark/Ali new energy BMSes)
+* Incoming phone calls can accepted/declined
+* SMS:es and emails are forwarded from the phone
 * A menu for configuration
 * Written in clean and modern C++ (C++23)
 
@@ -39,8 +48,10 @@ Hardware:
 the pinout for the ESP32P4 can be seen in [waveshare_p4_touch_4_3/main.cc](esp32/waveshare_p4_touch_4_3/main/main.cc)
 
 ## Setup
+First install the `eim` tool (the esp-idf installation manager).
 
 ```
+eim install -i v6.0.2
 source $HOME/.espressif/tools/activate_idf_v6.0.2.sh
 npm i lv_font_conv -g
 pip3 install jinja2 pyyaml
@@ -49,17 +60,29 @@ pip3 install jinja2 pyyaml
 ## Build setup (target)
 ```
 cmake -GNinja -B radbuzz_esp32p4 -DCMAKE_BUILD_TYPE=Release <path>/radbuzz/esp32/waveshare_p4_touch_4_3
+cmake --build radbuzz_esp32p4
 ```
 
-## Build setup (unittest/qt)
+## Build setup (qt/unittest)
+Install the same lvgl/Python dependencies as on target:
+
 ```
-cmake -GNinja -B radbuzz_unittest <path>/radbuzz/test/unittest/
+npm i lv_font_conv -g
+pip3 install jinja2 pyyaml
+```
+
+And then:
+
+```
+cmake -GNinja -B radbuzz_qt <path>/radbuzz/qt
+cmake --build radbuzz_qt
 ```
 
 or
 
 ```
-cmake -GNinja -B radbuzz_qt <path>/radbuzz/qt
+cmake -GNinja -B radbuzz_unittest <path>/radbuzz/test/unittest/
+cmake --build radbuzz_unittest
 ```
 
 See [doc/build_instructions.md](doc/build_instructions.md) for more details on building and flashing the firmware.
@@ -67,7 +90,7 @@ See [doc/build_instructions.md](doc/build_instructions.md) for more details on b
 ## The OSM API key
 Get an API key for thunderforest via https://www.thunderforest.com/docs/apikeys/
 
-Put this key as a string in a `osm_api_key.txt` file in the root directory of this project.
+Put this key as a string in a `/APP_DATA/OSM_KEY.TXT` file in the root directory of this project.
 
 A key can also be placed on the SD card, as osm_key.txt, which will be
 preferred over the build time one if it exists.

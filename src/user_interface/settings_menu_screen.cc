@@ -13,6 +13,28 @@ static_assert(std::to_underlying(SpeedometerType::kAnalog) == 0);
 static_assert(std::to_underlying(SpeedometerType::kDigital) == 1);
 static_assert(std::to_underlying(SpeedometerType::kBoth) == 2);
 
+constexpr auto kProfileOptions = std::to_array<std::string_view>({
+    "Walk assist",
+    "Moped 25 km/h",
+    "Moped 30 km/h",
+    "Moped 45 km/h",
+    "Motorcycle",
+});
+static_assert(kProfileOptions.size() == static_cast<size_t>(Profile::kValueCount));
+static_assert(std::to_underlying(Profile::kWalking) == 0);
+static_assert(std::to_underlying(Profile::kMoped25) == 1);
+static_assert(std::to_underlying(Profile::kMoped30) == 2);
+static_assert(std::to_underlying(Profile::kMoped45) == 3);
+static_assert(std::to_underlying(Profile::kNoLimit) == 4);
+
+constexpr auto kHistogramModeOptions = std::to_array<std::string_view>({
+    "Power",
+    "Consumption",
+});
+static_assert(std::to_underlying(HistogramMode::kPower) == 0);
+static_assert(std::to_underlying(HistogramMode::kConsumption) == 1);
+
+
 SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
 {
@@ -22,9 +44,10 @@ void
 SettingsMenuScreen::OnActivation()
 {
     // Create on activation (since it needs quite a bit of memory)
+    auto current_screen = m_parent.m_current_screen;
     m_menu_screen = std::make_unique<MenuScreen>(
-        m_parent.GetTimerManager(), m_screen, m_parent.m_lvgl_input_dev, [this]() {
-            m_parent.ActivateScreen(*m_parent.m_map_screen);
+        m_parent.GetTimerManager(), m_screen, m_parent.m_lvgl_input_dev, [this, current_screen]() {
+            m_parent.ActivateScreen(*current_screen);
         });
 
     auto& main = m_menu_screen->GetMainPage();
@@ -33,7 +56,7 @@ SettingsMenuScreen::OnActivation()
     auto& settings_page = main.AddSubPage("Settings");
     main.AddSeparator();
 
-    auto& temperature_limits = settings_page.AddSubPage("Temperature limits");
+    auto& temperature_limits = settings_page.AddSubPage("Overheating limits");
     {
         temperature_limits.AddNumericEntry(
             "Motor (°C)",
@@ -73,11 +96,28 @@ SettingsMenuScreen::OnActivation()
             });
     }
 
-    settings_page.AddNumericEntry(
-        "Max speed", {25, 120, 5}, ro.Get<AS::configuration>()->max_speed, [this](auto value) {
+
+    if constexpr (false)
+    {
+        // Don't display this until we actually have an analogue speedometer
+        settings_page.AddNumericEntry("Max speedometer speed",
+                                      {25, 120, 5},
+                                      ro.Get<AS::configuration>()->max_speedometer_speed,
+                                      [this](auto value) {
+                                          m_parent.m_state
+                                              .CheckoutPartialSnapshot<AS::configuration>()
+                                              .GetWritableReference<AS::configuration>()
+                                              .max_speedometer_speed = static_cast<uint8_t>(value);
+                                      });
+    }
+    settings_page.AddRollerEntry(
+        "Profile",
+        std::span<const std::string_view>(kProfileOptions),
+        kProfileOptions[std::to_underlying(ro.Get<AS::configuration>()->profile)],
+        [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
-                .max_speed = static_cast<uint8_t>(value);
+                .profile = static_cast<Profile>(value);
         });
     settings_page.AddNumericEntry("Battery cell series",
                                   {1, 36},
@@ -112,15 +152,37 @@ SettingsMenuScreen::OnActivation()
                                   });
 
 
+    if constexpr (false)
+    {
+        // Don't display this until we actually have an analogue speedometer
+        settings_page.AddRollerEntry(
+            "Speedometer",
+            std::span<const std::string_view>(kSpeedometerTypeOptions),
+            kSpeedometerTypeOptions[std::to_underlying(
+                ro.Get<AS::configuration>()->speedometer_type)],
+            [this](auto value) {
+                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                    .GetWritableReference<AS::configuration>()
+                    .speedometer_type = static_cast<SpeedometerType>(value);
+            });
+    }
     settings_page.AddRollerEntry(
-        "Speedometer",
-        std::span<const std::string_view>(kSpeedometerTypeOptions),
-        kSpeedometerTypeOptions[std::to_underlying(ro.Get<AS::configuration>()->speedometer_type)],
+        "Histogram display",
+        std::span<const std::string_view>(kHistogramModeOptions),
+        kHistogramModeOptions[std::to_underlying(ro.Get<AS::configuration>()->histogram_mode)],
         [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
                 .GetWritableReference<AS::configuration>()
-                .speedometer_type = static_cast<SpeedometerType>(value);
+                .histogram_mode = static_cast<HistogramMode>(value);
         });
+    settings_page.AddNumericEntry("Histogram distance (meters)",
+                                  {25, 1000, 25},
+                                  ro.Get<AS::configuration>()->recent_power_distance,
+                                  [this](auto value) {
+                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
+                                          .GetWritableReference<AS::configuration>()
+                                          .recent_power_distance = static_cast<uint16_t>(value);
+                                  });
     settings_page.AddBooleanEntry(
         "Show GPS speed", ro.Get<AS::configuration>()->show_gps_speed, [this](auto value) {
             m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
@@ -163,7 +225,7 @@ SettingsMenuScreen::OnActivation()
     main.AddBooleanEntry("Show help text", m_parent.m_help_enabled, [this](auto value) {
         m_parent.m_help_enabled = value;
     });
-    main.AddBooleanEntry("Toggle demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
+    main.AddBooleanEntry("Demo mode", ro.Get<AS::demo_mode>(), [this](auto value) {
         m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(value);
     });
 

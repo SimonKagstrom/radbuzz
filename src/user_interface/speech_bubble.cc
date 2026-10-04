@@ -32,7 +32,7 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at,
 
     auto tail = lv_canvas_create(lv_layer_top());
     lv_canvas_set_buffer(tail,
-                         static_cast<void*>(m_tail_canvas_buffer),
+                         static_cast<void*>(m_tail_canvas_buffer.WritableData16()),
                          kTailWidth,
                          kTailHeight,
                          LV_COLOR_FORMAT_ARGB8888);
@@ -133,8 +133,8 @@ SpeechBubble::Update()
     auto hidden = !on_screen || !lv_obj_is_visible(m_pointing_at);
 
     // Set visiblity
-    lv_obj_set_flag(m_bubble, LV_OBJ_FLAG_HIDDEN, hidden);
-    lv_obj_set_flag(m_bubble_tail, LV_OBJ_FLAG_HIDDEN, hidden);
+    lv_obj_set_hidden(m_bubble, hidden);
+    lv_obj_set_hidden(m_bubble_tail, hidden);
 
     UpdatePosition();
 }

@@ -31,8 +31,11 @@ PUBLIC
 
 add_library(filesystem_implementation ALIAS mock_filesystem)
 add_library(https_client_implementation ALIAS mock_https_client)
-add_library(display_properties ALIAS display_800x800)
+if(NOT TARGET display_properties)
+    add_library(display_properties ALIAS display_800x800)
+endif()
 add_library(generated_application_state ALIAS radbuzz_unittest_application_state)
+add_library(messages ALIAS radbuzz_messages)
 
 
 
@@ -40,10 +43,12 @@ add_executable(unittest_radbuzz
     main.cc
     test_application_state.cc
     test_ble_handler.cc
-    test_tile_cache.cc
+    test_gps_reader.cc
     test_king_shark_packet_protocol.cc
     test_speedometer_handler.cc
+    test_tile_cache.cc
     test_trip_computer.cc
+    test_trip_log.cc
 )
 
 target_link_libraries(unittest_radbuzz
@@ -51,13 +56,14 @@ target_link_libraries(unittest_radbuzz
     ble_handler_private
     mock_filesystem
     os_unittest
+    gps_reader
     speedometer_handler
     tile_cache
     trip_computer
 
 
     # Compile tests only for now
-    can_bus_handler
+    vesc_can_bus_handler
     user_interface
 
     doctest::doctest
