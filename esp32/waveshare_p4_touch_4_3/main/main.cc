@@ -748,9 +748,8 @@ app_main(void)
     auto ble_server = std::make_unique<BleServerEsp32>();
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
     auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
-    auto ble_handler =
-        std::make_unique<BleHandler>(
-            *ble_server, *ble_server, application_state, post_office, *image_cache);
+    auto ble_handler = std::make_unique<BleHandler>(
+        *ble_server, *ble_server, application_state, post_office, *image_cache);
 
 
     //  buzz_handler->Start("buzz_handler", 8192);
