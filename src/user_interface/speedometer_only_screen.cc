@@ -119,11 +119,10 @@ SpeedometerOnlyScreen::CreateDatum(DatumAlignment alignment,
 SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
 {
-    const lv_color_t kBackgroundColor = lv_color_make(47, 47, 58);
     const lv_color_t kBarColor = lv_color_make(128, 128, 128);
 
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(m_screen, kBackgroundColor, 0);
+    lv_obj_set_style_bg_color(m_screen, UserInterface::GetBackgroundColor(), 0);
 
     // The histogram (bars, labels and lines), so that it can be hidden as a whole. Covers the
     // screen, so that the alignments are the same as for the screen

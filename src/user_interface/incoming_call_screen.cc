@@ -30,10 +30,9 @@ constexpr auto kPhoneIcon = "\xEE\x82\xB0";
 IncomingCallScreen::IncomingCallScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
 {
-    const lv_color_t kBackgroundColor = lv_color_make(47, 47, 58);
 
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(m_screen, kBackgroundColor, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(m_screen, UserInterface::GetBackgroundColor(), LV_PART_MAIN);
     lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     m_phone_icon_label = lv_label_create(m_screen);

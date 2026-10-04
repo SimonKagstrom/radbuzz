@@ -135,6 +135,12 @@ public:
 
     ~UserInterface() override;
 
+    // The background of the (non-map) screens. Also used to fill the display at startup
+    static lv_color_t GetBackgroundColor()
+    {
+        return lv_color_make(47, 47, 58);
+    }
+
     bool OnMapScreen() const
     {
         return m_current_screen == m_map_screen.get();
