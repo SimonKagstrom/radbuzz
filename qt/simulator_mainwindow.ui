@@ -153,7 +153,7 @@
     <property name="geometry">
      <rect>
       <x>960</x>
-      <y>110</y>
+      <y>30</y>
       <width>100</width>
       <height>32</height>
      </rect>
@@ -225,6 +225,19 @@
     </property>
     <property name="text">
      <string>Demo mode</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="startUpgradePushButton">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>110</y>
+      <width>100</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Start upgrade</string>
     </property>
    </widget>
   </widget>

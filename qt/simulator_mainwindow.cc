@@ -5,6 +5,9 @@
 GpioHost MainWindow::m_pin_a;
 GpioHost MainWindow::m_pin_b;
 
+// Oh, the horror!
+extern bool g_upgrade_started;
+
 MainWindow::MainWindow(ApplicationState& application_state,
                        PostOffice<MSG::AllMessages>& post_office,
                        QWidget* parent)
@@ -96,6 +99,9 @@ MainWindow::MainWindow(ApplicationState& application_state,
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
         printf("Setting millivolts to %d\n", value);
         m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(value);
+    });
+    connect(m_ui->startUpgradePushButton, &QPushButton::clicked, [this]() {
+        g_upgrade_started = true;
     });
 
     m_speedometer = std::make_unique<SpeedometerQt>(m_ui->speedometerGraphicsView);
