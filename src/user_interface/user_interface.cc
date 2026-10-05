@@ -109,10 +109,12 @@ UserInterface::OnStartup()
     auto f2 = m_display.GetFrameBuffer(hal::IDisplay::Owner::kHardware);
     auto f_rotate = m_display.GetFrameBuffer(hal::IDisplay::Owner::kRotationBuffer);
 
-    // Preconfigure the blitter operations for rotation, apart from src/dst
-    m_rotation_blit_operations[0] = {
-        .src_data = nullptr, // Set on flush
-        .dst_data = f_rotate,
+    // With rotation, LVGL renders into the rotation buffer, which is then rotated straight
+    // into the display back buffer on flush. Without rotation, LVGL renders directly
+    // into the display frame buffers.
+    m_rotation_blit_operation = {
+        .src_data = f_rotate,
+        .dst_data = nullptr, // Set on flush
         .src_width = static_cast<int16_t>(hal::kDisplayWidth),
         .src_height = static_cast<int16_t>(hal::kDisplayHeight),
         .src_offset_x = 0,
@@ -124,26 +126,22 @@ UserInterface::OnStartup()
         .rotation = hal::kDisplayRotation,
     };
 
-    // Blit back to the sw-owned buffer (i.e., no rotation)
-    m_rotation_blit_operations[1] = {
-        .src_data = f_rotate,
-        .dst_data = nullptr, // Set on flush
-        .src_width = static_cast<int16_t>(hal::kDisplayWidth),
-        .src_height = static_cast<int16_t>(hal::kDisplayHeight),
-        .src_offset_x = 0,
-        .src_offset_y = 0,
-        .dst_offset_x = 0,
-        .dst_offset_y = 0,
-        .width = static_cast<int16_t>(hal::kDisplayWidth),
-        .height = static_cast<int16_t>(hal::kDisplayHeight),
-        .rotation = hal::Rotation::k0,
-    };
-
-    lv_display_set_buffers(m_lvgl_display,
-                           f1,
-                           f2,
-                           sizeof(uint16_t) * hal::kDisplayWidth * hal::kDisplayHeight,
-                           lv_display_render_mode_t::LV_DISPLAY_RENDER_MODE_FULL);
+    if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
+    {
+        lv_display_set_buffers(m_lvgl_display,
+                               f_rotate,
+                               nullptr,
+                               sizeof(uint16_t) * hal::kDisplayWidth * hal::kDisplayHeight,
+                               lv_display_render_mode_t::LV_DISPLAY_RENDER_MODE_FULL);
+    }
+    else
+    {
+        lv_display_set_buffers(m_lvgl_display,
+                               f1,
+                               f2,
+                               sizeof(uint16_t) * hal::kDisplayWidth * hal::kDisplayHeight,
+                               lv_display_render_mode_t::LV_DISPLAY_RENDER_MODE_FULL);
+    }
     lv_display_set_user_data(m_lvgl_display, this);
     lv_display_set_flush_cb(
         m_lvgl_display,
@@ -156,12 +154,12 @@ UserInterface::OnStartup()
                 p->DrawPowerBar(frame_buffer);
                 if constexpr (hal::kDisplayRotation != hal::Rotation::k0)
                 {
-                    p->m_rotation_blit_operations[0].src_data = frame_buffer;
-                    p->m_rotation_blit_operations[1].dst_data = frame_buffer;
+                    // Flip() swaps buffers, so look up the current back buffer every time
+                    p->m_rotation_blit_operation.dst_data =
+                        p->m_display.GetFrameBuffer(hal::IDisplay::Owner::kSoftware);
 
                     p->m_blitter.BlitOperations(
-                        std::span<const hal::BlitOperation> {p->m_rotation_blit_operations.data(),
-                                                             p->m_rotation_blit_operations.size()});
+                        std::span<const hal::BlitOperation> {&p->m_rotation_blit_operation, 1});
                     p->m_blitter.WaitForBlitsDone();
                 }
 
@@ -331,8 +329,7 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     auto height = hal::kDisplayHeight;
     auto y_start = 0;
     // Above the navigation description box
-    if (m_current_screen && m_current_screen->ShowsNavigation() &&
-        ro.Get<AS::navigation_active>())
+    if (m_current_screen && m_current_screen->ShowsNavigation() && ro.Get<AS::navigation_active>())
     {
         height -= NavigationWidget::kDescriptionBoxHeight;
     }

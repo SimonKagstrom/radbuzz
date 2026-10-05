@@ -260,7 +260,7 @@ private:
     lv_display_t* m_lvgl_display {nullptr};
     uint32_t m_next_redraw_time {0};
 
-    std::array<hal::BlitOperation, 2> m_rotation_blit_operations {};
+    hal::BlitOperation m_rotation_blit_operation {};
 
 
     etl::queue_spsc_atomic<Input::Event, 8> m_input_queue;
