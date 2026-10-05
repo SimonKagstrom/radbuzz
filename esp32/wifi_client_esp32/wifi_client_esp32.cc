@@ -94,6 +94,9 @@ WifiClientEsp32::EventHandler(void* arg,
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
+        auto disconnected = static_cast<wifi_event_sta_disconnected_t*>(event_data);
+        printf("Wifi disconnected, reason %d rssi %d\n", disconnected->reason, disconnected->rssi);
+
         p->m_on_event(hal::IWifiClient::Event::kDisconnected);
 
         if (s_retry_num < 5)
