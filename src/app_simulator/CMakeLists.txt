@@ -10,7 +10,7 @@ PUBLIC
 target_link_libraries(app_simulator
 PUBLIC
     application_state
-    base_thread
+    job_pool_thread
     wgs84_to_osm_point
     bresenham
     radbuzz_messages

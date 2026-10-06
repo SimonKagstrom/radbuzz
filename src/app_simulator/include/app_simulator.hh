@@ -1,10 +1,10 @@
 #pragma once
 
 #include "application_state.hh"
-#include "base_thread.hh"
 #include "bresenham.hh"
 #include "hal/i_gps.hh"
 #include "messages.hh"
+#include "pooled_thread_base.hh"
 #include "post_office.hh"
 #include "wgs84_to_osm_point.hh"
 
@@ -12,7 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
-class AppSimulator : public os::BaseThread
+class AppSimulator : public PooledThreadBase
 {
 public:
     explicit AppSimulator(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office);

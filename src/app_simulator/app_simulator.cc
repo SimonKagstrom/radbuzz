@@ -272,7 +272,7 @@ constexpr auto kImages = std::array {
 AppSimulator::AppSimulator(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office)
     : m_application_state(app_state)
     , m_post_office(post_office)
-    , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(GetSemaphore()))
+    , m_state_listener(m_application_state.AttachListener<AS::demo_mode>(*this))
     , m_state_cache(m_application_state)
     , m_bresenham(*Wgs84ToOsmPoint(kDemoPoints[0], kDefaultZoom),
                   *Wgs84ToOsmPoint(kDemoPoints[1], kDefaultZoom))
@@ -290,7 +290,6 @@ AppSimulator::AppSimulator(ApplicationState& app_state, PostOffice<MSG::AllMessa
     m_next_point = ++it;
 
     SetupStreetOrder();
-    Awake();
 }
 
 void

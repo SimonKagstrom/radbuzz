@@ -12,6 +12,7 @@
 #include "i2c_gps_esp32.hh"
 #include "image_cache.hh"
 #include "input.hh"
+#include "job_pool_thread.hh"
 #include "nvm_esp32.hh"
 #include "ota_updater.hh"
 #include "pm_esp32.hh"
@@ -738,6 +739,8 @@ app_main(void)
 
     //    stepper_motor->Start();
 
+    auto job_pool = std::make_unique<JobPoolThread>();
+
     // Threads
     //  auto buzz_handler =
     //      std::make_unique<BuzzHandler>(*left_buzzer_gpio, *right_buzzer_gpio, application_state);
@@ -762,7 +765,6 @@ app_main(void)
 
 
     //  buzz_handler->Start("buzz_handler", 8192);
-    app_simulator->Start("app_simulator", 8192);
     vesc_can_bus_handler->Start("vesc_can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);
@@ -772,7 +774,11 @@ app_main(void)
 
     tile_cache->Start("tile_cache", 8192);
     gps_reader->Start("gps_reader");
-    temperature_monitor->Start("temperature_monitor");
+
+    job_pool->AttachPooledThread(std::move(app_simulator));
+    job_pool->AttachPooledThread(std::move(temperature_monitor));
+
+    job_pool->Start("job_pool", 8192);
 
 
     while (true)
