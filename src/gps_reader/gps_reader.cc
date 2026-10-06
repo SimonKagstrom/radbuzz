@@ -55,15 +55,16 @@ GpsReader::OnActivation()
     {
         // We have data, so at least NoFix should be set
         qw.Set<AS::gps_status>(GpsStatus::kNoFix);
-        m_gps_data_timeout_timer = StartTimer(5s, [this]() {
-            if (m_application_state.Get<AS::demo_mode>() == false)
-            {
-                m_application_state.CheckoutReadWrite().Set<AS::gps_status>(
-                    GpsStatus::kSilent);
-            }
-            return std::nullopt;
-        });
     }
+
+    // Restart on every reception, so that it only expires when data dries up
+    m_gps_data_timeout_timer = StartTimer(5s, [this]() {
+        if (m_application_state.Get<AS::demo_mode>() == false)
+        {
+            m_application_state.CheckoutReadWrite().Set<AS::gps_status>(GpsStatus::kSilent);
+        }
+        return std::nullopt;
+    });
 
     if (!m_position || !m_speed || !m_heading)
     {
@@ -86,7 +87,11 @@ GpsReader::OnActivation()
     qw.Set<AS::gps_status>(GpsStatus::kPositionValid);
 
     m_gps_timeout_timer = StartTimer(10s, [this]() {
-        m_application_state.CheckoutReadWrite().Set<AS::gps_status>(GpsStatus::kNoFix);
+        // Only downgrade a valid position, i.e., don't override kSilent if data has dried up
+        if (m_application_state.Get<AS::gps_status>() == GpsStatus::kPositionValid)
+        {
+            m_application_state.CheckoutReadWrite().Set<AS::gps_status>(GpsStatus::kNoFix);
+        }
         return std::nullopt;
     });
     Reset();

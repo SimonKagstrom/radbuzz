@@ -20,7 +20,6 @@ public:
         gps_reader.Start("gps_reader");
     }
 
-
     ApplicationState state;
     MockGps mock_gps;
     GpsReader gps_reader {state, mock_gps};
@@ -31,6 +30,33 @@ public:
 
     const GpsPosition kBraxenWgs84 {59.513855291284244, 17.036614462012853};
     const Point braxen {*Wgs84ToOsmPoint(kBraxenWgs84, kDefaultZoom)};
+
+    // Simulate the GPS delivering data: wake up the thread and hand over the data
+    void DeliverData(const hal::RawGpsData& data)
+    {
+        if (m_gps_notifier)
+        {
+            m_gps_notifier->Notify();
+        }
+
+        REQUIRE_CALL(mock_gps, WaitForData(_)).LR_SIDE_EFFECT(m_gps_notifier = &_1).RETURN(data);
+        REQUIRE(DoRunLoop());
+    }
+
+private:
+    IEventNotifier* m_gps_notifier {nullptr};
+};
+
+class StateNotifier : public IEventNotifier
+{
+public:
+    MAKE_MOCK0(Notify, void());
+
+private:
+    void NotifyFromIsr() final
+    {
+        REQUIRE(false); // Forbidden in this test
+    }
 };
 
 } // namespace
@@ -55,11 +81,14 @@ TEST_CASE_FIXTURE(Fixture, "When data is received, the GPS state switches to kNo
     hal::RawGpsData raw_data {.position = std::nullopt, .heading = 1.0f, .speed = 2.0f};
 
     REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
+    StateNotifier notifier;
+    auto c = state.AttachListener<AS::gps_status>(notifier);
 
+    REQUIRE_CALL(notifier, Notify())
+        .SIDE_EFFECT(CHECK(state.Get<AS::gps_status>() == GpsStatus::kNoFix));
     REQUIRE_CALL(mock_gps, WaitForData(_)).RETURN(raw_data);
     DoRunLoop();
 
-    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kNoFix);
     REQUIRE(*state.Get<AS::pixel_position>() == stockholm);
 }
 
@@ -131,6 +160,56 @@ TEST_CASE_FIXTURE(Fixture, "When demo mode is active, the GPS state is not updat
     // No change to the pixel position, or the GPS state (set by the demo app)
     REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
     REQUIRE(*state.Get<AS::pixel_position>() == stockholm);
+}
+
+TEST_CASE_FIXTURE(Fixture, "A valid position is kept while GPS data keeps arriving")
+{
+    hal::RawGpsData raw_data {.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f};
+
+    DeliverData(raw_data);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kPositionValid);
+
+    // No calls expected, i.e., the GPS state should never change
+    StateNotifier notifier;
+    auto c = state.AttachListener<AS::gps_status>(notifier);
+
+    WHEN("valid data arrives every second for a while")
+    {
+        for (auto i = 0; i < 20; i++)
+        {
+            AdvanceTime(1s);
+            DeliverData(raw_data);
+
+            // The GPS state stays kPositionValid
+            REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kPositionValid);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "When data dries up after a valid position, the GPS state ends up kSilent")
+{
+    hal::RawGpsData raw_data {.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f};
+
+    DeliverData(raw_data);
+    REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kPositionValid);
+
+    StateNotifier notifier;
+    auto c = state.AttachListener<AS::gps_status>(notifier);
+
+    WHEN("there is no data for a long time")
+    {
+        // Only a single change, directly to kSilent
+        REQUIRE_CALL(notifier, Notify())
+            .SIDE_EFFECT(CHECK(state.Get<AS::gps_status>() == GpsStatus::kSilent));
+
+        ALLOW_CALL(mock_gps, WaitForData(_)).RETURN(std::nullopt);
+        AdvanceTimeAndRunLoop(30s);
+
+        THEN("the GPS state is kSilent")
+        {
+            REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
+        }
+    }
 }
 
 TEST_SUITE_END();
