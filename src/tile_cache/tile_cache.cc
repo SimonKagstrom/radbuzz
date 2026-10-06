@@ -291,6 +291,9 @@ TileCache::FillFromColdStore()
 {
     Tile t = kInvalidTile;
 
+    // Tiles loaded in this pass
+    auto loaded_tiles = 0u;
+
     while (m_get_from_coldstore.pop(t))
     {
         auto tile_id = TileId(t);
@@ -315,8 +318,12 @@ TileCache::FillFromColdStore()
                 // Successfully decoded, otherwise the evicted tile remains evicted
                 m_tiles[index] = tile_id;
 
-                // Awake anyone waiting for tiles (i.e., the UI)
-                m_post_office.Send<MSG::tile_loaded>();
+                if (loaded_tiles == 0)
+                {
+                    // Draw the first tile directly, then the rest when all are loaded
+                    m_post_office.Send<MSG::tile_loaded>();
+                }
+                loaded_tiles++;
             }
             else
             {
@@ -334,6 +341,12 @@ TileCache::FillFromColdStore()
         {
             m_get_from_server.push_back(t);
         }
+    }
+
+    if (loaded_tiles > 1)
+    {
+        // Awake anyone waiting for tiles (i.e., the UI)
+        m_post_office.Send<MSG::tile_loaded>();
     }
 }
 
