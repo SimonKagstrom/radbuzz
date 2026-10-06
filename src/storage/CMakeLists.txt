@@ -9,7 +9,7 @@ PUBLIC
 
 target_link_libraries(storage
 PUBLIC
-    base_thread
+    job_pool_thread
     application_state
 PRIVATE
     radbuzz_interface

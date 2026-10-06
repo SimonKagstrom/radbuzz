@@ -165,7 +165,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
     , m_state_listener(
-          m_application_state.AttachListener<AS::configuration, AS::is_moving>(GetSemaphore()))
+          m_application_state.AttachListener<AS::configuration, AS::is_moving>(*this))
     , m_state_cache(m_application_state)
 {
     auto ps =

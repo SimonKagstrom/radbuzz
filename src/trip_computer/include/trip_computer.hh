@@ -1,7 +1,7 @@
 #pragma once
 
 #include "application_state.hh"
-#include "base_thread.hh"
+#include "pooled_thread_base.hh"
 #include "messages.hh"
 #include "os/memory.hh"
 #include "post_office.hh"
@@ -16,7 +16,7 @@
 #include <optional>
 #include <utility>
 
-class TripComputer : public os::BaseThread, public IEntryAllocator
+class TripComputer : public PooledThreadBase, public IEntryAllocator
 {
 public:
     using PowerType = decltype(AS::current_power_w::current_power_w);

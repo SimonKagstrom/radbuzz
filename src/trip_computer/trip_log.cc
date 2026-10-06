@@ -1,5 +1,6 @@
 #include "trip_log.hh"
 
+#include "debug_assert.hh"
 #include "trip_computer.hh"
 
 #include <numeric>

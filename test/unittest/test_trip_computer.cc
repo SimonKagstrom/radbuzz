@@ -1,3 +1,4 @@
+#include "job_pool_thread.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
 #include "trip_computer.hh"
@@ -14,16 +15,22 @@ public:
         auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
         ps.GetWritableReference<AS::configuration>().recent_power_distance = 50;
 
-        SetThread(&trip_computer);
+        // Pooled, like on the target. The job pool owns it from here on
+        job_pool.AttachPooledThread(std::move(trip_computer_owner));
+        SetThread(&job_pool);
 
-        trip_computer.Start("trip_computer");
+        job_pool.Start("job_pool");
     }
 
 
     ApplicationState state;
     PostOffice<MSG::AllMessages> post_office;
 
-    TripComputer trip_computer {state, post_office};
+    std::unique_ptr<TripComputer> trip_computer_owner {
+        std::make_unique<TripComputer>(state, post_office)};
+    TripComputer& trip_computer {*trip_computer_owner};
+
+    JobPoolThread job_pool;
 };
 
 } // namespace

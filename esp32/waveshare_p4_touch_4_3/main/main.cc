@@ -585,8 +585,8 @@ app_main(void)
     gpio_set_level(kTftBacklight, kBacklightOnLevel);
 
     auto nvm = std::make_unique<NvmEsp32>();
+    // Loads the configuration in the constructor, run in the job pool (below)
     auto storage = std::make_unique<Storage>(application_state, *nvm);
-    storage->Start("storage");
 
 
     // The user interface first, so that the display comes up quickly. The rest (C6, SD card,
@@ -768,13 +768,15 @@ app_main(void)
     vesc_can_bus_handler->Start("vesc_can_bus_handler", 4096);
     ble_handler->Start("ble_server", 8192);
     wifi_handler->Start("wifi_handler", 8192);
-    ota_updater->Start("ota_updater", 8192);
     //speedometer_handler->Start("speedometer_handler");
-    trip_computer->Start("trip_computer");
 
     tile_cache->Start("tile_cache", 8192);
     gps_reader->Start("gps_reader");
 
+    // References to these are kept elsewhere (e.g., by the UI), but the job pool owns them
+    job_pool->AttachPooledThread(std::move(storage));
+    job_pool->AttachPooledThread(std::move(trip_computer));
+    job_pool->AttachPooledThread(std::move(ota_updater));
     job_pool->AttachPooledThread(std::move(app_simulator));
     job_pool->AttachPooledThread(std::move(temperature_monitor));
 

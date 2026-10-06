@@ -60,10 +60,10 @@ TripComputer::TripComputer(ApplicationState& app_state, PostOffice<MSG::AllMessa
     , m_state_listener(m_state.AttachListener<AS::configuration,
                                               AS::can_bus_active,
                                               AS::odometer,
-                                              AS::pixel_position>(GetSemaphore()))
+                                              AS::pixel_position>(*this))
     , m_trip_log_storage(std::make_unique<std::array<TripLogEntry, kNumberOfTripLogEntries>>())
 {
-    m_mailbox = post_office.Subscribe<MSG::reset_trip>(GetSemaphore());
+    m_mailbox = post_office.Subscribe<MSG::reset_trip>(*this);
 
     // Fill with zeroes to start from the rightmost point
     for (auto i = 0; i < kNumberOfRecentEntries; ++i)

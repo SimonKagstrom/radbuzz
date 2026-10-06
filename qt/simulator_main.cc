@@ -127,11 +127,8 @@ main(int argc, char* argv[])
     auto speedometer_handler =
         std::make_unique<SpeedometerHandler>(window.GetStepperMotor(), application_state, 6000);
 
-    storage->Start("storage");
-    ota_updater_thread->Start("ota_updater");
     wifi_handler->Start("wifi_handler");
     input->Start("input");
-    trip_computer->Start("trip_computer");
     ble_handler->Start("ble_handler");
     buzz_handler->Start("buzz_handler");
     tile_cache->Start("tile_cache");
@@ -139,6 +136,9 @@ main(int argc, char* argv[])
     speedometer_handler->Start("speedometer_handler");
 
     os::Sleep(10ms);
+    job_pool->AttachPooledThread(std::move(storage));
+    job_pool->AttachPooledThread(std::move(trip_computer));
+    job_pool->AttachPooledThread(std::move(ota_updater_thread));
     job_pool->AttachPooledThread(std::move(app_simulator));
     job_pool->AttachPooledThread(std::move(temperature_monitor));
 
