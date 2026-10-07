@@ -265,10 +265,11 @@ TEST_CASE_FIXTURE(Fixture,
 
     WHEN("one sample has been gotten")
     {
+        // 2Wh net over 40m (within the same bucket) -> 50Wh/km
         rw.Set<AS::current_power_w>(100);
-        rw.Set<AS::wh_consumed>(100);
-        rw.Set<AS::wh_regenerated>(50);
-        rw.Set<AS::odometer>(1000);
+        rw.Set<AS::wh_consumed>(4);
+        rw.Set<AS::wh_regenerated>(2);
+        rw.Set<AS::odometer>(40);
         AdvanceTimeAndRunLoop(250ms);
 
         THEN("the last entry of the histogram is updated")

@@ -99,6 +99,11 @@ TripComputer::StartMonitoring()
 {
     ResetTrip();
 
+    // The first histogram entry is relative to where we start, not from zero
+    m_current_histogram_entry.start_consumption =
+        m_state.Get<AS::wh_consumed>() - m_state.Get<AS::wh_regenerated>();
+    m_current_histogram_entry.start_distance = m_state.Get<AS::odometer>();
+
     m_soc_timer = StartTimer(250ms, [this]() {
         if (!m_state.Get<AS::bms_data>()->valid)
         {
@@ -142,19 +147,14 @@ TripComputer::UpdateRecentEntries(uint32_t odometer)
 
     if (distance_now != current_distance)
     {
-        auto conf = m_state.Get<AS::configuration>();
         if (m_recent_entries.full())
         {
             m_recent_entries.pop();
         }
 
-        auto samples = m_current_histogram_entry.samples + 1;
-
-        auto consumed_delta = consumed - m_current_histogram_entry.start_consumption;
-
-        // Update with the current value
-        m_recent_entries.push({std::max(power, static_cast<PowerType>(0)), consumed_delta});
-        m_current_histogram_entry = {};
+        // Start a new entry with the current power. There's no distance to measure the
+        // consumption over yet, so it starts out empty
+        m_recent_entries.push({std::max(power, static_cast<PowerType>(0)), 0.0f});
 
         m_current_distance = distance_now;
         m_current_histogram_entry = {};
