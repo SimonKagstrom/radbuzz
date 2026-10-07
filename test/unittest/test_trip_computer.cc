@@ -3,6 +3,8 @@
 #include "thread_fixture.hh"
 #include "trip_computer.hh"
 
+#include <cmath>
+
 
 namespace
 {
@@ -311,7 +313,7 @@ TEST_CASE_FIXTURE(Fixture,
             auto& last_entry = trip_computer.GetRecentEntries().back();
 
             REQUIRE(last_entry.power == 150);
-            REQUIRE(last_entry.average_consumption == 100);
+            REQUIRE(last_entry.average_consumption == 0);
         }
 
         AND_WHEN("the moped moves")
@@ -329,7 +331,7 @@ TEST_CASE_FIXTURE(Fixture,
                  "the new values")
             {
                 REQUIRE(second_last_entry.power == 150);
-                REQUIRE(second_last_entry.average_consumption == 100);
+                REQUIRE(second_last_entry.average_consumption == 0);
                 REQUIRE(last_entry.power == 300);
             }
         }
@@ -351,6 +353,139 @@ TEST_CASE_FIXTURE(Fixture,
             auto& last_entry = trip_computer.GetRecentEntries().back();
 
             REQUIRE(last_entry.power == 0);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the trip histogram consumption is valid when standing still")
+{
+    auto rw = state.CheckoutReadWrite();
+
+    rw.Set<AS::can_bus_active>(true);
+    // Startup
+    AdvanceTimeAndRunLoop(100ms);
+
+    WHEN("the moped stands still without consuming anything")
+    {
+        AdvanceTimeAndRunLoop(1s);
+
+        THEN("the consumption is zero (and not NaN)")
+        {
+            auto& last_entry = trip_computer.GetRecentEntries().back();
+
+            REQUIRE_FALSE(std::isnan(last_entry.average_consumption));
+            REQUIRE(last_entry.average_consumption == 0);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture,
+                  "the first trip histogram entry is relative to the odometer and consumption at start")
+{
+    auto rw = state.CheckoutReadWrite();
+
+    // A realistic setup, with previous distance and consumption
+    rw.Set<AS::odometer>(10000);
+    rw.Set<AS::wh_consumed>(200);
+    rw.Set<AS::can_bus_active>(true);
+    // Startup
+    AdvanceTimeAndRunLoop(100ms);
+    AdvanceTimeAndRunLoop(250ms);
+
+    WHEN("the moped moves 10m (in the same bucket) and consumes 0.5Wh")
+    {
+        rw.Set<AS::odometer>(10010);
+        rw.Set<AS::wh_consumed>(200.5f);
+        AdvanceTimeAndRunLoop(250ms);
+
+        THEN("the consumption is 50Wh/km")
+        {
+            auto& last_entry = trip_computer.GetRecentEntries().back();
+
+            REQUIRE(last_entry.average_consumption == doctest::Approx(50));
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a new trip histogram entry starts out empty")
+{
+    auto rw = state.CheckoutReadWrite();
+    auto conf = rw.Get<AS::configuration>();
+
+    rw.Set<AS::odometer>(1000);
+    rw.Set<AS::wh_consumed>(10);
+    rw.Set<AS::can_bus_active>(true);
+    // Startup
+    AdvanceTimeAndRunLoop(100ms);
+    AdvanceTimeAndRunLoop(250ms);
+
+    rw.Set<AS::odometer>(1010);
+    rw.Set<AS::wh_consumed>(10.5f);
+    AdvanceTimeAndRunLoop(250ms);
+
+    WHEN("the moped moves into the next bucket")
+    {
+        rw.Set<AS::odometer>(1000 + conf->recent_power_distance + 10);
+        rw.Set<AS::wh_consumed>(13);
+        AdvanceTimeAndRunLoop(250ms);
+
+        THEN("the new entry has no consumption yet (i.e., not the Wh of the previous bucket)")
+        {
+            auto& last_entry = trip_computer.GetRecentEntries().back();
+
+            REQUIRE(last_entry.average_consumption == 0);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "movement within a histogram bucket is detected, but doesn't push entries")
+{
+    auto rw = state.CheckoutReadWrite();
+    auto conf = rw.Get<AS::configuration>();
+
+    rw.Set<AS::odometer>(1000);
+    rw.Set<AS::can_bus_active>(true);
+    // Startup
+    AdvanceTimeAndRunLoop(100ms);
+
+    rw.Set<AS::current_power_w>(100);
+
+    WHEN("the moped moves slowly, within a bucket")
+    {
+        for (auto i = 1; i < conf->recent_power_distance; i++)
+        {
+            rw.Set<AS::odometer>(1000 + i);
+            AdvanceTimeAndRunLoop(250ms);
+
+            // Movement is detected on each odometer update
+            REQUIRE(rw.Get<AS::is_moving>());
+        }
+
+        THEN("no new histogram entry is pushed")
+        {
+            auto histogram_entries = trip_computer.GetRecentEntries();
+            auto& last_entry = histogram_entries[histogram_entries.size() - 1];
+            auto& second_last_entry = histogram_entries[histogram_entries.size() - 2];
+
+            REQUIRE(last_entry.power == 100);
+            REQUIRE(second_last_entry.power == 0);
+        }
+
+        AND_WHEN("the moped crosses into the next bucket")
+        {
+            rw.Set<AS::odometer>(1000 + conf->recent_power_distance);
+            AdvanceTimeAndRunLoop(250ms);
+
+            THEN("exactly one entry is pushed")
+            {
+                auto histogram_entries = trip_computer.GetRecentEntries();
+                auto& second_last_entry = histogram_entries[histogram_entries.size() - 2];
+                auto& third_last_entry = histogram_entries[histogram_entries.size() - 3];
+
+                REQUIRE(rw.Get<AS::is_moving>());
+                REQUIRE(second_last_entry.power == 100);
+                REQUIRE(third_last_entry.power == 0);
+            }
         }
     }
 }
