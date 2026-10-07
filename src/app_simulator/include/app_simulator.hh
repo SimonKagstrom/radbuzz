@@ -32,9 +32,6 @@ private:
     // State data
     std::vector<const char*> m_streets;
     int32_t m_distance_left {0};
-    uint8_t m_current_image {0};
-
-    std::unordered_set<uint32_t> m_cached_images;
 
     uint8_t m_target_speed {10};
 
