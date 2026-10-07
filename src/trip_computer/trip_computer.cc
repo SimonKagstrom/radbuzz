@@ -171,9 +171,14 @@ TripComputer::UpdateRecentEntries(uint32_t odometer)
         PowerType average_power = std::max(m_current_histogram_entry.accumulated_power /
                                                m_current_histogram_entry.samples,
                                            static_cast<int32_t>(0));
-        auto average_consumption =
-            (consumed - m_current_histogram_entry.start_consumption) *
-            (1000.0f / (odometer - m_current_histogram_entry.start_distance));
+
+        float average_consumption = 0.0f;
+
+        if (odometer - m_current_histogram_entry.start_distance != 0)
+        {
+            average_consumption = (consumed - m_current_histogram_entry.start_consumption) *
+                                  (1000.0f / (odometer - m_current_histogram_entry.start_distance));
+        }
 
         average_consumption = std::min(average_consumption, 100.0f);
 
