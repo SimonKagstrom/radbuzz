@@ -1,27 +1,20 @@
 @startuml
 
-state kIdle : Reset receive\nbuffer
 state kWaitForHeader
-state kWaitForData
 state kWaitForFooter
 state kVerifyData
 state kValidData : Return payload
 
-[*] --> kIdle
+[*] --> kWaitForHeader
 
-kIdle --> kWaitForHeader
-
-kWaitForHeader --> kWaitForData
-kWaitForHeader --> kIdle : invalid header
-
-kWaitForData --> kWaitForFooter
+kWaitForHeader --> kWaitForFooter : header received
 
 kWaitForFooter --> kVerifyData
-kWaitForFooter --> kIdle : invalid footer
+kWaitForFooter --> kWaitForHeader : invalid footer
 
 kVerifyData --> kValidData
-kVerifyData --> kIdle : checksum error
+kVerifyData --> kWaitForHeader : checksum error
 
-kValidData --> kIdle
+kValidData --> kWaitForHeader
 
 @enduml

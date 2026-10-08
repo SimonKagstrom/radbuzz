@@ -18,9 +18,7 @@ public:
 private:
     enum class State
     {
-        kIdle,
         kWaitForHeader,
-        kWaitForData,
         kWaitForFooter,
         kVerifyData,
         kValidData,
@@ -35,7 +33,7 @@ private:
     etl::vector<uint8_t, 128> m_transmit_buffer;
     etl::vector<uint8_t, 128> m_receive_buffer;
 
-    State m_current_state {State::kIdle};
+    State m_current_state {State::kWaitForHeader};
     // State data
     uint8_t m_length {0};
 };

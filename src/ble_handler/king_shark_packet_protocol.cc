@@ -17,7 +17,7 @@ KingSharkPacketProtocol::BuildTxPacket(uint8_t command, std::span<const uint8_t>
     m_transmit_buffer.push_back(payload.size());
     std::ranges::copy(payload, std::back_inserter(m_transmit_buffer));
     std::ranges::copy(CalculateChecksum(std::span<const uint8_t>(m_transmit_buffer).subspan(1)),
-                       std::back_inserter(m_transmit_buffer));
+                      std::back_inserter(m_transmit_buffer));
     std::ranges::copy(kFooterMagic, std::back_inserter(m_transmit_buffer));
 
     return m_transmit_buffer;
@@ -42,24 +42,11 @@ KingSharkPacketProtocol::RunStateMachine()
 
         switch (m_current_state)
         {
-        case State::kIdle:
-            if (m_receive_buffer.size() != 0)
-            {
-                m_current_state = State::kWaitForHeader;
-            }
-            break;
-
         case State::kWaitForHeader:
             if (m_receive_buffer.size() >= kHeaderSize &&
                 std::equal(kHeaderMagic.begin(), kHeaderMagic.end(), m_receive_buffer.begin()))
             {
                 m_length = m_receive_buffer[3];
-                m_current_state = State::kWaitForData;
-            }
-            break;
-        case State::kWaitForData:
-            if (m_receive_buffer.size() >= kHeaderSize + m_length)
-            {
                 m_current_state = State::kWaitForFooter;
             }
             break;
@@ -89,7 +76,7 @@ KingSharkPacketProtocol::RunStateMachine()
             else
             {
                 m_receive_buffer.clear();
-                m_current_state = State::kIdle;
+                m_current_state = State::kWaitForHeader;
             }
             break;
         }
@@ -97,7 +84,7 @@ KingSharkPacketProtocol::RunStateMachine()
             // Skip the leading bytes, but include command/length
             out = std::span<const uint8_t>(m_receive_buffer).subspan(2, 2 + m_length);
             m_receive_buffer.clear();
-            m_current_state = State::kIdle;
+            m_current_state = State::kWaitForHeader;
             break;
         case State::kValueCount:
             break;
@@ -107,7 +94,8 @@ KingSharkPacketProtocol::RunStateMachine()
     return out;
 }
 
-std::optional<std::span<const uint8_t>> KingSharkPacketProtocol::Poll()
+std::optional<std::span<const uint8_t>>
+KingSharkPacketProtocol::Poll()
 {
     return RunStateMachine();
 }
