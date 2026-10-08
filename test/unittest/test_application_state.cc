@@ -359,6 +359,26 @@ TEST_CASE("There's a finite number of listeners that can be attached")
             listeners.push_back(std::move(cur));
         }
 
+        THEN("all can be notified with set")
+        {
+            app_state.CheckoutReadWrite().Set<AS::speed>(99);
+            for (auto& sem : semaphores)
+            {
+                CHECK(sem->try_acquire() == true);
+            }
+        }
+        AND_THEN("all can be notified with a queued writer")
+        {
+            {
+                auto queued_writer = app_state.CheckoutQueuedWriter<AS::speed>();
+                queued_writer.Set<AS::speed>(99);
+            }
+            for (auto& sem : semaphores)
+            {
+                CHECK(sem->try_acquire() == true);
+            }
+        }
+
         THEN("no more listeners can be added")
         {
             auto extra_listener = app_state.AttachListener<AS::speed>(sem);
@@ -443,6 +463,38 @@ TEST_CASE("structs can be changed in parts in partial snapshots")
         {
             REQUIRE(ro.Get<AS::position>()->speed == 0.0f);
             REQUIRE(sem.try_acquire() == false);
+        }
+    }
+}
+
+TEST_CASE("a queued writer only writes what it has to")
+{
+    ApplicationState app_state;
+
+    WHEN("no values are written")
+    {
+        {
+            auto qw = app_state.CheckoutQueuedWriter<AS::speed, AS::battery_millivolts>();
+        }
+
+        THEN("nothing changes globally")
+        {
+            REQUIRE(app_state.Get<AS::speed>() == 0);
+            REQUIRE(app_state.Get<AS::battery_millivolts>() == 0);
+        }
+    }
+
+    WHEN("a single value is written")
+    {
+        {
+            auto qw = app_state.CheckoutQueuedWriter<AS::speed, AS::battery_millivolts>();
+            qw.Set<AS::battery_millivolts>(10);
+        }
+
+        THEN("only the written value changes globally")
+        {
+            REQUIRE(app_state.Get<AS::speed>() == 0);
+            REQUIRE(app_state.Get<AS::battery_millivolts>() == 10);
         }
     }
 }
