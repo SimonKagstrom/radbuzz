@@ -60,7 +60,6 @@ TEST_CASE_FIXTURE(Fixture, "Short king shark packages await more data")
     REQUIRE(p.Poll() == std::nullopt);
 }
 
-
 TEST_CASE_FIXTURE(Fixture, "A valid king shark packet is accepted")
 {
     KingSharkPacketProtocol p;
@@ -69,6 +68,16 @@ TEST_CASE_FIXTURE(Fixture, "A valid king shark packet is accepted")
     REQUIRE(d);
     REQUIRE(std::ranges::equal(*d, PacketData({0x19, 0x01, 0x00})));
 }
+
+TEST_CASE_FIXTURE(Fixture, "A valid king shark packet after garbage data is accepted")
+{
+    KingSharkPacketProtocol p;
+    p.PushData(PacketData({0xff,0x99, 0x3A, 0x16, 0x19, 0x01, 0x00, 0x30, 0x00, 0x0D, 0x0A}));
+    auto d = p.Poll();
+    REQUIRE(d);
+    REQUIRE(std::ranges::equal(*d, PacketData({0x19, 0x01, 0x00})));
+}
+
 
 TEST_CASE_FIXTURE(Fixture, "A valid king shark packet with huge checksum is accepted")
 {
@@ -130,11 +139,8 @@ TEST_CASE_FIXTURE(Fixture, "Consecutive king shark packets can be received")
     auto d = p.Poll();
     REQUIRE(std::ranges::equal(*d, PacketData({0x19, 0x01, 0x00})));
 
-    /*
-    Not yet handled...
-    d = p.PushData({});
+    d = p.Poll();
     REQUIRE(std::ranges::equal(*d, PacketData({0x19, 0x01, 0x01})));
-    */
 }
 
 

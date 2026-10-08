@@ -1,6 +1,8 @@
 #include "king_shark_packet_protocol.hh"
 
 #include <algorithm>
+#include <iterator>
+#include <numeric>
 
 constexpr auto kHeaderMagic = std::array {static_cast<uint8_t>(0x3a), static_cast<uint8_t>(0x16)};
 constexpr auto kHeaderSize = 4;
@@ -27,77 +29,100 @@ KingSharkPacketProtocol::BuildTxPacket(uint8_t command, std::span<const uint8_t>
 void
 KingSharkPacketProtocol::PushData(std::span<const uint8_t> data)
 {
-    m_receive_buffer.insert(m_receive_buffer.end(), data.begin(), data.end());
+    for (auto byte : data)
+    {
+        if (m_receive_buffer.full())
+        {
+            // Drop on overflow, the state machine will resync on the next header
+            break;
+        }
+        m_receive_buffer.push(byte);
+    }
 }
 
-std::optional<std::span<const uint8_t>>
-KingSharkPacketProtocol::RunStateMachine()
+bool
+KingSharkPacketProtocol::RunStateMachine(uint8_t byte)
 {
-    std::optional<std::span<const uint8_t>> out;
-    State before;
+    // On errors, restart the search for the header, but don't miss it if it starts here
+    const auto resync_state = byte == kHeaderMagic[0] ? State::kHeader1 : State::kHeader0;
 
-    do
+    switch (m_current_state)
     {
-        before = m_current_state;
-
-        switch (m_current_state)
+    case State::kHeader0:
+        if (byte == kHeaderMagic[0])
         {
-        case State::kWaitForHeader:
-            if (m_receive_buffer.size() >= kHeaderSize &&
-                std::equal(kHeaderMagic.begin(), kHeaderMagic.end(), m_receive_buffer.begin()))
-            {
-                m_length = m_receive_buffer[3];
-                m_current_state = State::kWaitForFooter;
-            }
-            break;
-        case State::kWaitForFooter:
-            if (m_receive_buffer.size() >= kHeaderSize + m_length + kFooterSize)
-            {
-                // Excluding the checksum
-                auto footer_span = std::span<const uint8_t>(
-                    m_receive_buffer.data() + kHeaderSize + m_length + 2, 2);
-
-                if (std::ranges::equal(footer_span, kFooterMagic))
-                {
-                    m_current_state = State::kVerifyData;
-                }
-            }
-            break;
-        case State::kVerifyData: {
-            auto payload_span =
-                std::span<const uint8_t>(m_receive_buffer).subspan(1, kHeaderSize + m_length - 1);
-            auto payload_checksum_span =
-                std::span<const uint8_t>(m_receive_buffer).subspan(kHeaderSize + m_length, 2);
-
-            if (std::ranges::equal(payload_checksum_span, CalculateChecksum(payload_span)))
-            {
-                m_current_state = State::kValidData;
-            }
-            else
-            {
-                m_receive_buffer.clear();
-                m_current_state = State::kWaitForHeader;
-            }
-            break;
+            m_current_state = State::kHeader1;
         }
-        case State::kValidData:
-            // Skip the leading bytes, but include command/length
-            out = std::span<const uint8_t>(m_receive_buffer).subspan(2, 2 + m_length);
-            m_receive_buffer.clear();
-            m_current_state = State::kWaitForHeader;
-            break;
-        case State::kValueCount:
-            break;
+        break;
+    case State::kHeader1:
+        if (byte == kHeaderMagic[1])
+        {
+            // The checksum includes the second header byte
+            m_data_buffer.clear();
+            m_data_buffer.push_back(byte);
+            m_current_state = State::kCommand;
         }
-    } while (before != m_current_state);
+        else
+        {
+            m_current_state = resync_state;
+        }
+        break;
+    case State::kCommand:
+        m_data_buffer.push_back(byte);
+        m_current_state = State::kLength;
+        break;
+    case State::kLength:
+        m_length = byte;
+        m_data_buffer.push_back(byte);
+        m_current_state = m_length == 0 ? State::kChecksum0 : State::kData;
+        break;
+    case State::kData:
+        m_data_buffer.push_back(byte);
+        if (m_data_buffer.size() == m_length + 3) // 0x16 + command + length + data
+        {
+            m_current_state = State::kChecksum0;
+        }
+        break;
+    case State::kChecksum0:
+        m_checksum[0] = byte;
+        m_current_state = State::kChecksum1;
+        break;
+    case State::kChecksum1:
+        m_checksum[1] = byte;
+        m_current_state = State::kFooter0;
+        break;
+    case State::kFooter0:
+        m_current_state = byte == kFooterMagic[0] ? State::kFooter1 : resync_state;
+        break;
+    case State::kFooter1:
+        if (byte == kFooterMagic[1])
+        {
+            m_current_state = State::kHeader0;
 
-    return out;
+            return std::ranges::equal(m_checksum, CalculateChecksum(m_data_buffer));
+        }
+        m_current_state = resync_state;
+        break;
+    case State::kValueCount:
+        break;
+    }
+
+    return false;
 }
 
 std::optional<std::span<const uint8_t>>
 KingSharkPacketProtocol::Poll()
 {
-    return RunStateMachine();
+    while (auto byte = NextByte())
+    {
+        if (RunStateMachine(*byte))
+        {
+            // Skip the leading 0x16, but include command/length
+            return std::span<const uint8_t>(m_data_buffer).subspan(1);
+        }
+    }
+
+    return std::nullopt;
 }
 
 std::array<uint8_t, 2>
