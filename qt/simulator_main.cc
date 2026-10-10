@@ -71,7 +71,9 @@ main(int argc, char* argv[])
     // Stored by VESC, so update to 100km + some random number here
     rw.Set<AS::odometer>(100 * 1000 + rand() % 2000);
 
-    MainWindow window(application_state, post_office);
+    auto wifi_client = std::make_unique<WifiClientHost>();
+
+    MainWindow window(application_state, post_office, *wifi_client);
 
     srand(seed);
 
@@ -95,7 +97,6 @@ main(int argc, char* argv[])
     auto pm = std::make_unique<PmHost>();
     auto nvm_host = std::make_unique<NvmHost>("nvm.txt");
     auto blitter = std::make_unique<BlitterHost>();
-    auto wifi_client = std::make_unique<WifiClientHost>();
     auto ota_updater = std::make_unique<OtaUpdaterHost>(false);
 
     // Threads

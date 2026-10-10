@@ -7,6 +7,9 @@ class WifiClientHost : public hal::IWifiClient
 public:
     WifiClientHost() = default;
 
+    // Simulate that the connection to the access point is lost
+    void SimulateConnectionLoss();
+
 private:
     void Enable() final;
     void Disable() final;

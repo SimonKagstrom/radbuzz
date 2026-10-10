@@ -50,6 +50,7 @@ add_executable(unittest_radbuzz
     test_tile_cache.cc
     test_trip_computer.cc
     test_trip_log.cc
+    test_wifi_handler.cc
 )
 
 target_link_libraries(unittest_radbuzz
@@ -62,6 +63,7 @@ target_link_libraries(unittest_radbuzz
     storage
     tile_cache
     trip_computer
+    wifi_handler
 
 
     # Compile tests only for now

@@ -3,11 +3,13 @@
 void
 WifiClientHost::Enable()
 {
+    printf("Wifi on!\n");
 }
 
 void
 WifiClientHost::Disable()
 {
+    printf("Wifi off!\n");
 }
 
 void
@@ -34,6 +36,13 @@ WifiClientHost::Connect(const char* ssid, const char* password)
 void
 WifiClientHost::Disconnect()
 {
+    m_on_event(hal::IWifiClient::Event::kDisconnected);
+}
+
+void
+WifiClientHost::SimulateConnectionLoss()
+{
+    printf("Simulating wifi connection loss\n");
     m_on_event(hal::IWifiClient::Event::kDisconnected);
 }
 

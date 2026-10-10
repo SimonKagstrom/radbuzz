@@ -8,6 +8,7 @@
 #include "post_office.hh"
 #include "rotary_encoder.hh"
 #include "speedometer_qt.hh"
+#include "wifi_client_host.hh"
 
 #include <queue>
 #include <QGraphicsPixmapItem>
@@ -29,6 +30,7 @@ class MainWindow final : public QMainWindow, public RotaryEncoder
 public:
     explicit MainWindow(ApplicationState& application_state,
                         PostOffice<MSG::AllMessages>& post_office,
+                        WifiClientHost& wifi_client,
                         QWidget* parent = nullptr);
     ~MainWindow() final;
 
@@ -53,6 +55,7 @@ private:
 
     ApplicationState& m_application_state;
     PostOffice<MSG::AllMessages>& m_post_office;
+    WifiClientHost& m_wifi_client;
     Ui::MainWindow* m_ui {nullptr};
 
     std::unique_ptr<QGraphicsScene> m_scene;

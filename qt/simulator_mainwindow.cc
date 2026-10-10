@@ -10,11 +10,13 @@ extern bool g_upgrade_started;
 
 MainWindow::MainWindow(ApplicationState& application_state,
                        PostOffice<MSG::AllMessages>& post_office,
+                       WifiClientHost& wifi_client,
                        QWidget* parent)
     : QMainWindow(parent)
     , RotaryEncoder(m_pin_a, m_pin_b)
     , m_application_state(application_state)
     , m_post_office(post_office)
+    , m_wifi_client(wifi_client)
     , m_ui(new Ui::MainWindow)
 {
     m_ui->setupUi(this);
@@ -100,6 +102,10 @@ MainWindow::MainWindow(ApplicationState& application_state,
         printf("Setting millivolts to %d\n", value);
         m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(value);
     });
+    connect(m_ui->disconnectWifiButton, &QPushButton::clicked, [this]() {
+        m_wifi_client.SimulateConnectionLoss();
+    });
+
     connect(m_ui->startUpgradePushButton, &QPushButton::clicked, [this]() {
         g_upgrade_started = true;
     });
