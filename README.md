@@ -59,7 +59,7 @@ pip3 install jinja2 pyyaml
 
 ## Build setup (target)
 ```
-cmake -GNinja -B radbuzz_esp32p4 -DCMAKE_BUILD_TYPE=Release <path>/radbuzz/esp32/waveshare_p4_touch_4_3
+cmake -GNinja -B radbuzz_waveshare_p4_touch_4_3 -DCMAKE_BUILD_TYPE=Release <path>/radbuzz/esp32/waveshare_p4_touch_4_3
 cmake --build radbuzz_esp32p4
 ```
 
