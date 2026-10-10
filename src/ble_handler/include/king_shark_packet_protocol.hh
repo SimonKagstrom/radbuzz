@@ -1,6 +1,6 @@
 #pragma once
 
-#include "king_shark_packet_protocol_base.hh"
+#include "king_shark_packet_protocol_state_machine_base.hh"
 
 #include <array>
 #include <etl/queue.h>
@@ -8,7 +8,7 @@
 #include <optional>
 #include <span>
 
-class KingSharkPacketProtocol : public KingSharkPacketProtocolBase<>
+class KingSharkPacketProtocol : public KingSharkPacketProtocolStateMachineBase<>
 {
 public:
     std::optional<std::span<const uint8_t>> BuildTxPacket(uint8_t command,
