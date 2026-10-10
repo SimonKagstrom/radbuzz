@@ -26,24 +26,40 @@ WifiClientEsp32::WifiClientEsp32()
         IP_EVENT, IP_EVENT_STA_GOT_IP, &EventHandler, static_cast<void*>(this), &m_ip_event_data));
 }
 
+void
+WifiClientEsp32::Enable()
+{
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_start());
+}
+
+void
+WifiClientEsp32::Disable()
+{
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_stop());
+}
+
+void
+WifiClientEsp32::StartScan()
+{
+    // Non-blocking, WIFI_EVENT_SCAN_DONE is sent when finished
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_scan_start(nullptr, false));
+}
+
 std::vector<std::string>
-WifiClientEsp32::Scan()
+WifiClientEsp32::GetScanResult()
 {
     std::vector<std::string> ssids;
 
-    auto res = esp_wifi_scan_start(nullptr, true);
-    if (res == ESP_OK)
+    // Note: Getting the records frees them in the wifi driver, so this only works once per scan
+    uint16_t ap_count = 0;
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+
+    std::vector<wifi_ap_record_t> ap_records(ap_count);
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_count, ap_records.data()));
+
+    for (const auto& record : ap_records)
     {
-        uint16_t ap_count = 0;
-        ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
-
-        std::vector<wifi_ap_record_t> ap_records(ap_count);
-        ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_count, ap_records.data()));
-
-        for (const auto& record : ap_records)
-        {
-            ssids.emplace_back(reinterpret_cast<const char*>(record.ssid));
-        }
+        ssids.emplace_back(reinterpret_cast<const char*>(record.ssid));
     }
 
     return ssids;
@@ -67,7 +83,7 @@ WifiClientEsp32::Connect(const char* ssid, const char* password)
 void
 WifiClientEsp32::Disconnect()
 {
-    // NYI
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
 }
 
 std::unique_ptr<ListenerCookie>
@@ -84,8 +100,6 @@ WifiClientEsp32::EventHandler(void* arg,
                               int32_t event_id,
                               void* event_data)
 {
-    static int s_retry_num = 0;
-
     auto p = static_cast<WifiClientEsp32*>(arg);
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
@@ -97,19 +111,15 @@ WifiClientEsp32::EventHandler(void* arg,
         auto disconnected = static_cast<wifi_event_sta_disconnected_t*>(event_data);
         printf("Wifi disconnected, reason %d rssi %d\n", disconnected->reason, disconnected->rssi);
 
+        // Retries are handled by the user (the wifi handler)
         p->m_on_event(hal::IWifiClient::Event::kDisconnected);
-
-        if (s_retry_num < 5)
-        {
-            esp_wifi_connect();
-            s_retry_num++;
-        }
+    }
+    else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE)
+    {
+        p->m_on_event(hal::IWifiClient::Event::kScanDone);
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
-        ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
-        s_retry_num = 0;
-
         p->m_on_event(hal::IWifiClient::Event::kConnected);
     }
 }

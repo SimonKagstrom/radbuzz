@@ -1,6 +1,7 @@
 #include "wifi_handler.hh"
 
 #include <ranges>
+#include <sstream>
 
 WifiHandler::WifiHandler(ApplicationState& state,
                          Filesystem& filesystem,
@@ -9,11 +10,55 @@ WifiHandler::WifiHandler(ApplicationState& state,
     , m_filesystem(filesystem)
     , m_wifi_client(wifi_client)
     , m_state_listener(m_state.AttachListener<AS::configuration, AS::is_moving>(GetSemaphore()))
+    , m_state_cache(m_state)
 {
 }
 
 void
 WifiHandler::OnStartup()
+{
+    ReadSsidFile();
+
+    m_movement_timer = StartTimer(kMovementTime);
+
+    // Called from the wifi driver context, so only record the event and wake up the thread
+    m_wifi_listener = m_wifi_client.AttachListener([this](auto event) {
+        switch (event)
+        {
+        case hal::IWifiClient::Event::kConnected:
+            m_link_up = true;
+            break;
+        case hal::IWifiClient::Event::kDisconnected:
+            m_link_up = false;
+            m_link_down_event = true;
+            break;
+        case hal::IWifiClient::Event::kScanDone:
+            m_scan_done_event = true;
+            break;
+        }
+
+        Awake();
+    });
+}
+
+std::optional<milliseconds>
+WifiHandler::OnActivation()
+{
+    m_state_cache.Pull().OnChanged<AS::is_moving>(
+        [this]() { m_movement_timer = StartTimer(kMovementTime); });
+
+    if (m_scan_done_event.exchange(false))
+    {
+        m_scan_result = m_wifi_client.GetScanResult();
+    }
+
+    RunStateMachine();
+
+    return std::nullopt;
+}
+
+void
+WifiHandler::ReadSsidFile()
 {
     auto ssid_data = m_filesystem.ReadFile("SSID.TXT");
 
@@ -63,37 +108,226 @@ WifiHandler::OnStartup()
             conf.wifi_ssid_data.networks.push_back({ssid, password});
         }
     }
+}
 
-    m_wifi_listener = m_wifi_client.AttachListener([this](auto event) {
-        auto rw = m_state.CheckoutReadWrite();
-
-        printf("Wifi event: %s\n",
-               event == hal::IWifiClient::Event::kConnected ? "Connected" : "Disconnected");
-        if (event == hal::IWifiClient::Event::kConnected)
-        {
-            rw.Set<AS::wifi_connected>(true);
-        }
-        else if (event == hal::IWifiClient::Event::kDisconnected)
-        {
-            rw.Set<AS::wifi_connected>(false);
-        }
-    });
-
-    auto ssids = m_wifi_client.Scan();
-
-    for (const auto& [ssid, password] : conf.wifi_ssid_data.networks)
+std::optional<WifiSsidNetwork>
+WifiHandler::FindKnownNetwork() const
+{
+    if (!m_scan_result)
     {
-        if (std::ranges::find(ssids, ssid) != ssids.end())
+        return std::nullopt;
+    }
+
+    auto conf = m_state.Get<AS::configuration>();
+    for (const auto& network : conf->wifi_ssid_data.networks)
+    {
+        if (std::ranges::find(*m_scan_result, network.ssid) != m_scan_result->end())
         {
-            m_wifi_client.Connect(ssid.c_str(), password.c_str());
-            return;
+            return network;
         }
+    }
+
+    return std::nullopt;
+}
+
+bool
+WifiHandler::MovingForAWhile() const
+{
+    return m_state_cache.Get<AS::is_moving>() && m_movement_timer->IsExpired();
+}
+
+bool
+WifiHandler::StandingStillForAWhile() const
+{
+    return !m_state_cache.Get<AS::is_moving>() && m_movement_timer->IsExpired();
+}
+
+void
+WifiHandler::OnTransition(State from, State to)
+{
+    printf("Wifi: %s -> %s\n", StateName(from).data(), StateName(to).data());
+}
+
+
+// On
+void
+WifiHandler::Enter(On&)
+{
+    m_wifi_client.Enable();
+}
+
+WifiHandler::OnNext
+WifiHandler::Evaluate(On&)
+{
+    return State::kScanning;
+}
+
+
+// Scanning
+void
+WifiHandler::Enter(Scanning&)
+{
+    m_scan_result = std::nullopt;
+    m_scan_done_event = false;
+    m_connect_retries = 0;
+
+    m_wifi_client.StartScan();
+}
+
+WifiHandler::ScanningNext
+WifiHandler::Evaluate(Scanning&)
+{
+    if (MovingForAWhile())
+    {
+        return State::kOff;
+    }
+    if (!m_scan_result)
+    {
+        return kStay;
+    }
+    if (FindKnownNetwork())
+    {
+        return State::kConnect;
+    }
+
+    return State::kIdle;
+}
+
+
+// Idle
+void
+WifiHandler::Enter(Idle& state)
+{
+    state.timer = StartTimer(kIdleTime);
+}
+
+WifiHandler::IdleNext
+WifiHandler::Evaluate(Idle& state)
+{
+    if (state.timer->IsExpired())
+    {
+        return State::kScanning;
+    }
+
+    return kStay;
+}
+
+
+// Connect
+void
+WifiHandler::Enter(Connect&)
+{
+    m_link_down_event = false;
+
+    if (auto network = FindKnownNetwork(); network)
+    {
+        m_wifi_client.Connect(network->ssid.c_str(), network->password.c_str());
+    }
+    else
+    {
+        // Removed from the configuration since the scan, treat as a failed connection
+        m_link_down_event = true;
     }
 }
 
-std::optional<milliseconds>
-WifiHandler::OnActivation()
+WifiHandler::ConnectNext
+WifiHandler::Evaluate(Connect&)
 {
-    // NYI
-    return std::nullopt;
+    if (m_link_up)
+    {
+        return State::kConnected;
+    }
+    if (m_link_down_event)
+    {
+        if (m_connect_retries < kMaxConnectRetries)
+        {
+            return State::kRetryConnect;
+        }
+
+        return State::kScanning;
+    }
+
+    return kStay;
+}
+
+
+// RetryConnect
+void
+WifiHandler::Enter(RetryConnect& state)
+{
+    m_connect_retries++;
+    state.timer = StartTimer(kRetryConnectTime);
+}
+
+WifiHandler::RetryConnectNext
+WifiHandler::Evaluate(RetryConnect& state)
+{
+    if (state.timer->IsExpired())
+    {
+        return State::kConnect;
+    }
+
+    return kStay;
+}
+
+
+// Connected
+void
+WifiHandler::Enter(Connected&)
+{
+    m_state.CheckoutReadWrite().Set<AS::wifi_connected>(true);
+}
+
+void
+WifiHandler::Exit(Connected&)
+{
+    m_state.CheckoutReadWrite().Set<AS::wifi_connected>(false);
+}
+
+WifiHandler::ConnectedNext
+WifiHandler::Evaluate(Connected&)
+{
+    if (!m_link_up)
+    {
+        return State::kLostConnection;
+    }
+
+    return kStay;
+}
+
+
+// LostConnection
+WifiHandler::LostConnectionNext
+WifiHandler::Evaluate(LostConnection&)
+{
+    if (MovingForAWhile())
+    {
+        return State::kOff;
+    }
+    if (StandingStillForAWhile())
+    {
+        return State::kScanning;
+    }
+
+    return kStay;
+}
+
+
+// Off
+void
+WifiHandler::Enter(Off&)
+{
+    m_wifi_client.Disable();
+    m_link_up = false;
+}
+
+WifiHandler::OffNext
+WifiHandler::Evaluate(Off&)
+{
+    if (StandingStillForAWhile())
+    {
+        return State::kOn;
+    }
+
+    return kStay;
 }

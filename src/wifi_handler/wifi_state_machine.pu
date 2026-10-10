@@ -3,7 +3,9 @@
 state kOn : turn on wifi
 state kOff #Orange : turn off wifi
 state kScanning : Scan for networks
+state kIdle : Wait for 10 seconds
 state kConnect : connect()
+state kRetryConnect : Wait 5 seconds
 state kConnected #LightGreen
 state kLostConnection
 
@@ -13,10 +15,15 @@ kOn --> kScanning : Scan
 
 kScanning --> kConnect : Matching SSID\nfound
 kScanning --> kOff : Moving (1 min)
+kScanning --> kIdle : No networks found
+
+kIdle --> kScanning
 
 kConnect --> kConnected : Connected
 kConnect --> kScanning : Connection failed
 
+kConnect --> kRetryConnect : Connection failed
+kRetryConnect --> kConnect
 
 kConnected --> kLostConnection : lost connection
 

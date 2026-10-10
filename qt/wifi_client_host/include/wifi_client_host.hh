@@ -8,7 +8,10 @@ public:
     WifiClientHost() = default;
 
 private:
-    std::vector<std::string> Scan() final;
+    void Enable() final;
+    void Disable() final;
+    void StartScan() final;
+    std::vector<std::string> GetScanResult() final;
     void Connect(const char* ssid, const char* password) final;
     void Disconnect() final;
     std::unique_ptr<ListenerCookie> AttachListener(std::function<void(Event)> on_event) final;

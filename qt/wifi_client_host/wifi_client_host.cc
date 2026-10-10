@@ -1,7 +1,24 @@
 #include "wifi_client_host.hh"
 
+void
+WifiClientHost::Enable()
+{
+}
+
+void
+WifiClientHost::Disable()
+{
+}
+
+void
+WifiClientHost::StartScan()
+{
+    // No real scan here, so done immediately
+    m_on_event(hal::IWifiClient::Event::kScanDone);
+}
+
 std::vector<std::string>
-WifiClientHost::Scan()
+WifiClientHost::GetScanResult()
 {
     return {"Sifod", "LaPlanta", "Zundapp"};
 }
