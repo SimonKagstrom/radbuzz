@@ -7,6 +7,9 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 FetchContent_MakeAvailable(json)
 
 
+include(${CMAKE_CURRENT_LIST_DIR}/../../external/libmaelir/cmake/generate_state_machine.cmake)
+generate_state_machine(king_shark_packet_protocol_state_machine king_shark_packet_protocol_state_machine.md)
+
 add_library(ble_handler EXCLUDE_FROM_ALL
     ble_handler.cc
     ble_king_shark_handler.cc
@@ -28,6 +31,7 @@ PUBLIC
     nlohmann_json::nlohmann_json
     post_office
     radbuzz_messages
+    king_shark_packet_protocol_state_machine
 PRIVATE
     radbuzz_interface
 )

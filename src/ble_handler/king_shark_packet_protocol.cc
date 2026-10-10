@@ -25,7 +25,6 @@ KingSharkPacketProtocol::BuildTxPacket(uint8_t command, std::span<const uint8_t>
     return m_transmit_buffer;
 }
 
-// Push packet data, and return a payload if a full and valid packet has been received
 void
 KingSharkPacketProtocol::PushData(std::span<const uint8_t> data)
 {
@@ -40,89 +39,266 @@ KingSharkPacketProtocol::PushData(std::span<const uint8_t> data)
     }
 }
 
-bool
-KingSharkPacketProtocol::RunStateMachine(uint8_t byte)
-{
-    // On errors, restart the search for the header, but don't miss it if it starts here
-    const auto resync_state = byte == kHeaderMagic[0] ? State::kHeader1 : State::kHeader0;
-
-    switch (m_current_state)
-    {
-    case State::kHeader0:
-        if (byte == kHeaderMagic[0])
-        {
-            m_current_state = State::kHeader1;
-        }
-        break;
-    case State::kHeader1:
-        if (byte == kHeaderMagic[1])
-        {
-            // The checksum includes the second header byte
-            m_data_buffer.clear();
-            m_data_buffer.push_back(byte);
-            m_current_state = State::kCommand;
-        }
-        else
-        {
-            m_current_state = resync_state;
-        }
-        break;
-    case State::kCommand:
-        m_data_buffer.push_back(byte);
-        m_current_state = State::kLength;
-        break;
-    case State::kLength:
-        m_length = byte;
-        m_data_buffer.push_back(byte);
-        m_current_state = m_length == 0 ? State::kChecksum0 : State::kData;
-        break;
-    case State::kData:
-        m_data_buffer.push_back(byte);
-        if (m_data_buffer.size() == m_length + 3) // 0x16 + command + length + data
-        {
-            m_current_state = State::kChecksum0;
-        }
-        break;
-    case State::kChecksum0:
-        m_checksum[0] = byte;
-        m_current_state = State::kChecksum1;
-        break;
-    case State::kChecksum1:
-        m_checksum[1] = byte;
-        m_current_state = State::kFooter0;
-        break;
-    case State::kFooter0:
-        m_current_state = byte == kFooterMagic[0] ? State::kFooter1 : resync_state;
-        break;
-    case State::kFooter1:
-        if (byte == kFooterMagic[1])
-        {
-            m_current_state = State::kHeader0;
-
-            return std::ranges::equal(m_checksum, CalculateChecksum(m_data_buffer));
-        }
-        m_current_state = resync_state;
-        break;
-    case State::kValueCount:
-        break;
-    }
-
-    return false;
-}
-
 std::optional<std::span<const uint8_t>>
 KingSharkPacketProtocol::Poll()
 {
-    while (auto byte = NextByte())
+    // A packet returned by the last call can now be dropped
+    m_packet_returned = CurrentState() == State::kComplete;
+
+    RunStateMachine();
+
+    if (CurrentState() == State::kComplete)
     {
-        if (RunStateMachine(*byte))
-        {
-            // Skip the leading 0x16, but include command/length
-            return std::span<const uint8_t>(m_data_buffer).subspan(1);
-        }
+        // Skip the leading 0x16, but include command/length
+        return std::span<const uint8_t>(m_data_buffer).subspan(1);
     }
 
     return std::nullopt;
+}
+
+std::optional<uint8_t>
+KingSharkPacketProtocol::PeekByte() const
+{
+    if (m_receive_buffer.empty())
+    {
+        return std::nullopt;
+    }
+
+    return m_receive_buffer.front();
+}
+
+uint8_t
+KingSharkPacketProtocol::ConsumeByte()
+{
+    // Only called when leaving a state, i.e., after a successful PeekByte()
+    debug_assert(!m_receive_buffer.empty());
+
+    auto byte = m_receive_buffer.front();
+    m_receive_buffer.pop();
+
+    return byte;
+}
+
+KingSharkPacketProtocol::Header0Next
+KingSharkPacketProtocol::Evaluate(Header0&)
+{
+    auto byte = PeekByte();
+    if (!byte)
+    {
+        return kStay;
+    }
+    if (*byte == kHeaderMagic[0])
+    {
+        return State::kHeader1;
+    }
+
+    return State::kHeader0;
+}
+
+void
+KingSharkPacketProtocol::Exit(Header0&)
+{
+    ConsumeByte();
+}
+
+KingSharkPacketProtocol::Header1Next
+KingSharkPacketProtocol::Evaluate(Header1&)
+{
+    auto byte = PeekByte();
+    if (!byte)
+    {
+        return kStay;
+    }
+    if (*byte == kHeaderMagic[1])
+    {
+        return State::kCommand;
+    }
+    if (*byte == kHeaderMagic[0])
+    {
+        return State::kHeader1;
+    }
+
+    return State::kHeader0;
+}
+
+void
+KingSharkPacketProtocol::Exit(Header1&)
+{
+    ConsumeByte();
+}
+
+void
+KingSharkPacketProtocol::Enter(Command&)
+{
+    // The checksum includes the second header byte
+    m_data_buffer.clear();
+    m_data_buffer.push_back(kHeaderMagic[1]);
+}
+
+KingSharkPacketProtocol::CommandNext
+KingSharkPacketProtocol::Evaluate(Command&)
+{
+    if (!PeekByte())
+    {
+        return kStay;
+    }
+
+    return State::kLength;
+}
+
+void
+KingSharkPacketProtocol::Exit(Command&)
+{
+    m_data_buffer.push_back(ConsumeByte());
+}
+
+KingSharkPacketProtocol::LengthNext
+KingSharkPacketProtocol::Evaluate(Length&)
+{
+    auto byte = PeekByte();
+    if (!byte)
+    {
+        return kStay;
+    }
+    if (*byte == 0)
+    {
+        return State::kChecksum0;
+    }
+
+    return State::kData;
+}
+
+void
+KingSharkPacketProtocol::Exit(Length&)
+{
+    m_length = ConsumeByte();
+    m_data_buffer.push_back(m_length);
+}
+
+KingSharkPacketProtocol::DataNext
+KingSharkPacketProtocol::Evaluate(Data&)
+{
+    if (!PeekByte())
+    {
+        return kStay;
+    }
+    // 0x16 + command + length + data, including the byte about to be consumed
+    if (m_data_buffer.size() + 1 == m_length + 3u)
+    {
+        return State::kChecksum0;
+    }
+
+    return State::kData;
+}
+
+void
+KingSharkPacketProtocol::Exit(Data&)
+{
+    m_data_buffer.push_back(ConsumeByte());
+}
+
+KingSharkPacketProtocol::Checksum0Next
+KingSharkPacketProtocol::Evaluate(Checksum0&)
+{
+    if (!PeekByte())
+    {
+        return kStay;
+    }
+
+    return State::kChecksum1;
+}
+
+void
+KingSharkPacketProtocol::Exit(Checksum0&)
+{
+    m_checksum[0] = ConsumeByte();
+}
+
+KingSharkPacketProtocol::Checksum1Next
+KingSharkPacketProtocol::Evaluate(Checksum1&)
+{
+    if (!PeekByte())
+    {
+        return kStay;
+    }
+
+    return State::kFooter0;
+}
+
+void
+KingSharkPacketProtocol::Exit(Checksum1&)
+{
+    m_checksum[1] = ConsumeByte();
+}
+
+KingSharkPacketProtocol::Footer0Next
+KingSharkPacketProtocol::Evaluate(Footer0&)
+{
+    auto byte = PeekByte();
+    if (!byte)
+    {
+        return kStay;
+    }
+    if (*byte == kFooterMagic[0])
+    {
+        return State::kFooter1;
+    }
+    if (*byte == kHeaderMagic[0])
+    {
+        return State::kHeader1;
+    }
+
+    return State::kHeader0;
+}
+
+void
+KingSharkPacketProtocol::Exit(Footer0&)
+{
+    ConsumeByte();
+}
+
+KingSharkPacketProtocol::Footer1Next
+KingSharkPacketProtocol::Evaluate(Footer1&)
+{
+    auto byte = PeekByte();
+    if (!byte)
+    {
+        return kStay;
+    }
+    if (*byte == kFooterMagic[1] &&
+        std::ranges::equal(m_checksum, CalculateChecksum(m_data_buffer)))
+    {
+        return State::kComplete;
+    }
+    if (*byte == kHeaderMagic[0])
+    {
+        return State::kHeader1;
+    }
+
+    return State::kHeader0;
+}
+
+void
+KingSharkPacketProtocol::Exit(Footer1&)
+{
+    ConsumeByte();
+}
+
+KingSharkPacketProtocol::CompleteNext
+KingSharkPacketProtocol::Evaluate(Complete&)
+{
+    if (m_packet_returned)
+    {
+        return State::kHeader0;
+    }
+
+    return kStay;
+}
+
+void
+KingSharkPacketProtocol::Exit(Complete&)
+{
+    m_packet_returned = false;
 }
 
 std::array<uint8_t, 2>

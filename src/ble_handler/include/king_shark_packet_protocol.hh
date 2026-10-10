@@ -1,53 +1,53 @@
 #pragma once
 
+#include "king_shark_packet_protocol_base.hh"
+
 #include <array>
 #include <etl/queue.h>
 #include <etl/vector.h>
 #include <optional>
 #include <span>
 
-class KingSharkPacketProtocol
+class KingSharkPacketProtocol : public KingSharkPacketProtocolBase<>
 {
 public:
     std::optional<std::span<const uint8_t>> BuildTxPacket(uint8_t command,
                                                           std::span<const uint8_t> payload);
 
-    // Push packet data, and return a payload if a full and valid packet has been received
     void PushData(std::span<const uint8_t> data);
+
+    // Return a payload if a full and valid packet has been received. The payload is valid until
+    // the next call to Poll()
     std::optional<std::span<const uint8_t>> Poll();
 
 private:
-    enum class State
-    {
-        kHeader0,
-        kHeader1,
-        kCommand,
-        kLength,
+    // KingSharkPacketProtocolBase, see king_shark_packet_protocol.md
+    Header0Next Evaluate(Header0&) final;
+    Header1Next Evaluate(Header1&) final;
+    CommandNext Evaluate(Command&) final;
+    LengthNext Evaluate(Length&) final;
+    DataNext Evaluate(Data&) final;
+    Checksum0Next Evaluate(Checksum0&) final;
+    Checksum1Next Evaluate(Checksum1&) final;
+    Footer0Next Evaluate(Footer0&) final;
+    Footer1Next Evaluate(Footer1&) final;
+    CompleteNext Evaluate(Complete&) final;
 
-        kData,
-        kChecksum0,
-        kChecksum1,
-        kFooter0,
-        kFooter1,
+    void Exit(Header0&) final;
+    void Exit(Header1&) final;
+    void Enter(Command&) final;
+    void Exit(Command&) final;
+    void Exit(Length&) final;
+    void Exit(Data&) final;
+    void Exit(Checksum0&) final;
+    void Exit(Checksum1&) final;
+    void Exit(Footer0&) final;
+    void Exit(Footer1&) final;
+    void Exit(Complete&) final;
 
-        kValueCount,
-    };
-
-    std::optional<uint8_t> NextByte()
-    {
-        if (m_receive_buffer.empty())
-        {
-            return std::nullopt;
-        }
-
-        auto byte = m_receive_buffer.front();
-        m_receive_buffer.pop();
-        return byte;
-    }
-
-
-    // Run the state machine for one byte, return true when a full and valid packet is received
-    bool RunStateMachine(uint8_t byte);
+    // The next byte, without consuming it
+    std::optional<uint8_t> PeekByte() const;
+    uint8_t ConsumeByte();
 
     std::array<uint8_t, 2> CalculateChecksum(std::span<const uint8_t> data) const;
 
@@ -56,8 +56,6 @@ private:
     // 0x16, command, length and up to 255 bytes of data
     etl::vector<uint8_t, 3 + 255> m_data_buffer;
     std::array<uint8_t, 2> m_checksum {};
-
-    State m_current_state {State::kHeader0};
-    // State data
     uint8_t m_length {0};
+    bool m_packet_returned {false};
 };
