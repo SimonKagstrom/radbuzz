@@ -22,16 +22,16 @@ public:
 
 private:
     // KingSharkPacketProtocolBase, see king_shark_packet_protocol.md
-    Header0Next Evaluate(Header0&) final;
-    Header1Next Evaluate(Header1&) final;
-    CommandNext Evaluate(Command&) final;
-    LengthNext Evaluate(Length&) final;
-    DataNext Evaluate(Data&) final;
-    Checksum0Next Evaluate(Checksum0&) final;
-    Checksum1Next Evaluate(Checksum1&) final;
-    Footer0Next Evaluate(Footer0&) final;
-    Footer1Next Evaluate(Footer1&) final;
-    CompleteNext Evaluate(Complete&) final;
+    Header0::Next Evaluate(Header0&) final;
+    Header1::Next Evaluate(Header1&) final;
+    Command::Next Evaluate(Command&) final;
+    Length::Next Evaluate(Length&) final;
+    Data::Next Evaluate(Data&) final;
+    Checksum0::Next Evaluate(Checksum0&) final;
+    Checksum1::Next Evaluate(Checksum1&) final;
+    Footer0::Next Evaluate(Footer0&) final;
+    Footer1::Next Evaluate(Footer1&) final;
+    Complete::Next Evaluate(Complete&) final;
 
     void Exit(Header0&) final;
     void Exit(Header1&) final;

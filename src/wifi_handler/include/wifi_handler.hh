@@ -36,14 +36,14 @@ private:
     static constexpr auto kMaxConnectRetries = 3;
 
     // WifiStateMachineBase, see wifi_state_machine.md
-    OnNext Evaluate(On&) final;
-    ScanningNext Evaluate(Scanning&) final;
-    IdleNext Evaluate(Idle&) final;
-    ConnectNext Evaluate(Connect&) final;
-    RetryConnectNext Evaluate(RetryConnect&) final;
-    ConnectedNext Evaluate(Connected&) final;
-    LostConnectionNext Evaluate(LostConnection&) final;
-    OffNext Evaluate(Off&) final;
+    On::Next Evaluate(On&) final;
+    Scanning::Next Evaluate(Scanning&) final;
+    Idle::Next Evaluate(Idle&) final;
+    Connect::Next Evaluate(Connect&) final;
+    RetryConnect::Next Evaluate(RetryConnect&) final;
+    Connected::Next Evaluate(Connected&) final;
+    LostConnection::Next Evaluate(LostConnection&) final;
+    Off::Next Evaluate(Off&) final;
 
     void Enter(On&) final;
     void Enter(Scanning&) final;

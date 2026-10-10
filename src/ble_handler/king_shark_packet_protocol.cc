@@ -79,7 +79,7 @@ KingSharkPacketProtocol::ConsumeByte()
     return byte;
 }
 
-KingSharkPacketProtocol::Header0Next
+KingSharkPacketProtocol::Header0::Next
 KingSharkPacketProtocol::Evaluate(Header0&)
 {
     auto byte = PeekByte();
@@ -101,7 +101,7 @@ KingSharkPacketProtocol::Exit(Header0&)
     ConsumeByte();
 }
 
-KingSharkPacketProtocol::Header1Next
+KingSharkPacketProtocol::Header1::Next
 KingSharkPacketProtocol::Evaluate(Header1&)
 {
     auto byte = PeekByte();
@@ -135,7 +135,7 @@ KingSharkPacketProtocol::Enter(Command&)
     m_data_buffer.push_back(kHeaderMagic[1]);
 }
 
-KingSharkPacketProtocol::CommandNext
+KingSharkPacketProtocol::Command::Next
 KingSharkPacketProtocol::Evaluate(Command&)
 {
     if (!PeekByte())
@@ -152,7 +152,7 @@ KingSharkPacketProtocol::Exit(Command&)
     m_data_buffer.push_back(ConsumeByte());
 }
 
-KingSharkPacketProtocol::LengthNext
+KingSharkPacketProtocol::Length::Next
 KingSharkPacketProtocol::Evaluate(Length&)
 {
     auto byte = PeekByte();
@@ -175,7 +175,7 @@ KingSharkPacketProtocol::Exit(Length&)
     m_data_buffer.push_back(m_length);
 }
 
-KingSharkPacketProtocol::DataNext
+KingSharkPacketProtocol::Data::Next
 KingSharkPacketProtocol::Evaluate(Data&)
 {
     if (!PeekByte())
@@ -197,7 +197,7 @@ KingSharkPacketProtocol::Exit(Data&)
     m_data_buffer.push_back(ConsumeByte());
 }
 
-KingSharkPacketProtocol::Checksum0Next
+KingSharkPacketProtocol::Checksum0::Next
 KingSharkPacketProtocol::Evaluate(Checksum0&)
 {
     if (!PeekByte())
@@ -214,7 +214,7 @@ KingSharkPacketProtocol::Exit(Checksum0&)
     m_checksum[0] = ConsumeByte();
 }
 
-KingSharkPacketProtocol::Checksum1Next
+KingSharkPacketProtocol::Checksum1::Next
 KingSharkPacketProtocol::Evaluate(Checksum1&)
 {
     if (!PeekByte())
@@ -231,7 +231,7 @@ KingSharkPacketProtocol::Exit(Checksum1&)
     m_checksum[1] = ConsumeByte();
 }
 
-KingSharkPacketProtocol::Footer0Next
+KingSharkPacketProtocol::Footer0::Next
 KingSharkPacketProtocol::Evaluate(Footer0&)
 {
     auto byte = PeekByte();
@@ -257,7 +257,7 @@ KingSharkPacketProtocol::Exit(Footer0&)
     ConsumeByte();
 }
 
-KingSharkPacketProtocol::Footer1Next
+KingSharkPacketProtocol::Footer1::Next
 KingSharkPacketProtocol::Evaluate(Footer1&)
 {
     auto byte = PeekByte();
@@ -284,7 +284,7 @@ KingSharkPacketProtocol::Exit(Footer1&)
     ConsumeByte();
 }
 
-KingSharkPacketProtocol::CompleteNext
+KingSharkPacketProtocol::Complete::Next
 KingSharkPacketProtocol::Evaluate(Complete&)
 {
     if (m_packet_returned)

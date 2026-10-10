@@ -156,7 +156,7 @@ WifiHandler::Enter(On&)
     m_wifi_client.Enable();
 }
 
-WifiHandler::OnNext
+WifiHandler::On::Next
 WifiHandler::Evaluate(On&)
 {
     return State::kScanning;
@@ -174,7 +174,7 @@ WifiHandler::Enter(Scanning&)
     m_wifi_client.StartScan();
 }
 
-WifiHandler::ScanningNext
+WifiHandler::Scanning::Next
 WifiHandler::Evaluate(Scanning&)
 {
     if (MovingForAWhile())
@@ -201,7 +201,7 @@ WifiHandler::Enter(Idle& state)
     state.timer = StartTimer(kIdleTime);
 }
 
-WifiHandler::IdleNext
+WifiHandler::Idle::Next
 WifiHandler::Evaluate(Idle& state)
 {
     if (state.timer->IsExpired())
@@ -230,7 +230,7 @@ WifiHandler::Enter(Connect&)
     }
 }
 
-WifiHandler::ConnectNext
+WifiHandler::Connect::Next
 WifiHandler::Evaluate(Connect&)
 {
     if (m_link_up)
@@ -259,7 +259,7 @@ WifiHandler::Enter(RetryConnect& state)
     state.timer = StartTimer(kRetryConnectTime);
 }
 
-WifiHandler::RetryConnectNext
+WifiHandler::RetryConnect::Next
 WifiHandler::Evaluate(RetryConnect& state)
 {
     if (state.timer->IsExpired())
@@ -284,7 +284,7 @@ WifiHandler::Exit(Connected&)
     m_state.CheckoutReadWrite().Set<AS::wifi_connected>(false);
 }
 
-WifiHandler::ConnectedNext
+WifiHandler::Connected::Next
 WifiHandler::Evaluate(Connected&)
 {
     if (!m_link_up)
@@ -297,7 +297,7 @@ WifiHandler::Evaluate(Connected&)
 
 
 // LostConnection
-WifiHandler::LostConnectionNext
+WifiHandler::LostConnection::Next
 WifiHandler::Evaluate(LostConnection&)
 {
     if (MovingForAWhile())
@@ -321,7 +321,7 @@ WifiHandler::Enter(Off&)
     m_link_up = false;
 }
 
-WifiHandler::OffNext
+WifiHandler::Off::Next
 WifiHandler::Evaluate(Off&)
 {
     if (StandingStillForAWhile())
