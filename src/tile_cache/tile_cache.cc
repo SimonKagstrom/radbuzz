@@ -8,25 +8,18 @@
 namespace
 {
 
-struct PendingData
-{
-    uint32_t magic;
-
-    struct TileData
-    {
-        int32_t x;
-        int32_t y;
-        int32_t zoom;
-    } tiles[];
+// The regions around visited places to download, per zoom level
+constexpr auto kRegionConfigurations = std::array {
+    TileRegions::ZoomConfiguration {.zoom = kDefaultZoom, .region_size = 30, .margin = 7},
+    TileRegions::ZoomConfiguration {.zoom = kCityZoom, .region_size = 30, .margin = 7},
+    TileRegions::ZoomConfiguration {.zoom = kLandscapeZoom, .region_size = 10, .margin = 2},
 };
 
-constexpr auto kCityTileFactor = 30;
-constexpr auto kCityTileFactorZoomedOut = 15;
-constexpr auto kLandscapeTileFactorZoomedOut = 5;
+constexpr auto kRegionsFileName = "pending/regions.bin";
+constexpr auto kRegionSaveInterval = 10s;
+// Limit the time spent checking for existing tiles on the SD card in one go
+constexpr auto kMaxDiskChecksPerActivation = 32;
 
-constexpr auto kPendingCityTilesFileName = "pending.bin";
-// Bump when format changed
-constexpr int32_t kPendingTileMagic = 0x43697480;
 constexpr auto kRuntimeOsmApiKeyFilename = "OSM_KEY.TXT";
 
 void
@@ -43,14 +36,6 @@ TrimAsciiWhitespace(std::string& value)
     {
         value.pop_back();
     }
-}
-
-inline auto
-ToCityTile(const Point& point)
-{
-    return Tile {(point.x / kTileSize / kCityTileFactor) * kCityTileFactor,
-                 (point.y / kTileSize / kCityTileFactor) * kCityTileFactor,
-                 point.zoom};
 }
 
 struct DecodeHelper
@@ -127,6 +112,7 @@ TileCache::TileCache(ApplicationState& application_state,
     , m_https_client(https_client)
     , m_state_listener(m_application_state.AttachListener<AS::pixel_position>(GetSemaphore()))
     , m_pixel_state_cache(m_application_state)
+    , m_regions(kRegionConfigurations)
     , m_web_thread(std::make_unique<WebThread>(*this))
 {
     std::ranges::fill(m_tiles, 0);
@@ -149,44 +135,9 @@ TileCache::OnStartup()
     }
     m_web_thread->SetOsmApiKey(std::move(osm_api_key));
 
-    for (auto zoom : {kDefaultZoom, kCityZoom})
+    if (auto data = m_filesystem.ReadFile(kRegionsFileName); data && !m_regions.Deserialize(*data))
     {
-        auto pending_city_tile_data =
-            m_filesystem.ReadFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName));
-
-        if (!pending_city_tile_data || pending_city_tile_data->size() < sizeof(PendingData::magic))
-        {
-            continue;
-        }
-
-        auto size = pending_city_tile_data->size() - sizeof(PendingData::magic);
-        if (pending_city_tile_data && (size % (sizeof(PendingData::TileData)) == 0))
-        {
-            auto* data = reinterpret_cast<const PendingData*>(pending_city_tile_data->data());
-            auto count = size / sizeof(PendingData::TileData);
-
-            if (data->magic != kPendingTileMagic)
-            {
-                printf("Invalid pending city tile file for zoom %d\n", zoom);
-                continue;
-            }
-            for (auto i = 0u; i < count; i++)
-            {
-                if (data->tiles[i].zoom != zoom)
-                {
-                    printf("Invalid tile zoom in pending city tile file for zoom %d\n", zoom);
-                    continue;
-                }
-
-                m_pending_city_tiles_by_zoom[zoom].insert(
-                    Tile {data->tiles[i].x, data->tiles[i].y, static_cast<uint8_t>(zoom)});
-            }
-        }
-
-        for (auto city_tile : m_pending_city_tiles_by_zoom[zoom])
-        {
-            RefreshCityTiles(city_tile);
-        }
+        printf("TileCache: Invalid regions file, starting over\n");
     }
 
     m_web_thread->Start("web_tile_fetcher", 4096);
@@ -197,48 +148,44 @@ TileCache::OnActivation()
 {
     const auto& co = m_pixel_state_cache.Pull();
 
-    co.OnNewValue<AS::pixel_position>([&](const auto& pixel_position) {
-        auto city_point = OsmPointToPoint(pixel_position, kCityZoom);
-        auto landscape_point = OsmPointToPoint(pixel_position, kLandscapeZoom);
-
-        auto default_tile = ToCityTile(pixel_position);
-        auto city_tile = ToCityTile(city_point);
-        auto land_tile = ToCityTile(landscape_point);
-
-        for (auto tile : {default_tile, city_tile, land_tile})
-        {
-            if (m_pending_city_tiles_by_zoom[tile.zoom].find(tile) ==
-                m_pending_city_tiles_by_zoom[tile.zoom].end())
-            {
-                m_pending_city_tiles_by_zoom[tile.zoom].insert(tile);
-                SavePendingCityTiles();
-            }
-        }
-        if (AppState().Get<AS::wifi_connected>() && default_tile != m_current_city_tile)
-        {
-            m_current_city_tile = default_tile;
-
-            auto center_tile = ToTile(pixel_position);
-            auto center_tile_zoomed_out = ToTile(city_point);
-
-            RefreshCityTiles(center_tile);
-            RefreshCityTiles(center_tile_zoomed_out);
-        }
+    co.OnNewValue<AS::pixel_position>([this](const auto& pixel_position) {
+        m_regions.Visit(ToTile(pixel_position));
+        m_regions.Visit(ToTile(OsmPointToPoint(pixel_position, kCityZoom)));
+        m_regions.Visit(ToTile(OsmPointToPoint(pixel_position, kLandscapeZoom)));
     });
 
+    Tile written;
+    while (m_written_tiles.pop(written))
+    {
+        m_regions.TileOnDisk(written);
+    }
+
+    auto wifi_connected = AppState().Get<AS::wifi_connected>();
+    if (wifi_connected && !m_wifi_was_connected)
+    {
+        // Retry the tiles which failed last time
+        m_regions.RestartRound();
+    }
+    m_wifi_was_connected = wifi_connected;
+
     FillFromColdStore();
-    FillFromServer();
+    auto more_to_check = FillFromServer();
     // Again, in case the server has written them to FS
     FillFromColdStore();
 
+    SaveRegionsIfDirty();
+
+    if (more_to_check)
+    {
+        // Continue checking the disk soon, but let others run in between
+        return 10ms;
+    }
     if (m_get_from_server.empty())
     {
         return std::nullopt;
     }
-    else
-    {
-        return 75ms;
-    }
+
+    return 75ms;
 }
 
 bool
@@ -350,42 +297,16 @@ TileCache::FillFromColdStore()
     }
 }
 
-void
-TileCache::RefreshCityTiles(const Tile& center)
-{
-    auto factor = kDefaultZoom;
-
-    if (center.zoom == kCityZoom)
-    {
-        factor = kCityTileFactorZoomedOut;
-    }
-    else if (center.zoom == kLandscapeZoom)
-    {
-        factor = kLandscapeTileFactorZoomedOut;
-    }
-
-    for (int dx = -factor; dx <= factor; ++dx)
-    {
-        for (int dy = -factor; dy <= factor; ++dy)
-        {
-            Tile t {center.x + dx, center.y + dy, center.zoom};
-
-            m_get_from_server_background.push_back(t);
-        }
-    }
-}
-
-
-void
+bool
 TileCache::FillFromServer()
 {
     if (!AppState().Get<AS::wifi_connected>())
     {
-        return;
+        return false;
     }
 
-    while ((!m_get_from_server.empty() || !m_get_from_server_background.empty()) &&
-           m_web_thread->CanFetchTile())
+    auto disk_checks = 0;
+    while (m_web_thread->CanFetchTile())
     {
         Tile t;
 
@@ -394,11 +315,18 @@ TileCache::FillFromServer()
             t = m_get_from_server.back();
             m_get_from_server.pop_back();
         }
+        else if (disk_checks >= kMaxDiskChecksPerActivation)
+        {
+            return true;
+        }
+        else if (auto next = m_regions.NextMissingTile(); next)
+        {
+            // Second priority, the regions around visited places
+            t = *next;
+        }
         else
         {
-            // Second priority, get when the first are empty
-            t = m_get_from_server_background.back();
-            m_get_from_server_background.pop_back();
+            break;
         }
 
         if (t.x < 0 || t.y < 0)
@@ -407,9 +335,11 @@ TileCache::FillFromServer()
         }
 
         auto path = GetTilePath(t);
+        disk_checks++;
         if (m_filesystem.FileExists(path))
         {
-            // Already got it, probably from being requested by the UI
+            // Already got it, e.g., from being requested by the UI
+            m_regions.TileOnDisk(t);
             continue;
         }
         m_web_thread->FetchTile(t);
@@ -429,6 +359,8 @@ TileCache::FillFromServer()
         m_web_thread->FetchTile(t);
         m_reload_tiles_from_server.pop_back();
     }
+
+    return false;
 }
 
 std::string
@@ -438,24 +370,18 @@ TileCache::GetTilePath(const Tile& t) const
 }
 
 void
-TileCache::SavePendingCityTiles()
+TileCache::SaveRegionsIfDirty()
 {
-    std::vector<std::byte> data;
-    for (const auto& [zoom, tiles] : m_pending_city_tiles_by_zoom)
+    if (!m_regions.IsDirty() || (m_region_save_timer && !m_region_save_timer->IsExpired()))
     {
-        data.resize(tiles.size() * sizeof(Tile) + sizeof(int32_t));
-        auto ptr = reinterpret_cast<int32_t*>(data.data());
-        *ptr++ = kPendingTileMagic;
-
-        for (const auto& tile : tiles)
-        {
-            *ptr++ = tile.x;
-            *ptr++ = tile.y;
-            *ptr++ = tile.zoom;
-        }
-
-        m_filesystem.WriteFile(std::format("pending/{}/{}", zoom, kPendingCityTilesFileName), data);
+        return;
     }
+
+    m_filesystem.WriteFile(kRegionsFileName, m_regions.Serialize());
+    m_regions.ClearDirty();
+
+    // Not too often, since it's written for every downloaded tile. Wakes the thread when expired
+    m_region_save_timer = StartTimer(kRegionSaveInterval);
 }
 
 uint8_t
@@ -561,8 +487,15 @@ TileCache::WebThread::OnActivation()
             // Better would be to save to a temporary name and then rename, but that doesn't work in esp-idf
             auto lock = std::lock_guard(m_parent.m_filesystem_mutex);
 
-            m_parent.m_filesystem.WriteFile(path, {data->data(), data->size()});
+            if (m_parent.m_filesystem.WriteFile(path, {data->data(), data->size()}))
+            {
+                // If full, it will be found on disk later instead
+                m_parent.m_written_tiles.push(t);
+            }
         }
+
+        // Fetch more (or retry failed)
+        m_parent.Awake();
     }
 
     return std::nullopt;

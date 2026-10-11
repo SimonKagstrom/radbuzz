@@ -8,6 +8,7 @@
 #include "image.hh"
 #include "messages.hh"
 #include "post_office.hh"
+#include "tile_regions.hh"
 #include "wgs84_to_osm_point.hh"
 
 #include <array>
@@ -111,8 +112,9 @@ private:
     std::optional<milliseconds> OnActivation() final;
 
     void FillFromColdStore();
-    void FillFromServer();
-    void RefreshCityTiles(const Tile& center);
+    // Returns true if stopped early, with more tiles to check on disk
+    bool FillFromServer();
+    void SaveRegionsIfDirty();
 
     uint8_t EvictTile();
 
@@ -127,8 +129,6 @@ private:
     std::string GetTilePath(const Tile& t) const;
 
     std::optional<std::vector<std::byte>> ReadTile(const Tile& t) const;
-
-    void SavePendingCityTiles();
 
     ApplicationState& m_application_state;
     PostOffice<MSG::AllMessages>& m_post_office;
@@ -146,11 +146,13 @@ private:
 
     etl::queue_spsc_atomic<Tile, 8> m_get_from_coldstore;
     std::vector<Tile> m_get_from_server;
-    std::vector<Tile> m_get_from_server_background;
     std::vector<Tile> m_reload_tiles_from_server;
-    Tile m_current_city_tile {kInvalidTile};
 
-    std::unordered_map<uint8_t, std::unordered_set<Tile>> m_pending_city_tiles_by_zoom;
+    TileRegions m_regions;
+    // Written by the web thread
+    etl::queue_spsc_atomic<Tile, 16> m_written_tiles;
+    os::TimerHandle m_region_save_timer;
+    bool m_wifi_was_connected {false};
 
     std::unique_ptr<WebThread> m_web_thread;
 

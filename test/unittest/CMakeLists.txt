@@ -48,6 +48,7 @@ add_executable(unittest_radbuzz
     test_speedometer_handler.cc
     test_storage.cc
     test_tile_cache.cc
+    test_tile_regions.cc
     test_trip_computer.cc
     test_trip_log.cc
     test_wifi_handler.cc
