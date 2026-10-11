@@ -204,6 +204,10 @@ UserInterface::OnStartup()
                  m_ota_update_screen.get()};
 
     // Keep this widget above any active screen (map, trip meter, settings, ...).
+    // Widgets on the top layer partly extend outside the screen (to hide rounded corners), which
+    // would otherwise make the top layer scrollable, and move all of them when dragging
+    lv_obj_clear_flag(lv_layer_top(), LV_OBJ_FLAG_SCROLLABLE);
+
     m_digital_speedometer = std::make_unique<DigitalSpeedometerWidget>(lv_layer_top());
 
     // Below the side pane, which hides the left corners when moved next to it

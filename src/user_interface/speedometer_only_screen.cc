@@ -2,7 +2,6 @@
 
 #include "map_screen.hh"
 #include "navigation_widget.hh"
-#include "painter.hh"
 #include "radbuzz_font_120.h"
 #include "radbuzz_font_22.h"
 #include "radbuzz_font_40.h"
@@ -123,6 +122,8 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(m_screen, UserInterface::GetBackgroundColor(), 0);
+    // Swipes switch screens, nothing should scroll
+    lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     // The histogram (bars, labels and lines), so that it can be hidden as a whole. Covers the
     // screen, so that the alignments are the same as for the screen
@@ -484,26 +485,30 @@ SpeedometerOnlyScreen::Layout(bool side_pane_shown, bool navigating)
 void
 SpeedometerOnlyScreen::DrawHistogramLines(lv_layer_t* layer)
 {
-    auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
-
+    // Drawn via LVGL (not directly into the buffer), so that it's ordered after the screen
+    // background fill, which might otherwise be done afterwards and cover the lines
     constexpr auto kWidth = kHistogramBarWidth * (TripComputer::kNumberOfRecentEntries + 1) + 8;
 
-    const auto kLineColor = lv_color_to_u16(lv_color_white());
-    const auto kLineEndColor = lv_color_to_u16(lv_color_make(128, 128, 128));
+    auto draw_dashed_line = [layer](int32_t x_from, int32_t x_to, int32_t y, lv_color_t color) {
+        lv_draw_line_dsc_t dsc;
 
+        lv_draw_line_dsc_init(&dsc);
+        dsc.color = color;
+        dsc.width = 1;
+        dsc.dash_width = 4;
+        dsc.dash_gap = 4;
+        dsc.p1 = {x_from, y};
+        dsc.p2 = {x_to, y};
 
-    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {64, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth - 16, kLineColor);
-    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight}, kWidth, kLineEndColor);
+        lv_draw_line(layer, &dsc);
+    };
 
-    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst, {64, hal::kDisplayHeight - kMaxHistogramBarHeight / 2}, kWidth - 16, kLineColor);
-    painter::DrawClippedHorizontalLine<Point, 1, painter::LineStyle::kDashed>(
-        dst,
-        {kWidth - 16, hal::kDisplayHeight - kMaxHistogramBarHeight / 2},
-        kWidth,
-        kLineEndColor);
+    for (auto y : {hal::kDisplayHeight - kMaxHistogramBarHeight,
+                   hal::kDisplayHeight - kMaxHistogramBarHeight / 2})
+    {
+        draw_dashed_line(64, kWidth - 16, y, lv_color_white());
+        draw_dashed_line(kWidth - 16, kWidth, y, lv_color_make(128, 128, 128));
+    }
 }
 
 void
