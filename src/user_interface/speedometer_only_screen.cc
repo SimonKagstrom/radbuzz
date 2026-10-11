@@ -274,7 +274,6 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 
     // The battery, power, speedometer and trip are moved with the side pane and navigation
     Layout(false, false);
-
 }
 
 void
@@ -307,8 +306,7 @@ SpeedometerOnlyScreen::Update()
 
     if (m_parent.m_state.Get<AS::motor_temperature>() != 0)
     {
-        temperature_text +=
-            "/Motor" + std::to_string(m_parent.m_state.Get<AS::motor_temperature>());
+        temperature_text += "/Motor";
         temperature_value_text +=
             "/" + std::to_string(m_parent.m_state.Get<AS::motor_temperature>());
     }
