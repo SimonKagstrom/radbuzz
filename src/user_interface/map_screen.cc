@@ -109,11 +109,10 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
             color = kMidPowerColor;
         }
 
-        painter::DrawClippedLine<Point>(dst,
-                                        {last_position.x, last_position.y},
-                                        {current_position.x, current_position.y},
-                                        5,
-                                        color);
+        painter::DrawClippedLine<Point, 5>(dst,
+                                           {last_position.x, last_position.y},
+                                           {current_position.x, current_position.y},
+                                           color);
     }
 }
 
