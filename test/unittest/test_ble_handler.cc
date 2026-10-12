@@ -84,8 +84,9 @@ public:
     {
     }
 
-    void NotifyFromIsr() final
+    bool NotifyFromIsr() final
     {
+        return false;
     }
 };
 

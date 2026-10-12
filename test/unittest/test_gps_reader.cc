@@ -53,9 +53,10 @@ public:
     MAKE_MOCK0(Notify, void());
 
 private:
-    void NotifyFromIsr() final
+    bool NotifyFromIsr() final
     {
         REQUIRE(false); // Forbidden in this test
+        return false;
     }
 };
 
