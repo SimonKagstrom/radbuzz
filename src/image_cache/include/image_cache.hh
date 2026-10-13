@@ -53,7 +53,7 @@ public:
     ImageCache(const ImageCache&) = delete;
     ImageCache operator=(const ImageCache&) = delete;
 
-    std::unique_ptr<ListenerCookie> ListenToChanges(IEventNotifier& notifier);
+    ListenerCookie ListenToChanges(IEventNotifier& notifier);
 
     // Context: Some thread (BLE)
     void Insert(uint32_t key, uint8_t width, uint8_t height, std::span<const uint8_t> data);

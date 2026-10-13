@@ -50,7 +50,7 @@ private slots:
 
 
 private:
-    std::unique_ptr<ListenerCookie>
+    ListenerCookie
     AttachIrqListener(std::function<void(RotaryEncoder::Direction)> on_rotation) final;
 
     ApplicationState& m_application_state;
@@ -72,8 +72,8 @@ private:
     static GpioHost m_pin_a;
     static GpioHost m_pin_b;
 
-    std::unique_ptr<ListenerCookie> m_left_buzzer_cookie;
-    std::unique_ptr<ListenerCookie> m_right_buzzer_cookie;
+    ListenerCookie m_left_buzzer_cookie;
+    ListenerCookie m_right_buzzer_cookie;
 
     std::function<void(RotaryEncoder::Direction)> m_on_rotation {[](auto) { /* NOP */ }};
 

@@ -22,7 +22,7 @@ class BleServerQt : public QObject, public hal::IBleServer
 public:
     explicit BleServerQt(QString device_name);
 
-    std::unique_ptr<ListenerCookie>
+    ListenerCookie
     AttachConnectionListener(std::function<void(bool connected)> cb) final;
 
     void SetServiceUuid128(hal::Uuid128Span service_uuid) final;

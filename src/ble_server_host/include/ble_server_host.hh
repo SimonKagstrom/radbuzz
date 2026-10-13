@@ -6,7 +6,7 @@
 class BleServerHost : public hal::IBleServer
 {
 private:
-    std::unique_ptr<ListenerCookie>
+    ListenerCookie
     AttachConnectionListener(std::function<void(bool connected)> cb) final;
 
     void SetServiceUuid128(hal::Uuid128Span service_uuid) final;

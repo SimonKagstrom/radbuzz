@@ -19,7 +19,7 @@ private:
     ApplicationState& m_state;
     const int32_t m_zero_to_max_steps;
 
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
 
     int32_t m_position {0};
     milliseconds m_last_step_time {0};

@@ -86,12 +86,12 @@ WifiClientEsp32::Disconnect()
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
 }
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 WifiClientEsp32::AttachListener(std::function<void(Event)> on_event)
 {
     m_on_event = on_event;
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_event = [](auto) { /* NOP */ }; });
+    return ListenerCookie([this]() { m_on_event = [](auto) { /* NOP */ }; });
 }
 
 void

@@ -15,7 +15,7 @@ private:
     std::optional<milliseconds> OnActivation() final;
 
     ApplicationState& m_application_state;
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
     hal::INvm& m_nvm;
     ApplicationState::PartialReadOnlyCache<AS::configuration, AS::is_moving> m_state_cache;
 

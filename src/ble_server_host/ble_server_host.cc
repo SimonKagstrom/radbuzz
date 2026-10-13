@@ -1,11 +1,11 @@
 #include "ble_server_host.hh"
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 BleServerHost::AttachConnectionListener(std::function<void(bool connected)> cb)
 {
     m_connection_listener = cb;
 
-    return std::make_unique<ListenerCookie>([this]() { m_connection_listener = [](auto) {}; });
+    return ListenerCookie([this]() { m_connection_listener = [](auto) {}; });
 }
 
 void

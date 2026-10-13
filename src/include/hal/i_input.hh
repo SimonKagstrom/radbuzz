@@ -36,7 +36,7 @@ public:
 
     virtual ~IInput() = default;
 
-    virtual std::unique_ptr<ListenerCookie> AttachListener(std::function<void(Event)> on_event) = 0;
+    virtual ListenerCookie AttachListener(std::function<void(Event)> on_event) = 0;
 };
 
 } // namespace hal

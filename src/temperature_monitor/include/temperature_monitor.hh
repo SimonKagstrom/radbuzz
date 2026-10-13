@@ -15,6 +15,6 @@ private:
     bool IsOverheated() const;
 
 ApplicationState& m_state;
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
     os::TimerHandle m_overheated_timer;
 };

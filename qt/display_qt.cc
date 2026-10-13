@@ -273,12 +273,12 @@ DisplayQt::UpdateScreen()
     m_pixmap->setPixmap(pixmap);
 }
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 DisplayQt::AttachIrqListener(std::function<void()> on_state_changed)
 {
     m_on_state_changed = std::move(on_state_changed);
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_state_changed = []() {}; });
+    return ListenerCookie([this]() { m_on_state_changed = []() {}; });
 }
 
 std::span<const hal::ITouch::Data>

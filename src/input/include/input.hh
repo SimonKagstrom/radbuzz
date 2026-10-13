@@ -13,7 +13,7 @@ class Input : public os::BaseThread, public hal::IInput
 public:
     Input(hal::IGpio& button, RotaryEncoder& rotary_encoder, hal::ITouch& touch);
 
-    std::unique_ptr<ListenerCookie> AttachListener(std::function<void(Event)> on_event) final;
+    ListenerCookie AttachListener(std::function<void(Event)> on_event) final;
 
 private:
     std::optional<milliseconds> OnActivation() final;
@@ -24,9 +24,9 @@ private:
     etl::queue_spsc_atomic<RotaryEncoder::Direction, 4> m_encoder_queue;
 
     std::function<void(Event)> m_on_event {[](auto) { /* NOP */ }};
-    std::unique_ptr<ListenerCookie> m_button_listener_cookie;
-    std::unique_ptr<ListenerCookie> m_rotary_listener_cookie;
-    std::unique_ptr<ListenerCookie> m_touch_listener_cookie;
+    ListenerCookie m_button_listener_cookie;
+    ListenerCookie m_rotary_listener_cookie;
+    ListenerCookie m_touch_listener_cookie;
 
     std::optional<milliseconds> m_poll_interval {std::nullopt};
 };

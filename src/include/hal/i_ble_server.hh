@@ -15,7 +15,7 @@ class IBleServer
 public:
     virtual ~IBleServer() = default;
 
-    virtual std::unique_ptr<ListenerCookie>
+    virtual ListenerCookie
     AttachConnectionListener(std::function<void(bool connected)> cb) = 0;
 
     virtual void SetServiceUuid128(Uuid128Span service_uuid) = 0;

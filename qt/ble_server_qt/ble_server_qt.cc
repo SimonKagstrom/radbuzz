@@ -44,12 +44,12 @@ BleServerQt::BleServerQt(QString device_name)
     m_service_data.setType(QLowEnergyServiceData::ServiceTypePrimary);
 }
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 BleServerQt::AttachConnectionListener(std::function<void(bool connected)> cb)
 {
     m_on_connection_changed = std::move(cb);
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_connection_changed = [](bool) {}; });
+    return ListenerCookie([this]() { m_on_connection_changed = [](bool) {}; });
 }
 
 void

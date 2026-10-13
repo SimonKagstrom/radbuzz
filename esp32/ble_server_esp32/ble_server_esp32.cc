@@ -363,12 +363,12 @@ BleServerEsp32::EnablePeerNotifications(uint16_t conn_handle, uint16_t cccd_hand
     return rc == 0;
 }
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 BleServerEsp32::AttachConnectionListener(std::function<void(bool connected)> cb)
 {
     m_on_connection_changed = std::move(cb);
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_connection_changed = [](bool) {}; });
+    return ListenerCookie([this]() { m_on_connection_changed = [](bool) {}; });
 }
 
 void

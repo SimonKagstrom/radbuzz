@@ -25,12 +25,12 @@ private:
     ApplicationState& m_state;
     std::optional<uint8_t> m_controller_id;
     ApplicationState::PartialReadOnlyCache<AS::configuration> m_state_cache;
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
 
     // Unknown, so not unique_ptr
     VescCanState* m_vesc_can_state {nullptr};
 
-    std::unique_ptr<ListenerCookie> m_bus_listener;
+    ListenerCookie m_bus_listener;
 
     os::TimerHandle m_periodic_timer;
     os::TimerHandle m_start_timer;

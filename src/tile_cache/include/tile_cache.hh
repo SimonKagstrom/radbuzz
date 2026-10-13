@@ -136,7 +136,7 @@ private:
     Filesystem& m_filesystem;
     HttpsClient& m_https_client;
 
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::pixel_position> m_pixel_state_cache;
 
     SingleColorImage m_black_tile {kTileSize, kTileSize, 2, 0x0000}; // Black tile

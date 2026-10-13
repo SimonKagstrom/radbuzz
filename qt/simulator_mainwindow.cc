@@ -154,10 +154,10 @@ MainWindow::GetRightBuzzer()
     return m_right_buzzer;
 }
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 MainWindow::AttachIrqListener(std::function<void(RotaryEncoder::Direction)> on_rotation)
 {
     m_on_rotation = std::move(on_rotation);
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_rotation = [](auto) {}; });
+    return ListenerCookie([this]() { m_on_rotation = [](auto) {}; });
 }

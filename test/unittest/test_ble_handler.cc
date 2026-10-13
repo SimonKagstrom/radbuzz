@@ -25,10 +25,10 @@ public:
     }
 
 private:
-    std::unique_ptr<ListenerCookie> AttachConnectionListener(std::function<void(bool connected)> cb)
+    ListenerCookie AttachConnectionListener(std::function<void(bool connected)> cb)
     {
         // TODO: Actually implement
-        return nullptr;
+        return {};
     }
 
 

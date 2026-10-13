@@ -29,19 +29,19 @@ ImageCache::Lookup(uint32_t key) const
 }
 
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 ImageCache::ListenToChanges(IEventNotifier& notifier)
 {
     if (m_listeners.full())
     {
-        return nullptr;
+        return {};
     }
 
     auto sema_p = &notifier;
 
     m_listeners.push_back(sema_p);
 
-    return std::make_unique<ListenerCookie>([this, sema_p]() {
+    return ListenerCookie([this, sema_p]() {
         auto [b, e] = std::ranges::remove(m_listeners, sema_p);
         m_listeners.erase(b);
     });

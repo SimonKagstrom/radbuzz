@@ -74,9 +74,9 @@ private:
     Filesystem& m_filesystem;
     hal::IWifiClient& m_wifi_client;
 
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::is_moving> m_state_cache;
-    std::unique_ptr<ListenerCookie> m_wifi_listener;
+    ListenerCookie m_wifi_listener;
 
     // Set from the wifi client callback
     std::atomic_bool m_link_up {false};

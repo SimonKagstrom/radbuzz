@@ -269,9 +269,9 @@ private:
     lv_indev_state_t m_touch_state {LV_INDEV_STATE_RELEASED};
     lv_point_t m_touch_point {0, 0};
 
-    std::unique_ptr<ListenerCookie> m_state_listener;
-    std::unique_ptr<ListenerCookie> m_cache_listener;
-    std::unique_ptr<ListenerCookie> m_input_listener;
+    ListenerCookie m_state_listener;
+    ListenerCookie m_cache_listener;
+    ListenerCookie m_input_listener;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 
     os::TimerHandle m_trip_start_initial_timer;

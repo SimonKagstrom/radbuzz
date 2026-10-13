@@ -52,7 +52,7 @@ private:
         uint16_t val_handle {0};
     };
 
-    std::unique_ptr<ListenerCookie>
+    ListenerCookie
     AttachConnectionListener(std::function<void(bool connected)> cb) final;
 
     void SetServiceUuid128(hal::Uuid128Span service_uuid) final;

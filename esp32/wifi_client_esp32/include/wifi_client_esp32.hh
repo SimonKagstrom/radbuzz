@@ -16,7 +16,7 @@ private:
     std::vector<std::string> GetScanResult() final;
     void Connect(const char* ssid, const char* password) final;
     void Disconnect() final;
-    std::unique_ptr<ListenerCookie> AttachListener(std::function<void(Event)> on_event) final;
+    ListenerCookie AttachListener(std::function<void(Event)> on_event) final;
 
     static void
     EventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);

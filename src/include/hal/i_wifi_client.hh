@@ -35,7 +35,7 @@ public:
     virtual void Connect(const char* ssid, const char* password) = 0;
     virtual void Disconnect() = 0;
 
-    virtual std::unique_ptr<ListenerCookie> AttachListener(std::function<void(Event)> on_event) = 0;
+    virtual ListenerCookie AttachListener(std::function<void(Event)> on_event) = 0;
 };
 
 } // namespace hal

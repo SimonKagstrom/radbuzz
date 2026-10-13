@@ -13,6 +13,6 @@ public:
     MAKE_MOCK2(Connect, void(const char*, const char*), override);
     MAKE_MOCK0(Disconnect, void(), override);
     MAKE_MOCK1(AttachListener,
-               std::unique_ptr<ListenerCookie>(std::function<void(Event)>),
+               ListenerCookie(std::function<void(Event)>),
                override);
 };

@@ -37,7 +37,7 @@ private:
     PostOffice<MSG::AllMessages>& m_post_office;
     ImageCache& m_image_cache;
 
-    std::unique_ptr<ListenerCookie> m_connection_listener;
+    ListenerCookie m_connection_listener;
 
     GadgetBridgeProtocol m_gadget_bridge_protocol {
         GetTimerManager(), m_state, m_post_office, GetSemaphore()};

@@ -22,12 +22,12 @@ Input::Input(hal::IGpio& button, RotaryEncoder& rotary_encoder, hal::ITouch& tou
     }
 }
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 Input::AttachListener(std::function<void(Event)> on_event)
 {
     m_on_event = std::move(on_event);
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_event = [](auto) { /* nop */ }; });
+    return ListenerCookie([this]() { m_on_event = [](auto) { /* nop */ }; });
 }
 
 std::optional<milliseconds>

@@ -27,7 +27,7 @@ public:
         // networks_in_range, and connections succeed (unless connect_succeeds is cleared)
         m_expectations.push_back(NAMED_ALLOW_CALL(wifi_client, AttachListener(_))
                                      .LR_SIDE_EFFECT(m_on_wifi_event = _1)
-                                     .RETURN(std::make_unique<ListenerCookie>([]() {})));
+                                     .RETURN(ListenerCookie([]() {})));
         m_expectations.push_back(
             NAMED_ALLOW_CALL(wifi_client, Enable()).LR_SIDE_EFFECT(enable_count++));
         m_expectations.push_back(

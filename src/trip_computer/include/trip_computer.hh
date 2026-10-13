@@ -89,7 +89,7 @@ private:
 
     ApplicationState& m_state;
 
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
     os::TimerHandle m_soc_timer;
     uint8_t m_last_soc {0};
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;

@@ -326,7 +326,7 @@ TEST_CASE("Listeners can be added to the application state")
         }
         AND_WHEN("the listener is removed")
         {
-            listener = nullptr;
+            listener.Reset();
             rw.Set<AS::next_street>("Östra Hamngatan");
 
             THEN("notifications are no longer sent")
@@ -349,7 +349,7 @@ TEST_CASE("There's a finite number of listeners that can be attached")
 
     WHEN("the maximum number of listeners is reached")
     {
-        std::vector<std::unique_ptr<ListenerCookie>> listeners;
+        std::vector<ListenerCookie> listeners;
         std::vector<std::unique_ptr<os::binary_semaphore>> semaphores;
         for (size_t i = 0; i < kMaxApplicationStateListeners; ++i)
         {
@@ -382,11 +382,11 @@ TEST_CASE("There's a finite number of listeners that can be attached")
         THEN("no more listeners can be added")
         {
             auto extra_listener = app_state.AttachListener<AS::speed>(sem);
-            REQUIRE(extra_listener == nullptr);
+            REQUIRE(!extra_listener);
 
             AND_WHEN("a listener is removed")
             {
-                listeners[0] = nullptr;
+                listeners[0].Reset();
 
                 THEN("a new listener can be added")
                 {

@@ -46,10 +46,10 @@ WifiClientHost::SimulateConnectionLoss()
     m_on_event(hal::IWifiClient::Event::kDisconnected);
 }
 
-std::unique_ptr<ListenerCookie>
+ListenerCookie
 WifiClientHost::AttachListener(std::function<void(Event)> on_event)
 {
     m_on_event = on_event;
 
-    return std::make_unique<ListenerCookie>([this]() { m_on_event = [](auto) { /* NOP */ }; });
+    return ListenerCookie([this]() { m_on_event = [](auto) { /* NOP */ }; });
 }

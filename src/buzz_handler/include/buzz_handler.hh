@@ -40,7 +40,7 @@ private:
     ApplicationState& m_state;
 
 
-    std::unique_ptr<ListenerCookie> m_state_listener;
+    ListenerCookie m_state_listener;
 
     // State data
     State m_current_state {State::kNoNavigation};

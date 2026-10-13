@@ -33,7 +33,7 @@ private slots:
 
 
 private:
-    std::unique_ptr<ListenerCookie> AttachIrqListener(std::function<void()> on_state_changed) final;
+    ListenerCookie AttachIrqListener(std::function<void()> on_state_changed) final;
 
     std::span<const hal::ITouch::Data> GetActiveTouchData() final;
 
