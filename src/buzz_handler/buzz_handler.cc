@@ -1,6 +1,20 @@
 #include "buzz_handler.hh"
 
+#include <algorithm>
+
 constexpr auto kAtDistance = 10;
+constexpr auto kImminentDistance = 20;
+constexpr auto kNearDistance = 100;
+
+// Moving away/closer by this much (from the closest/farthest seen) changes direction. Avoids
+// GPS jitter causing repeated indications
+constexpr auto kDirectionMargin = 15;
+
+// Receding beyond this goes back to Far, i.e., the turn is indicated again when approaching
+constexpr auto kRearmDistance = kNearDistance + 20;
+
+// A sudden distance increase this large is a new turn (reroute, or the turn after the last)
+constexpr auto kNewTurnDistanceJump = 50;
 
 namespace
 {
@@ -34,110 +48,31 @@ BuzzHandler::BuzzHandler(hal::IGpio& left_buzzer,
 std::optional<milliseconds>
 BuzzHandler::OnActivation()
 {
-    auto app_state = m_state.CheckoutReadonly();
+    RunStateMachine();
 
-    RunStateMachine(app_state);
-
-    m_current_turn = app_state.Get<AS::turn_symbol>();
+    m_last_distance = Distance();
 
     return std::nullopt;
 }
 
-void
-BuzzHandler::RunStateMachine(const ApplicationState::ReadOnly& app_state)
+bool
+BuzzHandler::NavigationActive() const
 {
-    auto before = m_current_state;
-
-    auto ro = m_state.CheckoutReadonly();
-    do
-    {
-        before = m_current_state;
-
-        switch (m_current_state)
-        {
-        case State::kNoNavigation:
-            if (ro.Get<AS::turn_symbol>() != m_current_turn)
-            {
-                EnterState(State::kNewTurn);
-            }
-            break;
-
-        case State::kNewTurn:
-            EnterState(State::kFar);
-            break;
-        case State::kFar:
-            [[fallthrough]];
-        case State::kNear:
-            [[fallthrough]];
-        case State::kImminent: {
-            auto s = DistanceToState(*ro.Get<AS::distance_to_next>());
-            if (s != m_current_state)
-            {
-                EnterState(s);
-            }
-        }
-        break;
-        case State::kAt:
-            if (DistanceStringToValue(*ro.Get<AS::distance_to_next>()) > kAtDistance)
-            {
-                EnterState(State::kNewTurn);
-            }
-            break;
-
-        case State::kValueCount:
-            break;
-        }
-    } while (before != m_current_state);
+    return m_state.Get<AS::turn_symbol>() != TurnSymbol::kNone &&
+           !m_state.Get<AS::distance_to_next>()->empty();
 }
 
-
-void
-BuzzHandler::EnterState(State s)
+bool
+BuzzHandler::TurnChanged() const
 {
-    printf("ENTERING STATE %d\n", (int)s);
-    m_current_state = s;
-
-    switch (s)
-    {
-    case State::kNoNavigation:
-        [[fallthrough]];
-    case State::kNewTurn:
-        [[fallthrough]];
-    case State::kFar:
-        break;
-
-    case State::kNear:
-        [[fallthrough]];
-    case State::kImminent:
-        [[fallthrough]];
-    case State::kAt:
-        Indicate();
-        break;
-
-    case State::kValueCount:
-        break;
-    }
+    return m_state.Get<AS::turn_symbol>() != m_current_turn ||
+           Distance() > m_last_distance + kNewTurnDistanceJump;
 }
 
-BuzzHandler::State
-BuzzHandler::DistanceToState(std::string_view distance) const
+int
+BuzzHandler::Distance() const
 {
-    auto distance_int = DistanceStringToValue(distance);
-
-    if (distance_int <= kAtDistance)
-    {
-        return State::kAt;
-    }
-    if (distance_int < 20)
-    {
-        return State::kImminent;
-    }
-    if (distance_int < 100)
-    {
-        return State::kNear;
-    }
-
-    return State::kFar;
+    return DistanceStringToValue(*m_state.Get<AS::distance_to_next>());
 }
 
 void
@@ -150,7 +85,7 @@ BuzzHandler::Indicate()
 
     auto delay = 100ms;
 
-    switch (m_state.CheckoutReadonly().Get<AS::turn_symbol>())
+    switch (m_state.Get<AS::turn_symbol>())
     {
     case TurnSymbol::kTurnLeft:
     case TurnSymbol::kRampLeft:
@@ -190,4 +125,225 @@ BuzzHandler::Indicate()
         m_right_buzzer.SetState(false);
         return std::nullopt;
     });
+}
+
+
+void
+BuzzHandler::OnTransition(State from, State to)
+{
+    printf("Buzz handler: %.*s -> %.*s\n",
+           static_cast<int>(StateName(from).size()),
+           StateName(from).data(),
+           static_cast<int>(StateName(to).size()),
+           StateName(to).data());
+}
+
+BuzzHandler::NoNavigation::Next
+BuzzHandler::Evaluate(NoNavigation&)
+{
+    if (NavigationActive())
+    {
+        return State::kNewTurn;
+    }
+
+    return kStay;
+}
+
+void
+BuzzHandler::Enter(NewTurn&)
+{
+    m_current_turn = m_state.Get<AS::turn_symbol>();
+    m_last_distance = Distance();
+}
+
+BuzzHandler::NewTurn::Next
+BuzzHandler::Evaluate(NewTurn&)
+{
+    auto distance = Distance();
+
+    if (distance <= kAtDistance)
+    {
+        return State::kAt;
+    }
+    if (distance < kImminentDistance)
+    {
+        return State::kImminent;
+    }
+    if (distance < kNearDistance)
+    {
+        return State::kNear;
+    }
+
+    return State::kFar;
+}
+
+BuzzHandler::Far::Next
+BuzzHandler::Evaluate(Far&)
+{
+    if (!NavigationActive())
+    {
+        return State::kNoNavigation;
+    }
+    if (TurnChanged())
+    {
+        return State::kNewTurn;
+    }
+
+    auto distance = Distance();
+
+    if (distance <= kAtDistance)
+    {
+        return State::kAt;
+    }
+    if (distance < kImminentDistance)
+    {
+        return State::kImminent;
+    }
+    if (distance < kNearDistance)
+    {
+        return State::kNear;
+    }
+
+    return kStay;
+}
+
+void
+BuzzHandler::Enter(Near&)
+{
+    Indicate();
+}
+
+BuzzHandler::Near::Next
+BuzzHandler::Evaluate(Near& near)
+{
+    if (!NavigationActive())
+    {
+        return State::kNoNavigation;
+    }
+    if (TurnChanged())
+    {
+        return State::kNewTurn;
+    }
+
+    auto distance = Distance();
+    near.closest = std::min(near.closest, distance);
+
+    if (distance > near.closest + kDirectionMargin)
+    {
+        return State::kReceding;
+    }
+    if (distance <= kAtDistance)
+    {
+        return State::kAt;
+    }
+    if (distance < kImminentDistance)
+    {
+        return State::kImminent;
+    }
+
+    return kStay;
+}
+
+
+void
+BuzzHandler::Enter(Imminent&)
+{
+    Indicate();
+}
+
+BuzzHandler::Imminent::Next
+BuzzHandler::Evaluate(Imminent& imminent)
+{
+    if (!NavigationActive())
+    {
+        return State::kNoNavigation;
+    }
+    if (TurnChanged())
+    {
+        return State::kNewTurn;
+    }
+
+    auto distance = Distance();
+    imminent.closest = std::min(imminent.closest, distance);
+
+    if (distance > imminent.closest + kDirectionMargin)
+    {
+        return State::kReceding;
+    }
+    if (distance <= kAtDistance)
+    {
+        return State::kAt;
+    }
+
+    return kStay;
+}
+
+
+void
+BuzzHandler::Enter(At&)
+{
+    Indicate();
+}
+
+
+BuzzHandler::At::Next
+BuzzHandler::Evaluate(At& at)
+{
+    if (!NavigationActive())
+    {
+        return State::kNoNavigation;
+    }
+    if (TurnChanged())
+    {
+        return State::kNewTurn;
+    }
+
+    auto distance = Distance();
+    at.closest = std::min(at.closest, distance);
+
+    if (distance > at.closest + kDirectionMargin)
+    {
+        return State::kReceding;
+    }
+
+    return kStay;
+}
+
+BuzzHandler::Receding::Next
+BuzzHandler::Evaluate(Receding& receding)
+{
+    if (!NavigationActive())
+    {
+        return State::kNoNavigation;
+    }
+    if (TurnChanged())
+    {
+        return State::kNewTurn;
+    }
+
+    auto distance = Distance();
+    receding.farthest = std::max(receding.farthest, distance);
+
+    if (distance > kRearmDistance)
+    {
+        return State::kFar;
+    }
+    if (distance + kDirectionMargin < receding.farthest)
+    {
+        // Moving closer again
+        if (distance <= kAtDistance)
+        {
+            return State::kAt;
+        }
+        if (distance < kImminentDistance)
+        {
+            return State::kImminent;
+        }
+        if (distance < kNearDistance)
+        {
+            return State::kNear;
+        }
+    }
+
+    return kStay;
 }

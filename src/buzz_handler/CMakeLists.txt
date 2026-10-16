@@ -1,3 +1,5 @@
+generate_state_machine(buzz_handler_state_machine buzz_handler_state_machine.md)
+
 add_library(buzz_handler EXCLUDE_FROM_ALL
     buzz_handler.cc
 )
@@ -11,4 +13,5 @@ target_link_libraries(buzz_handler
 PUBLIC
     base_thread
     application_state
+    buzz_handler_state_machine
 )
