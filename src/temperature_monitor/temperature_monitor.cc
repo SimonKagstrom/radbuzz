@@ -11,10 +11,10 @@ TemperatureMonitor::TemperatureMonitor(ApplicationState& state)
 std::optional<milliseconds>
 TemperatureMonitor::OnActivation()
 {
-    auto rw = m_state.CheckoutReadWrite();
-
-    if (IsOverheated() && rw.Get<AS::overheated>() == false)
+    if (IsOverheated() && m_state.Get<AS::overheated>() == false)
     {
+        auto rw = m_state.CheckoutReadWrite();
+
         rw.Set<AS::overheated>(true);
         // Clear the overheating condition after a while, if it's not still overheated
         m_overheated_timer = StartTimer(2s, [this]() {
