@@ -8,12 +8,11 @@ TEST_CASE("The application state has default values")
 {
     ApplicationState app_state;
 
-    auto ro = app_state.CheckoutReadonly();
-    REQUIRE(ro.Get<AS::wifi_connected>() == false);
-    REQUIRE(ro.Get<AS::speed>() == 0);
-    REQUIRE(*ro.Get<AS::next_street>() == "");
+    REQUIRE(app_state.Get<AS::wifi_connected>() == false);
+    REQUIRE(app_state.Get<AS::speed>() == 0);
+    REQUIRE(*app_state.Get<AS::next_street>() == "");
 
-    auto p = ro.Get<AS::position>();
+    auto p = app_state.Get<AS::position>();
     REQUIRE(p->position == GpsPosition {0.0f, 0.0f});
     REQUIRE(p->speed == 0.0f);
     REQUIRE(p->heading == 0.0f);
@@ -22,43 +21,40 @@ TEST_CASE("The application state has default values")
 TEST_CASE("Writes are seen immediately in read-only checkouts")
 {
     ApplicationState app_state;
-    auto ro = app_state.CheckoutReadonly();
     auto rw = app_state.CheckoutReadWrite();
 
-    REQUIRE(ro.Get<AS::speed>() == 0);
+    REQUIRE(app_state.Get<AS::speed>() == 0);
     REQUIRE(rw.Get<AS::speed>() == 0);
 
     rw.Set<AS::speed>(10);
-    REQUIRE(ro.Get<AS::speed>() == 10);
+    REQUIRE(app_state.Get<AS::speed>() == 10);
     REQUIRE(rw.Get<AS::speed>() == 10);
 }
 
 TEST_CASE("Non-atomic members are kept alive via shared pointers")
 {
     ApplicationState app_state;
-    auto ro = app_state.CheckoutReadonly();
     auto rw = app_state.CheckoutReadWrite();
 
     rw.Set<AS::next_street>("St Mickelsgatan");
-    auto s = ro.Get<AS::next_street>();
-    auto s2 = ro.Get<AS::next_street>();
+    auto s = app_state.Get<AS::next_street>();
+    auto s2 = app_state.Get<AS::next_street>();
     REQUIRE(*s == "St Mickelsgatan");
     REQUIRE(*s2 == "St Mickelsgatan");
     REQUIRE(s.get() == s2.get()); // Same pointer
     rw.Set<AS::next_street>("Östra Prinsgatan");
-    auto s3 = ro.Get<AS::next_street>();
+    auto s3 = app_state.Get<AS::next_street>();
     REQUIRE(*s == "St Mickelsgatan");
     REQUIRE(*s2 == "St Mickelsgatan");
     REQUIRE(*s3 == "Östra Prinsgatan");
 
-    s = ro.Get<AS::next_street>();
+    s = app_state.Get<AS::next_street>();
     REQUIRE(*s == "Östra Prinsgatan");
 }
 
 TEST_CASE("Non-atomic structs can be written via value")
 {
     ApplicationState app_state;
-    auto ro = app_state.CheckoutReadonly();
     auto rw = app_state.CheckoutReadWrite();
 
     GpsData gps_data {
@@ -68,7 +64,7 @@ TEST_CASE("Non-atomic structs can be written via value")
     };
 
     rw.Set<AS::position>(gps_data);
-    auto p = ro.Get<AS::position>();
+    auto p = app_state.Get<AS::position>();
 
     REQUIRE(p->position == GpsPosition {59.3293f, 18.0686f});
     REQUIRE(p->speed == 50.0f);
@@ -115,7 +111,6 @@ TEST_CASE("A partial snapshot keeps a cached state")
 TEST_CASE("Writes in partial snapshots are written back on destruction")
 {
     ApplicationState app_state;
-    auto ro = app_state.CheckoutReadonly();
     app_state.CheckoutReadWrite().Set<AS::next_street>("Tunavägen");
 
     {
@@ -127,12 +122,12 @@ TEST_CASE("Writes in partial snapshots are written back on destruction")
         REQUIRE(snapshot.Get<AS::speed>() == 10);
         REQUIRE(snapshot.Get<AS::next_street>() == "St Mickelsgatan");
 
-        REQUIRE(ro.Get<AS::speed>() == 0);
-        REQUIRE(*ro.Get<AS::next_street>() == "Tunavägen");
+        REQUIRE(app_state.Get<AS::speed>() == 0);
+        REQUIRE(*app_state.Get<AS::next_street>() == "Tunavägen");
     }
 
-    REQUIRE(ro.Get<AS::speed>() == 10);
-    REQUIRE(*ro.Get<AS::next_street>() == "St Mickelsgatan");
+    REQUIRE(app_state.Get<AS::speed>() == 10);
+    REQUIRE(*app_state.Get<AS::next_street>() == "St Mickelsgatan");
 }
 
 
@@ -404,7 +399,6 @@ TEST_CASE("Snapshots affect listeners on destruction")
     ApplicationState app_state;
     os::binary_semaphore sem {0}, sem_other {0};
 
-    auto ro = app_state.CheckoutReadonly();
     auto listener = app_state.AttachListener<AS::speed, AS::controller_temperature>(sem);
     auto listener_other = app_state.AttachListener<AS::battery_millivolts>(sem_other);
 
@@ -414,12 +408,12 @@ TEST_CASE("Snapshots affect listeners on destruction")
         REQUIRE(sem.try_acquire() == false);
         snapshot.Set<AS::speed>(11);
         REQUIRE(sem.try_acquire() == false);
-        REQUIRE(ro.Get<AS::speed>() == 0);
+        REQUIRE(app_state.Get<AS::speed>() == 0);
 
         REQUIRE(sem_other.try_acquire() == false);
     }
 
-    REQUIRE(ro.Get<AS::speed>() == 11);
+    REQUIRE(app_state.Get<AS::speed>() == 11);
     REQUIRE(sem.try_acquire() == true);
 }
 
@@ -429,7 +423,6 @@ TEST_CASE("structs can be changed in parts in partial snapshots")
     os::binary_semaphore sem {0};
 
     auto listener = app_state.AttachListener<AS::position>(sem);
-    auto ro = app_state.CheckoutReadonly();
 
     WHEN("a reference is gotten, and a change is made")
     {
@@ -444,7 +437,7 @@ TEST_CASE("structs can be changed in parts in partial snapshots")
 
         THEN("the value is written back, and listeners notified")
         {
-            REQUIRE(ro.Get<AS::position>()->speed == 50.0f);
+            REQUIRE(app_state.Get<AS::position>()->speed == 50.0f);
             REQUIRE(sem.try_acquire() == true);
         }
     }
@@ -461,7 +454,7 @@ TEST_CASE("structs can be changed in parts in partial snapshots")
 
         THEN("nothing is written, and no-one is notified")
         {
-            REQUIRE(ro.Get<AS::position>()->speed == 0.0f);
+            REQUIRE(app_state.Get<AS::position>()->speed == 0.0f);
             REQUIRE(sem.try_acquire() == false);
         }
     }
@@ -505,7 +498,6 @@ TEST_CASE("listeners are notified of multiple changes in a batch")
     os::binary_semaphore sem {0};
 
     auto listener = app_state.AttachListener<AS::speed, AS::battery_millivolts>(sem);
-    auto ro = app_state.CheckoutReadonly();
 
     {
         auto qw = app_state.CheckoutQueuedWriter<AS::speed, AS::battery_millivolts>();
@@ -515,8 +507,8 @@ TEST_CASE("listeners are notified of multiple changes in a batch")
 
         THEN("the writes are not yet visible")
         {
-            REQUIRE(ro.Get<AS::speed>() == 0);
-            REQUIRE(ro.Get<AS::battery_millivolts>() == 0);
+            REQUIRE(app_state.Get<AS::speed>() == 0);
+            REQUIRE(app_state.Get<AS::battery_millivolts>() == 0);
 
             REQUIRE(sem.try_acquire() == false);
         }
@@ -524,8 +516,8 @@ TEST_CASE("listeners are notified of multiple changes in a batch")
 
     THEN("the writes are done, and the listener notified once")
     {
-        REQUIRE(ro.Get<AS::speed>() == 10);
-        REQUIRE(ro.Get<AS::battery_millivolts>() == 3000);
+        REQUIRE(app_state.Get<AS::speed>() == 10);
+        REQUIRE(app_state.Get<AS::battery_millivolts>() == 3000);
 
         // This test will actually always succeed in unittests, as the code executes sequentially
         REQUIRE(sem.try_acquire() == true);
@@ -536,12 +528,11 @@ TEST_CASE("listeners are notified of multiple changes in a batch")
 TEST_CASE("the build is OK even with parameters not in the application state")
 {
     ApplicationState app_state;
-    auto ro = app_state.CheckoutReadonly();
 
     if constexpr (false)
     {
         // This doesn't exist in the application state, but as a parameter
-        ro.Get<AS::only_as_a_parameter>();
+        app_state.Get<AS::only_as_a_parameter>();
     }
 }
 
@@ -551,14 +542,13 @@ TEST_CASE("A demo of the application state functionality")
 
     auto rw_task_1 = app_state.CheckoutReadWrite();
     auto rw_task_2 = app_state.CheckoutReadWrite();
-    auto ro = app_state.CheckoutReadonly();
 
     GIVEN("the case when a stable state is not needed")
     {
         THEN("the read-only state is immediately affected by writes")
         {
             rw_task_1.Set<AS::speed>(10);
-            REQUIRE(ro.Get<AS::speed>() == 10);
+            REQUIRE(app_state.Get<AS::speed>() == 10);
         }
         AND_THEN("also writers can see each other's writes")
         {
@@ -577,7 +567,7 @@ TEST_CASE("A demo of the application state functionality")
             {
                 snapshot.Set<AS::speed>(30);
 
-                REQUIRE(ro.Get<AS::speed>() == 0);
+                REQUIRE(app_state.Get<AS::speed>() == 0);
                 REQUIRE(snapshot.Get<AS::speed>() == 30);
 
                 // Note: Compile error since battery_millivolts isn't part of the snapshot
@@ -588,7 +578,7 @@ TEST_CASE("A demo of the application state functionality")
         }
         THEN("the writes are done when the snapshot is destroyed")
         {
-            REQUIRE(ro.Get<AS::speed>() == 35);
+            REQUIRE(app_state.Get<AS::speed>() == 35);
         }
     }
 
@@ -606,14 +596,14 @@ TEST_CASE("A demo of the application state functionality")
             // Not yet
             THEN("a queued writer can be used, where the values are written on destruction")
             {
-                REQUIRE(ro.Get<AS::controller_temperature>() == 0);
-                REQUIRE(ro.Get<AS::battery_millivolts>() == 0);
+                REQUIRE(app_state.Get<AS::controller_temperature>() == 0);
+                REQUIRE(app_state.Get<AS::battery_millivolts>() == 0);
             }
         }
         THEN("the writes are done when the writer is destroyed")
         {
-            REQUIRE(ro.Get<AS::controller_temperature>() == 45);
-            REQUIRE(ro.Get<AS::battery_millivolts>() == 3000);
+            REQUIRE(app_state.Get<AS::controller_temperature>() == 45);
+            REQUIRE(app_state.Get<AS::battery_millivolts>() == 3000);
         }
     }
 
@@ -628,7 +618,7 @@ TEST_CASE("A demo of the application state functionality")
                  *   "AS::storage::OrphanNotFound()", referenced from:
                  *       auto& AS::storage::state::GetRef<AS::only_as_a_parameter>() in test_application_state.cc.o
                  */
-                ro.Get<AS::only_as_a_parameter>();
+                app_state.Get<AS::only_as_a_parameter>();
             }
         }
     }

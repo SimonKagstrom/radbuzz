@@ -105,13 +105,13 @@ TileCache::TileCache(ApplicationState& application_state,
                      std::unique_ptr<hal::IPm::ILock> pm_lock,
                      Filesystem& filesystem,
                      HttpsClient& https_client)
-    : m_application_state(application_state)
+    : m_state(application_state)
     , m_post_office(post_office)
     , m_pm_lock(std::move(pm_lock))
     , m_filesystem(filesystem)
     , m_https_client(https_client)
-    , m_state_listener(m_application_state.AttachListener<AS::pixel_position>(GetSemaphore()))
-    , m_pixel_state_cache(m_application_state)
+    , m_state_listener(m_state.AttachListener<AS::pixel_position>(GetSemaphore()))
+    , m_pixel_state_cache(m_state)
     , m_regions(kRegionConfigurations)
     , m_web_thread(std::make_unique<WebThread>(*this))
 {
@@ -160,7 +160,7 @@ TileCache::OnActivation()
         m_regions.TileOnDisk(written);
     }
 
-    auto wifi_connected = AppState().Get<AS::wifi_connected>();
+    auto wifi_connected = m_state.Get<AS::wifi_connected>();
     if (wifi_connected && !m_wifi_was_connected)
     {
         // Retry the tiles which failed last time
@@ -254,7 +254,7 @@ TileCache::FillFromColdStore()
         //        printf("Getting tile %d,%d from cold store\n", t.x, t.y);
         auto data = ReadTile(t);
 
-        auto wifi_connected = AppState().Get<AS::wifi_connected>();
+        auto wifi_connected = m_state.Get<AS::wifi_connected>();
 
         if (data)
         {
@@ -300,7 +300,7 @@ TileCache::FillFromColdStore()
 bool
 TileCache::FillFromServer()
 {
-    if (!AppState().Get<AS::wifi_connected>())
+    if (!m_state.Get<AS::wifi_connected>())
     {
         return false;
     }

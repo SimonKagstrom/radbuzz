@@ -83,7 +83,7 @@ TripComputer::OnStartup()
 
     m_soc_timer = StartTimer(100ms, [this]() {
         std::optional<milliseconds> out = 100ms;
-        if (m_state.CheckoutReadonly().Get<AS::can_bus_active>())
+        if (m_state.Get<AS::can_bus_active>())
         {
             StartMonitoring();
 
@@ -381,15 +381,14 @@ TripComputer::UpdateSpeedAndTime(uint32_t distance_now)
 void
 TripComputer::UpdateTripLog()
 {
-    auto ro = m_state.CheckoutReadonly();
-    if (ro.Get<AS::gps_status>() != GpsStatus::kPositionValid)
+    if (m_state.Get<AS::gps_status>() != GpsStatus::kPositionValid)
     {
         return;
     }
 
-    auto position = *ro.Get<AS::pixel_position>();
+    auto position = *m_state.Get<AS::pixel_position>();
     auto now = os::GetTimeStamp();
-    auto power = ro.Get<AS::current_power_w>();
+    auto power = m_state.Get<AS::current_power_w>();
 
     //    m_export_log.AddEntry(position, now, power);
     auto new_entry_handle = m_display_log.AddEntry(position, now, power);
@@ -402,7 +401,7 @@ TripComputer::UpdateTripLog()
         auto& display_log = m_display_logs[update_log];
 
         display_log.clear();
-        display_log.push_back(DisplayTripLogEntry {position, ro.Get<AS::current_power_w>()});
+        display_log.push_back(DisplayTripLogEntry {position, m_state.Get<AS::current_power_w>()});
         auto pred_handle = new_entry.predecessor;
         while (pred_handle != kInvalidLogHandle)
         {

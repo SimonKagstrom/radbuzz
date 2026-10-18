@@ -655,8 +655,7 @@ app_main(void)
     auto wifi_client = std::make_unique<WifiClientEsp32>();
 
     os::Sleep(3s);
-    auto force_upgrade =
-        application_state.CheckoutReadonly().Get<AS::configuration>()->force_c6_update;
+    auto force_upgrade = application_state.Get<AS::configuration>()->force_c6_update;
     application_state.CheckoutPartialSnapshot<AS::configuration>()
         .GetWritableReference<AS::configuration>()
         .force_c6_update = false;

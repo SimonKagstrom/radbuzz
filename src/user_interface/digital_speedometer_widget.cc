@@ -117,14 +117,13 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
                      kSpeedometerBoxOffset);
     }
 
-    auto ro = state.CheckoutReadonly();
-    auto conf = ro.Get<AS::configuration>();
-    auto gps_speed = std::max(0.0f, ro.Get<AS::position>()->speed);
+    auto conf = state.Get<AS::configuration>();
+    auto gps_speed = std::max(0.0f, state.Get<AS::position>()->speed);
 
     if (show_speedometer && (conf->speedometer_type == SpeedometerType::kDigital ||
                              conf->speedometer_type == SpeedometerType::kBoth))
     {
-        lv_label_set_text(m_speed_digits_label, std::format("{}", ro.Get<AS::speed>()).c_str());
+        lv_label_set_text(m_speed_digits_label, std::format("{}", state.Get<AS::speed>()).c_str());
         lv_label_set_text(m_gps_speed_label,
                           std::format("{}", static_cast<uint8_t>(gps_speed)).c_str());
 
@@ -141,7 +140,7 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
 
     if (show_distance)
     {
-        auto distance = ro.Get<AS::trip_distance>();
+        auto distance = state.Get<AS::trip_distance>();
 
         if (distance >= 1000)
         {
@@ -158,7 +157,7 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
         }
 
 
-        auto seconds = ro.Get<AS::trip_duration>().count();
+        auto seconds = state.Get<AS::trip_duration>().count();
         lv_label_set_text(m_distance_labels[kTripTimeIndex], SecondsToString(seconds).c_str());
 
         if (seconds >= 60)

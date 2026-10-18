@@ -79,7 +79,7 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
     const auto kMidPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_AMBER));
     const auto kHighPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_RED));
 
-    const auto kMaxPower = m_parent.m_state.CheckoutReadonly().Get<AS::configuration>()->max_watts;
+    const auto kMaxPower = m_parent.m_state.Get<AS::configuration>()->max_watts;
 
     auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
     for (++it; it != log.end(); ++it, ++last)
@@ -154,8 +154,7 @@ MapScreen::MapScreen(UserInterface& parent,
                 // Only for the most zoomed out map, because of our insane range
                 if (self->m_zoom == kLandscapeZoom)
                 {
-                    auto range_km =
-                        self->m_parent.m_state.CheckoutReadonly().Get<AS::estimated_range_km>();
+                    auto range_km = self->m_parent.m_state.Get<AS::estimated_range_km>();
                     self->DrawRangeCircle(layer, range_km, 3);
                     self->DrawRangeCircle(layer, range_km / 2, 2);
                 }
@@ -214,8 +213,7 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_text_color(m_home_label, lv_color_black(), LV_PART_MAIN);
     lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
 
-    const uint8_t battery_soc =
-        std::min<uint8_t>(m_parent.m_state.CheckoutReadonly().Get<AS::battery_soc>(), 100);
+    const uint8_t battery_soc = std::min<uint8_t>(m_parent.m_state.Get<AS::battery_soc>(), 100);
 
     LayoutForSidePane(false);
     SetZoom(m_zoom);
@@ -274,8 +272,7 @@ MapScreen::RotateBackground(int32_t angle_deg, uint16_t* dst)
 void
 MapScreen::Update()
 {
-    auto ro = m_parent.m_state.CheckoutReadonly();
-    auto conf = ro.Get<AS::configuration>();
+    auto conf = m_parent.m_state.Get<AS::configuration>();
 
     if (const auto side_pane_shown = m_parent.SidePaneShown();
         side_pane_shown != m_laid_out_for_side_pane)
@@ -303,7 +300,7 @@ MapScreen::Update()
         m_current_view_center = pixel_position;
         if (follow_mode)
         {
-            const float heading = ro.Get<AS::position>()->heading;
+            const float heading = m_parent.m_state.Get<AS::position>()->heading;
             const float normalized_rotation = std::fmod(heading + 180, 360.0f);
             m_rotation = static_cast<uint16_t>(std::lround(normalized_rotation));
             m_rotation_pivot_x = follow_anchor_x;

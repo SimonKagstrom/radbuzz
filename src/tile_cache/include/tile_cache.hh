@@ -121,16 +121,11 @@ private:
     bool DecodePng(std::span<const std::byte> png_data, TileImage& out);
 
     // helpers
-    ApplicationState::ReadOnly AppState() const
-    {
-        return m_application_state.CheckoutReadonly();
-    }
-
     std::string GetTilePath(const Tile& t) const;
 
     std::optional<std::vector<std::byte>> ReadTile(const Tile& t) const;
 
-    ApplicationState& m_application_state;
+    ApplicationState& m_state;
     PostOffice<MSG::AllMessages>& m_post_office;
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     Filesystem& m_filesystem;

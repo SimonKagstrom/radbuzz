@@ -141,7 +141,6 @@ AppSimulator::OnActivation()
 
     const auto odometer_delta = std::max<int32_t>(0, previous_distance_left - m_distance_left);
 
-    auto ro = m_application_state.CheckoutReadonly();
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::odometer,
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
@@ -173,7 +172,7 @@ AppSimulator::OnActivation()
             std::clamp(speed + sign * static_cast<uint8_t>(m_random_engine() % 3), 0, kMaxSpeed));
 
         ps.GetWritableReference<AS::trip_max_speed>() =
-            std::max(ro.Get<AS::trip_max_speed>(), speed);
+            std::max(m_application_state.Get<AS::trip_max_speed>(), speed);
     }
     else
     {

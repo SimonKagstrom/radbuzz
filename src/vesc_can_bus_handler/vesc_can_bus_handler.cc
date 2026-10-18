@@ -37,11 +37,10 @@ VescCanBusHandler::OnStartup()
 {
     m_bus_listener = m_bus.Start(GetSemaphore());
 
-    auto ro = m_state.CheckoutReadonly();
 
     // storage.cc has loaded these before the thread start, so set here
-    m_start_consumed_wh = ro.Get<AS::wh_consumed>();
-    m_start_regen_wh = ro.Get<AS::wh_regenerated>();
+    m_start_consumed_wh = m_state.Get<AS::wh_consumed>();
+    m_start_regen_wh = m_state.Get<AS::wh_regenerated>();
 
     // Update so that conf changes can be read later
     m_state_cache.Pull();
@@ -155,8 +154,7 @@ VescCanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
         return;
     }
 
-    auto ro = m_state.CheckoutReadonly();
-    if (ro.Get<AS::demo_mode>())
+    if (m_state.Get<AS::demo_mode>())
     {
         // Don't update state in demo mode
         return;
@@ -190,7 +188,7 @@ VescCanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
         {
             auto amps = status.current_in;
 
-            auto watts = ro.Get<AS::battery_millivolts>() * amps / 1000.0f;
+            auto watts = m_state.Get<AS::battery_millivolts>() * amps / 1000.0f;
             auto fet_temperature = static_cast<uint8_t>(status.temp_fet);
 
             qw.Set<AS::current_power_w>(static_cast<int16_t>(watts));
@@ -232,7 +230,7 @@ VescCanBusHandler::VescResponseCallback(uint8_t /*controller_id*/,
                 auto speed = static_cast<uint8_t>(km_per_hour);
 
                 qw.Set<AS::speed>(speed);
-                qw.Set<AS::trip_max_speed>(std::max(ro.Get<AS::trip_max_speed>(), speed));
+                qw.Set<AS::trip_max_speed>(std::max(m_state.Get<AS::trip_max_speed>(), speed));
             }
             break;
             case vesc_setup_value_index_t::SETUP_VALUE_INPUT_VOLTAGE_FILTERED: {

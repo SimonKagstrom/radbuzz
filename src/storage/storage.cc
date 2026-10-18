@@ -158,13 +158,12 @@ std::optional<milliseconds>
 Storage::OnActivation()
 {
     auto& co = m_state_cache.Pull();
-    auto ro = m_application_state.CheckoutReadonly();
 
     // Mark as true if demo mode has been active, to not ruin the stored consumption values
-    m_tainted_by_demo_mode |= ro.Get<AS::demo_mode>();
+    m_tainted_by_demo_mode |= m_application_state.Get<AS::demo_mode>();
     auto do_commit = false;
 
-    co.OnNewValue<AS::is_moving>([this, &ro, &do_commit](auto is_moving) {
+    co.OnNewValue<AS::is_moving>([this, &do_commit](auto is_moving) {
         if (!is_moving)
         {
             if (m_tainted_by_demo_mode)
@@ -173,8 +172,8 @@ Storage::OnActivation()
             }
             else
             {
-                m_nvm.Set<float>(kWhConsumedKey, ro.Get<AS::wh_consumed>());
-                m_nvm.Set<float>(kWhRegeneratedKey, ro.Get<AS::wh_regenerated>());
+                m_nvm.Set<float>(kWhConsumedKey, m_application_state.Get<AS::wh_consumed>());
+                m_nvm.Set<float>(kWhRegeneratedKey, m_application_state.Get<AS::wh_regenerated>());
 
                 do_commit = true;
             }

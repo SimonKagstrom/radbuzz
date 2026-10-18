@@ -182,7 +182,6 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 void
 TripMeterScreen::Update()
 {
-    auto ro = m_parent.m_state.CheckoutReadonly();
     const int side_text_baseline_y_offset = GetSideTextBaselineYOffset();
 
     auto trip_start = m_parent.m_current_trip_start;
@@ -217,21 +216,21 @@ TripMeterScreen::Update()
         switch (row.value_kind)
         {
         case StatValueKind::kSoc: {
-            const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
+            const auto total_wh_consumed = m_parent.m_state.Get<AS::wh_consumed>();
             const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
 
             const int wh_percent_used =
-                (consumed_wh /
-                 static_cast<float>(battery::FullPackWh(ro.Get<AS::configuration>()))) *
+                (consumed_wh / static_cast<float>(battery::FullPackWh(
+                                   m_parent.m_state.Get<AS::configuration>()))) *
                 100.0f;
 
-            value_text = std::format("{}", ro.Get<AS::battery_soc>());
+            value_text = std::format("{}", m_parent.m_state.Get<AS::battery_soc>());
             lv_label_set_text(row.second_column->value, std::format("{}", wh_percent_used).c_str());
             break;
         }
         case StatValueKind::kConsumedWh: {
 
-            const auto total_wh_consumed = ro.Get<AS::wh_consumed>();
+            const auto total_wh_consumed = m_parent.m_state.Get<AS::wh_consumed>();
             const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
 
             if (static_cast<int>(consumed_wh) >= 999)
@@ -251,7 +250,7 @@ TripMeterScreen::Update()
 
             debug_assert(row.second_column != nullptr);
             const auto regenerated_wh =
-                ro.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated;
+                m_parent.m_state.Get<AS::wh_regenerated>() - trip_start.start_wh_regenerated;
 
             if (static_cast<int>(regenerated_wh) >= 999)
             {
@@ -276,15 +275,16 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripMaxSpeed: {
-            value_text = std::format("{}", ro.Get<AS::trip_max_speed>());
+            value_text = std::format("{}", m_parent.m_state.Get<AS::trip_max_speed>());
 
             debug_assert(row.second_column != nullptr);
-            lv_label_set_text(row.second_column->value,
-                              std::format("{}", ro.Get<AS::trip_average_speed>()).c_str());
+            lv_label_set_text(
+                row.second_column->value,
+                std::format("{}", m_parent.m_state.Get<AS::trip_average_speed>()).c_str());
             break;
         }
         case StatValueKind::kTripDistance: {
-            auto distance_m = ro.Get<AS::trip_distance>();
+            auto distance_m = m_parent.m_state.Get<AS::trip_distance>();
 
             if (distance_m >= 1000)
             {
@@ -309,13 +309,13 @@ TripMeterScreen::Update()
         }
 
         case StatValueKind::kTime: {
-            auto seconds = ro.Get<AS::trip_duration>().count();
+            auto seconds = m_parent.m_state.Get<AS::trip_duration>().count();
 
             value_text = SecondsToString(seconds);
         }
         break;
         case StatValueKind::kOdometer: {
-            auto odometer_m = ro.Get<AS::odometer>();
+            auto odometer_m = m_parent.m_state.Get<AS::odometer>();
             float distance_km = odometer_m / 1000.0f;
             unit_text = "km";
             value_text = std::format("{:.1f}", distance_km);
@@ -372,7 +372,7 @@ TripMeterScreen::Update()
         ++row_index;
     }
 
-    auto max_power = ro.Get<AS::configuration>()->max_watts;
+    auto max_power = m_parent.m_state.Get<AS::configuration>()->max_watts;
     lv_label_set_text(m_max_power_label, std::format("+{} W", max_power).c_str());
 }
 

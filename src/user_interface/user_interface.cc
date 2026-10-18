@@ -327,13 +327,13 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
     const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
 
-    auto ro = m_state.CheckoutReadonly();
-    auto conf = ro.Get<AS::configuration>();
+    auto conf = m_state.Get<AS::configuration>();
 
     auto height = hal::kDisplayHeight;
     auto y_start = 0;
     // Above the navigation description box
-    if (m_current_screen && m_current_screen->ShowsNavigation() && ro.Get<AS::navigation_active>())
+    if (m_current_screen && m_current_screen->ShowsNavigation() &&
+        m_state.Get<AS::navigation_active>())
     {
         height -= NavigationWidget::kDescriptionBoxHeight;
     }
@@ -348,7 +348,7 @@ UserInterface::DrawPowerBar(uint16_t* dst)
 
     const int pixels_at_max_power = height / 2;
 
-    const auto watts_signed = static_cast<int16_t>(ro.Get<AS::current_power_w>());
+    const auto watts_signed = static_cast<int16_t>(m_state.Get<AS::current_power_w>());
     const int abs_watts = std::abs(watts_signed);
     const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
     const int power_bar_size = (abs_watts * pixels_at_max_power) / max_watts;
@@ -378,12 +378,11 @@ UserInterface::ResetTrip()
 {
     m_post_office.Send<MSG::reset_trip>();
 
-    auto ro = m_state.CheckoutReadonly();
 
     // These are only in the user interface
     m_current_trip_start = {
-        ro.Get<AS::wh_consumed>(),
-        ro.Get<AS::wh_regenerated>(),
+        m_state.Get<AS::wh_consumed>(),
+        m_state.Get<AS::wh_regenerated>(),
     };
 }
 
@@ -400,9 +399,8 @@ UserInterface::OnActivation()
     auto& co = m_state_cache.Pull();
     if (co.IsChanged<AS::pixel_position>())
     {
-        m_distance_home_meters =
-            MetersBetweenPoints(m_state.CheckoutReadonly().Get<AS::configuration>()->home_position,
-                                co.Get<AS::pixel_position>());
+        m_distance_home_meters = MetersBetweenPoints(
+            m_state.Get<AS::configuration>()->home_position, co.Get<AS::pixel_position>());
     }
 
     Input::Event input_event;
