@@ -34,6 +34,21 @@ constexpr auto kHistogramModeOptions = std::to_array<std::string_view>({
 static_assert(std::to_underlying(HistogramMode::kPower) == 0);
 static_assert(std::to_underlying(HistogramMode::kConsumption) == 1);
 
+namespace
+{
+
+template <typename Field>
+auto
+ConfigurationSetter(ApplicationState& state, Field ConfigurationSettings::* field)
+{
+    return [&state, field](auto value) {
+        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+        ps.GetWritableReference<AS::configuration>().*field = static_cast<Field>(value);
+    };
+}
+
+} // namespace
+
 
 SettingsMenuScreen::SettingsMenuScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
@@ -59,91 +74,67 @@ SettingsMenuScreen::OnActivation()
     auto& temperature_limits = settings_page.AddSubPage("Overheating limits");
     {
         temperature_limits.AddNumericEntry(
-            "Motor (°C)", {30, 120, 5}, conf->motor_overheat_temperature, [this](auto value) {
-                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                    .GetWritableReference<AS::configuration>()
-                    .motor_overheat_temperature = static_cast<uint8_t>(value);
-            });
+            "Motor (°C)",
+            {30, 120, 5},
+            conf->motor_overheat_temperature,
+            ConfigurationSetter(m_parent.m_state,
+                                &ConfigurationSettings::motor_overheat_temperature));
         temperature_limits.AddNumericEntry(
             "Controller (°C)",
             {30, 120, 5},
             conf->controller_overheat_temperature,
-            [this](auto value) {
-                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                    .GetWritableReference<AS::configuration>()
-                    .controller_overheat_temperature = static_cast<uint8_t>(value);
-            });
+            ConfigurationSetter(m_parent.m_state,
+                                &ConfigurationSettings::controller_overheat_temperature));
         temperature_limits.AddNumericEntry(
-            "BMS (°C)", {30, 120, 5}, conf->bms_overheat_temperature, [this](auto value) {
-                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                    .GetWritableReference<AS::configuration>()
-                    .bms_overheat_temperature = static_cast<uint8_t>(value);
-            });
+            "BMS (°C)",
+            {30, 120, 5},
+            conf->bms_overheat_temperature,
+            ConfigurationSetter(m_parent.m_state,
+                                &ConfigurationSettings::bms_overheat_temperature));
         temperature_limits.AddNumericEntry(
             "Battery cells (°C)",
             {30, 120, 5},
             conf->cell_overheat_temperature,
-            [this](auto value) {
-                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                    .GetWritableReference<AS::configuration>()
-                    .cell_overheat_temperature = static_cast<uint8_t>(value);
-            });
+            ConfigurationSetter(m_parent.m_state,
+                                &ConfigurationSettings::cell_overheat_temperature));
     }
 
 
     if constexpr (false)
     {
         // Don't display this until we actually have an analogue speedometer
-        settings_page.AddNumericEntry("Max speedometer speed",
-                                      {25, 120, 5},
-                                      conf->max_speedometer_speed,
-                                      [this](auto value) {
-                                          m_parent.m_state
-                                              .CheckoutPartialSnapshot<AS::configuration>()
-                                              .GetWritableReference<AS::configuration>()
-                                              .max_speedometer_speed = static_cast<uint8_t>(value);
-                                      });
+        settings_page.AddNumericEntry(
+            "Max speedometer speed",
+            {25, 120, 5},
+            conf->max_speedometer_speed,
+            ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::max_speedometer_speed));
     }
     settings_page.AddRollerEntry(
         "Profile",
         std::span<const std::string_view>(kProfileOptions),
         kProfileOptions[std::to_underlying(conf->profile)],
-        [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .profile = static_cast<Profile>(value);
-        });
-    settings_page.AddNumericEntry("Battery cell series",
-                                  {1, 36},
-                                  conf->battery_cell_series,
-                                  [this](auto value) {
-                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                                          .GetWritableReference<AS::configuration>()
-                                          .battery_cell_series = static_cast<uint8_t>(value);
-                                  });
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::profile));
     settings_page.AddNumericEntry(
-        "Battery Ah", {1, 100}, conf->battery_amp_hours, [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .battery_amp_hours = static_cast<uint8_t>(value);
-        });
-    settings_page.AddNumericEntry("Wh per km for range estimation",
-                                  {10, 100},
-                                  conf->wh_per_km_for_range_estimation,
-                                  [this](auto value) {
-                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                                          .GetWritableReference<AS::configuration>()
-                                          .wh_per_km_for_range_estimation =
-                                          static_cast<uint8_t>(value);
-                                  });
-    settings_page.AddNumericEntry("Motor watts",
-                                  {500, 10000, 100},
-                                  conf->max_watts,
-                                  [this](auto value) {
-                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                                          .GetWritableReference<AS::configuration>()
-                                          .max_watts = value;
-                                  });
+        "Battery cell series",
+        {1, 36},
+        conf->battery_cell_series,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::battery_cell_series));
+    settings_page.AddNumericEntry(
+        "Battery Ah",
+        {1, 100},
+        conf->battery_amp_hours,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::battery_amp_hours));
+    settings_page.AddNumericEntry(
+        "Wh per km for range estimation",
+        {10, 100},
+        conf->wh_per_km_for_range_estimation,
+        ConfigurationSetter(m_parent.m_state,
+                            &ConfigurationSettings::wh_per_km_for_range_estimation));
+    settings_page.AddNumericEntry(
+        "Motor watts",
+        {500, 10000, 100},
+        conf->max_watts,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::max_watts));
 
 
     if constexpr (false)
@@ -153,55 +144,35 @@ SettingsMenuScreen::OnActivation()
             "Speedometer",
             std::span<const std::string_view>(kSpeedometerTypeOptions),
             kSpeedometerTypeOptions[std::to_underlying(conf->speedometer_type)],
-            [this](auto value) {
-                m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                    .GetWritableReference<AS::configuration>()
-                    .speedometer_type = static_cast<SpeedometerType>(value);
-            });
+            ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::speedometer_type));
     }
     settings_page.AddRollerEntry(
         "Histogram display",
         std::span<const std::string_view>(kHistogramModeOptions),
         kHistogramModeOptions[std::to_underlying(conf->histogram_mode)],
-        [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .histogram_mode = static_cast<HistogramMode>(value);
-        });
-    settings_page.AddNumericEntry("Histogram distance (meters)",
-                                  {25, 1000, 25},
-                                  conf->recent_power_distance,
-                                  [this](auto value) {
-                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                                          .GetWritableReference<AS::configuration>()
-                                          .recent_power_distance = static_cast<uint16_t>(value);
-                                  });
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::histogram_mode));
+    settings_page.AddNumericEntry(
+        "Histogram distance (meters)",
+        {25, 1000, 25},
+        conf->recent_power_distance,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::recent_power_distance));
     settings_page.AddBooleanEntry(
-        "Show GPS speed", conf->show_gps_speed, [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .show_gps_speed = value;
-        });
+        "Show GPS speed",
+        conf->show_gps_speed,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_gps_speed));
     settings_page.AddBooleanEntry(
-        "Rotate map with heading", conf->rotate_map, [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .rotate_map = value;
-        });
-    settings_page.AddBooleanEntry("Show speech bubbles at start",
-                                  conf->show_speech_bubbles,
-                                  [this](auto value) {
-                                      m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                                          .GetWritableReference<AS::configuration>()
-                                          .show_speech_bubbles = value;
-                                  });
+        "Rotate map with heading",
+        conf->rotate_map,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::rotate_map));
+    settings_page.AddBooleanEntry(
+        "Show speech bubbles at start",
+        conf->show_speech_bubbles,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_speech_bubbles));
     settings_page.AddSeparator();
     settings_page.AddBooleanEntry(
-        "Force C6 FW upgrade", conf->force_c6_update, [this](auto value) {
-            m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                .GetWritableReference<AS::configuration>()
-                .force_c6_update = value;
-        });
+        "Force C6 FW upgrade",
+        conf->force_c6_update,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::force_c6_update));
     settings_page.AddEntry("Perform OTA update", [this]() {
         auto rw = m_parent.m_state.CheckoutReadWrite();
         rw.Set<AS::ota_update_active>(true);
