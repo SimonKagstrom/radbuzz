@@ -1,5 +1,37 @@
 # Register the component
-idf_component_register(SRCS "main.cc" INCLUDE_DIRS "")
+idf_component_register(SRCS "main.cc" INCLUDE_DIRS ""
+    # The IDF components used by the regular CMake libraries. With MINIMAL_BUILD,
+    # only these (and their dependencies) are processed and built
+    PRIV_REQUIRES
+        app_update
+        bt
+        driver
+        esp-tls
+        esp_driver_gpio
+        esp_driver_i2c
+        esp_driver_ledc
+        esp_driver_ppa
+        esp_driver_rmt
+        esp_driver_twai
+        esp_driver_uart
+        esp_eth
+        esp_http_client
+        esp_http_server
+        esp_lcd
+        esp_mm
+        esp_netif
+        esp_partition
+        esp_pm
+        esp_timer
+        esp_wifi
+        fatfs
+        freertos
+        mbedtls
+        nvs_flash
+        sdmmc
+        spi_flash
+        vfs
+)
 
 # ... but use regular CMake for the rest
 target_link_libraries(${COMPONENT_TARGET}

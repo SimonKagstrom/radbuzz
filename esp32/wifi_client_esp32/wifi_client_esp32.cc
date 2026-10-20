@@ -4,8 +4,6 @@
 #include <cstring>
 #include <esp_wifi.h>
 
-static const char* TAG = "wifi station";
-
 
 WifiClientEsp32::WifiClientEsp32()
 {

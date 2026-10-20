@@ -9,10 +9,15 @@ add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 #include($ENV{IDF_PATH}/tools/cmake/idf.cmake)
 
+# Only process main and the components it requires, instead of all of esp-idf
+idf_build_set_property(MINIMAL_BUILD ON)
+
 project (radbuzz_waveshare_p4_4_3 LANGUAGES CXX C ASM)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
+
+include(../idf_compile_options.cmake)
 
 add_subdirectory(.. target)
 add_subdirectory(../../external/libmaelir/esp32/st7701_esp32 libmaelir_target_display)

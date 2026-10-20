@@ -14,6 +14,8 @@ project (radbuzz_esp32p4 LANGUAGES CXX C ASM)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
 
+include(../idf_compile_options.cmake)
+
 add_subdirectory(.. target)
 add_subdirectory(../../external/libmaelir/esp32/jd9365_esp32 libmaelir_target_display)
 add_library(display_properties ALIAS display_800x800)
