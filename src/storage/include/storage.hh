@@ -15,8 +15,8 @@ private:
     std::optional<milliseconds> OnActivation() final;
 
     ApplicationState& m_application_state;
-    ListenerCookie m_state_listener;
     hal::INvm& m_nvm;
+    ListenerCookie m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::configuration, AS::is_moving> m_state_cache;
 
     bool m_tainted_by_demo_mode {false};

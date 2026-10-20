@@ -8,9 +8,7 @@ namespace trip
 inline auto
 AverageConsumption(ApplicationState& state, const auto& trip_start)
 {
-
     // For the trip, not the odometer
-    const uint32_t total_distance_m = state.Get<AS::odometer>();
     const uint32_t trip_distance_m = state.Get<AS::trip_distance>();
 
     const float total_wh_consumed = state.Get<AS::wh_consumed>();

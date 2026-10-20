@@ -479,7 +479,7 @@ TileCache::WebThread::OnActivation()
         auto url = GetTileUrl(t);
         auto path = m_parent.GetTilePath(t);
 
-        printf("TileCache: Need tile %d/%d. Getting from WEBBEN\n", t.x, t.y);
+        printf("TileCache: Need tile %ld/%ld. Getting from WEBBEN\n", static_cast<long>(t.x), static_cast<long>(t.y));
         auto data = m_parent.m_https_client.Get(url);
 
         if (data)

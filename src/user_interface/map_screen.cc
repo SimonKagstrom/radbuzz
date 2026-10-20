@@ -123,8 +123,8 @@ MapScreen::MapScreen(UserInterface& parent,
     : ScreenBase(parent, lv_obj_create(nullptr))
     , m_image_cache(image_cache)
     , m_tile_cache(tile_cache)
-    , m_zoom(zoom)
     , m_touch_timer(m_parent.StartTimer(0ms))
+    , m_zoom(zoom)
 {
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_TRANSP, 0);
     lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
@@ -212,8 +212,6 @@ MapScreen::MapScreen(UserInterface& parent,
     lv_obj_set_style_bg_opa(m_home_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_home_label, lv_color_black(), LV_PART_MAIN);
     lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
-
-    const uint8_t battery_soc = std::min<uint8_t>(m_parent.m_state.Get<AS::battery_soc>(), 100);
 
     LayoutForSidePane(false);
     SetZoom(m_zoom);
