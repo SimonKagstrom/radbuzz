@@ -526,7 +526,6 @@ UserInterface::OnActivation()
     {
         return milliseconds(delay);
     }
-        return milliseconds(delay);
 
     return std::nullopt;
 }
