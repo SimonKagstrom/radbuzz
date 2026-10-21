@@ -209,6 +209,14 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
     NullNotifier notifier;
     auto mailbox = post_office.Subscribe<MSG::incoming_call, MSG::call_ended>(notifier);
 
+    std::vector<MSG::incoming_call> calls;
+    auto ended = 0;
+    auto collect = [&]() {
+        mailbox->Collect()
+            .On<MSG::incoming_call>([&calls](auto call) { calls.push_back(*call); })
+            .On<MSG::call_ended>([&ended]() { ended++; });
+    };
+
     ble.Start("ble");
 
     WHEN("an incoming call is received")
@@ -220,11 +228,11 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
 
         THEN("the caller is sent as a message")
         {
-            auto msg = mailbox->Pop();
-            REQUIRE(msg);
-            REQUIRE(msg->Is<MSG::incoming_call>());
-            CHECK(msg->As<MSG::incoming_call>()->caller_name == "Gregor Samsa");
-            CHECK(msg->As<MSG::incoming_call>()->caller_number == "+46701234567");
+            collect();
+            REQUIRE(calls.size() == 1);
+            CHECK(calls[0].caller_name == "Gregor Samsa");
+            CHECK(calls[0].caller_number == "+46701234567");
+            CHECK(ended == 0);
         }
         AND_THEN("the call ongoing status is updated")
         {
@@ -237,12 +245,11 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
                        "\x10GB({\"t\":\"call\",\"cmd\":\"end\",\"name\":\"\",\"number\":\"\"})\n");
             DoRunLoop();
 
-            THEN("that is sent as a message")
+            THEN("that is sent as a message, after the incoming call")
             {
-                bool ended = false;
-
-                mailbox->Collect().On<MSG::call_ended>([&ended]() { ended = true; });
-                REQUIRE(ended);
+                collect();
+                CHECK(calls.size() == 1);
+                CHECK(ended == 1);
             }
             AND_THEN("the call ongoing status is updated")
             {
@@ -259,7 +266,9 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
 
         THEN("no message is sent (for now)")
         {
-            REQUIRE(mailbox->Pop() == std::nullopt);
+            collect();
+            CHECK(calls.empty());
+            CHECK(ended == 0);
         }
     }
 }
@@ -268,6 +277,14 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
 {
     NullNotifier notifier;
     auto mailbox = post_office.Subscribe<MSG::message, MSG::dismiss_message>(notifier);
+
+    std::vector<MSG::message> messages;
+    std::vector<MSG::dismiss_message> dismissed;
+    auto collect = [&]() {
+        mailbox->Collect()
+            .On<MSG::message>([&messages](auto msg) { messages.push_back(*msg); })
+            .On<MSG::dismiss_message>([&dismissed](auto msg) { dismissed.push_back(*msg); });
+    };
 
     ble.Start("ble");
 
@@ -281,14 +298,13 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
 
         THEN("it is sent as a message")
         {
-            auto msg = mailbox->Pop();
-            REQUIRE(msg);
-            REQUIRE(msg->Is<MSG::message>());
-            auto message = msg->As<MSG::message>();
-            CHECK(message->id == 1790422616);
-            CHECK(message->source == "Gmail");
-            CHECK(message->title == "Prisjakt");
-            CHECK(message->body == "Logga in\nDags");
+            collect();
+            REQUIRE(messages.size() == 1);
+            CHECK(messages[0].id == 1790422616);
+            CHECK(messages[0].source == "Gmail");
+            CHECK(messages[0].title == "Prisjakt");
+            CHECK(messages[0].body == "Logga in\nDags");
+            CHECK(dismissed.empty());
         }
     }
 
@@ -301,13 +317,11 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
 
         THEN("the sender is the title, and the subject goes first in the body")
         {
-            auto msg = mailbox->Pop();
-            REQUIRE(msg);
-            REQUIRE(msg->Is<MSG::message>());
-            auto message = msg->As<MSG::message>();
-            CHECK(message->id == static_cast<uint32_t>(-2));
-            CHECK(message->title == "+46701234567");
-            CHECK(message->body == "Hello\nHi");
+            collect();
+            REQUIRE(messages.size() == 1);
+            CHECK(messages[0].id == static_cast<uint32_t>(-2));
+            CHECK(messages[0].title == "+46701234567");
+            CHECK(messages[0].body == "Hello\nHi");
         }
     }
 
@@ -318,7 +332,9 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
 
         THEN("it is ignored")
         {
-            REQUIRE(mailbox->Pop() == std::nullopt);
+            collect();
+            CHECK(messages.empty());
+            CHECK(dismissed.empty());
         }
     }
 
@@ -331,7 +347,9 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
 
         THEN("they are ignored")
         {
-            REQUIRE(mailbox->Pop() == std::nullopt);
+            collect();
+            CHECK(messages.empty());
+            CHECK(dismissed.empty());
         }
     }
 
@@ -342,10 +360,10 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
 
         THEN("that is sent as a message")
         {
-            auto msg = mailbox->Pop();
-            REQUIRE(msg);
-            REQUIRE(msg->Is<MSG::dismiss_message>());
-            CHECK(msg->As<MSG::dismiss_message>()->id == 1790422616);
+            collect();
+            REQUIRE(dismissed.size() == 1);
+            CHECK(dismissed[0].id == 1790422616);
+            CHECK(messages.empty());
         }
     }
 }
