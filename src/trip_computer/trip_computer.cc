@@ -216,15 +216,19 @@ TripComputer::UpdateRange()
 void
 TripComputer::ResetTrip()
 {
-    auto rw = m_state.CheckoutReadWrite();
-    m_trip_start_distance = rw.Get<AS::odometer>();
+    m_trip_start_distance = m_state.Get<AS::odometer>();
 
-    rw.Set<AS::trip_distance>(0);
-    rw.Set<AS::trip_duration>(0s);
-    rw.Set<AS::trip_average_speed>(0);
-    rw.Set<AS::is_moving>(false);
+    auto qw = m_state.CheckoutQueuedWriter<AS::trip_distance,
+                                           AS::trip_duration,
+                                           AS::trip_average_speed,
+                                           AS::is_moving,
+                                           AS::trip_max_speed>();
+    qw.Set<AS::trip_distance>(0);
+    qw.Set<AS::trip_duration>(0s);
+    qw.Set<AS::trip_average_speed>(0);
+    qw.Set<AS::is_moving>(false);
     // Set by the can bus handler
-    rw.Set<AS::trip_max_speed>(0);
+    qw.Set<AS::trip_max_speed>(0);
 
     m_display_logs[0].clear();
     m_display_logs[1].clear();
