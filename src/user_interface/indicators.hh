@@ -78,8 +78,6 @@ public:
         : UserInterface::IndicatorBase(parent, position, &radbuzz_symbols_22)
     {
         lv_label_set_text(m_indicator_label, std::format("#4CAF50 {}#", LV_SYMBOL_WIFI).c_str());
-        // The icon is a bit off, so push a few pixels
-        lv_obj_set_pos(m_indicator_label, position.x - 2, position.y);
     }
 
     void Update(ApplicationState& state) final
@@ -97,8 +95,6 @@ public:
     {
         lv_label_set_text(m_indicator_label,
                           std::format("#4CAF50 {}#", LV_SYMBOL_BLUETOOTH).c_str());
-        // Also off, push
-        lv_obj_set_pos(m_indicator_label, position.x + 3, position.y);
     }
 
     void Update(ApplicationState& state) final

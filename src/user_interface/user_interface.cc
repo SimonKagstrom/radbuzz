@@ -29,6 +29,37 @@ enum IndicatorType
     kValueCount,
 };
 
+namespace
+{
+
+// The small status icons (paused, wifi, bluetooth), at the bottom of the indicator column
+constexpr auto kStatusIndicatorRowSpacing = 28;
+constexpr auto kStatusIndicatorTopY = 290;
+// Just above the bottom of the screen on the map
+constexpr auto kStatusIndicatorMapBottomMargin = 2;
+
+// With their symbol (see lv_symbol_def.h), for the alignment
+constexpr std::array<std::pair<IndicatorType, uint32_t>, 3> kStatusIndicators = {{
+    {IndicatorType::kPaused, 0xf04c},
+    {IndicatorType::kWifi, 0xf1eb},
+    {IndicatorType::kBluetooth, 0xf293},
+}};
+// The warning symbol, which the status icons are right aligned with
+constexpr uint32_t kWarningSymbol = 0xf071;
+
+// The visible part of a glyph, relative to the label x position
+std::pair<int32_t, int32_t>
+GetGlyphLeftRight(const lv_font_t* font, uint32_t letter)
+{
+    lv_font_glyph_dsc_t dsc {};
+
+    lv_font_get_glyph_dsc(font, &dsc, letter, 0);
+
+    return {dsc.ofs_x, dsc.ofs_x + dsc.box_w};
+}
+
+} // namespace
+
 
 UserInterface::IndicatorBase::IndicatorBase(UserInterface& parent,
                                             const Point& position,
@@ -223,11 +254,7 @@ UserInterface::OnStartup()
     // The battery icon is at the top right, and the rest in a column to the right. Warnings are
     // large and at the top of the column, the status icons small, at the bottom
     constexpr auto kIndicatorRowSpacing = 46;
-    constexpr auto kStatusIndicatorRowSpacing = 28;
-    // Centered below the large icons
-    constexpr auto kStatusIndicatorColumn = kIndicatorColumn + 9;
     auto indicator_row_y = DigitalSpeedometerWidget::kBoxDimensions - 46;
-    auto status_indicator_row_y = 290 - kStatusIndicatorRowSpacing;
 
 
     m_indicators.resize(std::to_underlying(IndicatorType::kValueCount));
@@ -243,15 +270,30 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kGpsLost] = std::make_unique<GpsLostIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
 
-    m_indicators[IndicatorType::kPaused] = std::make_unique<PausedIndicator>(
-        *this,
-        Point {kStatusIndicatorColumn, status_indicator_row_y += kStatusIndicatorRowSpacing});
-    m_indicators[IndicatorType::kWifi] = std::make_unique<WifiIndicator>(
-        *this,
-        Point {kStatusIndicatorColumn, status_indicator_row_y += kStatusIndicatorRowSpacing});
-    m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
-        *this,
-        Point {kStatusIndicatorColumn, status_indicator_row_y += kStatusIndicatorRowSpacing});
+    m_indicators[IndicatorType::kPaused] =
+        std::make_unique<PausedIndicator>(*this, Point {kIndicatorColumn, 0});
+    m_indicators[IndicatorType::kWifi] =
+        std::make_unique<WifiIndicator>(*this, Point {kIndicatorColumn, 0});
+    m_indicators[IndicatorType::kBluetooth] =
+        std::make_unique<BluetoothIndicator>(*this, Point {kIndicatorColumn, 0});
+
+    // Right aligned with the large icons: the widest (wifi), with the others centered on it.
+    // Placed vertically by PlaceStatusIndicators()
+    auto widest = 0;
+    for (auto [type, symbol] : kStatusIndicators)
+    {
+        auto [left, right] = GetGlyphLeftRight(&radbuzz_symbols_22, symbol);
+        widest = std::max(widest, right - left);
+    }
+    const auto status_indicator_center =
+        kIndicatorColumn + GetGlyphLeftRight(&radbuzz_symbols_40, kWarningSymbol).second -
+        widest / 2;
+    for (auto [type, symbol] : kStatusIndicators)
+    {
+        auto [left, right] = GetGlyphLeftRight(&radbuzz_symbols_22, symbol);
+        lv_obj_set_x(m_indicators[type]->m_indicator_label,
+                     status_indicator_center - (left + right) / 2);
+    }
 
     ActivateScreen(*m_speedometer_only_screen);
     ResetTrip();
@@ -504,6 +546,7 @@ UserInterface::OnActivation()
                                   side_pane_shown ? SidePane::kWidth : 0);
     m_navigation->Update(
         m_state, m_current_screen->ShowsNavigation(), side_pane_shown ? SidePane::kWidth : 0);
+    PlaceStatusIndicators();
     for (auto& indicator : m_indicators)
     {
         indicator->Update(m_state);
@@ -559,6 +602,31 @@ UserInterface::ShowIncomingCall(const MSG::incoming_call& call)
 
     m_screen_before_call = m_current_screen;
     ActivateScreen(*call_screen, true);
+}
+
+void
+UserInterface::PlaceStatusIndicators()
+{
+    auto y = kStatusIndicatorTopY;
+
+    // At the bottom of the map, more natural there. Above the navigation description box if shown
+    if (OnMapScreen())
+    {
+        auto bottom = hal::kDisplayHeight - kStatusIndicatorMapBottomMargin;
+        if (m_state.Get<AS::navigation_active>())
+        {
+            bottom -= NavigationWidget::kDescriptionBoxHeight;
+        }
+
+        y = bottom - (kStatusIndicators.size() - 1) * kStatusIndicatorRowSpacing -
+            lv_font_get_line_height(&radbuzz_symbols_22);
+    }
+
+    for (auto [type, symbol] : kStatusIndicators)
+    {
+        lv_obj_set_y(m_indicators[type]->m_indicator_label, y);
+        y += kStatusIndicatorRowSpacing;
+    }
 }
 
 void

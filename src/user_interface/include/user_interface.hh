@@ -219,6 +219,8 @@ private:
 
     // Hide the pane during calls
     void UpdateSidePane();
+    // The status icons are at the bottom of the screen on the map, otherwise below the warnings
+    void PlaceStatusIndicators();
 
     // Return to the screen which was active before the call
     void EndIncomingCall();
