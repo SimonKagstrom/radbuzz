@@ -279,7 +279,7 @@ UserInterface::OnStartup()
 
     // Right aligned with the large icons: the widest (wifi), with the others centered on it.
     // Placed vertically by PlaceStatusIndicators()
-    auto widest = 0;
+    int32_t widest = 0;
     for (auto [type, symbol] : kStatusIndicators)
     {
         auto [left, right] = GetGlyphLeftRight(&radbuzz_symbols_22, symbol);
