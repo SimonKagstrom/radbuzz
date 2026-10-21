@@ -110,7 +110,10 @@ public:
     public:
         friend class UserInterface;
 
-        IndicatorBase(UserInterface& parent, const Point& position);
+        // Warnings use the large font, and status icons (connected etc) the small one
+        IndicatorBase(UserInterface& parent,
+                      const Point& position,
+                      const lv_font_t* font = nullptr);
         virtual ~IndicatorBase() = default;
 
         virtual void Update(ApplicationState& state) = 0;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "radbuzz_font_22.h"
+#include "radbuzz_symbols_22.h"
 #include "user_interface.hh"
 
 class BatteryIndicator final : public UserInterface::IndicatorBase
@@ -74,11 +75,11 @@ class WifiIndicator final : public UserInterface::IndicatorBase
 {
 public:
     WifiIndicator(UserInterface& parent, const Point& position)
-        : UserInterface::IndicatorBase(parent, position)
+        : UserInterface::IndicatorBase(parent, position, &radbuzz_symbols_22)
     {
         lv_label_set_text(m_indicator_label, std::format("#4CAF50 {}#", LV_SYMBOL_WIFI).c_str());
         // The icon is a bit off, so push a few pixels
-        lv_obj_set_pos(m_indicator_label, position.x - 4, position.y);
+        lv_obj_set_pos(m_indicator_label, position.x - 2, position.y);
     }
 
     void Update(ApplicationState& state) final
@@ -92,12 +93,12 @@ class BluetoothIndicator final : public UserInterface::IndicatorBase
 {
 public:
     BluetoothIndicator(UserInterface& parent, const Point& position)
-        : UserInterface::IndicatorBase(parent, position)
+        : UserInterface::IndicatorBase(parent, position, &radbuzz_symbols_22)
     {
         lv_label_set_text(m_indicator_label,
                           std::format("#4CAF50 {}#", LV_SYMBOL_BLUETOOTH).c_str());
         // Also off, push
-        lv_obj_set_pos(m_indicator_label, position.x + 2, position.y);
+        lv_obj_set_pos(m_indicator_label, position.x + 3, position.y);
     }
 
     void Update(ApplicationState& state) final
@@ -112,7 +113,7 @@ class PausedIndicator final : public UserInterface::IndicatorBase
 {
 public:
     PausedIndicator(UserInterface& parent, const Point& position)
-        : UserInterface::IndicatorBase(parent, position)
+        : UserInterface::IndicatorBase(parent, position, &radbuzz_symbols_22)
     {
         lv_label_set_text(m_indicator_label, std::format("#4CAF50 {}#", LV_SYMBOL_PAUSE).c_str());
     }

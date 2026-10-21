@@ -12,6 +12,7 @@
 #include "trip_meter_screen.hh"
 
 #include <radbuzz_font_22.h>
+#include <radbuzz_symbols_22.h>
 #include <radbuzz_symbols_40.h>
 
 enum IndicatorType
@@ -29,12 +30,14 @@ enum IndicatorType
 };
 
 
-UserInterface::IndicatorBase::IndicatorBase(UserInterface& parent, const Point& position)
+UserInterface::IndicatorBase::IndicatorBase(UserInterface& parent,
+                                            const Point& position,
+                                            const lv_font_t* font)
     : m_parent(parent)
     , m_indicator_label(lv_label_create(lv_layer_top()))
 {
 
-    lv_obj_set_style_text_font(m_indicator_label, &radbuzz_symbols_40, LV_PART_MAIN);
+    lv_obj_set_style_text_font(m_indicator_label, font ? font : &radbuzz_symbols_40, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_indicator_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_label_set_recolor(m_indicator_label, true);
     lv_label_set_text(m_indicator_label, "");
@@ -217,9 +220,14 @@ UserInterface::OnStartup()
     // indicators, so that they are drawn on top of it
     m_side_pane = std::make_unique<SidePane>(lv_layer_top());
 
-    // The battery icon is at the top right, and the rest in a column to the lright
+    // The battery icon is at the top right, and the rest in a column to the right. Warnings are
+    // large and at the top of the column, the status icons small, at the bottom
     constexpr auto kIndicatorRowSpacing = 46;
+    constexpr auto kStatusIndicatorRowSpacing = 28;
+    // Centered below the large icons
+    constexpr auto kStatusIndicatorColumn = kIndicatorColumn + 9;
     auto indicator_row_y = DigitalSpeedometerWidget::kBoxDimensions - 46;
+    auto status_indicator_row_y = 290 - kStatusIndicatorRowSpacing;
 
 
     m_indicators.resize(std::to_underlying(IndicatorType::kValueCount));
@@ -234,12 +242,16 @@ UserInterface::OnStartup()
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
     m_indicators[IndicatorType::kGpsLost] = std::make_unique<GpsLostIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
+
     m_indicators[IndicatorType::kPaused] = std::make_unique<PausedIndicator>(
-        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
+        *this,
+        Point {kStatusIndicatorColumn, status_indicator_row_y += kStatusIndicatorRowSpacing});
     m_indicators[IndicatorType::kWifi] = std::make_unique<WifiIndicator>(
-        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
+        *this,
+        Point {kStatusIndicatorColumn, status_indicator_row_y += kStatusIndicatorRowSpacing});
     m_indicators[IndicatorType::kBluetooth] = std::make_unique<BluetoothIndicator>(
-        *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
+        *this,
+        Point {kStatusIndicatorColumn, status_indicator_row_y += kStatusIndicatorRowSpacing});
 
     ActivateScreen(*m_speedometer_only_screen);
     ResetTrip();

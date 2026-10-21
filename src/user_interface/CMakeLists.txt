@@ -61,8 +61,8 @@ convert_symbols(radbuzz_symbols_40
 
 convert_symbols(radbuzz_symbols_22
     22
-    # Home
-    0xf015
+    # Home, pause, WiFi, BLE (the small status indicators)
+    0xf015,0xf04C,0xf1eb,0xf293
 )
 
 # Small font
