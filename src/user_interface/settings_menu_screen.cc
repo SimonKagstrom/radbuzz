@@ -174,9 +174,8 @@ SettingsMenuScreen::OnActivation()
         conf->force_c6_update,
         ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::force_c6_update));
     settings_page.AddEntry("Perform OTA update", [this]() {
-        auto rw = m_parent.m_state.CheckoutReadWrite();
-        rw.Set<AS::ota_update_active>(true);
-        rw.Set<AS::demo_mode>(false);
+        m_parent.m_state.Set<AS::ota_update_active>(true);
+        m_parent.m_state.Set<AS::demo_mode>(false);
 
         m_parent.ActivateScreen(*m_parent.m_ota_update_screen);
     });
@@ -190,7 +189,7 @@ SettingsMenuScreen::OnActivation()
         m_parent.m_help_enabled = value;
     });
     main.AddBooleanEntry("Demo mode", m_parent.m_state.Get<AS::demo_mode>(), [this](auto value) {
-        m_parent.m_state.CheckoutReadWrite().Set<AS::demo_mode>(value);
+        m_parent.m_state.Set<AS::demo_mode>(value);
     });
 
 

@@ -19,10 +19,8 @@ public:
 
     void Update(TurnSymbol symbol, std::string_view distance)
     {
-        auto rw = state.CheckoutReadWrite();
-
-        rw.Set<AS::turn_symbol>(symbol);
-        rw.Set<AS::distance_to_next>(std::string(distance));
+        state.Set<AS::turn_symbol>(symbol);
+        state.Set<AS::distance_to_next>(std::string(distance));
 
         // Let the buzzers turn off before the next update
         AdvanceTimeAndRunLoop(1s);

@@ -115,8 +115,7 @@ TripComputer::StartMonitoring()
             }
         }
 
-        auto rw = m_state.CheckoutReadWrite();
-        auto odometer = rw.Get<AS::odometer>();
+        auto odometer = m_state.Get<AS::odometer>();
 
         UpdateSpeedAndTime(odometer);
         UpdateRange();
@@ -192,9 +191,7 @@ TripComputer::UpdateRecentEntries(uint32_t odometer)
 void
 TripComputer::UpdateRange()
 {
-    auto rw = m_state.CheckoutReadWrite();
-
-    auto soc = rw.Get<AS::battery_soc>();
+    auto soc = m_state.Get<AS::battery_soc>();
     if (m_last_soc == soc)
     {
         // No need to update the range
@@ -203,14 +200,14 @@ TripComputer::UpdateRange()
 
     m_last_soc = soc;
 
-    const auto conf = rw.Get<AS::configuration>();
+    const auto conf = m_state.Get<AS::configuration>();
     const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
 
     auto full_pack_wh = battery::FullPackWh(conf);
     const float wh_left = full_pack_wh * (static_cast<float>(soc) / 100.0f);
     uint32_t range = std::max(1.0f, wh_left / static_cast<float>(wh_per_km));
 
-    rw.Set<AS::estimated_range_km>(range);
+    m_state.Set<AS::estimated_range_km>(range);
 }
 
 void
@@ -243,8 +240,7 @@ TripComputer::ResetTrip()
 void
 TripComputer::UpdateSoc(uint16_t millivolts)
 {
-    auto rw = m_state.CheckoutReadWrite();
-    auto battery_cell_series = rw.Get<AS::configuration>()->battery_cell_series;
+    auto battery_cell_series = m_state.Get<AS::configuration>()->battery_cell_series;
 
     if (battery_cell_series == 0)
     {
@@ -252,12 +248,12 @@ TripComputer::UpdateSoc(uint16_t millivolts)
         return;
     }
 
-    if (m_millivolt_history.empty() && rw.Get<AS::demo_mode>() == false)
+    if (m_millivolt_history.empty() && m_state.Get<AS::demo_mode>() == false)
     {
-        rw.Set<AS::battery_soc>(InterpolateSoc(millivolts, battery_cell_series));
+        m_state.Set<AS::battery_soc>(InterpolateSoc(millivolts, battery_cell_series));
     }
 
-    if (rw.Get<AS::current_power_w>() > kBatterySenseLimit)
+    if (m_state.Get<AS::current_power_w>() > kBatterySenseLimit)
     {
         // Limit SOC updates on high power
         return;
@@ -338,46 +334,50 @@ TripComputer::OnActivation()
 void
 TripComputer::UpdateSpeedAndTime(uint32_t distance_now)
 {
-    auto rw = m_state.CheckoutReadWrite();
+    auto qw = m_state.CheckoutQueuedWriter<AS::is_moving,
+                                           AS::trip_duration,
+                                           AS::trip_distance,
+                                           AS::trip_average_speed>();
 
     auto is_moving_now = distance_now != m_current_distance;
+    auto is_moving = m_state.Get<AS::is_moving>();
     auto now = std::chrono::duration_cast<seconds>(os::GetTimeStamp());
 
     if (is_moving_now)
     {
-        if (!rw.Get<AS::is_moving>())
+        if (!is_moving)
         {
             // Take the current value into account
-            m_current_trip_movement_second = now - rw.Get<AS::trip_duration>();
+            m_current_trip_movement_second = now - m_state.Get<AS::trip_duration>();
         }
 
-        rw.Set<AS::is_moving>(true);
+        is_moving = true;
+        qw.Set<AS::is_moving>(true);
 
         // Restart the cancel timer
         m_moving_timer = StartTimer(5s, [this]() {
-            auto rw = m_state.CheckoutReadWrite();
-            rw.Set<AS::is_moving>(false);
+            m_state.Set<AS::is_moving>(false);
             return std::nullopt;
         });
     }
 
-    if (rw.Get<AS::is_moving>())
+    if (is_moving)
     {
         auto trip_duration = now - m_current_trip_movement_second;
         auto trip_distance = distance_now - m_trip_start_distance;
 
-        rw.Set<AS::trip_duration>(trip_duration);
-        rw.Set<AS::trip_distance>(trip_distance);
+        qw.Set<AS::trip_duration>(trip_duration);
+        qw.Set<AS::trip_distance>(trip_distance);
 
         if (trip_duration.count() != 0)
         {
-            rw.Set<AS::trip_average_speed>(
+            qw.Set<AS::trip_average_speed>(
                 static_cast<uint8_t>(trip_distance * 3.6f / trip_duration.count()));
         }
         else
         {
             // Shouldn't happen, but why take a chance?
-            rw.Set<AS::trip_average_speed>(0);
+            qw.Set<AS::trip_average_speed>(0);
         }
     }
 }

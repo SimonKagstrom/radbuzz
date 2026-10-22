@@ -64,12 +64,10 @@ main(int argc, char* argv[])
     ApplicationState application_state;
     PostOffice<MSG::AllMessages> post_office;
 
-    auto rw = application_state.CheckoutReadWrite();
-
-    rw.Set<AS::wifi_connected>(true);
-    rw.Set<AS::demo_mode>(!use_ble);
+    application_state.Set<AS::wifi_connected>(true);
+    application_state.Set<AS::demo_mode>(!use_ble);
     // Stored by VESC, so update to 100km + some random number here
-    rw.Set<AS::odometer>(100 * 1000 + rand() % 2000);
+    application_state.Set<AS::odometer>(100 * 1000 + rand() % 2000);
 
     auto wifi_client = std::make_unique<WifiClientHost>();
 

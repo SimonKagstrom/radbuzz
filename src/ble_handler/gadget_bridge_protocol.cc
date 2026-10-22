@@ -153,11 +153,11 @@ GadgetBridgeProtocol::Poll()
         .On<MSG::answer_call>([this]() { SendCallControl("accept"); })
         .On<MSG::decline_call>([this]() {
             SendCallControl("reject");
-            m_state.CheckoutReadWrite().Set<AS::call_ongoing>(false);
+            m_state.Set<AS::call_ongoing>(false);
         })
         .On<MSG::hangup_call>([this]() {
             SendCallControl("end");
-            m_state.CheckoutReadWrite().Set<AS::call_ongoing>(false);
+            m_state.Set<AS::call_ongoing>(false);
         });
 }
 
@@ -267,12 +267,12 @@ GadgetBridgeProtocol::HandleCallEvent(const nlohmann::json& json)
     {
         m_post_office.Send<MSG::incoming_call>(
             {GetString(json, "number"), GetString(json, "name")});
-        m_state.CheckoutReadWrite().Set<AS::call_ongoing>(true);
+        m_state.Set<AS::call_ongoing>(true);
     }
     else if (cmd == "end" || cmd == "reject")
     {
         m_post_office.Send<MSG::call_ended>();
-        m_state.CheckoutReadWrite().Set<AS::call_ongoing>(false);
+        m_state.Set<AS::call_ongoing>(false);
     }
     // TODO: "start" (answered, possibly on the phone) for the ongoing call indicator
 }
@@ -294,7 +294,7 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
     if (!json.contains("action"))
     {
         m_navigation_active_timer = nullptr;
-        m_state.CheckoutReadWrite().Set<AS::navigation_active>(false);
+        m_state.Set<AS::navigation_active>(false);
         return;
     }
 
@@ -315,9 +315,7 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
 
     // Long timeout for the case where the moped is stopped
     m_navigation_active_timer = m_timer_manager.StartTimer(1min, [this]() {
-        auto rw = m_state.CheckoutReadWrite();
-
-        rw.Set<AS::navigation_active>(false);
+        m_state.Set<AS::navigation_active>(false);
 
         return std::nullopt;
     });

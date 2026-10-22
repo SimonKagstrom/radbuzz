@@ -275,13 +275,13 @@ WifiHandler::Evaluate(RetryConnect& state)
 void
 WifiHandler::Enter(Connected&)
 {
-    m_state.CheckoutReadWrite().Set<AS::wifi_connected>(true);
+    m_state.Set<AS::wifi_connected>(true);
 }
 
 void
 WifiHandler::Exit(Connected&)
 {
-    m_state.CheckoutReadWrite().Set<AS::wifi_connected>(false);
+    m_state.Set<AS::wifi_connected>(false);
 }
 
 WifiHandler::Connected::Next

@@ -21,28 +21,24 @@ TEST_CASE("The application state has default values")
 TEST_CASE("Writes are seen immediately in read-only checkouts")
 {
     ApplicationState app_state;
-    auto rw = app_state.CheckoutReadWrite();
-
     REQUIRE(app_state.Get<AS::speed>() == 0);
-    REQUIRE(rw.Get<AS::speed>() == 0);
+    REQUIRE(app_state.Get<AS::speed>() == 0);
 
-    rw.Set<AS::speed>(10);
+    app_state.Set<AS::speed>(10);
     REQUIRE(app_state.Get<AS::speed>() == 10);
-    REQUIRE(rw.Get<AS::speed>() == 10);
+    REQUIRE(app_state.Get<AS::speed>() == 10);
 }
 
 TEST_CASE("Non-atomic members are kept alive via shared pointers")
 {
     ApplicationState app_state;
-    auto rw = app_state.CheckoutReadWrite();
-
-    rw.Set<AS::next_street>("St Mickelsgatan");
+    app_state.Set<AS::next_street>("St Mickelsgatan");
     auto s = app_state.Get<AS::next_street>();
     auto s2 = app_state.Get<AS::next_street>();
     REQUIRE(*s == "St Mickelsgatan");
     REQUIRE(*s2 == "St Mickelsgatan");
     REQUIRE(s.get() == s2.get()); // Same pointer
-    rw.Set<AS::next_street>("Östra Prinsgatan");
+    app_state.Set<AS::next_street>("Östra Prinsgatan");
     auto s3 = app_state.Get<AS::next_street>();
     REQUIRE(*s == "St Mickelsgatan");
     REQUIRE(*s2 == "St Mickelsgatan");
@@ -55,15 +51,13 @@ TEST_CASE("Non-atomic members are kept alive via shared pointers")
 TEST_CASE("Non-atomic structs can be written via value")
 {
     ApplicationState app_state;
-    auto rw = app_state.CheckoutReadWrite();
-
     GpsData gps_data {
         .position = {59.3293f, 18.0686f},
         .speed = 50.0f,
         .heading = 90.0f,
     };
 
-    rw.Set<AS::position>(gps_data);
+    app_state.Set<AS::position>(gps_data);
     auto p = app_state.Get<AS::position>();
 
     REQUIRE(p->position == GpsPosition {59.3293f, 18.0686f});
@@ -87,23 +81,22 @@ TEST_CASE("Partial snapshot sizes are reasonable")
 TEST_CASE("A partial snapshot keeps a cached state")
 {
     ApplicationState app_state;
-    auto rw = app_state.CheckoutReadWrite();
     auto snapshot = app_state.CheckoutPartialSnapshot<AS::speed, AS::battery_millivolts>();
 
     REQUIRE(snapshot.Get<AS::speed>() == 0);
 
     // In the snapshot
-    rw.Set<AS::speed>(10);
+    app_state.Set<AS::speed>(10);
     // Not in the snapshot
-    rw.Set<AS::controller_temperature>(45);
+    app_state.Set<AS::controller_temperature>(45);
 
-    REQUIRE(rw.Get<AS::speed>() == 10);
+    REQUIRE(app_state.Get<AS::speed>() == 10);
     // Uses the cached copy
     REQUIRE(snapshot.Get<AS::speed>() == 0);
-    REQUIRE(rw.Get<AS::controller_temperature>() == 45);
+    REQUIRE(app_state.Get<AS::controller_temperature>() == 45);
 
     snapshot.Set<AS::speed>(20);
-    REQUIRE(rw.Get<AS::speed>() == 10);
+    REQUIRE(app_state.Get<AS::speed>() == 10);
     REQUIRE(snapshot.Get<AS::speed>() == 20);
 }
 
@@ -111,7 +104,7 @@ TEST_CASE("A partial snapshot keeps a cached state")
 TEST_CASE("Writes in partial snapshots are written back on destruction")
 {
     ApplicationState app_state;
-    app_state.CheckoutReadWrite().Set<AS::next_street>("Tunavägen");
+    app_state.Set<AS::next_street>("Tunavägen");
 
     {
         auto snapshot = app_state.CheckoutPartialSnapshot<AS::speed, AS::next_street>();
@@ -138,11 +131,9 @@ TEST_CASE("PartialStateCaches can be used to track changes")
         ApplicationState::PartialReadOnlyCache<AS::speed, AS::battery_millivolts, AS::next_street>(
             app_state);
 
-    auto rw = app_state.CheckoutReadWrite();
-
     WHEN("a value in the global application state is changed")
     {
-        rw.Set<AS::speed>(10);
+        app_state.Set<AS::speed>(10);
 
         THEN("it's not visible until Pull is called on the partial state cache")
         {
@@ -177,7 +168,7 @@ TEST_CASE("PartialStateCaches can be used to track changes")
 
         AND_WHEN("another change is made")
         {
-            rw.Set<AS::speed>(11);
+            app_state.Set<AS::speed>(11);
             const auto& co = state_cache.Pull();
             THEN("also that is visible after pulling")
             {
@@ -197,12 +188,12 @@ TEST_CASE("PartialStateCaches can be used to track changes")
         uint16_t cb_battery = 124;
         std::string cb_next_street = "Kalle Anka";
 
-        auto old_cb_speed = rw.Get<AS::speed>();
-        auto old_cb_battery = rw.Get<AS::battery_millivolts>();
-        auto old_cb_next_street = *rw.Get<AS::next_street>();
+        auto old_cb_speed = app_state.Get<AS::speed>();
+        auto old_cb_battery = app_state.Get<AS::battery_millivolts>();
+        auto old_cb_next_street = *app_state.Get<AS::next_street>();
 
-        rw.Set<AS::speed>(10);
-        rw.Set<AS::next_street>("St Mickelsgatan");
+        app_state.Set<AS::speed>(10);
+        app_state.Set<AS::next_street>("St Mickelsgatan");
 
         const auto& co = state_cache.Pull();
 
@@ -284,11 +275,9 @@ TEST_CASE("Listeners can be added to the application state")
 
     auto listener = app_state.AttachListener<AS::speed, AS::next_street>(sem);
     auto listener_2 = app_state.AttachListener<AS::next_street>(sem_other);
-    auto rw = app_state.CheckoutReadWrite();
-
     WHEN("a non-listened to parameter is changed")
     {
-        rw.Set<AS::controller_temperature>(45);
+        app_state.Set<AS::controller_temperature>(45);
 
         THEN("the listeners are not notified")
         {
@@ -299,20 +288,20 @@ TEST_CASE("Listeners can be added to the application state")
     AND_THEN("listened to parameters are notified")
     {
         // Not listened to by the second listener
-        rw.Set<AS::speed>(10);
+        app_state.Set<AS::speed>(10);
         REQUIRE(sem.try_acquire() == true);
         REQUIRE(sem_other.try_acquire() == false);
 
         // Listened to by both
-        rw.Set<AS::next_street>("St Mickelsgatan");
+        app_state.Set<AS::next_street>("St Mickelsgatan");
         REQUIRE(sem.try_acquire() == true);
         REQUIRE(sem_other.try_acquire() == true);
         REQUIRE(sem.try_acquire() == false); // No extra notifications
 
         AND_WHEN("the same value is set")
         {
-            rw.Set<AS::speed>(10);
-            rw.Set<AS::next_street>("St Mickelsgatan");
+            app_state.Set<AS::speed>(10);
+            app_state.Set<AS::next_street>("St Mickelsgatan");
             THEN("there is no notification")
             {
                 REQUIRE(sem.try_acquire() == false);
@@ -322,7 +311,7 @@ TEST_CASE("Listeners can be added to the application state")
         AND_WHEN("the listener is removed")
         {
             listener.Reset();
-            rw.Set<AS::next_street>("Östra Hamngatan");
+            app_state.Set<AS::next_street>("Östra Hamngatan");
 
             THEN("notifications are no longer sent")
             {
@@ -356,7 +345,7 @@ TEST_CASE("There's a finite number of listeners that can be attached")
 
         THEN("all can be notified with set")
         {
-            app_state.CheckoutReadWrite().Set<AS::speed>(99);
+            app_state.Set<AS::speed>(99);
             for (auto& sem : semaphores)
             {
                 CHECK(sem->try_acquire() == true);
@@ -540,20 +529,12 @@ TEST_CASE("A demo of the application state functionality")
 {
     ApplicationState app_state;
 
-    auto rw_task_1 = app_state.CheckoutReadWrite();
-    auto rw_task_2 = app_state.CheckoutReadWrite();
-
     GIVEN("the case when a stable state is not needed")
     {
-        THEN("the read-only state is immediately affected by writes")
+        THEN("the state is immediately affected by writes")
         {
-            rw_task_1.Set<AS::speed>(10);
+            app_state.Set<AS::speed>(10);
             REQUIRE(app_state.Get<AS::speed>() == 10);
-        }
-        AND_THEN("also writers can see each other's writes")
-        {
-            rw_task_1.Set<AS::speed>(20);
-            REQUIRE(rw_task_2.Get<AS::speed>() == 20);
         }
     }
 

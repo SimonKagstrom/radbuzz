@@ -749,7 +749,7 @@ app_main(void)
     //    auto speedometer_handler =
     //        std::make_unique<SpeedometerHandler>(*stepper_motor, application_state, kFullRotation);
 
-    // application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+    // application_state.Set<AS::demo_mode>(true);
 
     auto vesc_can_bus_handler = std::make_unique<VescCanBusHandler>(*can, application_state);
 

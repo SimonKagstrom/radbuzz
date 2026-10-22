@@ -52,15 +52,13 @@ TEST_CASE_FIXTURE(Fixture, "the speedometer will move to zero once started")
 
 TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed changes")
 {
-    auto rw = state.CheckoutReadWrite();
-
     WHEN("The digital-only speedometer is used")
     {
         auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
         auto ps = state.CheckoutPartialSnapshot<AS::configuration>()
                       .GetWritableReference<AS::configuration>()
                       .speedometer_type = SpeedometerType::kDigital;
-        rw.Set<AS::speed>(17);
+        state.Set<AS::speed>(17);
 
         auto ran = DoRunLoop();
 
@@ -76,7 +74,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
     {
         auto r_step = NAMED_REQUIRE_CALL(motor, Step(_));
 
-        rw.Set<AS::speed>(100);
+        state.Set<AS::speed>(100);
 
         auto ran = DoRunLoop();
 
@@ -95,7 +93,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
         {
             auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
             // Caps at 60km/h, so this is effectively no change
-            rw.Set<AS::speed>(90);
+            state.Set<AS::speed>(90);
 
             auto ran = DoRunLoop();
             THEN("the thread is woke, but the stepper motor is not moved")
@@ -109,10 +107,10 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
         {
             auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
 
-            rw.Set<AS::battery_millivolts>(3000);
-            rw.Set<AS::controller_temperature>(45);
-            rw.Set<AS::next_street>("Tunavägen");
-            rw.Set<AS::odometer>(100);
+            state.Set<AS::battery_millivolts>(3000);
+            state.Set<AS::controller_temperature>(45);
+            state.Set<AS::next_street>("Tunavägen");
+            state.Set<AS::odometer>(100);
 
             auto ran = DoRunLoop();
 
@@ -132,11 +130,9 @@ TEST_CASE_FIXTURE(StartedFixture, "the stepper motor will step at most every Xms
 
     AdvanceTime(1s);
 
-    auto rw = state.CheckoutReadWrite();
-
     auto r_first_step = NAMED_REQUIRE_CALL(motor, Step(1000));
 
-    rw.Set<AS::speed>(10);
+    state.Set<AS::speed>(10);
     DoRunLoop();
     r_first_step = nullptr;
 
@@ -144,7 +140,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the stepper motor will step at most every Xms
     WHEN("the speed changes a short time after last invocation")
     {
         AdvanceTime(kStepInterval - 1ms);
-        rw.Set<AS::speed>(11);
+        state.Set<AS::speed>(11);
 
         auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
         DoRunLoop();
@@ -170,8 +166,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the stepper motor position is scaled with spe
 
     ALLOW_CALL(motor, Step(_)).LR_SIDE_EFFECT(pos += _1);
     auto do_set_speed = [this](uint8_t speed) {
-        auto rw = state.CheckoutReadWrite();
-        rw.Set<AS::speed>(speed);
+        state.Set<AS::speed>(speed);
         DoRunLoop();
         AdvanceTime(100ms); // Stepper motor steps are rate-limited to 100ms
     };

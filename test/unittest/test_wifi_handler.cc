@@ -77,7 +77,7 @@ public:
 
     void SetMoving(bool moving)
     {
-        state.CheckoutReadWrite().Set<AS::is_moving>(moving);
+        state.Set<AS::is_moving>(moving);
         RunUntilStable();
     }
 
@@ -297,7 +297,7 @@ TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when scanning while moving")
 {
     networks_in_range = {"Neighbour"};
     // Moving already at startup
-    state.CheckoutReadWrite().Set<AS::is_moving>(true);
+    state.Set<AS::is_moving>(true);
 
     Start();
     REQUIRE(CurrentState() == State::kIdle);

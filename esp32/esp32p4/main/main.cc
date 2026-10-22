@@ -292,7 +292,7 @@ app_main(void)
 
     ApplicationState application_state;
 
-    application_state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+    application_state.Set<AS::demo_mode>(true);
 
     gpio_config_t io_conf = {};
 

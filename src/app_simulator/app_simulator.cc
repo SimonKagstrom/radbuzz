@@ -86,14 +86,12 @@ AppSimulator::OnActivation()
 
     auto demo_active = co.Get<AS::demo_mode>();
     co.OnChangedValue<AS::demo_mode>([this, &demo_active](auto old, auto now) {
-        auto rw = m_application_state.CheckoutReadWrite();
-
         if (old == true && now == false)
         {
             // Disable navigation and BMS data
             printf("Navigation deactivated\n");
-            rw.Set<AS::navigation_active>(false);
-            rw.Set<AS::bms_data>(BmsData {});
+            m_application_state.Set<AS::navigation_active>(false);
+            m_application_state.Set<AS::bms_data>(BmsData {});
         }
 
         m_post_office.Send<MSG::reset_trip>();
@@ -107,7 +105,15 @@ AppSimulator::OnActivation()
 
     const auto previous_distance_left = m_distance_left;
 
-    auto rw = m_application_state.CheckoutReadWrite();
+    auto qw = m_application_state.CheckoutQueuedWriter<AS::turn_symbol,
+                                                       AS::next_street,
+                                                       AS::distance_to_next,
+                                                       AS::position,
+                                                       AS::pixel_position,
+                                                       AS::gps_status,
+                                                       AS::controller_temperature,
+                                                       AS::battery_soc,
+                                                       AS::bms_data>();
     if (m_bresenham_iterator != m_bresenham.end())
     {
         m_current_point = *m_bresenham_iterator;
@@ -130,7 +136,7 @@ AppSimulator::OnActivation()
         {
             SetupStreetOrder();
         }
-        rw.Set<AS::turn_symbol>(m_turn_symbol);
+        qw.Set<AS::turn_symbol>(m_turn_symbol);
         m_turn_symbol = static_cast<TurnSymbol>(std::to_underlying(m_turn_symbol) + 1);
         if (m_turn_symbol == TurnSymbol::kValueCount)
         {
@@ -150,8 +156,8 @@ AppSimulator::OnActivation()
                                                           AS::navigation_active,
                                                           AS::trip_max_speed>();
 
-    rw.Set<AS::next_street>(std::string(m_streets.back()));
-    rw.Set<AS::distance_to_next>(std::format("{} m", m_distance_left));
+    qw.Set<AS::next_street>(std::string(m_streets.back()));
+    qw.Set<AS::distance_to_next>(std::format("{} m", m_distance_left));
 
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);
@@ -234,14 +240,6 @@ AppSimulator::OnActivation()
         .highest_cell_temp = static_cast<uint8_t>(27 + rand() % 2),
         .bms_temperature = static_cast<uint8_t>(25 + rand() % 2),
     };
-
-    auto qw = m_application_state.CheckoutQueuedWriter<AS::position,
-                                                       AS::pixel_position,
-                                                       AS::gps_status,
-                                                       AS::controller_temperature,
-                                                       AS::overheated,
-                                                       AS::battery_soc,
-                                                       AS::bms_data>();
 
     qw.Set<AS::position>(mangled);
     qw.Set<AS::pixel_position>(m_current_point);

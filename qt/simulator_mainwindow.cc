@@ -94,13 +94,13 @@ MainWindow::MainWindow(ApplicationState& application_state,
 
     m_ui->demoModeCheckBox->setChecked(m_application_state.Get<AS::demo_mode>());
     connect(m_ui->demoModeCheckBox, &QCheckBox::toggled, [this](bool checked) {
-        m_application_state.CheckoutReadWrite().Set<AS::demo_mode>(checked);
+        m_application_state.Set<AS::demo_mode>(checked);
     });
 
-    m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(m_ui->socSlider->value());
+    m_application_state.Set<AS::battery_millivolts>(m_ui->socSlider->value());
     connect(m_ui->socSlider, QOverload<int>::of(&QSlider::valueChanged), [this](int value) {
         printf("Setting millivolts to %d\n", value);
-        m_application_state.CheckoutReadWrite().Set<AS::battery_millivolts>(value);
+        m_application_state.Set<AS::battery_millivolts>(value);
     });
     connect(m_ui->disconnectWifiButton, &QPushButton::clicked, [this]() {
         m_wifi_client.SimulateConnectionLoss();

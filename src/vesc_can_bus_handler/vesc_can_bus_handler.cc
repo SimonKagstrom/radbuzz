@@ -94,7 +94,7 @@ VescCanBusHandler::OnActivation()
                 if (m_vesc_can_state->mcconf)
                 {
                     SetMaxSpeed(m_state.Get<AS::configuration>()->profile);
-                    m_state.CheckoutReadWrite().Set<AS::can_bus_active>(true);
+                    m_state.Set<AS::can_bus_active>(true);
                     out = std::nullopt;
                 }
                 else

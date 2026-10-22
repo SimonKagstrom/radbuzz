@@ -24,12 +24,12 @@ BleHandler::OnStartup()
     });
 
     m_connection_listener = m_server.AttachConnectionListener([this](bool connected) {
-        auto rw = m_state.CheckoutReadWrite();
+        auto qw = m_state.CheckoutQueuedWriter<AS::bluetooth_connected, AS::navigation_active>();
 
-        rw.Set<AS::bluetooth_connected>(connected);
+        qw.Set<AS::bluetooth_connected>(connected);
         if (connected == false)
         {
-            rw.Set<AS::navigation_active>(false);
+            qw.Set<AS::navigation_active>(false);
         }
     });
 

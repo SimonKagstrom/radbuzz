@@ -67,7 +67,7 @@ public:
 
     void SetConfiguration(const ConfigurationSettings& conf)
     {
-        State().CheckoutReadWrite().Set<AS::configuration>(conf);
+        State().Set<AS::configuration>(conf);
     }
 
     // As if written (and committed) by an earlier boot
@@ -170,15 +170,14 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state ch
     DoRunLoop();
 
     // Some unrelated change
-    auto rw = State().CheckoutReadWrite();
-    rw.Set<AS::distance_to_next>("13 meter");
+    State().Set<AS::distance_to_next>("13 meter");
     auto ran = DoRunLoop();
     REQUIRE_FALSE(ran);
 
     // A change that should wakeup
     auto conf = *State().Get<AS::configuration>();
     conf.max_watts = 9957;
-    rw.Set<AS::configuration>(conf);
+    State().Set<AS::configuration>(conf);
 
     ran = DoRunLoop();
     CHECK(ran);
@@ -188,10 +187,10 @@ TEST_CASE_FIXTURE(Fixture, "the consumption is stored when the moped stops")
 {
     StartBoard();
 
-    State().CheckoutReadWrite().Set<AS::is_moving>(true);
+    State().Set<AS::is_moving>(true);
     DoRunLoop();
-    State().CheckoutReadWrite().Set<AS::wh_consumed>(12.5f);
-    State().CheckoutReadWrite().Set<AS::wh_regenerated>(2.25f);
+    State().Set<AS::wh_consumed>(12.5f);
+    State().Set<AS::wh_regenerated>(2.25f);
 
     WHEN("the moped is still moving")
     {
@@ -206,7 +205,7 @@ TEST_CASE_FIXTURE(Fixture, "the consumption is stored when the moped stops")
 
     WHEN("the moped stops")
     {
-        State().CheckoutReadWrite().Set<AS::is_moving>(false);
+        State().Set<AS::is_moving>(false);
         DoRunLoop();
 
         AND_WHEN("the board is restarted")
@@ -229,24 +228,24 @@ TEST_CASE_FIXTURE(Fixture, "the demo mode makes the storage thread ignore Wh sto
     StartBoard();
     REQUIRE(State().Get<AS::wh_consumed>() == 5.0f);
 
-    State().CheckoutReadWrite().Set<AS::demo_mode>(true);
-    State().CheckoutReadWrite().Set<AS::is_moving>(true);
+    State().Set<AS::demo_mode>(true);
+    State().Set<AS::is_moving>(true);
     DoRunLoop();
 
     // Fake values from the demo
-    State().CheckoutReadWrite().Set<AS::wh_consumed>(500.0f);
-    State().CheckoutReadWrite().Set<AS::wh_regenerated>(100.0f);
+    State().Set<AS::wh_consumed>(500.0f);
+    State().Set<AS::wh_regenerated>(100.0f);
 
     WHEN("the moped stops while in demo mode")
     {
-        State().CheckoutReadWrite().Set<AS::is_moving>(false);
+        State().Set<AS::is_moving>(false);
         DoRunLoop();
     }
 
     WHEN("the demo mode is turned off before the moped stops")
     {
-        State().CheckoutReadWrite().Set<AS::demo_mode>(false);
-        State().CheckoutReadWrite().Set<AS::is_moving>(false);
+        State().Set<AS::demo_mode>(false);
+        State().Set<AS::is_moving>(false);
         DoRunLoop();
     }
 
@@ -382,7 +381,7 @@ TEST_CASE_FIXTURE(Fixture, "changes to configurations are stored to the NVM")
 
     auto conf = *State().Get<AS::configuration>();
     conf.max_speedometer_speed = 99;
-    State().CheckoutReadWrite().Set<AS::configuration>(conf);
+    State().Set<AS::configuration>(conf);
     DoRunLoop();
 
     WHEN("the board is restarted")

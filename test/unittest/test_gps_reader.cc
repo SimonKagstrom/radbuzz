@@ -152,7 +152,7 @@ TEST_CASE_FIXTURE(Fixture, "When there is valid GPS data, the pixel position is 
 
 TEST_CASE_FIXTURE(Fixture, "When demo mode is active, the GPS state is not updated")
 {
-    state.CheckoutReadWrite().Set<AS::demo_mode>(true);
+    state.Set<AS::demo_mode>(true);
 
     hal::RawGpsData raw_data {.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f};
     REQUIRE_CALL(mock_gps, WaitForData(_)).RETURN(raw_data);

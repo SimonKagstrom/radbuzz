@@ -13,7 +13,7 @@ GpsReader::GpsReader(ApplicationState& application_state, hal::IGps& gps)
 {
     auto stockholm = Wgs84ToOsmPoint({59.3293, 18.0686}, kDefaultZoom);
 
-    m_application_state.CheckoutReadWrite().Set<AS::pixel_position>(*stockholm);
+    m_application_state.Set<AS::pixel_position>(*stockholm);
 }
 
 std::optional<milliseconds>
@@ -61,7 +61,7 @@ GpsReader::OnActivation()
     m_gps_data_timeout_timer = StartTimer(5s, [this]() {
         if (m_application_state.Get<AS::demo_mode>() == false)
         {
-            m_application_state.CheckoutReadWrite().Set<AS::gps_status>(GpsStatus::kSilent);
+            m_application_state.Set<AS::gps_status>(GpsStatus::kSilent);
         }
         return std::nullopt;
     });
@@ -90,7 +90,7 @@ GpsReader::OnActivation()
         // Only downgrade a valid position, i.e., don't override kSilent if data has dried up
         if (m_application_state.Get<AS::gps_status>() == GpsStatus::kPositionValid)
         {
-            m_application_state.CheckoutReadWrite().Set<AS::gps_status>(GpsStatus::kNoFix);
+            m_application_state.Set<AS::gps_status>(GpsStatus::kNoFix);
         }
         return std::nullopt;
     });
