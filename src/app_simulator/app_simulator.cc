@@ -85,7 +85,7 @@ AppSimulator::OnActivation()
     auto& co = m_state_cache.Pull();
 
     auto demo_active = co.Get<AS::demo_mode>();
-    co.OnChangedValue<AS::demo_mode>([this, &demo_active](auto old, auto now) {
+    co.OnChangedValue<AS::demo_mode>([this](auto old, auto now) {
         if (old == true && now == false)
         {
             // Disable navigation and BMS data
