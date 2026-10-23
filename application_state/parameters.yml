@@ -14,9 +14,9 @@ parameters:
   call_ongoing:
     type: bool
 
-  # 50 m etc
+  # Distance to the next turn in meters
   distance_to_next:
-    type: std::string
+    type: uint32_t
 
   next_street:
     type: std::string

@@ -185,6 +185,85 @@ TEST_CASE("gadgetbridge lines are parsed into json")
     }
 }
 
+TEST_CASE("gadgetbridge distances are converted to meters")
+{
+    WHEN("metric distances arrive")
+    {
+        THEN("they are converted")
+        {
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("300 m") == 300);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("0 m") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("1.4 km") == 1400);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("1,4 km") == 1400);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("12 km") == 12000);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("50m") == 50);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("2.5 KM") == 2500);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters(".5 km") == 500);
+        }
+    }
+
+    WHEN("imperial distances arrive")
+    {
+        THEN("they are converted and rounded")
+        {
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("500 ft") == 152);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("100 yd") == 91);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("0.2 mi") == 322);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("1 mi") == 1609);
+        }
+    }
+
+    WHEN("other spaces are used")
+    {
+        THEN("they are accepted")
+        {
+            // No-break and narrow no-break space (UTF-8, after ParseLine)
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("300\xc2\xa0m") == 300);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("1.4\xe2\x80\xafkm") == 1400);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("  300  m  ") == 300);
+        }
+    }
+
+    WHEN("a plain number arrives")
+    {
+        THEN("it's meters")
+        {
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("75") == 75);
+        }
+    }
+
+    WHEN("a full nav line arrives")
+    {
+        auto json = GadgetBridgeProtocol::ParseLine(
+            "GB({\"t\":\"nav\",\"distance\":\"1,2\xa0km\",\"action\":\"left\"})");
+
+        THEN("the distance is converted after parsing")
+        {
+            REQUIRE(json);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters((*json)["distance"].get<std::string>()) ==
+                  1200);
+        }
+    }
+
+    WHEN("broken input arrives")
+    {
+        THEN("0 is returned")
+        {
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters(" ") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("m") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("km 300") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("-300 m") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("300 parsecs") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("300 mm") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("1.2.3 km") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("300 m extra") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters("99999999999999999999 m") == 0);
+            CHECK(GadgetBridgeProtocol::DistanceToMeters(std::string_view("3\0 m", 4)) == 0);
+        }
+    }
+}
+
 TEST_CASE_FIXTURE(Fixture, "the BLE handler accepts data on the UART characteristic")
 {
     ble.Start("ble");

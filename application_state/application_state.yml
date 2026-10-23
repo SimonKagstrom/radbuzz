@@ -4,7 +4,7 @@ cpp_includes:
 
 application_state:
   turn_symbol: TurnSymbol::kNone
-  distance_to_next: ""
+  distance_to_next: 0
   next_street: ""
   is_moving: false
   can_bus_active: false

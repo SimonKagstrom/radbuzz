@@ -1,6 +1,9 @@
 #include "gadget_bridge_protocol.hh"
 
+#include <algorithm>
+#include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <utility>
@@ -10,6 +13,22 @@ namespace
 
 constexpr std::string_view kPrefix = "GB(";
 constexpr std::string_view kSuffix = ")";
+
+// Unit -> meters. Gadgetbridge passes on what the navigation app shows
+constexpr auto kDistanceUnits = std::array {
+    std::pair {std::string_view("m"), 1.0},
+    std::pair {std::string_view("km"), 1000.0},
+    std::pair {std::string_view("ft"), 0.3048},
+    std::pair {std::string_view("yd"), 0.9144},
+    std::pair {std::string_view("mi"), 1609.344},
+};
+
+// Spaces between the value and unit: regular, and (UTF-8) no-break and narrow no-break
+constexpr auto kDistanceSpaces = std::array {
+    std::string_view(" "),
+    std::string_view("\xc2\xa0"),
+    std::string_view("\xe2\x80\xaf"),
+};
 
 // From Gadgetbridge (BangleJSDeviceSupport, NavigationInfoSpec actions)
 constexpr auto kStringToTurn = std::array {
@@ -183,6 +202,82 @@ GadgetBridgeProtocol::ParseLine(std::string_view line)
     return json;
 }
 
+uint32_t
+GadgetBridgeProtocol::DistanceToMeters(std::string_view distance)
+{
+    auto is_digit = [](char c) { return c >= '0' && c <= '9'; };
+    auto skip_spaces = [&distance]() {
+        for (auto again = true; again;)
+        {
+            again = false;
+            for (auto space : kDistanceSpaces)
+            {
+                if (distance.starts_with(space))
+                {
+                    distance.remove_prefix(space.size());
+                    again = true;
+                }
+            }
+        }
+    };
+
+    skip_spaces();
+
+    // No std::from_chars for floats everywhere, so parse by hand. Both . and , as decimal
+    // separator (apps switch to the larger unit before thousands separators are needed)
+    auto value = 0.0;
+    auto digits = 0;
+    while (!distance.empty() && is_digit(distance.front()))
+    {
+        value = value * 10 + (distance.front() - '0');
+        distance.remove_prefix(1);
+        digits++;
+    }
+    if (!distance.empty() && (distance.front() == '.' || distance.front() == ',') &&
+        distance.size() > 1 && is_digit(distance[1]))
+    {
+        distance.remove_prefix(1);
+        for (auto scale = 0.1; !distance.empty() && is_digit(distance.front()); scale /= 10)
+        {
+            value += scale * (distance.front() - '0');
+            distance.remove_prefix(1);
+            digits++;
+        }
+    }
+
+    // Also guards against overflow below
+    if (digits == 0 || digits > 9)
+    {
+        return 0;
+    }
+
+    skip_spaces();
+    while (!distance.empty() && std::isspace(static_cast<unsigned char>(distance.back())))
+    {
+        distance.remove_suffix(1);
+    }
+
+    // Plain numbers are meters
+    if (distance.empty())
+    {
+        return static_cast<uint32_t>(std::lround(value));
+    }
+
+    for (const auto& [unit, factor] : kDistanceUnits)
+    {
+        auto matches = unit.size() == distance.size() &&
+                       std::equal(unit.begin(), unit.end(), distance.begin(), [](char a, char b) {
+                           return a == std::tolower(static_cast<unsigned char>(b));
+                       });
+        if (matches)
+        {
+            return static_cast<uint32_t>(std::lround(value * factor));
+        }
+    }
+
+    return 0;
+}
+
 void
 GadgetBridgeProtocol::SetSender(std::function<void(std::string_view)> sender)
 {
@@ -298,7 +393,7 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
         return;
     }
 
-    auto distance = json.contains("distance") ? json.at("distance").get<std::string>() : "0";
+    auto distance = DistanceToMeters(GetString(json, "distance"));
     auto instr = json.contains("instr") ? json.at("instr").get<std::string>() : "";
     auto eta = json.contains("eta") ? json.at("eta").get<std::string>() : "";
     auto action = json.contains("action") ? json.at("action").get<std::string>() : "";

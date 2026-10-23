@@ -17,10 +17,10 @@ public:
         RunLoopWhileReady();
     }
 
-    void Update(TurnSymbol symbol, std::string_view distance)
+    void Update(TurnSymbol symbol, uint32_t distance)
     {
         state.Set<AS::turn_symbol>(symbol);
-        state.Set<AS::distance_to_next>(std::string(distance));
+        state.Set<AS::distance_to_next>(distance);
 
         // Let the buzzers turn off before the next update
         AdvanceTimeAndRunLoop(1s);
@@ -57,7 +57,7 @@ TEST_CASE_FIXTURE(Fixture, "the buzz handler is idle without navigation")
 {
     REQUIRE(buzz.CurrentState() == State::kNoNavigation);
 
-    Update(TurnSymbol::kNone, "");
+    Update(TurnSymbol::kNone, 0);
     REQUIRE(buzz.CurrentState() == State::kNoNavigation);
     REQUIRE(left_buzzes == 0);
     REQUIRE(right_buzzes == 0);
@@ -65,25 +65,25 @@ TEST_CASE_FIXTURE(Fixture, "the buzz handler is idle without navigation")
 
 TEST_CASE_FIXTURE(Fixture, "the turn is indicated when approaching it")
 {
-    Update(TurnSymbol::kTurnLeft, "300");
+    Update(TurnSymbol::kTurnLeft, 300);
     REQUIRE(buzz.CurrentState() == State::kFar);
     REQUIRE(left_buzzes == 0);
 
-    Update(TurnSymbol::kTurnLeft, "200");
+    Update(TurnSymbol::kTurnLeft, 200);
     REQUIRE(left_buzzes == 0);
 
-    Update(TurnSymbol::kTurnLeft, "90");
+    Update(TurnSymbol::kTurnLeft, 90);
     REQUIRE(buzz.CurrentState() == State::kNear);
     REQUIRE(left_buzzes == 1);
 
-    Update(TurnSymbol::kTurnLeft, "50");
+    Update(TurnSymbol::kTurnLeft, 50);
     REQUIRE(left_buzzes == 1);
 
-    Update(TurnSymbol::kTurnLeft, "15");
+    Update(TurnSymbol::kTurnLeft, 15);
     REQUIRE(buzz.CurrentState() == State::kImminent);
     REQUIRE(left_buzzes == 2);
 
-    Update(TurnSymbol::kTurnLeft, "5");
+    Update(TurnSymbol::kTurnLeft, 5);
     REQUIRE(buzz.CurrentState() == State::kAt);
     REQUIRE(left_buzzes == 3);
 
@@ -91,14 +91,14 @@ TEST_CASE_FIXTURE(Fixture, "the turn is indicated when approaching it")
 
     WHEN("the turn is passed, and the next is shown")
     {
-        Update(TurnSymbol::kTurnRight, "400");
+        Update(TurnSymbol::kTurnRight, 400);
 
         THEN("it's a new turn, which is indicated when approached")
         {
             REQUIRE(buzz.CurrentState() == State::kFar);
             REQUIRE(right_buzzes == 0);
 
-            Update(TurnSymbol::kTurnRight, "80");
+            Update(TurnSymbol::kTurnRight, 80);
             REQUIRE(right_buzzes == 1);
             REQUIRE(left_buzzes == 3);
         }
@@ -106,13 +106,13 @@ TEST_CASE_FIXTURE(Fixture, "the turn is indicated when approaching it")
 
     WHEN("the next turn has the same symbol")
     {
-        Update(TurnSymbol::kTurnLeft, "400");
+        Update(TurnSymbol::kTurnLeft, 400);
 
         THEN("the distance jump makes it a new turn")
         {
             REQUIRE(buzz.CurrentState() == State::kFar);
 
-            Update(TurnSymbol::kTurnLeft, "80");
+            Update(TurnSymbol::kTurnLeft, 80);
             REQUIRE(left_buzzes == 4);
         }
     }
@@ -120,7 +120,7 @@ TEST_CASE_FIXTURE(Fixture, "the turn is indicated when approaching it")
 
 TEST_CASE_FIXTURE(Fixture, "a new turn which is already near is indicated directly")
 {
-    Update(TurnSymbol::kTurnRight, "50");
+    Update(TurnSymbol::kTurnRight, 50);
 
     REQUIRE(buzz.CurrentState() == State::kNear);
     REQUIRE(right_buzzes == 1);
@@ -129,11 +129,11 @@ TEST_CASE_FIXTURE(Fixture, "a new turn which is already near is indicated direct
 
 TEST_CASE_FIXTURE(Fixture, "GPS jitter doesn't cause repeated indications")
 {
-    Update(TurnSymbol::kTurnLeft, "300");
-    Update(TurnSymbol::kTurnLeft, "90");
+    Update(TurnSymbol::kTurnLeft, 300);
+    Update(TurnSymbol::kTurnLeft, 90);
     REQUIRE(left_buzzes == 1);
 
-    for (auto d : {"95", "85", "97", "88", "99", "80"})
+    for (auto d : {95, 85, 97, 88, 99, 80})
     {
         Update(TurnSymbol::kTurnLeft, d);
     }
@@ -144,21 +144,21 @@ TEST_CASE_FIXTURE(Fixture, "GPS jitter doesn't cause repeated indications")
 
 TEST_CASE_FIXTURE(Fixture, "moving away from the turn is not indicated")
 {
-    Update(TurnSymbol::kTurnLeft, "300");
-    Update(TurnSymbol::kTurnLeft, "60");
+    Update(TurnSymbol::kTurnLeft, 300);
+    Update(TurnSymbol::kTurnLeft, 60);
     REQUIRE(left_buzzes == 1);
 
-    Update(TurnSymbol::kTurnLeft, "80");
+    Update(TurnSymbol::kTurnLeft, 80);
     REQUIRE(buzz.CurrentState() == State::kReceding);
 
-    Update(TurnSymbol::kTurnLeft, "100");
-    Update(TurnSymbol::kTurnLeft, "110");
+    Update(TurnSymbol::kTurnLeft, 100);
+    Update(TurnSymbol::kTurnLeft, 110);
     REQUIRE(buzz.CurrentState() == State::kReceding);
     REQUIRE(left_buzzes == 1);
 
     WHEN("turning back towards the turn")
     {
-        Update(TurnSymbol::kTurnLeft, "90");
+        Update(TurnSymbol::kTurnLeft, 90);
 
         THEN("it's indicated again")
         {
@@ -169,27 +169,27 @@ TEST_CASE_FIXTURE(Fixture, "moving away from the turn is not indicated")
 
     WHEN("continuing in the wrong direction")
     {
-        Update(TurnSymbol::kTurnLeft, "130");
+        Update(TurnSymbol::kTurnLeft, 130);
 
         THEN("the turn is far again, and indicated when approached")
         {
             REQUIRE(buzz.CurrentState() == State::kFar);
             REQUIRE(left_buzzes == 1);
 
-            Update(TurnSymbol::kTurnLeft, "90");
+            Update(TurnSymbol::kTurnLeft, 90);
             REQUIRE(left_buzzes == 2);
         }
     }
 
     WHEN("the navigation app reroutes")
     {
-        Update(TurnSymbol::kTurnRight, "150");
+        Update(TurnSymbol::kTurnRight, 150);
 
         THEN("the new turn is used")
         {
             REQUIRE(buzz.CurrentState() == State::kFar);
 
-            Update(TurnSymbol::kTurnRight, "70");
+            Update(TurnSymbol::kTurnRight, 70);
             REQUIRE(right_buzzes == 1);
             REQUIRE(left_buzzes == 1);
         }
@@ -198,38 +198,38 @@ TEST_CASE_FIXTURE(Fixture, "moving away from the turn is not indicated")
 
 TEST_CASE_FIXTURE(Fixture, "overshooting the turn is not indicated")
 {
-    Update(TurnSymbol::kTurnLeft, "300");
-    Update(TurnSymbol::kTurnLeft, "5");
+    Update(TurnSymbol::kTurnLeft, 300);
+    Update(TurnSymbol::kTurnLeft, 5);
     REQUIRE(buzz.CurrentState() == State::kAt);
     REQUIRE(left_buzzes == 1);
 
-    Update(TurnSymbol::kTurnLeft, "25");
+    Update(TurnSymbol::kTurnLeft, 25);
     REQUIRE(buzz.CurrentState() == State::kReceding);
     REQUIRE(left_buzzes == 1);
 }
 
 TEST_CASE_FIXTURE(Fixture, "navigation can end in any state")
 {
-    Update(TurnSymbol::kTurnLeft, "300");
-    Update(TurnSymbol::kTurnLeft, "50");
+    Update(TurnSymbol::kTurnLeft, 300);
+    Update(TurnSymbol::kTurnLeft, 50);
     REQUIRE(buzz.CurrentState() == State::kNear);
 
     WHEN("the turn symbol is cleared")
     {
-        Update(TurnSymbol::kNone, "50");
+        Update(TurnSymbol::kNone, 50);
         REQUIRE(buzz.CurrentState() == State::kNoNavigation);
     }
 
     WHEN("the distance is cleared")
     {
-        Update(TurnSymbol::kTurnLeft, "");
+        Update(TurnSymbol::kTurnLeft, 0);
         REQUIRE(buzz.CurrentState() == State::kNoNavigation);
     }
 
     AND_THEN("restarting the navigation indicates the turn again")
     {
-        Update(TurnSymbol::kNone, "");
-        Update(TurnSymbol::kTurnLeft, "50");
+        Update(TurnSymbol::kNone, 0);
+        Update(TurnSymbol::kTurnLeft, 50);
 
         REQUIRE(buzz.CurrentState() == State::kNear);
         REQUIRE(left_buzzes == 2);

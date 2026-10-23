@@ -6,14 +6,13 @@
 #include "hal/i_gpio.hh"
 
 #include <limits>
-#include <string_view>
 
 struct BuzzHandlerStateData : BuzzHandlerStateMachineData
 {
     // The closest distance seen in the state, to detect moving away
     struct Closest
     {
-        int closest {std::numeric_limits<int>::max()};
+        uint32_t closest {std::numeric_limits<uint32_t>::max()};
     };
 
     struct Near : BuzzHandlerStateMachineData::Near, Closest
@@ -31,7 +30,7 @@ struct BuzzHandlerStateData : BuzzHandlerStateMachineData
     struct Receding : BuzzHandlerStateMachineData::Receding
     {
         // The farthest distance seen, to detect moving closer again
-        int farthest {0};
+        uint32_t farthest {0};
     };
 };
 
@@ -69,8 +68,6 @@ private:
 
     bool TurnChanged() const;
 
-    int Distance() const;
-
     void Indicate();
 
     hal::IGpio& m_left_buzzer;
@@ -83,7 +80,7 @@ private:
 
     // The turn being indicated, and the distance at the last activation
     TurnSymbol m_current_turn {TurnSymbol::kNone};
-    int m_last_distance {0};
+    uint32_t m_last_distance {0};
 
     os::TimerHandle m_off_timer;
 };
