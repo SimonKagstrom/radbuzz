@@ -29,8 +29,7 @@ TrimAtFirstNul(std::string_view input)
 template <auto Member>
 struct Setting
 {
-    using Type =
-        std::remove_cvref_t<decltype(std::declval<ConfigurationSettings>().*Member)>;
+    using Type = std::remove_cvref_t<decltype(std::declval<ConfigurationSettings>().*Member)>;
     static constexpr auto member = Member;
 
     const char* key;
@@ -64,6 +63,11 @@ constexpr auto kHomeYPositionKey = "y";
 constexpr auto kWifiNetworksKey = "W";
 constexpr auto kWhConsumedKey = "C";
 constexpr auto kWhRegeneratedKey = "g";
+constexpr auto kTimezoneKey = "Z";
+
+// UTC-12 to UTC+14 (Kiribati), in minutes
+constexpr int16_t kMinTimezone = -12 * 60;
+constexpr int16_t kMaxTimezone = 14 * 60;
 
 template <typename Function>
 constexpr void
@@ -75,8 +79,12 @@ ForEachSetting(Function&& function)
 consteval bool
 KeysAreUnique()
 {
-    std::vector<std::string_view> keys {
-        kHomeXPositionKey, kHomeYPositionKey, kWifiNetworksKey, kWhConsumedKey, kWhRegeneratedKey};
+    std::vector<std::string_view> keys {kHomeXPositionKey,
+                                        kHomeYPositionKey,
+                                        kWifiNetworksKey,
+                                        kWhConsumedKey,
+                                        kWhRegeneratedKey,
+                                        kTimezoneKey};
     ForEachSetting([&keys](const auto& setting) { keys.push_back(setting.key); });
 
     std::ranges::sort(keys);
@@ -101,12 +109,13 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
     , m_state_listener(
-          m_application_state.AttachListener<AS::configuration, AS::is_moving>(*this))
+          m_application_state.AttachListener<AS::configuration, AS::is_moving, AS::timezone>(*this))
     , m_state_cache(m_application_state)
 {
-    auto ps =
-        m_application_state
-            .CheckoutPartialSnapshot<AS::configuration, AS::wh_consumed, AS::wh_regenerated>();
+    auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration,
+                                                          AS::wh_consumed,
+                                                          AS::wh_regenerated,
+                                                          AS::timezone>();
     auto& conf = ps.GetWritableReference<AS::configuration>();
 
     ForEachSetting([this, &conf](const auto& setting) {
@@ -123,6 +132,10 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     // Set the stored consumed/regen values
     ps.Set<AS::wh_consumed>(m_nvm.Get<float>(kWhConsumedKey).value_or(0.0f));
     ps.Set<AS::wh_regenerated>(m_nvm.Get<float>(kWhRegeneratedKey).value_or(0.0f));
+
+    // From the phone, so that the local time is right also before it has connected
+    auto timezone = m_nvm.Get<int16_t>(kTimezoneKey).value_or(0);
+    ps.Set<AS::timezone>(timezone >= kMinTimezone && timezone <= kMaxTimezone ? timezone : 0);
 
     auto networks = m_nvm.Get<std::string>(kWifiNetworksKey);
     if (networks)
@@ -178,6 +191,12 @@ Storage::OnActivation()
                 do_commit = true;
             }
         }
+    });
+
+    // Only on actual changes, although the phone sends it on every connect
+    co.OnNewValue<AS::timezone>([this, &do_commit](auto timezone) {
+        m_nvm.Set<int16_t>(kTimezoneKey, timezone);
+        do_commit = true;
     });
 
     co.OnChangedValue<AS::configuration>([this, &do_commit](auto& old_conf, auto& new_conf) {

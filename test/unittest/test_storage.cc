@@ -395,4 +395,74 @@ TEST_CASE_FIXTURE(Fixture, "changes to configurations are stored to the NVM")
     }
 }
 
+
+TEST_CASE_FIXTURE(Fixture, "the timezone is stored to the NVM")
+{
+    StartBoard();
+    REQUIRE(State().Get<AS::timezone>() == 0);
+
+    WHEN("the timezone is set")
+    {
+        State().Set<AS::timezone>(-210);
+        DoRunLoop();
+
+        AND_WHEN("the board is restarted")
+        {
+            StartBoard();
+
+            THEN("the timezone is restored")
+            {
+                REQUIRE(State().Get<AS::timezone>() == -210);
+            }
+        }
+
+        AND_WHEN("it's set to the same value again (e.g., on the next phone connect)")
+        {
+            auto commits_before = CommitCount();
+            State().Set<AS::timezone>(-210);
+            DoRunLoop();
+
+            THEN("nothing is written")
+            {
+                REQUIRE(CommitCount() == commits_before);
+            }
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the timezone stored by an earlier firmware is read")
+{
+    // The key must not change. Stored in the low 16 bits
+    PresetNvm("Z", static_cast<uint16_t>(-60));
+    StartBoard();
+
+    REQUIRE(State().Get<AS::timezone>() == -60);
+}
+
+TEST_CASE_FIXTURE(Fixture, "invalid timezones in the NVM are replaced by UTC")
+{
+    // Outside of UTC-12..UTC+14, e.g., a corrupt NVM
+    WHEN("it's too large")
+    {
+        PresetNvm("Z", 15 * 60);
+        StartBoard();
+
+        THEN("UTC is used")
+        {
+            REQUIRE(State().Get<AS::timezone>() == 0);
+        }
+    }
+
+    WHEN("it's too small")
+    {
+        PresetNvm("Z", static_cast<uint16_t>(-13 * 60));
+        StartBoard();
+
+        THEN("UTC is used")
+        {
+            REQUIRE(State().Get<AS::timezone>() == 0);
+        }
+    }
+}
+
 TEST_SUITE_END();
