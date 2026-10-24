@@ -5,6 +5,7 @@
 #include "ble_server_qt.hh"
 #include "blitter_host.hh"
 #include "buzz_handler.hh"
+#include "clock_handler.hh"
 #include "filesystem.hh"
 #include "gps_reader.hh"
 #include "https_client.hh"
@@ -112,6 +113,7 @@ main(int argc, char* argv[])
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
+    auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),
@@ -140,6 +142,7 @@ main(int argc, char* argv[])
     job_pool->AttachPooledThread(std::move(ota_updater_thread));
     job_pool->AttachPooledThread(std::move(app_simulator));
     job_pool->AttachPooledThread(std::move(temperature_monitor));
+    job_pool->AttachPooledThread(std::move(clock_handler));
 
     job_pool->Start("job_pool");
 

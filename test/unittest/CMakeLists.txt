@@ -15,7 +15,6 @@ enable_testing()
 set(TOP ${CMAKE_CURRENT_LIST_DIR}/../../)
 
 add_subdirectory(${TOP} radbuzz)
-add_subdirectory(${TOP}/external/libmaelir/test/unittest libmaelir_unittests)
 
 generate_application_state(radbuzz_unittest_application_state
     BASE
@@ -24,14 +23,18 @@ generate_application_state(radbuzz_unittest_application_state
         unittest_parameters.yml
 )
 
+add_library(generated_application_state ALIAS radbuzz_unittest_application_state)
+add_library(messages ALIAS radbuzz_messages)
+
+# After the aliases above, so that the libmaelir tests use the radbuzz state and messages (which
+# include the common ones) instead of defining their own
+add_subdirectory(${TOP}/external/libmaelir/test/unittest libmaelir_unittests)
 
 add_library(filesystem_implementation ALIAS mock_filesystem)
 add_library(https_client_implementation ALIAS mock_https_client)
 if(NOT TARGET display_properties)
     add_library(display_properties ALIAS display_800x800)
 endif()
-add_library(generated_application_state ALIAS radbuzz_unittest_application_state)
-add_library(messages ALIAS radbuzz_messages)
 
 
 

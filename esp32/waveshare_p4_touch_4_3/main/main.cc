@@ -5,6 +5,7 @@
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
 #include "can_esp32.hh"
+#include "clock_handler.hh"
 #include "filesystem.hh"
 #include "gpio_esp32.hh"
 #include "gps_reader.hh"
@@ -755,6 +756,7 @@ app_main(void)
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
+    auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
 
     auto ble_server = std::make_unique<BleServerEsp32>();
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
@@ -778,6 +780,7 @@ app_main(void)
     job_pool->AttachPooledThread(std::move(ota_updater));
     job_pool->AttachPooledThread(std::move(app_simulator));
     job_pool->AttachPooledThread(std::move(temperature_monitor));
+    job_pool->AttachPooledThread(std::move(clock_handler));
 
     job_pool->Start("job_pool", 8192);
 

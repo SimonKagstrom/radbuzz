@@ -50,6 +50,7 @@ target_link_libraries(${COMPONENT_TARGET}
     ble_server_esp32
     button_debouncer
     can_esp32
+    clock_handler
     vesc_can_bus_handler
     rotary_encoder
     gpio_esp32
