@@ -1,6 +1,7 @@
 #include "app_simulator.hh"
 
 #include "ble_handler.hh"
+#include "gadget_bridge_protocol.hh"
 
 #include <algorithm>
 #include <array>
@@ -157,7 +158,7 @@ AppSimulator::OnActivation()
                                                           AS::trip_max_speed>();
 
     qw.Set<AS::next_street>(std::string(m_streets.back()));
-    qw.Set<AS::distance_to_next>(m_distance_left);
+    qw.Set<AS::distance_to_next>(GadgetBridgeProtocol::RoundDistance(m_distance_left));
 
     // Always navigating in demo mode
     ps.Set<AS::navigation_active>(true);
