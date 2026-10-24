@@ -287,7 +287,7 @@ GadgetBridgeProtocol::RoundDistance(uint32_t meters)
         return 0;
     }
 
-    const auto step = meters < 100 ? 5u : 10u;
+    const uint32_t step = meters < 100 ? 5u : 10u;
     const auto rounded = (static_cast<uint64_t>(meters) + step / 2) / step * step;
 
     // Round down instead if rounding up would overflow
