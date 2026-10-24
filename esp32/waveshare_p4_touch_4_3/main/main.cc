@@ -538,9 +538,28 @@ CreateDisplay()
 
 } // namespace
 
+// esp_hosted calls esp_hosted_init() from a constructor, i.e., before the scheduler is started.
+// At that point, only a small part of the internal RAM is available as heap, and esp_hosted
+// allocations there starve the IDF startup init functions (sleep_clock_icg_startup_init aborts).
+// Skip the constructor call (via -Wl,--wrap) and init from app_main instead.
+extern "C" int __real_esp_hosted_init(void);
+
+extern "C" int
+__wrap_esp_hosted_init(void)
+{
+    if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)
+    {
+        return ESP_OK;
+    }
+
+    return __real_esp_hosted_init();
+}
+
 extern "C" void
 app_main(void)
 {
+    ESP_ERROR_CHECK(esp_hosted_init());
+
     esp_log_level_set("*", ESP_LOG_INFO);
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
     ESP_ERROR_CHECK(nvs_flash_init());

@@ -33,6 +33,9 @@ idf_component_register(SRCS "main.cc" INCLUDE_DIRS ""
         vfs
 )
 
+# Defer esp_hosted init from its constructor to app_main (see __wrap_esp_hosted_init)
+target_link_options(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_hosted_init")
+
 # ... but use regular CMake for the rest
 target_link_libraries(${COMPONENT_TARGET}
     idf::freertos
