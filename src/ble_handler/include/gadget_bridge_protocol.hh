@@ -29,6 +29,10 @@ public:
     // Parse a GB({...}) line into json, or nullopt if it's not a (valid) GB message
     static std::optional<nlohmann::json> ParseLine(std::string_view line);
 
+    // Parse the time line Gadgetbridge sends on connect, e.g.,
+    // "\x10setTime(1729771234);E.setTimeZone(2.0);...", or nullopt if it's not one
+    static std::optional<MSG::network_time> ParseSetTime(std::string_view line);
+
     // Convert a Gadgetbridge distance ("300 m", "1.4 km", "0.2 mi", "500 ft") to meters,
     // or 0 if it can't be parsed
     static uint32_t DistanceToMeters(std::string_view distance);

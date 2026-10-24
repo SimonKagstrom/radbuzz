@@ -4,6 +4,7 @@
 #include "message_helpers.hh"
 
 #include <cstddef>
+#include <optional>
 #include <string>
 
 namespace MSG
@@ -64,6 +65,15 @@ struct user_dismissed_message
     uint32_t id;
 };
 
+// Time from the phone (i.e., Gadgetbridge)
+struct network_time
+{
+    // Seconds since the epoch
+    uint32_t utc;
+    // Offset from UTC (including DST), if sent
+    std::optional<int16_t> timezone_minutes;
+};
+
 using AllMessages = std::tuple<incoming_call,
                                tile_loaded,
                                reset_trip,
@@ -74,7 +84,8 @@ using AllMessages = std::tuple<incoming_call,
                                call_started,
                                message,
                                dismiss_message,
-                               user_dismissed_message>;
+                               user_dismissed_message,
+                               network_time>;
 
 constexpr auto kMessageCount = std::tuple_size_v<AllMessages>;
 

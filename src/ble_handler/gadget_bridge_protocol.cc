@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <cmath>
 #include <cstdio>
 #include <limits>
@@ -14,6 +15,13 @@ namespace
 
 constexpr std::string_view kPrefix = "GB(";
 constexpr std::string_view kSuffix = ")";
+
+constexpr std::string_view kSetTime = "setTime(";
+constexpr std::string_view kSetTimeZone = "E.setTimeZone(";
+
+// UTC-12 to UTC+14 (Kiribati)
+constexpr auto kMinTimezoneMinutes = -12 * 60;
+constexpr auto kMaxTimezoneMinutes = 14 * 60;
 
 // Unit -> meters. Gadgetbridge passes on what the navigation app shows
 constexpr auto kDistanceUnits = std::array {
@@ -125,6 +133,64 @@ JsToJson(std::string_view s)
     return out;
 }
 
+// The argument of e.g., "setTime(" up to the ")", or nullopt if unterminated
+std::optional<std::string_view>
+CallArgument(std::string_view s)
+{
+    auto end = s.find(')');
+    if (end == std::string_view::npos)
+    {
+        return std::nullopt;
+    }
+
+    return s.substr(0, end);
+}
+
+// Hours like "2.0", "-3.5" or "5.75" (a Java float) to minutes, if valid
+std::optional<int16_t>
+HoursToMinutes(std::string_view hours)
+{
+    auto is_digit = [](char c) { return c >= '0' && c <= '9'; };
+
+    const auto negative = hours.starts_with('-');
+    if (negative)
+    {
+        hours.remove_prefix(1);
+    }
+
+    // By hand, since there's no std::from_chars for floats everywhere
+    auto value = 0.0;
+    auto digits = 0;
+    while (!hours.empty() && is_digit(hours.front()) && digits < 3)
+    {
+        value = value * 10 + (hours.front() - '0');
+        hours.remove_prefix(1);
+        digits++;
+    }
+    if (hours.starts_with('.'))
+    {
+        hours.remove_prefix(1);
+        for (auto scale = 0.1; !hours.empty() && is_digit(hours.front()); scale /= 10)
+        {
+            value += scale * (hours.front() - '0');
+            hours.remove_prefix(1);
+        }
+    }
+
+    if (digits == 0 || !hours.empty())
+    {
+        return std::nullopt;
+    }
+
+    const auto minutes = std::lround((negative ? -value : value) * 60);
+    if (minutes < kMinTimezoneMinutes || minutes > kMaxTimezoneMinutes)
+    {
+        return std::nullopt;
+    }
+
+    return static_cast<int16_t>(minutes);
+}
+
 // A string field, or empty if missing or of another type (no exceptions on target)
 std::string
 GetString(const nlohmann::json& json, const char* key)
@@ -225,6 +291,45 @@ GadgetBridgeProtocol::ParseLine(std::string_view line)
     }
 
     return json;
+}
+
+std::optional<MSG::network_time>
+GadgetBridgeProtocol::ParseSetTime(std::string_view line)
+{
+    line = Trim(line);
+    if (!line.starts_with(kSetTime))
+    {
+        return std::nullopt;
+    }
+    line.remove_prefix(kSetTime.size());
+
+    // Seconds since the epoch (UTC). Rejects signs, decimals and values not fitting a uint32_t
+    auto utc_string = CallArgument(line);
+    if (!utc_string)
+    {
+        return std::nullopt;
+    }
+
+    uint32_t utc = 0;
+    auto [ptr, ec] =
+        std::from_chars(utc_string->data(), utc_string->data() + utc_string->size(), utc);
+    if (ec != std::errc() || ptr != utc_string->data() + utc_string->size())
+    {
+        return std::nullopt;
+    }
+
+    MSG::network_time out {utc, std::nullopt};
+
+    // The current offset in hours, so including DST. Optional, and the time is fine without it
+    if (auto pos = line.find(kSetTimeZone); pos != std::string_view::npos)
+    {
+        if (auto hours = CallArgument(line.substr(pos + kSetTimeZone.size())))
+        {
+            out.timezone_minutes = HoursToMinutes(*hours);
+        }
+    }
+
+    return out;
 }
 
 uint32_t
@@ -341,6 +446,15 @@ GadgetBridgeProtocol::Send(const nlohmann::json& json)
 void
 GadgetBridgeProtocol::PushLine(std::string_view line)
 {
+    if (auto time = ParseSetTime(line))
+    {
+        printf("GB: time %u, timezone %d minutes\n",
+               static_cast<unsigned>(time->utc),
+               time->timezone_minutes.value_or(0));
+        m_post_office.Send<MSG::network_time>(*time);
+        return;
+    }
+
     auto json = ParseLine(line);
 
     if (!json)

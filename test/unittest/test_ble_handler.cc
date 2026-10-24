@@ -185,6 +185,112 @@ TEST_CASE("gadgetbridge lines are parsed into json")
     }
 }
 
+TEST_CASE("gadgetbridge time lines are parsed")
+{
+    // As sent by Gadgetbridge (BangleJSDeviceSupport), with the settings update at the end
+    constexpr auto kSettings = "(s=>{s&&(s.timezone=2.0)&&require('Storage').write('setting.json',"
+                               "s);})(require('Storage').readJSON('setting.json',1))";
+
+    WHEN("a time line with a timezone arrives")
+    {
+        auto time = GadgetBridgeProtocol::ParseSetTime(
+            std::string("\x10setTime(1729771234);E.setTimeZone(2.0);") + kSettings);
+
+        THEN("both are parsed, with the timezone in minutes")
+        {
+            REQUIRE(time);
+            CHECK(time->utc == 1729771234);
+            REQUIRE(time->timezone_minutes);
+            CHECK(*time->timezone_minutes == 120);
+        }
+    }
+
+    WHEN("timezones with fractional hours arrive")
+    {
+        auto india = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(5.5);");
+        auto nepal = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(5.75);");
+        auto newfoundland = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(-3.5);");
+        auto utc = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(0.0);");
+        auto integer = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(-8);");
+
+        THEN("they are converted to minutes")
+        {
+            REQUIRE(india);
+            REQUIRE(nepal);
+            REQUIRE(newfoundland);
+            REQUIRE(utc);
+            REQUIRE(integer);
+            CHECK(india->timezone_minutes == 330);
+            CHECK(nepal->timezone_minutes == 345);
+            CHECK(newfoundland->timezone_minutes == -210);
+            CHECK(utc->timezone_minutes == 0);
+            CHECK(integer->timezone_minutes == -480);
+        }
+    }
+
+    WHEN("a time line without a timezone arrives")
+    {
+        auto time = GadgetBridgeProtocol::ParseSetTime("\x10setTime(1729771234);");
+
+        THEN("only the time is parsed")
+        {
+            REQUIRE(time);
+            CHECK(time->utc == 1729771234);
+            CHECK(time->timezone_minutes == std::nullopt);
+        }
+    }
+
+    WHEN("a time line with a broken timezone arrives")
+    {
+        auto garbage = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(Simon);");
+        auto empty = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone();");
+        auto unterminated = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(2.0");
+        auto too_large = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(15.0);");
+        auto too_small = GadgetBridgeProtocol::ParseSetTime("setTime(1);E.setTimeZone(-13.0);");
+
+        THEN("the time is still used, but not the timezone")
+        {
+            for (const auto& time : {garbage, empty, unterminated, too_large, too_small})
+            {
+                REQUIRE(time);
+                CHECK(time->utc == 1);
+                CHECK(time->timezone_minutes == std::nullopt);
+            }
+        }
+    }
+
+    WHEN("broken time lines arrive")
+    {
+        THEN("they are ignored")
+        {
+            CHECK(GadgetBridgeProtocol::ParseSetTime("") == std::nullopt);
+            CHECK(GadgetBridgeProtocol::ParseSetTime("setTime();") == std::nullopt);
+            CHECK(GadgetBridgeProtocol::ParseSetTime("setTime(Simon);") == std::nullopt);
+            CHECK(GadgetBridgeProtocol::ParseSetTime("setTime(-5);") == std::nullopt);
+            CHECK(GadgetBridgeProtocol::ParseSetTime("setTime(12.5);") == std::nullopt);
+            CHECK(GadgetBridgeProtocol::ParseSetTime("setTime(123") == std::nullopt);
+            // Larger than uint32_t
+            CHECK(GadgetBridgeProtocol::ParseSetTime("setTime(4294967296);") == std::nullopt);
+            CHECK(GadgetBridgeProtocol::ParseSetTime("setTime(99999999999999999999);") ==
+                  std::nullopt);
+            // Only the timezone
+            CHECK(GadgetBridgeProtocol::ParseSetTime("E.setTimeZone(2.0);") == std::nullopt);
+            CHECK(GadgetBridgeProtocol::ParseSetTime("GB({\"t\":\"notify\"})") == std::nullopt);
+        }
+    }
+
+    WHEN("the largest uint32_t time arrives")
+    {
+        auto time = GadgetBridgeProtocol::ParseSetTime("setTime(4294967295);");
+
+        THEN("it's parsed")
+        {
+            REQUIRE(time);
+            CHECK(time->utc == 4294967295u);
+        }
+    }
+}
+
 TEST_CASE("gadgetbridge distances are converted to meters")
 {
     WHEN("metric distances arrive")
@@ -662,6 +768,45 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler sends the battery state of charge to
                                              "{\"bat\":1,\"t\":\"status\"}\r\n"
                                              "{\"bat\":0,\"t\":\"status\"}\r\n");
             }
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards the time from Gadgetbridge")
+{
+    NullNotifier notifier;
+    auto mailbox = post_office.Subscribe<MSG::network_time>(notifier);
+
+    std::vector<MSG::network_time> times;
+    auto collect = [&]() {
+        mailbox->Collect().On<MSG::network_time>([&times](auto time) { times.push_back(*time); });
+    };
+
+    ble.Start("ble");
+
+    WHEN("the phone sends the time")
+    {
+        srv.Inject(kRxCharacteristicUuid, "\x10setTime(1729771234);E.setTimeZone(-3.5);\n");
+        DoRunLoop();
+
+        THEN("it is sent as a message")
+        {
+            collect();
+            REQUIRE(times.size() == 1);
+            CHECK(times[0].utc == 1729771234);
+            CHECK(times[0].timezone_minutes == -210);
+        }
+    }
+
+    WHEN("other JavaScript arrives")
+    {
+        srv.Inject(kRxCharacteristicUuid, "\x10" "Bangle.buzz();\n");
+        DoRunLoop();
+
+        THEN("no time is sent")
+        {
+            collect();
+            CHECK(times.empty());
         }
     }
 }
