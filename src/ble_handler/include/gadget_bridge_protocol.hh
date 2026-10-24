@@ -51,6 +51,9 @@ private:
     ApplicationState& m_state;
     PostOffice<MSG::AllMessages>& m_post_office;
 
+    ListenerCookie m_state_listener;
+    ApplicationState::PartialReadOnlyCache<AS::battery_soc, AS::bluetooth_connected> m_state_cache;
+
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
     os::TimerHandle m_navigation_active_timer;
 };

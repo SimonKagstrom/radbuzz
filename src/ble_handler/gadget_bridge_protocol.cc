@@ -154,6 +154,8 @@ GadgetBridgeProtocol::GadgetBridgeProtocol(os::TimerManager& timer_manager,
     : m_timer_manager(timer_manager)
     , m_state(state)
     , m_post_office(post_office)
+    , m_state_listener(m_state.AttachListener<AS::battery_soc, AS::bluetooth_connected>(notifier))
+    , m_state_cache(m_state)
 {
     m_mailbox = m_post_office.Subscribe<MSG::answer_call,
                                         MSG::decline_call,
@@ -171,6 +173,22 @@ GadgetBridgeProtocol::SendCallControl(std::string_view command)
 void
 GadgetBridgeProtocol::Poll()
 {
+    // On changes, and on connect since the phone doesn't remember it
+    auto& co = m_state_cache.Pull();
+
+    co.OnNewValue<AS::bluetooth_connected>([this, &co](auto connected) {
+          if (connected)
+          {
+              Send({{"t", "status"}, {"bat", co.Get<AS::battery_soc>()}});
+          }
+      }).OnNewValue<AS::battery_soc>([this, &co](auto soc) {
+        if (co.Get<AS::bluetooth_connected>())
+        {
+            Send({{"t", "status"}, {"bat", soc}});
+        }
+    });
+
+
     m_mailbox->Collect()
         .On<MSG::answer_call>([this]() { SendCallControl("accept"); })
         .On<MSG::decline_call>([this]() {

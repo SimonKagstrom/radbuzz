@@ -551,6 +551,121 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "the BLE handler sends the battery state of charge to Gadgetbridge")
+{
+    ble.Start("ble");
+    auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
+
+    WHEN("the state of charge changes while disconnected")
+    {
+        state.Set<AS::battery_soc>(80);
+        DoRunLoop();
+        state.Set<AS::battery_soc>(75);
+        DoRunLoop();
+
+        THEN("nothing is sent")
+        {
+            CHECK(srv.notified[tx[0]] == "");
+        }
+
+        AND_WHEN("the phone connects")
+        {
+            state.Set<AS::bluetooth_connected>(true);
+            DoRunLoop();
+
+            THEN("only the latest value is sent")
+            {
+                CHECK(srv.notified[tx[0]] == "{\"bat\":75,\"t\":\"status\"}\r\n");
+            }
+        }
+    }
+
+    WHEN("the phone is connected")
+    {
+        state.Set<AS::bluetooth_connected>(true);
+        DoRunLoop();
+
+        THEN("the state of charge is sent, also when not yet known")
+        {
+            CHECK(srv.notified[tx[0]] == "{\"bat\":0,\"t\":\"status\"}\r\n");
+        }
+
+        srv.notified[tx[0]].clear();
+
+        AND_WHEN("the state of charge changes")
+        {
+            state.Set<AS::battery_soc>(75);
+            DoRunLoop();
+
+            THEN("it's sent as a number, like the Bangle.js does")
+            {
+                REQUIRE(srv.notified[tx[0]] == "{\"bat\":75,\"t\":\"status\"}\r\n");
+            }
+
+            AND_WHEN("it's set to the same value again")
+            {
+                srv.notified[tx[0]].clear();
+                state.Set<AS::battery_soc>(75);
+                DoRunLoop();
+
+                THEN("nothing more is sent")
+                {
+                    CHECK(srv.notified[tx[0]] == "");
+                }
+            }
+
+            AND_WHEN("it changes again")
+            {
+                srv.notified[tx[0]].clear();
+                state.Set<AS::battery_soc>(74);
+                DoRunLoop();
+
+                THEN("the new value is sent")
+                {
+                    CHECK(srv.notified[tx[0]] == "{\"bat\":74,\"t\":\"status\"}\r\n");
+                }
+            }
+
+            AND_WHEN("the phone reconnects, with the same state of charge")
+            {
+                srv.notified[tx[0]].clear();
+                state.Set<AS::bluetooth_connected>(false);
+                DoRunLoop();
+
+                THEN("nothing is sent on the disconnect")
+                {
+                    CHECK(srv.notified[tx[0]] == "");
+                }
+
+                state.Set<AS::bluetooth_connected>(true);
+                DoRunLoop();
+
+                THEN("it's sent again on the connect")
+                {
+                    CHECK(srv.notified[tx[0]] == "{\"bat\":75,\"t\":\"status\"}\r\n");
+                }
+            }
+        }
+
+        AND_WHEN("the state of charge changes to the extremes")
+        {
+            state.Set<AS::battery_soc>(100);
+            DoRunLoop();
+            state.Set<AS::battery_soc>(1);
+            DoRunLoop();
+            state.Set<AS::battery_soc>(0);
+            DoRunLoop();
+
+            THEN("all are sent, in order")
+            {
+                CHECK(srv.notified[tx[0]] == "{\"bat\":100,\"t\":\"status\"}\r\n"
+                                             "{\"bat\":1,\"t\":\"status\"}\r\n"
+                                             "{\"bat\":0,\"t\":\"status\"}\r\n");
+            }
+        }
+    }
+}
+
 TEST_CASE_FIXTURE(Fixture, "the BLE handler sends message dismissals to Gadgetbridge")
 {
     ble.Start("ble");
