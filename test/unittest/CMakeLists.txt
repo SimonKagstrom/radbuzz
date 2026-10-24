@@ -43,6 +43,7 @@ add_executable(unittest_radbuzz
     test_application_state.cc
     test_ble_handler.cc
     test_buzz_handler.cc
+    test_clock_string.cc
     test_distance_string.cc
     test_gps_reader.cc
     test_king_shark_packet_protocol.cc

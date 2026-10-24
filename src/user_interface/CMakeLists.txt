@@ -82,6 +82,7 @@ convert_font(radbuzz_numbers_font_16
 )
 
 add_library(user_interface EXCLUDE_FROM_ALL
+    clock_widget.cc
     digital_speedometer_widget.cc
     incoming_call_screen.cc
     map_screen.cc

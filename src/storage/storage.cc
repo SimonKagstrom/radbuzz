@@ -50,6 +50,7 @@ constexpr auto kSettings = std::tuple {
     Setting<&ConfigurationSettings::rotate_map> {"r", false},
     Setting<&ConfigurationSettings::force_c6_update> {"f", false},
     Setting<&ConfigurationSettings::show_gps_speed> {"G", false},
+    Setting<&ConfigurationSettings::show_clock> {"c", true},
     Setting<&ConfigurationSettings::show_speech_bubbles> {"b", true},
     Setting<&ConfigurationSettings::controller_overheat_temperature> {"0", 80},
     Setting<&ConfigurationSettings::motor_overheat_temperature> {"1", 80},

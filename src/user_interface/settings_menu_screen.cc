@@ -161,6 +161,10 @@ SettingsMenuScreen::OnActivation()
         conf->show_gps_speed,
         ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_gps_speed));
     settings_page.AddBooleanEntry(
+        "Show clock",
+        conf->show_clock,
+        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_clock));
+    settings_page.AddBooleanEntry(
         "Rotate map with heading",
         conf->rotate_map,
         ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::rotate_map));

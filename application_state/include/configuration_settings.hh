@@ -79,6 +79,8 @@ struct ConfigurationSettings
     uint8_t wh_per_km_for_range_estimation;
     /// @brief show the gps speed in small numbers
     bool show_gps_speed;
+    // Show the clock (local time) at the top of the map and speedometer screens
+    bool show_clock;
     // Whether to show speech bubbles with info at start
     bool show_speech_bubbles;
 

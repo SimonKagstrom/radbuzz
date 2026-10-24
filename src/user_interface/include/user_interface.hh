@@ -32,6 +32,7 @@ class HomeIndicator;
 class IncomingCallScreen;
 class SidePane;
 class NavigationWidget;
+class ClockWidget;
 
 constexpr auto kPowerBarWidth = 10;
 // The x position of the indicator icons at the right
@@ -301,6 +302,7 @@ private:
 
     std::unique_ptr<DigitalSpeedometerWidget> m_digital_speedometer;
     std::unique_ptr<NavigationWidget> m_navigation;
+    std::unique_ptr<ClockWidget> m_clock;
     std::vector<std::unique_ptr<IndicatorBase>> m_indicators;
     std::vector<std::unique_ptr<SpeechBubble>> m_explanatory_bubbles;
 

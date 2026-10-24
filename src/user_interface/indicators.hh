@@ -215,27 +215,21 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        auto has_messages = m_parent.ShowMessagesIcon();
-
+        // The same place for both. During a call, the messages can wait
         if (state.Get<AS::call_ongoing>())
         {
-            if (has_messages && m_parent.OnCallScreen())
-            {
-                lv_label_set_text(m_indicator_label,
-                                  std::format("#4CAF50 {}# ", LV_SYMBOL_DRIVE).c_str());
-            }
-            else
-            {
-                lv_label_set_text(m_indicator_label,
-                                  std::format("#4CAF50 {}# ", LV_SYMBOL_CALL).c_str());
-            }
-            lv_obj_set_hidden(m_indicator_label, m_parent.OnCallScreen() && !has_messages);
+            lv_label_set_text(m_indicator_label,
+                              std::format("#4CAF50 {}# ", LV_SYMBOL_CALL).c_str());
+            // Drawn on top of the side pane, so hidden when it's shown
+            lv_obj_set_hidden(m_indicator_label,
+                              m_parent.OnCallScreen() || m_parent.SidePaneShown());
         }
         else
         {
             lv_label_set_text(m_indicator_label,
                               std::format("#4CAF50 {}# ", LV_SYMBOL_DRIVE).c_str());
-            lv_obj_set_hidden(m_indicator_label, !has_messages);
+            // Not shown when the side pane is
+            lv_obj_set_hidden(m_indicator_label, !m_parent.ShowMessagesIcon());
         }
     }
 

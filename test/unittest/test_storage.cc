@@ -161,6 +161,7 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread sets default values if the NVM is
 
     REQUIRE(State().Get<AS::configuration>()->controller_overheat_temperature == 80);
     REQUIRE(State().Get<AS::configuration>()->max_speedometer_speed == 30);
+    REQUIRE(State().Get<AS::configuration>()->show_clock == true);
 }
 
 TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state changes")
@@ -273,6 +274,7 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     PresetNvm("r", 1);
     PresetNvm("f", 1);
     PresetNvm("G", 1);
+    PresetNvm("c", 0);
     PresetNvm("b", 0);
     PresetNvm("x", 1234);
     PresetNvm("y", 5678);
@@ -297,6 +299,7 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     REQUIRE(conf.rotate_map == true);
     REQUIRE(conf.force_c6_update == true);
     REQUIRE(conf.show_gps_speed == true);
+    REQUIRE(conf.show_clock == false);
     REQUIRE(conf.show_speech_bubbles == false);
     REQUIRE(conf.home_position.x == 1234);
     REQUIRE(conf.home_position.y == 5678);
@@ -325,6 +328,7 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     conf.rotate_map = true;
     conf.force_c6_update = true;
     conf.show_gps_speed = true;
+    conf.show_clock = false;
     conf.show_speech_bubbles = false;
     conf.home_position = {-17, 4711, conf.home_position.zoom};
     conf.controller_overheat_temperature = 91;

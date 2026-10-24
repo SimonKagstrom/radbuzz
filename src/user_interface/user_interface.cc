@@ -1,5 +1,6 @@
 #include "user_interface.hh"
 
+#include "clock_widget.hh"
 #include "incoming_call_screen.hh"
 #include "indicators.hh"
 #include "map_screen.hh"
@@ -248,6 +249,8 @@ UserInterface::OnStartup()
     // Below the side pane, which hides the left corners when moved next to it
     m_navigation = std::make_unique<NavigationWidget>(lv_layer_top());
 
+    m_clock = std::make_unique<ClockWidget>(lv_layer_top());
+
     // After the speedometer, which is partly hidden below it when the pane is shown. Before the
     // indicators, so that they are drawn on top of it
     m_side_pane = std::make_unique<SidePane>(lv_layer_top(), [this](uint32_t id) {
@@ -263,8 +266,13 @@ UserInterface::OnStartup()
     m_indicators.resize(std::to_underlying(IndicatorType::kValueCount));
     m_indicators[IndicatorType::kBattery] = std::make_unique<BatteryIndicator>(
         *this, Point {hal::kDisplayWidth - DigitalSpeedometerWidget::kBoxDimensions - 72, 0});
-    m_indicators[IndicatorType::kCallOngoing] =
-        std::make_unique<CallIndicator>(*this, Point {hal::kDisplayWidth / 2, 0});
+
+    // In the middle of the left edge, which is free on all screens (and where the side pane with
+    // the messages appears). Not at the top middle, where the clock is
+    constexpr auto kCallIndicatorX = 8;
+    auto& call_indicator = m_indicators[IndicatorType::kCallOngoing];
+    call_indicator = std::make_unique<CallIndicator>(*this, Point {0, 0});
+    lv_obj_align(call_indicator->m_indicator_label, LV_ALIGN_LEFT_MID, kCallIndicatorX, 0);
 
     m_indicators[IndicatorType::kOverheated] = std::make_unique<OverheatedIndicator>(
         *this, Point {kIndicatorColumn, indicator_row_y += kIndicatorRowSpacing});
@@ -335,7 +343,7 @@ UserInterface::SetHelp(bool on)
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_indicators[IndicatorType::kCallOngoing]->m_indicator_label,
-                                       SpeechBubble::Direction::kBelow,
+                                       SpeechBubble::Direction::kRight,
                                        "Call ongoing /\nunread messages"));
 
     m_explanatory_bubbles.push_back(
@@ -551,6 +559,7 @@ UserInterface::OnActivation()
                                   side_pane_shown ? SidePane::kWidth : 0);
     m_navigation->Update(
         m_state, m_current_screen->ShowsNavigation(), side_pane_shown ? SidePane::kWidth : 0);
+    const auto clock_update_time = m_clock->Update(m_state, OnMapScreen() || OnSpeedometerScreen());
     PlaceStatusIndicators();
     for (auto& indicator : m_indicators)
     {
@@ -572,10 +581,19 @@ UserInterface::OnActivation()
         bubble->Update();
     }
 
+    // The UI doesn't listen to the clock, so wake up when the shown minute changes
+    auto with_clock = [&clock_update_time](std::optional<milliseconds> time) {
+        if (!clock_update_time)
+        {
+            return time;
+        }
+        return time ? std::min(*time, *clock_update_time) : clock_update_time;
+    };
+
     if (auto time_before = os::GetTimeStampRaw(); m_next_redraw_time > time_before)
     {
         // Wait for the next redraw
-        return milliseconds(m_next_redraw_time - time_before);
+        return with_clock(milliseconds(m_next_redraw_time - time_before));
     }
     auto delay = lv_timer_handler();
     m_next_redraw_time = os::GetTimeStampRaw() + delay;
@@ -584,10 +602,10 @@ UserInterface::OnActivation()
         // Half a second of activity on input (for animations)
         lv_display_get_inactive_time(m_lvgl_display) < 500)
     {
-        return milliseconds(delay);
+        return with_clock(milliseconds(delay));
     }
 
-    return std::nullopt;
+    return with_clock(std::nullopt);
 }
 
 void
