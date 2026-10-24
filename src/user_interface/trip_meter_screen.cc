@@ -1,6 +1,7 @@
 #include "trip_meter_screen.hh"
 
 #include "battery_utils.hh"
+#include "distance_string.hh"
 #include "map_screen.hh"
 #include "side_pane.hh"
 #include "time_string.hh"
@@ -284,19 +285,11 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripDistance: {
-            auto distance_m = m_parent.m_state.Get<AS::trip_distance>();
+            auto [value, unit] =
+                DistanceToValueAndUnit(m_parent.m_state.Get<AS::trip_distance>());
 
-            if (distance_m >= 1000)
-            {
-                float distance_km = distance_m / 1000.0f;
-                unit_text = "km";
-                value_text = std::format("{:.1f}", distance_km);
-            }
-            else
-            {
-                unit_text = "m";
-                value_text = std::format("{}", distance_m);
-            }
+            value_text = std::move(value);
+            unit_text = std::move(unit);
             break;
         }
 

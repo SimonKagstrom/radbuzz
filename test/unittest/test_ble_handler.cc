@@ -264,6 +264,54 @@ TEST_CASE("gadgetbridge distances are converted to meters")
     }
 }
 
+TEST_CASE("gadgetbridge distances are rounded to avoid flicker")
+{
+    WHEN("the distance is below 100 m")
+    {
+        THEN("it's rounded to 5 m")
+        {
+            CHECK(GadgetBridgeProtocol::RoundDistance(12) == 10);
+            CHECK(GadgetBridgeProtocol::RoundDistance(13) == 15);
+            CHECK(GadgetBridgeProtocol::RoundDistance(15) == 15);
+            CHECK(GadgetBridgeProtocol::RoundDistance(97) == 95);
+            CHECK(GadgetBridgeProtocol::RoundDistance(98) == 100);
+        }
+    }
+
+    WHEN("the distance is 100 m or more")
+    {
+        THEN("it's rounded to 10 m")
+        {
+            CHECK(GadgetBridgeProtocol::RoundDistance(100) == 100);
+            CHECK(GadgetBridgeProtocol::RoundDistance(104) == 100);
+            CHECK(GadgetBridgeProtocol::RoundDistance(105) == 110);
+            CHECK(GadgetBridgeProtocol::RoundDistance(152) == 150);
+            CHECK(GadgetBridgeProtocol::RoundDistance(1609) == 1610);
+        }
+    }
+
+    WHEN("the distance is very short")
+    {
+        THEN("it's not rounded to 0, which means no navigation")
+        {
+            CHECK(GadgetBridgeProtocol::RoundDistance(0) == 0);
+            CHECK(GadgetBridgeProtocol::RoundDistance(1) == 5);
+            CHECK(GadgetBridgeProtocol::RoundDistance(2) == 5);
+            CHECK(GadgetBridgeProtocol::RoundDistance(3) == 5);
+        }
+    }
+
+    WHEN("the distance is huge")
+    {
+        THEN("it doesn't overflow")
+        {
+            CHECK(GadgetBridgeProtocol::RoundDistance(std::numeric_limits<uint32_t>::max()) ==
+                  4294967290);
+            CHECK(GadgetBridgeProtocol::RoundDistance(4294967284) == 4294967280);
+        }
+    }
+}
+
 TEST_CASE_FIXTURE(Fixture, "the BLE handler accepts data on the UART characteristic")
 {
     ble.Start("ble");

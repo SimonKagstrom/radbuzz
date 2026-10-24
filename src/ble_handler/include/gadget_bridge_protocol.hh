@@ -33,6 +33,10 @@ public:
     // or 0 if it can't be parsed
     static uint32_t DistanceToMeters(std::string_view distance);
 
+    // Round to 5 m (below 100 m) or 10 m, to avoid a flickering display. Non-zero distances
+    // stay non-zero, since 0 means no navigation
+    static uint32_t RoundDistance(uint32_t meters);
+
 private:
     void HandleNavigationEvent(const nlohmann::json& json);
     void HandleCallEvent(const nlohmann::json& json);

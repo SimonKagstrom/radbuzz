@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <string>
 #include <utility>
 
@@ -278,6 +279,26 @@ GadgetBridgeProtocol::DistanceToMeters(std::string_view distance)
     return 0;
 }
 
+uint32_t
+GadgetBridgeProtocol::RoundDistance(uint32_t meters)
+{
+    if (meters == 0)
+    {
+        return 0;
+    }
+
+    const auto step = meters < 100 ? 5u : 10u;
+    const auto rounded = (static_cast<uint64_t>(meters) + step / 2) / step * step;
+
+    // Round down instead if rounding up would overflow
+    if (rounded > std::numeric_limits<uint32_t>::max())
+    {
+        return meters / step * step;
+    }
+
+    return std::max(static_cast<uint32_t>(rounded), step);
+}
+
 void
 GadgetBridgeProtocol::SetSender(std::function<void(std::string_view)> sender)
 {
@@ -393,7 +414,7 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
         return;
     }
 
-    auto distance = DistanceToMeters(GetString(json, "distance"));
+    auto distance = RoundDistance(DistanceToMeters(GetString(json, "distance")));
     auto instr = json.contains("instr") ? json.at("instr").get<std::string>() : "";
     auto eta = json.contains("eta") ? json.at("eta").get<std::string>() : "";
     auto action = json.contains("action") ? json.at("action").get<std::string>() : "";

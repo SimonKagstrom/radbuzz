@@ -1,5 +1,7 @@
 #include "navigation_widget.hh"
 
+#include "distance_string.hh"
+
 #include <array>
 #include <format>
 #include <radbuzz_font_22.h>
@@ -145,7 +147,7 @@ NavigationWidget::Update(ApplicationState& state, bool show, int32_t left_x)
         lv_label_set_text(m_description_label,
                           std::format("{}", *state.Get<AS::next_street>()).c_str());
         lv_label_set_text(m_distance_left_label,
-                          std::format("{}", state.Get<AS::distance_to_next>()).c_str());
+                          DistanceToString(state.Get<AS::distance_to_next>()).c_str());
 
         auto turn = std::to_underlying(state.Get<AS::turn_symbol>());
         if (turn < kTurnSymbolStrings.size())
