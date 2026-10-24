@@ -39,6 +39,11 @@ struct call_ended
 {
 };
 
+// Answered, here or on the phone
+struct call_started
+{
+};
+
 struct message
 {
     uint32_t id;
@@ -53,6 +58,12 @@ struct dismiss_message
     uint32_t id;
 };
 
+// User dismisses message here, to dismiss it on the phone as well
+struct user_dismissed_message
+{
+    uint32_t id;
+};
+
 using AllMessages = std::tuple<incoming_call,
                                tile_loaded,
                                reset_trip,
@@ -60,8 +71,10 @@ using AllMessages = std::tuple<incoming_call,
                                decline_call,
                                hangup_call,
                                call_ended,
+                               call_started,
                                message,
-                               dismiss_message>;
+                               dismiss_message,
+                               user_dismissed_message>;
 
 constexpr auto kMessageCount = std::tuple_size_v<AllMessages>;
 

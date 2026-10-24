@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <format>
+#include <utility>
 #include <radbuzz_font_22.h>
 
 namespace
@@ -52,8 +53,9 @@ CreateLabel(lv_obj_t* parent)
 
 } // namespace
 
-SidePane::SidePane(lv_obj_t* parent)
-    : m_pane(lv_obj_create(parent))
+SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismissed)
+    : m_on_dismissed(std::move(on_dismissed))
+    , m_pane(lv_obj_create(parent))
 {
     lv_obj_set_size(m_pane, kWidth + kCornerRadius, hal::kDisplayHeight);
     lv_obj_align(m_pane, LV_ALIGN_TOP_LEFT, -kCornerRadius, 0);
@@ -181,6 +183,7 @@ SidePane::Dismiss()
 {
     if (!m_messages.empty())
     {
+        m_on_dismissed(m_messages[m_current].id);
         RemoveMessageAt(m_current);
     }
 }

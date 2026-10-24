@@ -3,6 +3,7 @@
 #include "user_interface.hh"
 
 #include <cstdint>
+#include <functional>
 #include <lvgl.h>
 #include <string>
 #include <vector>
@@ -25,7 +26,8 @@ public:
     // The part of the screen (left of the power bar). Change to e.g., / 2 to experiment
     static constexpr int32_t kWidth = (hal::kDisplayWidth - kPowerBarWidth) / 3;
 
-    explicit SidePane(lv_obj_t* parent);
+    // on_dismissed is called with the id when the user dismisses a message (not on RemoveMessage)
+    SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismissed);
     ~SidePane();
 
     SidePane(const SidePane&) = delete;
@@ -74,6 +76,8 @@ private:
     // Gray until the end of the message has been reached (for the encoder)
     void UpdateOkButton();
     void UpdateVisibility();
+
+    std::function<void(uint32_t id)> m_on_dismissed;
 
     lv_obj_t* m_pane {nullptr};
     lv_obj_t* m_title_label {nullptr};

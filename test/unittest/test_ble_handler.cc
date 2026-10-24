@@ -334,14 +334,17 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler replies to GPS status requests")
 TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbridge")
 {
     NullNotifier notifier;
-    auto mailbox = post_office.Subscribe<MSG::incoming_call, MSG::call_ended>(notifier);
+    auto mailbox =
+        post_office.Subscribe<MSG::incoming_call, MSG::call_ended, MSG::call_started>(notifier);
 
     std::vector<MSG::incoming_call> calls;
     auto ended = 0;
+    auto started = 0;
     auto collect = [&]() {
         mailbox->Collect()
             .On<MSG::incoming_call>([&calls](auto call) { calls.push_back(*call); })
-            .On<MSG::call_ended>([&ended]() { ended++; });
+            .On<MSG::call_ended>([&ended]() { ended++; })
+            .On<MSG::call_started>([&started]() { started++; });
     };
 
     ble.Start("ble");
@@ -391,11 +394,16 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
                    "\x10GB({\"t\":\"call\",\"cmd\":\"start\",\"name\":\"\",\"number\":\"\"})\n");
         DoRunLoop();
 
-        THEN("no message is sent (for now)")
+        THEN("that is sent as a message")
         {
             collect();
+            CHECK(started == 1);
             CHECK(calls.empty());
             CHECK(ended == 0);
+        }
+        AND_THEN("the call is ongoing")
+        {
+            CHECK(state.Get<AS::call_ongoing>() == true);
         }
     }
 }
@@ -539,6 +547,35 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbr
             REQUIRE(dismissed.size() == 1);
             CHECK(dismissed[0].id == 1790422616);
             CHECK(messages.empty());
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the BLE handler sends message dismissals to Gadgetbridge")
+{
+    ble.Start("ble");
+    auto tx = hal::detail::StringToUuid128(kTxCharacteristicUuid);
+
+    WHEN("a message is dismissed by the user")
+    {
+        post_office.Send<MSG::user_dismissed_message>({1790422616});
+        DoRunLoop();
+
+        THEN("it's dismissed on the phone as well")
+        {
+            REQUIRE(srv.notified[tx[0]] ==
+                    "{\"id\":1790422616,\"n\":\"DISMISS\",\"t\":\"notify\"}\r\n");
+        }
+    }
+
+    WHEN("a message with a negative (Java int) id is dismissed")
+    {
+        post_office.Send<MSG::user_dismissed_message>({static_cast<uint32_t>(-2)});
+        DoRunLoop();
+
+        THEN("the id is sent back as negative")
+        {
+            REQUIRE(srv.notified[tx[0]] == "{\"id\":-2,\"n\":\"DISMISS\",\"t\":\"notify\"}\r\n");
         }
     }
 }

@@ -118,6 +118,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
     m_mailbox = m_post_office.Subscribe<MSG::incoming_call,
                                         MSG::tile_loaded,
                                         MSG::call_ended,
+                                        MSG::call_started,
                                         MSG::dismiss_message,
                                         MSG::message>(GetSemaphore());
 
@@ -249,7 +250,9 @@ UserInterface::OnStartup()
 
     // After the speedometer, which is partly hidden below it when the pane is shown. Before the
     // indicators, so that they are drawn on top of it
-    m_side_pane = std::make_unique<SidePane>(lv_layer_top());
+    m_side_pane = std::make_unique<SidePane>(lv_layer_top(), [this](uint32_t id) {
+        m_post_office.Send<MSG::user_dismissed_message>({id});
+    });
 
     // The battery icon is at the top right, and the rest in a column to the right. Warnings are
     // large and at the top of the column, the status icons small, at the bottom
@@ -446,6 +449,8 @@ UserInterface::OnActivation()
     m_mailbox->Collect()
         .On<MSG::incoming_call>([this](auto call) { ShowIncomingCall(*call); })
         .On<MSG::call_ended>([this](auto) { HideIncomingCall(); })
+        // Answered on the phone (or here, and then already hidden)
+        .On<MSG::call_started>([this](auto) { HideIncomingCall(); })
         .On<MSG::dismiss_message>([this](auto msg) { DismissMessage(*msg); })
         .On<MSG::message>([this](auto msg) { ShowMessage(*msg); });
     UpdateSidePane();

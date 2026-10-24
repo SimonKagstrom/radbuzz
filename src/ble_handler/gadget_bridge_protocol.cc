@@ -155,8 +155,10 @@ GadgetBridgeProtocol::GadgetBridgeProtocol(os::TimerManager& timer_manager,
     , m_state(state)
     , m_post_office(post_office)
 {
-    m_mailbox =
-        m_post_office.Subscribe<MSG::answer_call, MSG::decline_call, MSG::hangup_call>(notifier);
+    m_mailbox = m_post_office.Subscribe<MSG::answer_call,
+                                        MSG::decline_call,
+                                        MSG::hangup_call,
+                                        MSG::user_dismissed_message>(notifier);
 }
 
 void
@@ -178,6 +180,10 @@ GadgetBridgeProtocol::Poll()
         .On<MSG::hangup_call>([this]() {
             SendCallControl("end");
             m_state.Set<AS::call_ongoing>(false);
+        })
+        .On<MSG::user_dismissed_message>([this](auto msg) {
+            // Back to a Java int, which Gadgetbridge maps to its notification
+            Send({{"t", "notify"}, {"id", static_cast<int32_t>(msg->id)}, {"n", "DISMISS"}});
         });
 }
 
@@ -385,12 +391,17 @@ GadgetBridgeProtocol::HandleCallEvent(const nlohmann::json& json)
             {GetString(json, "number"), GetString(json, "name")});
         m_state.Set<AS::call_ongoing>(true);
     }
+    else if (cmd == "start")
+    {
+        // Answered, possibly on the phone
+        m_post_office.Send<MSG::call_started>();
+        m_state.Set<AS::call_ongoing>(true);
+    }
     else if (cmd == "end" || cmd == "reject")
     {
         m_post_office.Send<MSG::call_ended>();
         m_state.Set<AS::call_ongoing>(false);
     }
-    // TODO: "start" (answered, possibly on the phone) for the ongoing call indicator
 }
 
 void
