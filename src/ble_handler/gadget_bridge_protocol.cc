@@ -415,9 +415,8 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
     }
 
     auto distance = RoundDistance(DistanceToMeters(GetString(json, "distance")));
-    auto instr = json.contains("instr") ? json.at("instr").get<std::string>() : "";
-    auto eta = json.contains("eta") ? json.at("eta").get<std::string>() : "";
-    auto action = json.contains("action") ? json.at("action").get<std::string>() : "";
+    auto instr = GetString(json, "instr");
+    auto action = GetString(json, "action");
 
     auto qw = m_state.CheckoutQueuedWriter<AS::navigation_active,
                                            AS::next_street,

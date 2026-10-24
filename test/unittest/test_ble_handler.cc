@@ -400,6 +400,54 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards navigation from Gadgetbridge")
+{
+    ble.Start("ble");
+
+    WHEN("a navigation instruction is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"nav\",\"action\":\"right\",\"distance\":\"160 m\","
+                   "\"eta\":\"06:46\",\"instr\":\"Brittm\xe4ssgatan\"})\n");
+        DoRunLoop();
+
+        THEN("the navigation state is updated")
+        {
+            CHECK(state.Get<AS::navigation_active>() == true);
+            CHECK(*state.Get<AS::next_street>() == "Brittmässgatan");
+            CHECK(state.Get<AS::distance_to_next>() == 160);
+            CHECK(state.Get<AS::turn_symbol>() == TurnSymbol::kTurnRight);
+        }
+
+        AND_WHEN("navigation ends")
+        {
+            srv.Inject(kRxCharacteristicUuid, "\x10GB({\"t\":\"nav\"})\n");
+            DoRunLoop();
+
+            THEN("navigation is no longer active")
+            {
+                CHECK(state.Get<AS::navigation_active>() == false);
+            }
+        }
+    }
+
+    WHEN("a navigation instruction with broken field types is received")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"nav\",\"action\":7,\"distance\":null,\"eta\":[],"
+                   "\"instr\":{\"a\":1}})\n");
+        DoRunLoop();
+
+        THEN("the broken fields are treated as empty")
+        {
+            CHECK(state.Get<AS::navigation_active>() == true);
+            CHECK(*state.Get<AS::next_street>() == "");
+            CHECK(state.Get<AS::distance_to_next>() == 0);
+            CHECK(state.Get<AS::turn_symbol>() == TurnSymbol::kNone);
+        }
+    }
+}
+
 TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbridge")
 {
     NullNotifier notifier;
