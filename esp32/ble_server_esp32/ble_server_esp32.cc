@@ -1104,8 +1104,8 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         {
             if (!m_peer_connect_in_progress)
             {
+                // Reported as connected on subscribe, when the phone can receive notifications
                 m_server_conn_handle = event->connect.conn_handle;
-                m_on_connection_changed(true);
                 break;
             }
 
@@ -1125,7 +1125,11 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
         if (event->disconnect.conn.conn_handle == m_server_conn_handle)
         {
             m_server_conn_handle = BLE_HS_CONN_HANDLE_NONE;
-            m_on_connection_changed(false);
+            if (m_server_subscribed)
+            {
+                m_server_subscribed = false;
+                m_on_connection_changed(false);
+            }
             AppAdvertise();
             break;
         }
@@ -1203,6 +1207,20 @@ BleServerEsp32::BleGapEvent(struct ble_gap_event* event)
                  event->subscribe.prev_notify,
                  event->subscribe.cur_notify,
                  event->subscribe.reason);
+        if (event->subscribe.conn_handle == m_server_conn_handle &&
+            std::ranges::any_of(m_notify_characteristics,
+                                [handle = event->subscribe.attr_handle](const auto& n) {
+                                    return n->val_handle == handle;
+                                }))
+        {
+            // Also on unsubscribe, which NimBLE reports (reason TERM) before the disconnect
+            const bool subscribed = event->subscribe.cur_notify != 0;
+            if (subscribed != m_server_subscribed)
+            {
+                m_server_subscribed = subscribed;
+                m_on_connection_changed(subscribed);
+            }
+        }
         break;
     case BLE_GAP_EVENT_CONN_UPDATE:
         ESP_LOGI("GAP",

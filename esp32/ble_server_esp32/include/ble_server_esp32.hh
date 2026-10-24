@@ -111,6 +111,8 @@ private:
 
     uint16_t m_peer_conn_handle {BLE_HS_CONN_HANDLE_NONE};
     uint16_t m_server_conn_handle {BLE_HS_CONN_HANDLE_NONE};
+    // Connected as seen by the listener: when the phone has subscribed to notifications
+    bool m_server_subscribed {false};
     uint16_t m_peer_svc_start_handle {0};
     uint16_t m_peer_svc_end_handle {0};
     std::optional<hal::Uuid128> m_peer_char_uuid;
