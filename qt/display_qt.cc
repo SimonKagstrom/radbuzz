@@ -189,6 +189,15 @@ DisplayQt::Flip()
 }
 
 void
+DisplayQt::SetBrightness(uint8_t percent)
+{
+    m_brightness = std::min<uint8_t>(percent, 100);
+
+    // Redraw the current frame with the new brightness
+    emit DoFlip();
+}
+
+void
 DisplayQt::SetActive(bool)
 {
     // Ignored here
@@ -247,6 +256,13 @@ DisplayQt::UpdateScreen()
         painter.fillRect(0, 0, width, height, Qt::black);
     }
 
+
+    // Simulate the backlight by darkening the image
+    if (auto brightness = m_brightness.load(); brightness < 100)
+    {
+        QPainter painter(&pixmap);
+        painter.fillRect(pixmap.rect(), QColor(0, 0, 0, 255 * (100 - brightness) / 100));
+    }
 
     // If it's rotated, rotate the image back to run the code, but get usable output
     if constexpr (hal::kDisplayRotation != hal::Rotation::k0)

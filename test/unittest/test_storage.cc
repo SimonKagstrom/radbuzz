@@ -475,4 +475,50 @@ TEST_CASE_FIXTURE(Fixture, "invalid timezones in the NVM are replaced by UTC")
     }
 }
 
+TEST_CASE_FIXTURE(Fixture, "the brightness mode is stored to the NVM")
+{
+    StartBoard();
+    REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kAuto);
+
+    State().Set<AS::brightness_mode>(BrightnessMode::kLow);
+    DoRunLoop();
+
+    WHEN("the board is restarted")
+    {
+        StartBoard();
+
+        THEN("the brightness mode is restored")
+        {
+            REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kLow);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture,
+                  "the brightness mode is read from the NVM, and invalid values are ignored")
+{
+    WHEN("it's valid")
+    {
+        // The key must not change
+        PresetNvm("L", std::to_underlying(BrightnessMode::kMedium));
+        StartBoard();
+
+        THEN("it's used")
+        {
+            REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kMedium);
+        }
+    }
+
+    WHEN("it's out of range, e.g., a corrupt NVM")
+    {
+        PresetNvm("L", std::to_underlying(BrightnessMode::kValueCount));
+        StartBoard();
+
+        THEN("auto is used")
+        {
+            REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kAuto);
+        }
+    }
+}
+
 TEST_SUITE_END();

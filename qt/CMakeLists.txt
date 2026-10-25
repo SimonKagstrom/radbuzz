@@ -62,6 +62,7 @@ target_link_libraries(radbuzz_qt
     ble_handler
     ble_server_host
     ble_server_qt
+    brightness_controller
     lvgl
     opportunistic_semaphore
     gpio_host

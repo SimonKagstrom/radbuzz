@@ -4,6 +4,7 @@
 #include "ble_server_host.hh"
 #include "ble_server_qt.hh"
 #include "blitter_host.hh"
+#include "brightness_controller.hh"
 #include "buzz_handler.hh"
 #include "clock_handler.hh"
 #include "filesystem.hh"
@@ -114,6 +115,11 @@ main(int argc, char* argv[])
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
     auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
+    auto brightness_controller = std::make_unique<BrightnessController>(
+        window.GetDisplayBrightness(),
+        application_state,
+        BrightnessController::Levels {.night = 10, .dusk = 30, .low_sun = 60, .day = 100},
+        HomePositionOrDefault(*application_state.Get<AS::configuration>()));
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),
@@ -143,6 +149,7 @@ main(int argc, char* argv[])
     job_pool->AttachPooledThread(std::move(app_simulator));
     job_pool->AttachPooledThread(std::move(temperature_monitor));
     job_pool->AttachPooledThread(std::move(clock_handler));
+    job_pool->AttachPooledThread(std::move(brightness_controller));
 
     job_pool->Start("job_pool");
 

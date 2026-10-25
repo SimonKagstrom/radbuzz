@@ -110,3 +110,15 @@ struct ConfigurationSettings
 
     bool operator==(const ConfigurationSettings& other) const = default;
 };
+
+// The home position, or Stockholm when it has not been set
+inline GpsPosition
+HomePositionOrDefault(const ConfigurationSettings& conf)
+{
+    if (conf.home_position.x == 0 && conf.home_position.y == 0)
+    {
+        return GpsPosition {59.3293f, 18.0686f};
+    }
+
+    return OsmPointToWgs84(conf.home_position);
+}

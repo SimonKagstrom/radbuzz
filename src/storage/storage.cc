@@ -66,6 +66,7 @@ constexpr auto kWifiNetworksKey = "W";
 constexpr auto kWhConsumedKey = "C";
 constexpr auto kWhRegeneratedKey = "g";
 constexpr auto kTimezoneKey = "Z";
+constexpr auto kBrightnessModeKey = "L";
 
 // UTC-12 to UTC+14 (Kiribati), in minutes
 constexpr int16_t kMinTimezone = -12 * 60;
@@ -86,7 +87,8 @@ KeysAreUnique()
                                         kWifiNetworksKey,
                                         kWhConsumedKey,
                                         kWhRegeneratedKey,
-                                        kTimezoneKey};
+                                        kTimezoneKey,
+                                        kBrightnessModeKey};
     ForEachSetting([&keys](const auto& setting) { keys.push_back(setting.key); });
 
     std::ranges::sort(keys);
@@ -110,14 +112,17 @@ IsValid(T value)
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
-    , m_state_listener(
-          m_application_state.AttachListener<AS::configuration, AS::is_moving, AS::timezone>(*this))
+    , m_state_listener(m_application_state.AttachListener<AS::configuration,
+                                                          AS::is_moving,
+                                                          AS::timezone,
+                                                          AS::brightness_mode>(*this))
     , m_state_cache(m_application_state)
 {
     auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration,
                                                           AS::wh_consumed,
                                                           AS::wh_regenerated,
-                                                          AS::timezone>();
+                                                          AS::timezone,
+                                                          AS::brightness_mode>();
     auto& conf = ps.GetWritableReference<AS::configuration>();
 
     ForEachSetting([this, &conf](const auto& setting) {
@@ -138,6 +143,10 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     // From the phone, so that the local time is right also before it has connected
     auto timezone = m_nvm.Get<int16_t>(kTimezoneKey).value_or(0);
     ps.Set<AS::timezone>(timezone >= kMinTimezone && timezone <= kMaxTimezone ? timezone : 0);
+
+    auto brightness_mode =
+        m_nvm.Get<BrightnessMode>(kBrightnessModeKey).value_or(BrightnessMode::kAuto);
+    ps.Set<AS::brightness_mode>(IsValid(brightness_mode) ? brightness_mode : BrightnessMode::kAuto);
 
     auto networks = m_nvm.Get<std::string>(kWifiNetworksKey);
     if (networks)
@@ -198,6 +207,11 @@ Storage::OnActivation()
     // Only on actual changes, although the phone sends it on every connect
     co.OnNewValue<AS::timezone>([this, &do_commit](auto timezone) {
         m_nvm.Set<int16_t>(kTimezoneKey, timezone);
+        do_commit = true;
+    });
+
+    co.OnNewValue<AS::brightness_mode>([this, &do_commit](auto mode) {
+        m_nvm.Set<BrightnessMode>(kBrightnessModeKey, mode);
         do_commit = true;
     });
 

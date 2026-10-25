@@ -36,6 +36,8 @@ public:
 
     hal::IDisplay& GetDisplay();
 
+    hal::IDisplayBrightness& GetDisplayBrightness();
+
     hal::ITouch& GetTouch();
 
     hal::IStepperMotor& GetStepperMotor();

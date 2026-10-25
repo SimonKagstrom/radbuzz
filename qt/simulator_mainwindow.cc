@@ -124,6 +124,12 @@ MainWindow::GetDisplay()
     return *m_display;
 }
 
+hal::IDisplayBrightness&
+MainWindow::GetDisplayBrightness()
+{
+    return *m_display;
+}
+
 
 hal::ITouch&
 MainWindow::GetTouch()

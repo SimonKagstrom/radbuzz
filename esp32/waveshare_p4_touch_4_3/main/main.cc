@@ -2,6 +2,7 @@
 #include "ble_handler.hh"
 #include "ble_server_esp32.hh"
 #include "blitter_esp32.hh"
+#include "brightness_controller.hh"
 #include "button_debouncer.hh"
 #include "buzz_handler.hh"
 #include "can_esp32.hh"
@@ -536,6 +537,44 @@ CreateDisplay()
     return out;
 }
 
+// PWM on the backlight pin. Starts out off
+class BacklightEsp32 : public hal::IDisplayBrightness
+{
+public:
+    explicit BacklightEsp32(gpio_num_t pin)
+    {
+        ledc_timer_config_t timer_config {};
+        timer_config.speed_mode = LEDC_LOW_SPEED_MODE;
+        timer_config.duty_resolution = kDutyResolution;
+        timer_config.timer_num = LEDC_TIMER_0;
+        timer_config.freq_hz = 5000;
+        timer_config.clk_cfg = LEDC_AUTO_CLK;
+        ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
+
+        ledc_channel_config_t channel_config {};
+        channel_config.gpio_num = pin;
+        channel_config.speed_mode = LEDC_LOW_SPEED_MODE;
+        channel_config.channel = kChannel;
+        channel_config.timer_sel = LEDC_TIMER_0;
+        channel_config.duty = 0;
+        channel_config.flags.output_invert = kBacklightOnLevel == 0;
+        ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
+    }
+
+    void SetBrightness(uint8_t percent) final
+    {
+        // A duty of 1 << resolution is fully on
+        const auto duty = (std::min<uint32_t>(percent, 100) << kDutyResolution) / 100;
+
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, kChannel, duty);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, kChannel);
+    }
+
+private:
+    static constexpr auto kDutyResolution = LEDC_TIMER_10_BIT;
+    static constexpr auto kChannel = LEDC_CHANNEL_0;
+};
+
 } // namespace
 
 // esp_hosted calls esp_hosted_init() from a constructor, i.e., before the scheduler is started.
@@ -588,11 +627,7 @@ app_main(void)
 
 
     // Keep the backlight off until there is something on the display
-    io_conf = {};
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = 1ull << kTftBacklight;
-    gpio_config(&io_conf);
-    gpio_set_level(kTftBacklight, !kBacklightOnLevel);
+    auto backlight = std::make_unique<BacklightEsp32>(kTftBacklight);
 
     auto display = CreateDisplay();
 
@@ -602,7 +637,8 @@ app_main(void)
                 hal::kDisplayWidth * hal::kDisplayHeight,
                 lv_color_to_u16(UserInterface::GetBackgroundColor()));
     display->Flip();
-    gpio_set_level(kTftBacklight, kBacklightOnLevel);
+    // Until the brightness controller takes over
+    backlight->SetBrightness(100);
 
     auto nvm = std::make_unique<NvmEsp32>();
     // Loads the configuration in the constructor, run in the job pool (below)
@@ -776,6 +812,11 @@ app_main(void)
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
     auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
+    auto brightness_controller = std::make_unique<BrightnessController>(
+        *backlight,
+        application_state,
+        BrightnessController::Levels {.night = 10, .dusk = 30, .low_sun = 60, .day = 100},
+        HomePositionOrDefault(*application_state.Get<AS::configuration>()));
 
     auto ble_server = std::make_unique<BleServerEsp32>();
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
@@ -800,6 +841,7 @@ app_main(void)
     job_pool->AttachPooledThread(std::move(app_simulator));
     job_pool->AttachPooledThread(std::move(temperature_monitor));
     job_pool->AttachPooledThread(std::move(clock_handler));
+    job_pool->AttachPooledThread(std::move(brightness_controller));
 
     job_pool->Start("job_pool", 8192);
 

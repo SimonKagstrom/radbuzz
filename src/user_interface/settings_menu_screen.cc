@@ -37,6 +37,18 @@ constexpr auto kHistogramModeOptions = std::to_array<std::string_view>({
 static_assert(std::to_underlying(HistogramMode::kPower) == 0);
 static_assert(std::to_underlying(HistogramMode::kConsumption) == 1);
 
+constexpr auto kBrightnessModeOptions = std::to_array<std::string_view>({
+    "Low",
+    "Medium",
+    "Max",
+    "Auto (by daylight)",
+});
+static_assert(kBrightnessModeOptions.size() == static_cast<size_t>(BrightnessMode::kValueCount));
+static_assert(std::to_underlying(BrightnessMode::kLow) == 0);
+static_assert(std::to_underlying(BrightnessMode::kMedium) == 1);
+static_assert(std::to_underlying(BrightnessMode::kMax) == 2);
+static_assert(std::to_underlying(BrightnessMode::kAuto) == 3);
+
 namespace
 {
 
@@ -133,6 +145,13 @@ SettingsMenuScreen::OnActivation()
             conf->max_speedometer_speed,
             ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::max_speedometer_speed));
     }
+    settings_page.AddRollerEntry(
+        "Brightness",
+        std::span<const std::string_view>(kBrightnessModeOptions),
+        kBrightnessModeOptions[std::to_underlying(m_parent.m_state.Get<AS::brightness_mode>())],
+        [this](auto value) {
+            m_parent.m_state.Set<AS::brightness_mode>(static_cast<BrightnessMode>(value));
+        });
     settings_page.AddRollerEntry(
         "Profile",
         std::span<const std::string_view>(kProfileOptions),

@@ -51,6 +51,7 @@ target_link_libraries(${COMPONENT_TARGET}
     blitter_esp32
     ble_handler
     ble_server_esp32
+    brightness_controller
     button_debouncer
     can_esp32
     clock_handler

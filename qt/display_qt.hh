@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hal/i_display.hh"
+#include "hal/i_display_brightness.hh"
 #include "hal/i_touch.hh"
 
 #include <QGraphicsPixmapItem>
@@ -13,7 +14,11 @@
 #include <functional>
 #include <mutex>
 
-class DisplayQt : public QObject, public hal::IDisplay, public hal::ITouch
+class DisplayQt
+    : public QObject
+    , public hal::IDisplay
+    , public hal::IDisplayBrightness
+    , public hal::ITouch
 {
     Q_OBJECT
 
@@ -22,6 +27,8 @@ public:
 
     uint16_t* GetFrameBuffer(hal::IDisplay::Owner owner) final;
     void Flip() final;
+
+    void SetBrightness(uint8_t percent) final;
 
     void SaveScreenshot(const char* filename);
 
@@ -50,6 +57,7 @@ private:
     QGraphicsScene* m_scene;
 
     std::atomic<uint8_t> m_current_update_frame {0};
+    std::atomic<uint8_t> m_brightness {100};
     std::array<uint16_t*, 3> m_frame_buffers;
     std::vector<uint16_t> m_staged_frame;
     std::mutex m_staged_frame_mutex;
