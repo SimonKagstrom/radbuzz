@@ -63,6 +63,11 @@ struct user_dismissed_message
     uint32_t id;
 };
 
+// Show the about box (version, map attribution)
+struct show_about
+{
+};
+
 using RadbuzzMessages = std::tuple<incoming_call,
                                    tile_loaded,
                                    reset_trip,
@@ -73,6 +78,7 @@ using RadbuzzMessages = std::tuple<incoming_call,
                                    call_started,
                                    message,
                                    dismiss_message,
-                                   user_dismissed_message>;
+                                   user_dismissed_message,
+                                   show_about>;
 
 } // namespace MSG

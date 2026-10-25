@@ -118,6 +118,7 @@ PUBLIC
 PRIVATE
     bresenham
     cohen_sutherland
+    git_version_header
     radbuzz_numbers_font_16_library
     radbuzz_font_22_library
     radbuzz_symbols_40_library

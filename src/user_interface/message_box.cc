@@ -2,6 +2,8 @@
 
 #include "lv_event_listener.hh"
 
+#include <radbuzz_font_22.h>
+
 MessageBox::MessageBox(lv_indev_t* encoder,
                        const std::string& title,
                        const std::string& text,
@@ -13,6 +15,10 @@ MessageBox::MessageBox(lv_indev_t* encoder,
     , m_buttons(std::move(buttons))
 {
     lv_obj_set_style_radius(m_box, 8, LV_PART_MAIN);
+    // Inherited by the title, text and buttons. Not the default font, to get Latin-1 (e.g., ©)
+    lv_obj_set_style_text_font(m_box, &radbuzz_font_22, LV_PART_MAIN);
+    // The default is too narrow for longer texts
+    lv_obj_set_width(m_box, lv_pct(70));
 
     lv_msgbox_add_title(m_box, title.c_str());
     lv_msgbox_add_text(m_box, text.c_str());

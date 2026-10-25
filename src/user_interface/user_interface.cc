@@ -11,6 +11,7 @@
 #include "side_pane.hh"
 #include "speedometer_only_screen.hh"
 #include "trip_meter_screen.hh"
+#include "version.hh"
 
 #include <radbuzz_font_22.h>
 #include <radbuzz_symbols_22.h>
@@ -121,7 +122,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                         MSG::call_ended,
                                         MSG::call_started,
                                         MSG::dismiss_message,
-                                        MSG::message>(GetSemaphore());
+                                        MSG::message,
+                                        MSG::show_about>(GetSemaphore());
 
     // Context: Interrupt/anoteher thread
     m_input_listener = m_input.AttachListener([this](auto event) {
@@ -460,7 +462,8 @@ UserInterface::OnActivation()
         // Answered on the phone (or here, and then already hidden)
         .On<MSG::call_started>([this](auto) { HideIncomingCall(); })
         .On<MSG::dismiss_message>([this](auto msg) { DismissMessage(*msg); })
-        .On<MSG::message>([this](auto msg) { ShowMessage(*msg); });
+        .On<MSG::message>([this](auto msg) { ShowMessage(*msg); })
+        .On<MSG::show_about>([this](auto) { ShowAbout(); });
     UpdateSidePane();
 
     auto& co = m_state_cache.Pull();
@@ -711,6 +714,17 @@ UserInterface::ShowMessageBox(const std::string& title,
     // Close any open box first, so that the encoder group is restored in the right order
     m_message_box = nullptr;
     m_message_box = std::make_unique<MessageBox>(m_lvgl_input_dev, title, text, std::move(buttons));
+}
+
+void
+UserInterface::ShowAbout()
+{
+    ShowMessageBox(std::format("Radbuzz {}", kSoftwareVersion),
+                   "By Simon Kågström\n"
+                   "\n"
+                   "Maps © Thunderforest\n"
+                   "Data © OpenStreetMap contributors",
+                   {MessageBox::Button("OK")});
 }
 
 bool

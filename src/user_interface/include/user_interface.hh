@@ -211,6 +211,9 @@ private:
     void ResetTrip();
     void DrawPowerBar(uint16_t* dst);
 
+    // Version and map attribution
+    void ShowAbout();
+
     void ShowIncomingCall(const MSG::incoming_call& call);
     // The call ended on the phone side (hung up, missed, ...)
     void HideIncomingCall();

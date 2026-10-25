@@ -215,6 +215,11 @@ SettingsMenuScreen::OnActivation()
     main.AddBooleanEntry("Demo mode", m_parent.m_state.Get<AS::demo_mode>(), [this](auto value) {
         m_parent.m_state.Set<AS::demo_mode>(value);
     });
+    main.AddSeparator();
+    main.AddEntry("About", [this]() {
+        m_parent.m_post_office.Send<MSG::show_about>();
+        m_menu_screen->ExitMenu();
+    });
 
 
     m_odometer_label = lv_label_create(m_screen);
