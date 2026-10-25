@@ -1,5 +1,3 @@
-#include <QTimer>
-#include <QApplication>
 #include "simulator_mainwindow.hh"
 
 #include "ui_simulator_mainwindow.h"

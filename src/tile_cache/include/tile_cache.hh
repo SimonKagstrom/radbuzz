@@ -79,6 +79,13 @@ public:
     const Image& GetTile(const Tile& at);
 
 private:
+    // A tile to fetch from the server (or written to disk), which can outlive a style change
+    struct StyledTile
+    {
+        Tile tile;
+        TileStyle style;
+    };
+
     class WebThread final : public os::BaseThread
     {
     public:
@@ -96,16 +103,13 @@ private:
             return !m_in_queue.full();
         }
 
-        void FetchTile(const Tile& t);
+        void FetchTile(const StyledTile& t);
 
     private:
-        std::string GetTileUrl(const Tile& t) const;
-        const std::string& GetOsmApiKey() const;
-
         std::optional<milliseconds> OnActivation() final;
 
         TileCache& m_parent;
-        etl::queue_spsc_atomic<Tile, 8> m_in_queue;
+        etl::queue_spsc_atomic<StyledTile, 8> m_in_queue;
         std::string m_osm_api_key;
     };
 
@@ -116,6 +120,9 @@ private:
     // Returns true if stopped early, with more tiles to check on disk
     bool FillFromServer();
     void SaveRegionsIfDirty();
+    // The regions of m_style, or empty ones if there are none
+    void LoadRegions();
+    void SetStyle(TileStyle style);
 
     uint8_t EvictTile();
 
@@ -133,7 +140,7 @@ private:
     TileStyle m_style {TileStyle::kCycle};
 
     ListenerCookie m_state_listener;
-    ApplicationState::PartialReadOnlyCache<AS::pixel_position> m_pixel_state_cache;
+    ApplicationState::PartialReadOnlyCache<AS::pixel_position, AS::configuration> m_state_cache;
 
     SingleColorImage m_black_tile {kTileSize, kTileSize, 2, 0x0000}; // Black tile
 
@@ -146,7 +153,7 @@ private:
 
     TileRegions m_regions;
     // Written by the web thread
-    etl::queue_spsc_atomic<Tile, 16> m_written_tiles;
+    etl::queue_spsc_atomic<StyledTile, 16> m_written_tiles;
     os::TimerHandle m_region_save_timer;
     bool m_wifi_was_connected {false};
 

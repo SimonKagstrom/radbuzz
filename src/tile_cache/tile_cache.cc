@@ -80,8 +80,9 @@ TileCache::TileCache(ApplicationState& application_state,
     , m_pm_lock(std::move(pm_lock))
     , m_filesystem(filesystem)
     , m_https_client(https_client)
-    , m_state_listener(m_state.AttachListener<AS::pixel_position>(GetSemaphore()))
-    , m_pixel_state_cache(m_state)
+    , m_state_listener(
+          m_state.AttachListener<AS::pixel_position, AS::configuration>(GetSemaphore()))
+    , m_state_cache(m_state)
     , m_regions(kRegionConfigurations)
     , m_web_thread(std::make_unique<WebThread>(*this))
 {
@@ -107,10 +108,8 @@ TileCache::OnStartup()
 
     MigrateUnstyledTiles(m_filesystem);
 
-    if (auto data = m_filesystem.ReadFile(RegionsPath(m_style)); data && !m_regions.Deserialize(*data))
-    {
-        printf("TileCache: Invalid regions file, starting over\n");
-    }
+    m_style = m_state.Get<AS::configuration>()->tile_style;
+    LoadRegions();
 
     m_web_thread->Start("web_tile_fetcher", 4096);
 }
@@ -118,7 +117,14 @@ TileCache::OnStartup()
 std::optional<milliseconds>
 TileCache::OnActivation()
 {
-    const auto& co = m_pixel_state_cache.Pull();
+    const auto& co = m_state_cache.Pull();
+
+    co.OnNewValue<AS::configuration>([this](const auto& configuration) {
+        if (configuration.tile_style != m_style)
+        {
+            SetStyle(configuration.tile_style);
+        }
+    });
 
     co.OnNewValue<AS::pixel_position>([this](const auto& pixel_position) {
         m_regions.Visit(ToTile(pixel_position));
@@ -126,10 +132,14 @@ TileCache::OnActivation()
         m_regions.Visit(ToTile(OsmPointToPoint(pixel_position, kLandscapeZoom)));
     });
 
-    Tile written;
+    StyledTile written;
     while (m_written_tiles.pop(written))
     {
-        m_regions.TileOnDisk(written);
+        // Not if downloaded before a style change
+        if (written.style == m_style)
+        {
+            m_regions.TileOnDisk(written.tile);
+        }
     }
 
     auto wifi_connected = m_state.Get<AS::wifi_connected>();
@@ -281,7 +291,7 @@ TileCache::FillFromServer()
             m_regions.TileOnDisk(t);
             continue;
         }
-        m_web_thread->FetchTile(t);
+        m_web_thread->FetchTile({t, m_style});
     }
 
     while (!m_reload_tiles_from_server.empty() && m_web_thread->CanFetchTile())
@@ -295,7 +305,7 @@ TileCache::FillFromServer()
             continue;
         }
 
-        m_web_thread->FetchTile(t);
+        m_web_thread->FetchTile({t, m_style});
         m_reload_tiles_from_server.pop_back();
     }
 
@@ -321,6 +331,42 @@ TileCache::SaveRegionsIfDirty()
 
     // Not too often, since it's written for every downloaded tile. Wakes the thread when expired
     m_region_save_timer = StartTimer(kRegionSaveInterval);
+}
+
+void
+TileCache::LoadRegions()
+{
+    m_regions = TileRegions(kRegionConfigurations);
+
+    if (auto data = m_filesystem.ReadFile(RegionsPath(m_style));
+        data && !m_regions.Deserialize(*data))
+    {
+        printf("TileCache: Invalid regions file, starting over\n");
+    }
+}
+
+void
+TileCache::SetStyle(TileStyle style)
+{
+    // Now, since they are replaced below
+    if (m_regions.IsDirty())
+    {
+        m_filesystem.WriteFile(RegionsPath(m_style), m_regions.Serialize());
+    }
+
+    m_style = style;
+    LoadRegions();
+
+    // The cached tiles are of the old style, so let the UI request them again
+    std::ranges::fill(m_tiles, 0);
+    for (auto& image : m_image_cache)
+    {
+        image.SetUseCount(0);
+    }
+    m_get_from_server.clear();
+    m_reload_tiles_from_server.clear();
+
+    m_post_office.Send<MSG::tile_loaded>();
 }
 
 uint8_t
@@ -384,7 +430,7 @@ TileCache::WebThread::WebThread(TileCache& parent)
 }
 
 void
-TileCache::WebThread::FetchTile(const Tile& t)
+TileCache::WebThread::FetchTile(const StyledTile& t)
 {
     if (m_in_queue.push(t))
     {
@@ -392,29 +438,20 @@ TileCache::WebThread::FetchTile(const Tile& t)
     }
 }
 
-std::string
-TileCache::WebThread::GetTileUrl(const Tile& t) const
-{
-    return TileUrl(m_parent.m_style, t, GetOsmApiKey());
-}
-
-const std::string&
-TileCache::WebThread::GetOsmApiKey() const
-{
-    return m_osm_api_key;
-}
-
 std::optional<milliseconds>
 TileCache::WebThread::OnActivation()
 {
-    Tile t;
+    StyledTile t;
 
     while (m_in_queue.pop(t))
     {
-        auto url = GetTileUrl(t);
-        auto path = m_parent.GetTilePath(t);
+        // Not the parent's current style, which might have changed since
+        auto url = TileUrl(t.style, t.tile, m_osm_api_key);
+        auto path = TilePath(t.style, t.tile);
 
-        printf("TileCache: Need tile %ld/%ld. Getting from WEBBEN\n", static_cast<long>(t.x), static_cast<long>(t.y));
+        printf("TileCache: Need tile %ld/%ld. Getting from WEBBEN\n",
+               static_cast<long>(t.tile.x),
+               static_cast<long>(t.tile.y));
         auto data = m_parent.m_https_client.Get(url);
 
         if (data)
