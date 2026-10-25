@@ -57,13 +57,20 @@ npm i lv_font_conv -g
 pip3 install jinja2 pyyaml
 ```
 
-## Build setup (target)
+## Build (target)
 ```
 cmake -GNinja -B radbuzz_waveshare_p4_touch_4_3 -DCMAKE_BUILD_TYPE=Release <path>/radbuzz/esp32/waveshare_p4_touch_4_3
-cmake --build radbuzz_esp32p4
+cmake --build radbuzz_waveshare_p4_touch_4_3
 ```
 
-## Build setup (qt/unittest)
+And then flash with
+
+```
+cd radbuzz_waveshare_p4_touch_4_3
+ninja flash   # Or idf.py flash
+```
+
+## Build (qt/unittest)
 Install the same lvgl/Python dependencies as on target:
 
 ```
@@ -85,7 +92,8 @@ cmake -GNinja -B radbuzz_unittest <path>/radbuzz/test/unittest/
 cmake --build radbuzz_unittest
 ```
 
-See [doc/build_instructions.md](doc/build_instructions.md) for more details on building and flashing the firmware.
+See [doc/build_instructions.md](doc/build_instructions.md) for more details on building and flashing the C6
+firmware for wifi/Bluetooth.
 
 ## The OSM API key
 Get an API key for thunderforest via https://www.thunderforest.com/docs/apikeys/
