@@ -9,7 +9,6 @@ application_state:
   is_moving: false
   can_bus_active: false
   navigation_active: false
-  gps_status: GpsStatus::kSilent
   speed: 0
   controller_temperature: 0
   motor_temperature: 0
@@ -20,7 +19,6 @@ application_state:
   wh_consumed: 0
   wh_regenerated: 0
   odometer: 0
-  position: {}
   pixel_position: {}
   trip_distance: 0
   call_ongoing: false
