@@ -20,23 +20,18 @@
 #include <radbuzz_symbols_40.h>
 #include <radbuzz_turn_symbols_60.h>
 
-namespace
-{
-
-
-} // namespace
-
-
 void
-MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width)
+MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width) const
 {
     constexpr auto kDisplayCenterY = hal::kDisplayHeight / 2;
 
     const auto vehicle_point = OsmPointToPoint(m_current_range_circle_center, m_zoom);
 
     constexpr int kMinRangeCircleRadiusPx = 24;
+    // Road distance is typically 1.2-1.4x the straight-line distance, so shrink the range circle
+    constexpr float kRouteDetourFactor = 1.3f;
     const float meters_per_pixel = MetersPerPixelAtPoint(vehicle_point);
-    const float radius_px_float = (estimated_range_km * 1000.0f) / meters_per_pixel;
+    const float radius_px_float = (estimated_range_km * 1000.0f) / kRouteDetourFactor / meters_per_pixel;
     const int radius = std::clamp(static_cast<int>(radius_px_float),
                                   kMinRangeCircleRadiusPx,
                                   static_cast<int>(std::numeric_limits<uint16_t>::max()));

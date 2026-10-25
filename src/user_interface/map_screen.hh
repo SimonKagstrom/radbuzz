@@ -15,7 +15,7 @@ public:
     void SetZoom(uint8_t zoom);
 
 private:
-    void DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width);
+    void DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8_t width) const;
     void DrawTripLines(lv_layer_t* layer);
 
     os::TimerHandle StartHomeHoldTimer();
