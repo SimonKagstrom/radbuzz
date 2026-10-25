@@ -10,6 +10,7 @@ endif()
 add_library(tile_cache EXCLUDE_FROM_ALL
     tile_cache.cc
     tile_regions.cc
+    tile_styles.cc
 )
 
 target_include_directories(tile_cache

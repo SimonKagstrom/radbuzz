@@ -15,7 +15,6 @@ constexpr auto kRegionConfigurations = std::array {
     TileRegions::ZoomConfiguration {.zoom = kLandscapeZoom, .region_size = 10, .margin = 2},
 };
 
-constexpr auto kRegionsFileName = "pending/regions.bin";
 constexpr auto kRegionSaveInterval = 10s;
 // Limit the time spent checking for existing tiles on the SD card in one go
 constexpr auto kMaxDiskChecksPerActivation = 32;
@@ -135,7 +134,9 @@ TileCache::OnStartup()
     }
     m_web_thread->SetOsmApiKey(std::move(osm_api_key));
 
-    if (auto data = m_filesystem.ReadFile(kRegionsFileName); data && !m_regions.Deserialize(*data))
+    MigrateUnstyledTiles(m_filesystem);
+
+    if (auto data = m_filesystem.ReadFile(RegionsPath(m_style)); data && !m_regions.Deserialize(*data))
     {
         printf("TileCache: Invalid regions file, starting over\n");
     }
@@ -366,7 +367,7 @@ TileCache::FillFromServer()
 std::string
 TileCache::GetTilePath(const Tile& t) const
 {
-    return std::format("tiles/{}/{}/{}.png", t.zoom, t.x, t.y);
+    return TilePath(m_style, t);
 }
 
 void
@@ -377,7 +378,7 @@ TileCache::SaveRegionsIfDirty()
         return;
     }
 
-    m_filesystem.WriteFile(kRegionsFileName, m_regions.Serialize());
+    m_filesystem.WriteFile(RegionsPath(m_style), m_regions.Serialize());
     m_regions.ClearDirty();
 
     // Not too often, since it's written for every downloaded tile. Wakes the thread when expired
@@ -456,7 +457,8 @@ TileCache::WebThread::FetchTile(const Tile& t)
 std::string
 TileCache::WebThread::GetTileUrl(const Tile& t) const
 {
-    return std::format("https://tile.thunderforest.com/cycle/{}/{}/{}.png?apikey={}",
+    return std::format("https://tile.thunderforest.com/{}/{}/{}/{}.png?apikey={}",
+                       GetTileStyleInfo(m_parent.m_style).url_name,
                        t.zoom,
                        t.x,
                        t.y,

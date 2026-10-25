@@ -9,6 +9,7 @@
 #include "messages.hh"
 #include "post_office.hh"
 #include "tile_regions.hh"
+#include "tile_styles.hh"
 #include "wgs84_to_osm_point.hh"
 
 #include <array>
@@ -130,6 +131,8 @@ private:
     std::unique_ptr<hal::IPm::ILock> m_pm_lock;
     Filesystem& m_filesystem;
     HttpsClient& m_https_client;
+
+    TileStyle m_style {TileStyle::kCycle};
 
     ListenerCookie m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::pixel_position> m_pixel_state_cache;

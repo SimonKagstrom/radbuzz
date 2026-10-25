@@ -51,6 +51,7 @@ add_executable(unittest_radbuzz
     test_storage.cc
     test_tile_cache.cc
     test_tile_regions.cc
+    test_tile_styles.cc
     test_trip_computer.cc
     test_trip_log.cc
     test_wifi_handler.cc
