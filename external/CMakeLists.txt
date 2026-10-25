@@ -1,4 +1,5 @@
 include (libmaelir/cmake/convert_font.cmake)
+include (libmaelir/cmake/bin_to_source.cmake)
 
 # Uses zephyr normally, so add it manually here
 add_library(vesc_can_sdk EXCLUDE_FROM_ALL

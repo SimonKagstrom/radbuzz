@@ -119,8 +119,6 @@ private:
 
     uint8_t EvictTile();
 
-    bool DecodePng(std::span<const std::byte> png_data, TileImage& out);
-
     // helpers
     std::string GetTilePath(const Tile& t) const;
 

@@ -7,7 +7,17 @@ if(EXISTS "${OSM_API_KEY_FILENAME}")
 endif()
 
 
+set(TILE_STYLE_SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../resources/tile_styles")
+
+# Sample tiles of each style (from Stockholm, at the default zoom)
+library_from_data(${TILE_STYLE_SAMPLES_DIR}/atlas.png tile_style_atlas)
+library_from_data(${TILE_STYLE_SAMPLES_DIR}/cycle.png tile_style_cycle)
+library_from_data(${TILE_STYLE_SAMPLES_DIR}/landscap.png tile_style_landscape)
+library_from_data(${TILE_STYLE_SAMPLES_DIR}/mobatlas.png tile_style_mobile_atlas)
+library_from_data(${TILE_STYLE_SAMPLES_DIR}/neighbor.png tile_style_neighbourhood)
+
 add_library(tile_cache EXCLUDE_FROM_ALL
+    png_decoder.cc
     tile_cache.cc
     tile_regions.cc
     tile_styles.cc
@@ -30,6 +40,11 @@ PUBLIC
     radbuzz_messages
 PRIVATE
     pngdec
+    tile_style_atlas_library
+    tile_style_cycle_library
+    tile_style_landscape_library
+    tile_style_mobile_atlas_library
+    tile_style_neighbourhood_library
 )
 
 target_compile_definitions(tile_cache

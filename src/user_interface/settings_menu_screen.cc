@@ -1,5 +1,8 @@
 #include "settings_menu_screen.hh"
 
+#include "png_decoder.hh"
+#include "tile_styles.hh"
+
 #include <array>
 #include <radbuzz_font_22.h>
 #include <string_view>
@@ -97,6 +100,27 @@ SettingsMenuScreen::OnActivation()
             conf->cell_overheat_temperature,
             ConfigurationSetter(m_parent.m_state,
                                 &ConfigurationSettings::cell_overheat_temperature));
+    }
+
+    auto& map_style_page = settings_page.AddSubPage("Map style");
+    {
+        std::array<std::string_view, std::to_underlying(TileStyle::kValueCount)> names;
+        for (auto i = 0u; i < names.size(); i++)
+        {
+            names[i] = TileStyleName(static_cast<TileStyle>(i));
+        }
+
+        m_tile_style_sample = std::make_unique<SingleColorImage>(kTileSize, kTileSize, 2, 0);
+        ShowTileStyleSample(conf->tile_style);
+
+        // Show the sample of each style when scrolling through them
+        map_style_page.AddRollerEntry(
+            "Style",
+            std::span<const std::string_view>(names),
+            TileStyleName(conf->tile_style),
+            ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::tile_style),
+            [this](auto which) { ShowTileStyleSample(static_cast<TileStyle>(which)); });
+        m_tile_style_sample_obj = map_style_page.AddImage(&m_tile_style_sample->lv_image_dsc);
     }
 
 
@@ -221,6 +245,9 @@ SettingsMenuScreen::OnDeactivation()
     lv_obj_del(m_consumed_regen_label);
 
     m_menu_screen = nullptr;
+    m_tile_style_sample_obj = nullptr;
+    m_tile_style_sample = nullptr;
+
     if (m_parent.m_help_enabled)
     {
         m_parent.ShowHelp();
@@ -247,6 +274,21 @@ SettingsMenuScreen::HandleInput(const Input::Event& event)
     {
         m_menu_screen->BumpExitTimer();
         lv_indev_read(m_parent.m_lvgl_input_dev);
+    }
+}
+
+void
+SettingsMenuScreen::ShowTileStyleSample(TileStyle style)
+{
+    if (!DecodePng(TileStyleSample(style), *m_tile_style_sample))
+    {
+        // Shouldn't happen, since they are built in
+        std::fill_n(m_tile_style_sample->WritableData16(), m_tile_style_sample->Data16().size(), 0);
+    }
+
+    if (m_tile_style_sample_obj)
+    {
+        lv_obj_invalidate(m_tile_style_sample_obj);
     }
 }
 

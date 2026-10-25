@@ -1,5 +1,11 @@
 #include "tile_styles.hh"
 
+#include "tile_style_atlas.hh"
+#include "tile_style_cycle.hh"
+#include "tile_style_landscape.hh"
+#include "tile_style_mobile_atlas.hh"
+#include "tile_style_neighbourhood.hh"
+
 #include <algorithm>
 #include <array>
 #include <format>
@@ -15,14 +21,28 @@ struct TileStyleInfo
     std::string_view url_name;
     // On disk. At most 8 characters, since long filenames are not enabled for FAT
     std::string_view directory;
+    // PNG
+    std::span<const uint8_t> sample;
 };
 
 constexpr auto kTileStyles = std::to_array<TileStyleInfo>({
-    {.name = "OpenCycleMap", .url_name = "cycle", .directory = "cycle"},
-    {.name = "Atlas", .url_name = "atlas", .directory = "atlas"},
-    {.name = "Atlas mobile (high contrast)", .url_name = "mobile-atlas", .directory = "mobatlas"},
-    {.name = "Neighbourhood", .url_name = "neighbourhood", .directory = "neighbor"},
-    {.name = "Landscape", .url_name = "landscape", .directory = "landscap"},
+    {.name = "OpenCycleMap",
+     .url_name = "cycle",
+     .directory = "cycle",
+     .sample = tile_style_cycle_data},
+    {.name = "Atlas", .url_name = "atlas", .directory = "atlas", .sample = tile_style_atlas_data},
+    {.name = "Atlas mobile (high contrast)",
+     .url_name = "mobile-atlas",
+     .directory = "mobatlas",
+     .sample = tile_style_mobile_atlas_data},
+    {.name = "Neighbourhood",
+     .url_name = "neighbourhood",
+     .directory = "neighbor",
+     .sample = tile_style_neighbourhood_data},
+    {.name = "Landscape",
+     .url_name = "landscape",
+     .directory = "landscap",
+     .sample = tile_style_landscape_data},
 });
 static_assert(kTileStyles.size() == static_cast<size_t>(TileStyle::kValueCount));
 static_assert(std::ranges::all_of(kTileStyles, [](const auto& info) {
@@ -57,6 +77,12 @@ std::string_view
 TileStyleName(TileStyle style)
 {
     return GetTileStyleInfo(style).name;
+}
+
+std::span<const std::byte>
+TileStyleSample(TileStyle style)
+{
+    return std::as_bytes(GetTileStyleInfo(style).sample);
 }
 
 std::string

@@ -30,6 +30,10 @@ add_library(messages ALIAS radbuzz_messages)
 # include the common ones) instead of defining their own
 add_subdirectory(${TOP}/external/libmaelir/test/unittest libmaelir_unittests)
 
+# PNGdec does unaligned accesses on purpose
+target_compile_options(pngdec_zlib PRIVATE -fno-sanitize=alignment)
+target_compile_options(pngdec PRIVATE -fno-sanitize=alignment)
+
 add_library(filesystem_implementation ALIAS mock_filesystem)
 add_library(https_client_implementation ALIAS mock_https_client)
 if(NOT TARGET display_properties)

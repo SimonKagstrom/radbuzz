@@ -4,6 +4,8 @@
 #include "filesystem.hh"
 #include "wgs84_to_osm_point.hh"
 
+#include <cstddef>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -11,6 +13,9 @@
 
 // Shown to the user
 std::string_view TileStyleName(TileStyle style);
+
+// A sample tile (PNG) of the style, to show the user
+std::span<const std::byte> TileStyleSample(TileStyle style);
 
 // https://tile.thunderforest.com/<style>/<zoom>/<x>/<y>.png?apikey=<api_key>
 std::string TileUrl(TileStyle style, const Tile& tile, std::string_view api_key);

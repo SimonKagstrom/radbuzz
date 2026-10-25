@@ -1,4 +1,5 @@
 #include "mock_filesystem.hh"
+#include "png_decoder.hh"
 #include "test.hh"
 #include "tile_styles.hh"
 
@@ -51,6 +52,47 @@ TEST_CASE("each style has its own name, URL and directory")
             "https://tile.thunderforest.com/mobile-atlas/10/1/2.png?apikey=key");
     REQUIRE(TilePath(TileStyle::kMobileAtlas, {1, 2, 10}) == "tiles/mobatlas/10/1/2.png");
     REQUIRE(RegionsPath(TileStyle::kLandscape) == "pending/landscap/regions.bin");
+}
+
+TEST_CASE("each style has a sample tile")
+{
+    SingleColorImage image(kTileSize, kTileSize, 2, 0x1234);
+
+    for (auto i = 0u; i < std::to_underlying(TileStyle::kValueCount); i++)
+    {
+        auto style = static_cast<TileStyle>(i);
+        INFO(TileStyleName(style));
+
+        auto sample = TileStyleSample(style);
+        REQUIRE_FALSE(sample.empty());
+
+        std::ranges::fill(
+            image.WritableData16(), image.WritableData16() + kTileSize * kTileSize, 0x1234);
+        REQUIRE(DecodePng(sample, image));
+        // Something was written
+        REQUIRE(std::ranges::count(image.Data16(), 0x1234) < kTileSize * kTileSize);
+    }
+}
+
+TEST_CASE("broken PNGs are not decoded")
+{
+    SingleColorImage image(kTileSize, kTileSize, 2, 0);
+
+    REQUIRE_FALSE(DecodePng({}, image));
+
+    auto garbage = std::array<std::byte, 64> {};
+    REQUIRE_FALSE(DecodePng(garbage, image));
+
+    // Cut in the middle
+    auto sample = TileStyleSample(TileStyle::kCycle);
+    REQUIRE_FALSE(DecodePng(sample.first(sample.size() / 2), image));
+
+    WHEN("the image has the wrong size")
+    {
+        SingleColorImage small(kTileSize / 2, kTileSize / 2, 2, 0);
+
+        REQUIRE_FALSE(DecodePng(sample, small));
+    }
 }
 
 TEST_CASE("unstyled tiles are migrated to the cycle directory")

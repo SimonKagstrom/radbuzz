@@ -1,6 +1,7 @@
 #include "tile_cache.hh"
 
-#include <PNGdec.h>
+#include "png_decoder.hh"
+
 #include <cctype>
 #include <mutex>
 
@@ -35,35 +36,6 @@ TrimAsciiWhitespace(std::string& value)
         value.pop_back();
     }
 }
-
-struct DecodeHelper
-{
-    DecodeHelper(PNG& png, uint16_t* dst)
-        : png(png)
-        , dst(dst)
-        , offset(0)
-    {
-    }
-
-    DecodeHelper() = delete;
-
-    PNG& png;
-    uint16_t* dst;
-    size_t offset;
-};
-
-int
-PngDraw(PNGDRAW* pDraw)
-{
-    auto helper = static_cast<DecodeHelper*>(pDraw->pUser);
-
-    helper->png.getLineAsRGB565(
-        pDraw, helper->dst + helper->offset, PNG_RGB565_LITTLE_ENDIAN, 0xffffffff);
-    helper->offset += pDraw->iWidth;
-
-    return 1;
-}
-
 
 class TileHandle final : public ITileHandle
 {
@@ -188,40 +160,6 @@ TileCache::OnActivation()
     return 75ms;
 }
 
-bool
-TileCache::DecodePng(std::span<const std::byte> png_data, TileImage& out)
-{
-    auto lock = m_pm_lock->FullPower();
-
-    auto png = std::make_unique<PNG>();
-
-    auto rc = png->openFLASH((uint8_t*)png_data.data(), png_data.size(), PngDraw);
-    if (rc != PNG_SUCCESS)
-    {
-        return false;
-    }
-
-
-    if (out.Data16().size() == png->getWidth() * png->getHeight())
-    {
-        DecodeHelper priv(*png, out.WritableData16());
-        rc = png->decode((void*)&priv, 0);
-    }
-    else
-    {
-        rc = PNG_MEM_ERROR;
-    }
-
-    png->close();
-    if (rc != PNG_SUCCESS)
-    {
-        // Failed to decode
-        return false;
-    }
-
-    return true;
-}
-
 std::optional<std::vector<std::byte>>
 TileCache::ReadTile(const Tile& t) const
 {
@@ -260,6 +198,7 @@ TileCache::FillFromColdStore()
         {
             auto index = EvictTile();
 
+            auto lock = m_pm_lock->FullPower();
             if (DecodePng(*data, m_image_cache[index]))
             {
                 // Successfully decoded, otherwise the evicted tile remains evicted
