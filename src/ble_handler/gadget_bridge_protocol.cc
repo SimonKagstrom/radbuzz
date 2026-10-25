@@ -506,9 +506,10 @@ GadgetBridgeProtocol::HandleCallEvent(const nlohmann::json& json)
      *
      * {"t":"call","cmd":"incoming","name":"Gregor Samsa","number":"+46701234567"}
      * {"t":"call","cmd":"start","name":"","number":""}   (answered)
+     * {"t":"call","cmd":"outgoing","name":"Gregor Samsa","number":"+46701234567"}
      * {"t":"call","cmd":"end","name":"","number":""}     (hung up, rejected or missed)
      *
-     * cmd can also be "outgoing", "accept", "reject" or "undefined".
+     * cmd can also be "accept", "reject" or "undefined".
      */
     if (!json.contains("cmd") || !json.at("cmd").is_string())
     {
@@ -527,6 +528,11 @@ GadgetBridgeProtocol::HandleCallEvent(const nlohmann::json& json)
     {
         // Answered, possibly on the phone
         m_post_office.Send<MSG::call_started>();
+        m_state.Set<AS::call_ongoing>(true);
+    }
+    else if (cmd == "outgoing")
+    {
+        // Made from the phone, so nothing to show here. Not followed by "start" when answered
         m_state.Set<AS::call_ongoing>(true);
     }
     else if (cmd == "end" || cmd == "reject")

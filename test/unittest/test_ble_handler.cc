@@ -512,6 +512,38 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbrid
             CHECK(state.Get<AS::call_ongoing>() == true);
         }
     }
+
+    WHEN("the phone makes a call")
+    {
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10GB({\"t\":\"call\",\"cmd\":\"outgoing\",\"name\":\"Gregor "
+                   "Samsa\",\"number\":\"+46701234567\"})\n");
+        DoRunLoop();
+
+        THEN("the call is ongoing")
+        {
+            CHECK(state.Get<AS::call_ongoing>() == true);
+        }
+        AND_THEN("it's not shown as an incoming call")
+        {
+            collect();
+            CHECK(calls.empty());
+            CHECK(started == 0);
+            CHECK(ended == 0);
+        }
+
+        AND_WHEN("the call ends")
+        {
+            srv.Inject(kRxCharacteristicUuid,
+                       "\x10GB({\"t\":\"call\",\"cmd\":\"end\",\"name\":\"\",\"number\":\"\"})\n");
+            DoRunLoop();
+
+            THEN("the call is no longer ongoing")
+            {
+                CHECK(state.Get<AS::call_ongoing>() == false);
+            }
+        }
+    }
 }
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards navigation from Gadgetbridge")
