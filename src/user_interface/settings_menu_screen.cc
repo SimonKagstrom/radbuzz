@@ -197,10 +197,6 @@ SettingsMenuScreen::OnActivation()
         conf->show_speech_bubbles,
         ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_speech_bubbles));
     settings_page.AddSeparator();
-    settings_page.AddBooleanEntry(
-        "Force C6 FW upgrade",
-        conf->force_c6_update,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::force_c6_update));
     settings_page.AddEntry("Perform OTA update", [this]() {
         m_parent.m_state.Set<AS::ota_update_active>(true);
         m_parent.m_state.Set<AS::demo_mode>(false);
