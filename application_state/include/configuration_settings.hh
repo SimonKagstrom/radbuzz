@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hal/i_gps.hh"
+#include "wgs84_to_osm_point.hh"
 
 #include <cstdint>
 #include <string>
@@ -38,6 +39,18 @@ enum class HistogramMode : uint8_t
     kValueCount,
 };
 
+// The map tile styles, see tile_styles.hh
+enum class TileStyle : uint8_t
+{
+    kCycle,
+    kAtlas,
+    kMobileAtlas,
+    kNeighbourhood,
+    kLandscape,
+
+    kValueCount,
+};
+
 enum class Profile : uint8_t
 {
     kWalking,
@@ -67,6 +80,8 @@ struct ConfigurationSettings
 
     /// Whether the map should rotate according to heading
     bool rotate_map;
+    /// @brief The style of map tiles to use
+    TileStyle tile_style;
     /// @brief Number of battery cells in series, used to calculate cell voltage from millivolts (14s3p etc)
     uint8_t battery_cell_series;
     /// @brief Maximum speed in km/h (for the analogue speedometer limits)

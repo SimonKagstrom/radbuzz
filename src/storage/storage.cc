@@ -48,6 +48,7 @@ constexpr auto kSettings = std::tuple {
     Setting<&ConfigurationSettings::recent_power_distance> {"4", 100},
     Setting<&ConfigurationSettings::histogram_mode> {"5", HistogramMode::kPower},
     Setting<&ConfigurationSettings::rotate_map> {"r", false},
+    Setting<&ConfigurationSettings::tile_style> {"T", TileStyle::kCycle},
     Setting<&ConfigurationSettings::force_c6_update> {"f", false},
     Setting<&ConfigurationSettings::show_gps_speed> {"G", false},
     Setting<&ConfigurationSettings::show_clock> {"c", true},

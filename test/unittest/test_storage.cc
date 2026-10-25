@@ -162,6 +162,7 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread sets default values if the NVM is
     REQUIRE(State().Get<AS::configuration>()->controller_overheat_temperature == 80);
     REQUIRE(State().Get<AS::configuration>()->max_speedometer_speed == 30);
     REQUIRE(State().Get<AS::configuration>()->show_clock == true);
+    REQUIRE(State().Get<AS::configuration>()->tile_style == TileStyle::kCycle);
 }
 
 TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state changes")
@@ -272,6 +273,7 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     PresetNvm("4", 250);
     PresetNvm("5", std::to_underlying(HistogramMode::kConsumption));
     PresetNvm("r", 1);
+    PresetNvm("T", std::to_underlying(TileStyle::kLandscape));
     PresetNvm("f", 1);
     PresetNvm("G", 1);
     PresetNvm("c", 0);
@@ -297,6 +299,7 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     REQUIRE(conf.recent_power_distance == 250);
     REQUIRE(conf.histogram_mode == HistogramMode::kConsumption);
     REQUIRE(conf.rotate_map == true);
+    REQUIRE(conf.tile_style == TileStyle::kLandscape);
     REQUIRE(conf.force_c6_update == true);
     REQUIRE(conf.show_gps_speed == true);
     REQUIRE(conf.show_clock == false);
@@ -326,6 +329,7 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     conf.recent_power_distance = 75;
     conf.histogram_mode = HistogramMode::kConsumption;
     conf.rotate_map = true;
+    conf.tile_style = TileStyle::kMobileAtlas;
     conf.force_c6_update = true;
     conf.show_gps_speed = true;
     conf.show_clock = false;
@@ -370,6 +374,7 @@ TEST_CASE_FIXTURE(Fixture, "invalid enum values in the NVM are replaced by the d
     PresetNvm("6", 77);
     PresetNvm("S", std::to_underlying(SpeedometerType::kValueCount));
     PresetNvm("5", 255);
+    PresetNvm("T", std::to_underlying(TileStyle::kValueCount));
 
     StartBoard();
     auto conf = Configuration();
@@ -377,6 +382,7 @@ TEST_CASE_FIXTURE(Fixture, "invalid enum values in the NVM are replaced by the d
     REQUIRE(conf.profile == Profile::kMoped30);
     REQUIRE(conf.speedometer_type == SpeedometerType::kDigital);
     REQUIRE(conf.histogram_mode == HistogramMode::kPower);
+    REQUIRE(conf.tile_style == TileStyle::kCycle);
 }
 
 TEST_CASE_FIXTURE(Fixture, "changes to configurations are stored to the NVM")

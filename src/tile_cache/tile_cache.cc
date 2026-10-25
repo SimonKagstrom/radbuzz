@@ -2,7 +2,6 @@
 
 #include <PNGdec.h>
 #include <cctype>
-#include <format>
 #include <mutex>
 
 namespace
@@ -457,12 +456,7 @@ TileCache::WebThread::FetchTile(const Tile& t)
 std::string
 TileCache::WebThread::GetTileUrl(const Tile& t) const
 {
-    return std::format("https://tile.thunderforest.com/{}/{}/{}/{}.png?apikey={}",
-                       GetTileStyleInfo(m_parent.m_style).url_name,
-                       t.zoom,
-                       t.x,
-                       t.y,
-                       GetOsmApiKey());
+    return TileUrl(m_parent.m_style, t, GetOsmApiKey());
 }
 
 const std::string&

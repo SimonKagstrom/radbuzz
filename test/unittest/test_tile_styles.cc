@@ -2,6 +2,8 @@
 #include "test.hh"
 #include "tile_styles.hh"
 
+#include <set>
+
 namespace
 {
 
@@ -23,6 +25,32 @@ TEST_CASE("the paths include the style directory")
 {
     REQUIRE(TilePath(TileStyle::kCycle, {17600, 9300, 15}) == "tiles/cycle/15/17600/9300.png");
     REQUIRE(RegionsPath(TileStyle::kCycle) == "pending/cycle/regions.bin");
+}
+
+TEST_CASE("each style has its own name, URL and directory")
+{
+    std::set<std::string_view> names;
+    std::set<std::string> urls;
+    std::set<std::string> paths;
+
+    for (auto i = 0u; i < std::to_underlying(TileStyle::kValueCount); i++)
+    {
+        auto style = static_cast<TileStyle>(i);
+
+        names.insert(TileStyleName(style));
+        urls.insert(TileUrl(style, {1, 2, 10}, "key"));
+        paths.insert(TilePath(style, {1, 2, 10}));
+    }
+
+    REQUIRE(names.size() == std::to_underlying(TileStyle::kValueCount));
+    REQUIRE(urls.size() == names.size());
+    REQUIRE(paths.size() == names.size());
+
+    REQUIRE(TileStyleName(TileStyle::kCycle) == "OpenCycleMap");
+    REQUIRE(TileUrl(TileStyle::kMobileAtlas, {1, 2, 10}, "key") ==
+            "https://tile.thunderforest.com/mobile-atlas/10/1/2.png?apikey=key");
+    REQUIRE(TilePath(TileStyle::kMobileAtlas, {1, 2, 10}) == "tiles/mobatlas/10/1/2.png");
+    REQUIRE(RegionsPath(TileStyle::kLandscape) == "pending/landscap/regions.bin");
 }
 
 TEST_CASE("unstyled tiles are migrated to the cycle directory")
