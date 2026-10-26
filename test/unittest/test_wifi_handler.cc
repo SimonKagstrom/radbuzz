@@ -157,6 +157,11 @@ public:
         RunUntilStable();
     }
 
+    std::string ConnectedSsid()
+    {
+        return *state.Get<AS::connected_wifi_ssid>();
+    }
+
     std::vector<WifiSsidNetwork> KnownNetworks()
     {
         return state.Get<AS::configuration>()->wifi_ssid_data.networks;
@@ -1219,6 +1224,64 @@ TEST_CASE_FIXTURE(Fixture, "a failed network requested again during a scan is tr
 
     REQUIRE(CurrentState() == State::kConnected);
     REQUIRE(connected_password == "right-password");
+}
+
+TEST_CASE_FIXTURE(Fixture, "the connected network is in the application state")
+{
+    networks_in_range = InRange({"Home", "Office"});
+    REQUIRE(ConnectedSsid() == "");
+
+    WHEN("connecting fails")
+    {
+        failing_ssids = {"Home", "Office"};
+        Start();
+        Advance(15s);
+        Advance(15s);
+
+        THEN("it stays empty")
+        {
+            REQUIRE(CurrentState() == State::kIdle);
+            REQUIRE(ConnectedSsid() == "");
+        }
+    }
+
+    WHEN("connected")
+    {
+        Start();
+        REQUIRE(ConnectedSsid() == "Home");
+
+        AND_WHEN("another network is requested")
+        {
+            RequestConnect("Office", "office-password");
+
+            THEN("it's the new network")
+            {
+                REQUIRE(ConnectedSsid() == "Office");
+            }
+        }
+
+        AND_WHEN("the connection is lost")
+        {
+            SendWifiEvent(Event::kDisconnected);
+            RunUntilStable();
+
+            THEN("it's cleared")
+            {
+                REQUIRE(CurrentState() == State::kLostConnection);
+                REQUIRE(ConnectedSsid() == "");
+            }
+        }
+
+        AND_WHEN("scanning while connected")
+        {
+            RequestScan();
+
+            THEN("it's kept")
+            {
+                REQUIRE(ConnectedSsid() == "Home");
+            }
+        }
+    }
 }
 
 TEST_CASE_FIXTURE(Fixture, "invalid requested networks are ignored")

@@ -409,6 +409,11 @@ WifiHandler::Exit(Connecting& state)
         // Skip it until somewhere else, or until the configuration has changed
         m_failed_ssids.push_back(state.connector->Ssid());
     }
+    else if (state.connector && state.result == WifiConnector::Result::kSucceeded)
+    {
+        // The last chance to know the network. Cleared when leaving Connected
+        m_state.Set<AS::connected_wifi_ssid>(state.connector->Ssid());
+    }
 }
 
 
@@ -439,6 +444,7 @@ void
 WifiHandler::Exit(Connected&)
 {
     m_state.Set<AS::wifi_connected>(false);
+    m_state.Set<AS::connected_wifi_ssid>(std::string());
 
     // Still connected, i.e., left for a requested network
     if (m_link_up)

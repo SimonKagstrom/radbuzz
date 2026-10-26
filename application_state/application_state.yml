@@ -6,6 +6,7 @@ application_state:
   turn_symbol: TurnSymbol::kNone
   distance_to_next: 0
   next_street: ""
+  connected_wifi_ssid: ""
   is_moving: false
   can_bus_active: false
   navigation_active: false

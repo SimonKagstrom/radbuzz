@@ -21,6 +21,10 @@ parameters:
   next_street:
     type: std::string
 
+  # The wifi network currently connected to, empty when not connected
+  connected_wifi_ssid:
+    type: std::string
+
   is_moving:
     type: bool
 
