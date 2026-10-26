@@ -1,0 +1,41 @@
+#pragma once
+
+#include "application_state.hh"
+#include "menu_screen.hh"
+#include "messages.hh"
+#include "post_office.hh"
+#include "wifi_network_list.hh"
+
+#include <lvgl.h>
+
+// The "Wifi networks" page in the settings menu. Scans when entered, and lists the networks
+// from the scan result (see CreateWifiNetworkList). Owned by the settings menu, and destroyed
+// before the menu.
+class WifiPage
+{
+public:
+    WifiPage(MenuScreen::Page& page,
+             ApplicationState& state,
+             PostOffice<MSG::AllMessages>& post_office);
+
+    // The page is entered (from the on_enter callback)
+    void OnEnter();
+
+    // Shown if requested by this page, since the wifi handler also scans periodically
+    void OnScanResult(const MSG::wifi_scan_result& result);
+
+private:
+    void RequestScan();
+    void Rescan();
+    void Fill(const MSG::wifi_scan_result& result);
+    void AddNetwork(const WifiNetworkListEntry& network);
+    void Connect(const WifiNetworkListEntry& network);
+
+    MenuScreen::Page& m_page;
+    ApplicationState& m_state;
+    PostOffice<MSG::AllMessages>& m_post_office;
+
+    bool m_scan_pending {false};
+    // The label of the "Rescan" entry, deleted when the page is cleared
+    lv_obj_t* m_rescan_label {nullptr};
+};

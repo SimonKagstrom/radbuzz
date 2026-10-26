@@ -123,7 +123,8 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                         MSG::call_started,
                                         MSG::dismiss_message,
                                         MSG::message,
-                                        MSG::show_about>(GetSemaphore());
+                                        MSG::show_about,
+                                        MSG::wifi_scan_result>(GetSemaphore());
 
     // Context: Interrupt/anoteher thread
     m_input_listener = m_input.AttachListener([this](auto event) {
@@ -143,6 +144,19 @@ UserInterface::OnStartup()
     lv_tick_set_cb(os::GetTimeStampRaw);
 
     m_lvgl_display = lv_display_create(hal::kDisplayWidth, hal::kDisplayHeight);
+
+    // The radbuzz font for widgets without an explicit font (e.g., the menu), instead of the
+    // ASCII-only Montserrat from LV_FONT_DEFAULT. A copy, to fall back to the symbols (e.g.,
+    // LV_SYMBOL_LEFT) like Montserrat has. Same colors as the default theme
+    m_theme_font = radbuzz_font_22;
+    m_theme_font.fallback = &radbuzz_symbols_22;
+    lv_display_set_theme(m_lvgl_display,
+                         lv_theme_default_init(m_lvgl_display,
+                                               lv_palette_main(LV_PALETTE_BLUE),
+                                               lv_palette_main(LV_PALETTE_RED),
+                                               LV_THEME_DEFAULT_DARK,
+                                               &m_theme_font));
+
     auto f1 = m_display.GetFrameBuffer(hal::IDisplay::Owner::kSoftware);
     auto f2 = m_display.GetFrameBuffer(hal::IDisplay::Owner::kHardware);
     auto f_rotate = m_display.GetFrameBuffer(hal::IDisplay::Owner::kRotationBuffer);
@@ -463,7 +477,14 @@ UserInterface::OnActivation()
         .On<MSG::call_started>([this](auto) { HideIncomingCall(); })
         .On<MSG::dismiss_message>([this](auto msg) { DismissMessage(*msg); })
         .On<MSG::message>([this](auto msg) { ShowMessage(*msg); })
-        .On<MSG::show_about>([this](auto) { ShowAbout(); });
+        .On<MSG::show_about>([this](auto) { ShowAbout(); })
+        .On<MSG::wifi_scan_result>([this](auto result) {
+            // Only used by the wifi page in the menu
+            if (OnMenuScreen())
+            {
+                static_cast<SettingsMenuScreen&>(*m_settings_menu_screen).OnWifiScanResult(*result);
+            }
+        });
     UpdateSidePane();
 
     auto& co = m_state_cache.Pull();

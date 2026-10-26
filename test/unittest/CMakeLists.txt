@@ -59,6 +59,13 @@ add_executable(unittest_radbuzz
     test_trip_computer.cc
     test_trip_log.cc
     test_wifi_handler.cc
+    test_wifi_network_list.cc
+)
+
+# The UI logic which doesn't need LVGL, kept next to the UI code using it
+target_include_directories(unittest_radbuzz
+PRIVATE
+    ${TOP}/src/user_interface/settings
 )
 
 target_link_libraries(unittest_radbuzz

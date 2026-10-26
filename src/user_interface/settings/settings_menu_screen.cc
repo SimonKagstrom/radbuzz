@@ -135,6 +135,10 @@ SettingsMenuScreen::OnActivation()
         m_tile_style_sample_obj = map_style_page.AddImage(&m_tile_style_sample->lv_image_dsc);
     }
 
+    auto& wifi_page =
+        settings_page.AddSubPage("Wifi networks", [this]() { m_wifi_page->OnEnter(); });
+    m_wifi_page = std::make_unique<WifiPage>(wifi_page, m_parent.m_state, m_parent.m_post_office);
+
 
     if constexpr (false)
     {
@@ -264,6 +268,8 @@ SettingsMenuScreen::OnDeactivation()
     lv_obj_del(m_odometer_label);
     lv_obj_del(m_consumed_regen_label);
 
+    // Before the menu, which owns its page
+    m_wifi_page = nullptr;
     m_menu_screen = nullptr;
     m_tile_style_sample_obj = nullptr;
     m_tile_style_sample = nullptr;
@@ -285,6 +291,15 @@ SettingsMenuScreen::Update()
     lv_label_set_text(m_consumed_regen_label,
                       std::format("Consumed: -{:.1f}+{:.1f} kWh", consumed_kwh, regen_kwh).c_str());
     lv_obj_align_to(m_consumed_regen_label, m_odometer_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+}
+
+void
+SettingsMenuScreen::OnWifiScanResult(const MSG::wifi_scan_result& result)
+{
+    if (m_wifi_page)
+    {
+        m_wifi_page->OnScanResult(result);
+    }
 }
 
 void

@@ -61,8 +61,18 @@ convert_symbols(radbuzz_symbols_40
 
 convert_symbols(radbuzz_symbols_22
     22
-    # Home, pause, WiFi, BLE (the small status indicators)
-    0xf015,0xf04C,0xf1eb,0xf293
+    # Home, pause, WiFi, BLE (the small status indicators), left/right (the menu, via the
+    # fallback of the theme font)
+    0xf015,0xf04C,0xf1eb,0xf293,0xf053,0xf054
+)
+
+# The wifi networks list, from Material Symbols:
+# check lock signal_wifi_0_bar network_wifi_1_bar network_wifi_2_bar network_wifi_3_bar signal_wifi_4_bar
+convert_font(radbuzz_wifi_symbols_22
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../resources/MaterialSymbolsOutlined_FILL_GRAD_opsz_wght.ttf
+    22
+    0xe5ca,0xe897,0xf0b0,0xebe4,0xebd6,0xebe1,0xe1d8
+    ""
 )
 
 # Small font
@@ -90,6 +100,8 @@ add_library(user_interface EXCLUDE_FROM_ALL
     navigation_widget.cc
     ota_update_screen.cc
     settings/settings_menu_screen.cc
+    settings/wifi_network_list.cc
+    settings/wifi_page.cc
     side_pane.cc
     speech_bubble.cc
     speedometer_only_screen.cc
@@ -127,4 +139,5 @@ PRIVATE
     radbuzz_font_120_library
     radbuzz_symbols_22_library
     radbuzz_turn_symbols_60_library
+    radbuzz_wifi_symbols_22_library
 )

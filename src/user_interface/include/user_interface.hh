@@ -267,6 +267,8 @@ private:
     CurrentTrip m_current_trip_start;
 
     lv_display_t* m_lvgl_display {nullptr};
+    // The default font of the theme, see OnStartup()
+    lv_font_t m_theme_font {};
     uint32_t m_next_redraw_time {0};
 
     hal::BlitOperation m_rotation_blit_operation {};
