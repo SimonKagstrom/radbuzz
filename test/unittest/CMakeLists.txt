@@ -7,8 +7,6 @@ set(CMAKE_CXX_STANDARD 23)
 # Enable sanitizers in debug builds
 add_compile_options(-fsanitize=address,undefined -g)
 add_link_options(-fsanitize=address,undefined -g)
-include_directories(../../qt/lvgl_setup)
-add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
 
 enable_testing()
 

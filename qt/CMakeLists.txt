@@ -29,8 +29,6 @@ else()
     add_link_options(-g)
 endif()
 
-add_compile_definitions(LV_CONF_INCLUDE_SIMPLE=1)
-
 find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 # ETL is via FetchContent
 

@@ -7,6 +7,12 @@
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
+/* The ESP-IDF configuration, for platform specific settings (ESP_PLATFORM is not defined
+ * for LVGL, since it's built as a regular CMake library and not as an IDF component) */
+#if __has_include("sdkconfig.h")
+    #include "sdkconfig.h"
+#endif
+
 /*=========================
    STDLIB WRAPPER SETTINGS
  *=========================*/
@@ -33,7 +39,7 @@
 #define LV_DRAW_SW_SUPPORT_I1           0
 
 /** Draw using espressif PPA accelerator */
-#if defined(__XTENSA__) || defined(__riscv)
+#if CONFIG_SOC_PPA_SUPPORTED
     #define LV_USE_PPA      1
     #define LV_USE_PPA_IMG  1
 #endif
