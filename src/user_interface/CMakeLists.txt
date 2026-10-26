@@ -61,9 +61,10 @@ convert_symbols(radbuzz_symbols_40
 
 convert_symbols(radbuzz_symbols_22
     22
-    # Home, pause, WiFi, BLE (the small status indicators), left/right (the menu, via the
-    # fallback of the theme font)
-    0xf015,0xf04C,0xf1eb,0xf293,0xf053,0xf054
+    # Home, pause, WiFi, BLE (the small status indicators). Via the fallback of the theme font:
+    # left/right (the menu), ok, close, keyboard, backspace, new line (the keyboard), eye open/close
+    # (show the password)
+    0xf015,0xf04C,0xf1eb,0xf293,0xf053,0xf054,0xf00c,0xf00d,0xf11c,0xf55a,0xf8a2,0xf06e,0xf070
 )
 
 # The wifi networks list, from Material Symbols:
@@ -99,6 +100,7 @@ add_library(user_interface EXCLUDE_FROM_ALL
     message_box.cc
     navigation_widget.cc
     ota_update_screen.cc
+    settings/password_entry.cc
     settings/settings_menu_screen.cc
     settings/wifi_network_list.cc
     settings/wifi_page.cc

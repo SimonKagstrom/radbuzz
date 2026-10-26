@@ -137,7 +137,11 @@ SettingsMenuScreen::OnActivation()
 
     auto& wifi_page =
         settings_page.AddSubPage("Wifi networks", [this]() { m_wifi_page->OnEnter(); });
-    m_wifi_page = std::make_unique<WifiPage>(wifi_page, m_parent.m_state, m_parent.m_post_office);
+    m_wifi_page = std::make_unique<WifiPage>(*m_menu_screen,
+                                             wifi_page,
+                                             m_parent.m_lvgl_input_dev,
+                                             m_parent.m_state,
+                                             m_parent.m_post_office);
 
 
     if constexpr (false)

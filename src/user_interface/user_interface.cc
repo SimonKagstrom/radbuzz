@@ -157,6 +157,9 @@ UserInterface::OnStartup()
                                                lv_palette_main(LV_PALETTE_RED),
                                                LV_THEME_DEFAULT_DARK,
                                                &m_theme_font));
+    // The top layer (for modals) is created with the display, i.e., with the LV_FONT_DEFAULT
+    // theme. Its children inherit the font
+    lv_obj_set_style_text_font(lv_layer_top(), &m_theme_font, LV_PART_MAIN);
 
     auto f1 = m_display.GetFrameBuffer(hal::IDisplay::Owner::kSoftware);
     auto f2 = m_display.GetFrameBuffer(hal::IDisplay::Owner::kHardware);

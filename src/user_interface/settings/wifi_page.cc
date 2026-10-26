@@ -41,10 +41,14 @@ SignalIcon(int8_t rssi)
 
 } // namespace
 
-WifiPage::WifiPage(MenuScreen::Page& page,
+WifiPage::WifiPage(MenuScreen& menu,
+                   MenuScreen::Page& page,
+                   lv_indev_t* encoder,
                    ApplicationState& state,
                    PostOffice<MSG::AllMessages>& post_office)
-    : m_page(page)
+    : m_menu(menu)
+    , m_page(page)
+    , m_encoder(encoder)
     , m_state(state)
     , m_post_office(post_office)
 {
@@ -77,6 +81,8 @@ WifiPage::OnScanResult(const MSG::wifi_scan_result& result)
 void
 WifiPage::Update()
 {
+    UpdatePasswordEntry();
+
     // Nothing shown yet, or about to be refilled anyway
     if (!m_last_result || m_scan_pending)
     {
@@ -191,5 +197,66 @@ WifiPage::Connect(const WifiNetworkListEntry& network)
     {
         m_post_office.Send(MSG::wifi_connect {network.ssid, ""});
     }
-    // Unknown secured networks need a password, which is entered in a later step
+    else
+    {
+        // Secured (or unknown type, so probably secured)
+        OpenPasswordEntry(network.ssid);
+    }
+}
+
+void
+WifiPage::OpenPasswordEntry(const std::string& ssid)
+{
+    if (m_password_entry)
+    {
+        printf("Wifi page: Password entry already open\n");
+        return;
+    }
+    // Not while riding
+    if (m_state.Get<AS::is_moving>())
+    {
+        printf("Wifi page: No password entry while moving\n");
+        return;
+    }
+
+    printf("Wifi page: Password entry for %s\n", ssid.c_str());
+    m_password_ssid = ssid;
+    m_password_entry = std::make_unique<PasswordEntry>(m_encoder, ssid);
+    // The password entry has its own (longer) timeout
+    m_menu.SetExitTimerEnabled(false);
+}
+
+void
+WifiPage::UpdatePasswordEntry()
+{
+    if (!m_password_entry)
+    {
+        return;
+    }
+
+    switch (m_password_entry->GetResult())
+    {
+    case PasswordEntry::Result::kAccepted:
+        // Stored (also if wrong) and connected by the wifi handler. The page is refilled
+        // when connected
+        m_post_office.Send(MSG::wifi_connect {m_password_ssid, m_password_entry->Password()});
+        ClosePasswordEntry();
+        break;
+    case PasswordEntry::Result::kCancelled:
+        ClosePasswordEntry();
+        break;
+    case PasswordEntry::Result::kPending:
+        if (m_password_entry->IsIdle() || m_state.Get<AS::is_moving>())
+        {
+            ClosePasswordEntry();
+        }
+        break;
+    }
+}
+
+void
+WifiPage::ClosePasswordEntry()
+{
+    m_password_entry = nullptr;
+    m_menu.SetExitTimerEnabled(true);
 }
