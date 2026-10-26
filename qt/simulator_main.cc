@@ -102,7 +102,8 @@ main(int argc, char* argv[])
     // Threads
     auto storage = std::make_unique<Storage>(application_state, *nvm_host);
     auto ota_updater_thread = std::make_unique<OtaUpdater>(*ota_updater, application_state);
-    auto wifi_handler = std::make_unique<WifiHandler>(application_state, *filesystem, *wifi_client);
+    auto wifi_handler =
+        std::make_unique<WifiHandler>(application_state, post_office, *filesystem, *wifi_client);
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);

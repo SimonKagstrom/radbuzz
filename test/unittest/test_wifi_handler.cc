@@ -10,6 +10,19 @@ namespace
 using State = WifiHandler::State;
 using Event = hal::IWifiClient::Event;
 
+class NullNotifier : public IEventNotifier
+{
+public:
+    void Notify() final
+    {
+    }
+
+    bool NotifyFromIsr() final
+    {
+        return false;
+    }
+};
+
 class Fixture : public ThreadFixture
 {
 public:
@@ -91,7 +104,19 @@ public:
         return wifi_handler.CurrentState();
     }
 
+    // The scan results sent since the last call
+    std::vector<MSG::wifi_scan_result> TakeScanResults()
+    {
+        std::vector<MSG::wifi_scan_result> results;
+
+        m_mailbox->Collect().On<MSG::wifi_scan_result>(
+            [&results](auto result) { results.push_back(*result); });
+
+        return results;
+    }
+
     ApplicationState state;
+    PostOffice<MSG::AllMessages> post_office;
     MockWifiClient wifi_client;
     Filesystem filesystem {"/"};
 
@@ -111,8 +136,12 @@ private:
     std::function<void(Event)> m_on_wifi_event;
     std::vector<std::unique_ptr<trompeloeil::expectation>> m_expectations;
 
+    NullNotifier m_notifier;
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
+        post_office.Subscribe<MSG::wifi_scan_result>(m_notifier)};
+
 public:
-    WifiHandler wifi_handler {state, filesystem, wifi_client};
+    WifiHandler wifi_handler {state, post_office, filesystem, wifi_client};
 };
 
 } // namespace
@@ -306,6 +335,99 @@ TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when scanning while moving")
     Advance(1min);
 
     REQUIRE(CurrentState() == State::kOff);
+}
+
+TEST_CASE_FIXTURE(Fixture, "the wifi handler sends the result of every scan")
+{
+    networks_in_range = {"Neighbour"};
+
+    Start();
+
+    auto results = TakeScanResults();
+    REQUIRE(results.size() == 1);
+    REQUIRE(results[0].networks == std::vector<MSG::WifiScanEntry> {{"Neighbour"}});
+
+    WHEN("the periodic scan finds a known network")
+    {
+        networks_in_range = {"Neighbour", "Home"};
+        Advance(10s);
+
+        THEN("that result is also sent")
+        {
+            results = TakeScanResults();
+            REQUIRE(results.size() == 1);
+            REQUIRE(results[0].networks ==
+                    std::vector<MSG::WifiScanEntry> {{"Neighbour"}, {"Home"}});
+            REQUIRE(CurrentState() == State::kConnected);
+        }
+
+        AND_WHEN("time passes while connected")
+        {
+            TakeScanResults();
+            Advance(5min);
+
+            THEN("no more scans, and no more results, are made")
+            {
+                REQUIRE(TakeScanResults().empty());
+            }
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the scan result has unique, non-empty SSIDs in the scanned order")
+{
+    // Hidden networks, and the same network from several access points
+    networks_in_range = {"Neighbour", "", "Home", "Neighbour", "", "Café 5G", "Home"};
+
+    Start();
+
+    auto results = TakeScanResults();
+    REQUIRE(results.size() == 1);
+
+    const auto& networks = results[0].networks;
+    REQUIRE(networks.size() == 3);
+    REQUIRE(networks[0].ssid == "Neighbour");
+    REQUIRE(networks[1].ssid == "Home");
+    REQUIRE(networks[2].ssid == "Café 5G");
+
+    // Not reported by the wifi client yet
+    for (const auto& network : networks)
+    {
+        REQUIRE(network.rssi == std::nullopt);
+        REQUIRE(network.type == MSG::WifiType::kUnknown);
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "an empty scan is also sent")
+{
+    auto require_empty_result = [this]() {
+        auto results = TakeScanResults();
+        REQUIRE(results.size() == 1);
+        REQUIRE(results[0].networks.empty());
+        REQUIRE(CurrentState() == State::kIdle);
+    };
+
+    WHEN("nothing is in range")
+    {
+        networks_in_range = {};
+        Start();
+
+        THEN("an empty result is sent")
+        {
+            require_empty_result();
+        }
+    }
+
+    WHEN("only hidden networks are in range")
+    {
+        networks_in_range = {"", ""};
+        Start();
+
+        THEN("an empty result is sent")
+        {
+            require_empty_result();
+        }
+    }
 }
 
 TEST_SUITE_END();

@@ -4,6 +4,7 @@
 #include "common_messages.hh"
 #include "message_helpers.hh"
 #include "radbuzz_messages.hh"
+#include "wifi_messages.hh"
 
 #include <cstddef>
 #include <cstdint>
@@ -11,7 +12,7 @@
 namespace MSG
 {
 
-using AllMessages = ConcatMessages<CommonMessages, RadbuzzMessages>;
+using AllMessages = ConcatMessages<CommonMessages, RadbuzzMessages, WifiMessages>;
 
 constexpr auto kMessageCount = std::tuple_size_v<AllMessages>;
 

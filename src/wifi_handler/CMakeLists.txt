@@ -15,5 +15,7 @@ PUBLIC
     application_state
     radbuzz_interface
     filesystem
+    post_office
+    radbuzz_messages
     wifi_state_machine
 )

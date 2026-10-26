@@ -1,12 +1,15 @@
 #include "wifi_handler.hh"
 
+#include <algorithm>
 #include <ranges>
 #include <sstream>
 
 WifiHandler::WifiHandler(ApplicationState& state,
+                         PostOffice<MSG::AllMessages>& post_office,
                          Filesystem& filesystem,
                          hal::IWifiClient& wifi_client)
     : m_state(state)
+    , m_post_office(post_office)
     , m_filesystem(filesystem)
     , m_wifi_client(wifi_client)
     , m_state_listener(m_state.AttachListener<AS::configuration, AS::is_moving>(GetSemaphore()))
@@ -50,6 +53,7 @@ WifiHandler::OnActivation()
     if (m_scan_done_event.exchange(false))
     {
         m_scan_result = m_wifi_client.GetScanResult();
+        SendScanResult();
     }
 
     RunStateMachine();
@@ -108,6 +112,27 @@ WifiHandler::ReadSsidFile()
             conf.wifi_ssid_data.networks.push_back({ssid, password});
         }
     }
+}
+
+void
+WifiHandler::SendScanResult()
+{
+    MSG::wifi_scan_result result;
+
+    for (const auto& ssid : *m_scan_result)
+    {
+        // Hidden networks have no SSID, and the same network can be seen from several APs
+        if (ssid.empty() || std::ranges::find(result.networks, ssid, &MSG::WifiScanEntry::ssid) !=
+                                result.networks.end())
+        {
+            continue;
+        }
+
+        // RSSI and security are not reported by the wifi client yet
+        result.networks.push_back({ssid, std::nullopt, MSG::WifiType::kUnknown});
+    }
+
+    m_post_office.Send(std::move(result));
 }
 
 std::optional<WifiSsidNetwork>

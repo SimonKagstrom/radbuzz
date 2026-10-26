@@ -4,6 +4,8 @@
 #include "base_thread.hh"
 #include "filesystem.hh"
 #include "hal/i_wifi_client.hh"
+#include "messages.hh"
+#include "post_office.hh"
 #include "wifi_state_machine_base.hh"
 
 #include <atomic>
@@ -27,7 +29,10 @@ struct WifiHandlerStateData : WifiStateMachineData
 class WifiHandler : public os::BaseThread, public WifiStateMachineBase<WifiHandlerStateData>
 {
 public:
-    WifiHandler(ApplicationState& state, Filesystem& filesystem, hal::IWifiClient& wifi_client);
+    WifiHandler(ApplicationState& state,
+                PostOffice<MSG::AllMessages>& post_office,
+                Filesystem& filesystem,
+                hal::IWifiClient& wifi_client);
 
 private:
     static constexpr auto kMovementTime = 1min;
@@ -62,6 +67,9 @@ private:
     // Add/update networks from SSID.TXT to the configuration
     void ReadSsidFile();
 
+    // Send the last scan result to the UI (and others)
+    void SendScanResult();
+
     // The first configured network found in the last scan
     std::optional<WifiSsidNetwork> FindKnownNetwork() const;
 
@@ -71,6 +79,7 @@ private:
 
 
     ApplicationState& m_state;
+    PostOffice<MSG::AllMessages>& m_post_office;
     Filesystem& m_filesystem;
     hal::IWifiClient& m_wifi_client;
 
