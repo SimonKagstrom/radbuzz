@@ -36,6 +36,19 @@ struct wifi_scan_result
     std::vector<WifiScanEntry> networks;
 };
 
-using WifiMessages = std::tuple<wifi_scan_result>;
+// Scan now, e.g., for the UI to show the networks. Results in a wifi_scan_result
+struct start_wifi_scan
+{
+};
+
+// Store the network first among the known networks (also with a wrong password), and connect
+// to it if it's in range. Empty password for open networks
+struct wifi_connect
+{
+    std::string ssid;
+    std::string password;
+};
+
+using WifiMessages = std::tuple<wifi_scan_result, start_wifi_scan, wifi_connect>;
 
 } // namespace MSG

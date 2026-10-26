@@ -64,8 +64,8 @@ public:
         }
 
         // Default behavior of the wifi client: Scans finish immediately with
-        // networks_in_range, and connections succeed (unless connect_succeeds is cleared, or
-        // the SSID is in failing_ssids)
+        // networks_in_range (unless scans_complete is cleared), and connections succeed
+        // (unless connect_succeeds is cleared, or the SSID is in failing_ssids/hanging_ssids)
         m_expectations.push_back(NAMED_ALLOW_CALL(wifi_client, AttachListener(_))
                                      .LR_SIDE_EFFECT(m_on_wifi_event = _1)
                                      .RETURN(ListenerCookie([]() {})));
@@ -73,10 +73,14 @@ public:
             NAMED_ALLOW_CALL(wifi_client, Enable()).LR_SIDE_EFFECT(enable_count++));
         m_expectations.push_back(
             NAMED_ALLOW_CALL(wifi_client, Disable()).LR_SIDE_EFFECT(disable_count++));
-        m_expectations.push_back(NAMED_ALLOW_CALL(wifi_client, Disconnect()));
+        m_expectations.push_back(
+            NAMED_ALLOW_CALL(wifi_client, Disconnect()).LR_SIDE_EFFECT(disconnect_count++));
         m_expectations.push_back(NAMED_ALLOW_CALL(wifi_client, StartScan()).LR_SIDE_EFFECT({
             scan_count++;
-            SendWifiEvent(Event::kScanDone);
+            if (scans_complete)
+            {
+                SendWifiEvent(Event::kScanDone);
+            }
         }));
         m_expectations.push_back(
             NAMED_ALLOW_CALL(wifi_client, GetScanResult()).LR_RETURN(networks_in_range));
@@ -86,6 +90,10 @@ public:
             connected_password = _2;
             connect_attempts.push_back(_1);
 
+            if (std::ranges::find(hanging_ssids, connected_ssid) != hanging_ssids.end())
+            {
+                return;
+            }
             const auto fails = std::ranges::find(failing_ssids, connected_ssid) !=
                                failing_ssids.end();
             SendWifiEvent(connect_succeeds && !fails ? Event::kConnected : Event::kDisconnected);
@@ -136,6 +144,24 @@ public:
         return wifi_handler.CurrentState();
     }
 
+    // As from the UI
+    void RequestScan()
+    {
+        post_office.Send<MSG::start_wifi_scan>();
+        RunUntilStable();
+    }
+
+    void RequestConnect(const std::string& ssid, const std::string& password)
+    {
+        post_office.Send(MSG::wifi_connect {ssid, password});
+        RunUntilStable();
+    }
+
+    std::vector<WifiSsidNetwork> KnownNetworks()
+    {
+        return state.Get<AS::configuration>()->wifi_ssid_data.networks;
+    }
+
     // The scan results sent since the last call
     std::vector<MSG::wifi_scan_result> TakeScanResults()
     {
@@ -156,12 +182,17 @@ public:
     std::vector<hal::IWifiClient::AccessPoint> networks_in_range {InRange({"Neighbour", "Home"})};
     bool connect_succeeds {true};
     std::vector<std::string> failing_ssids;
+    // Neither connected nor failed (until the test sends an event)
+    std::vector<std::string> hanging_ssids;
+    // Otherwise sent by the test
+    bool scans_complete {true};
 
     // Wifi client calls
     unsigned enable_count {0};
     unsigned disable_count {0};
     unsigned scan_count {0};
     unsigned connect_count {0};
+    unsigned disconnect_count {0};
     std::string connected_ssid;
     std::string connected_password;
     // The SSIDs of all Connect calls, in order
@@ -846,6 +877,387 @@ TEST_CASE_FIXTURE(Fixture, "an empty scan is also sent")
             require_empty_result();
         }
     }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a requested scan is done directly")
+{
+    WHEN("idle")
+    {
+        networks_in_range = InRange({"Neighbour"});
+        Start();
+        REQUIRE(CurrentState() == State::kIdle);
+        TakeScanResults();
+
+        RequestScan();
+
+        THEN("there's no wait for the next periodic scan")
+        {
+            REQUIRE(scan_count == 2);
+            REQUIRE(TakeScanResults().size() == 1);
+            REQUIRE(CurrentState() == State::kIdle);
+        }
+    }
+
+    WHEN("connected")
+    {
+        Start();
+        REQUIRE(CurrentState() == State::kConnected);
+        TakeScanResults();
+
+        RequestScan();
+
+        THEN("the scan is done without disconnecting")
+        {
+            REQUIRE(scan_count == 2);
+            REQUIRE(TakeScanResults().size() == 1);
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(disconnect_count == 0);
+            REQUIRE(connect_count == 1);
+            REQUIRE(state.Get<AS::wifi_connected>());
+        }
+    }
+
+    WHEN("the connection has just been lost")
+    {
+        Start();
+        SendWifiEvent(Event::kDisconnected);
+        SetMoving(true);
+        RunUntilStable();
+        REQUIRE(CurrentState() == State::kLostConnection);
+        networks_in_range = InRange({"Neighbour"});
+
+        RequestScan();
+
+        THEN("there's no wait for standing still")
+        {
+            REQUIRE(scan_count == 2);
+            REQUIRE(CurrentState() == State::kIdle);
+        }
+    }
+
+    WHEN("the wifi is off since moving")
+    {
+        Start();
+        SetMoving(true);
+        SendWifiEvent(Event::kDisconnected);
+        Advance(1min);
+        REQUIRE(CurrentState() == State::kOff);
+        TakeScanResults();
+
+        RequestScan();
+
+        THEN("the wifi is turned on, and the scan finishes although still moving")
+        {
+            REQUIRE(enable_count == 2);
+            REQUIRE(scan_count == 2);
+            REQUIRE(TakeScanResults().size() == 1);
+            REQUIRE(CurrentState() == State::kConnected);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a scan requested while connecting is done afterwards")
+{
+    connect_succeeds = false;
+    Start();
+    REQUIRE(CurrentState() == State::kRetryConnect);
+
+    RequestScan();
+    REQUIRE(scan_count == 1);
+
+    WHEN("the connection fails")
+    {
+        Advance(15s);
+
+        THEN("the scan is done directly, without the idle time")
+        {
+            REQUIRE(scan_count == 2);
+            REQUIRE(CurrentState() == State::kIdle);
+        }
+    }
+
+    WHEN("the connection succeeds")
+    {
+        connect_succeeds = true;
+        Advance(5s);
+
+        THEN("the scan is done while connected")
+        {
+            REQUIRE(scan_count == 2);
+            REQUIRE(CurrentState() == State::kConnected);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "requests during a scan are handled by that scan")
+{
+    scans_complete = false;
+    networks_in_range = InRange({"Neighbour"});
+    Start();
+    REQUIRE(CurrentState() == State::kScanning);
+
+    RequestScan();
+    RequestConnect("Neighbour", "neighbour-password");
+    REQUIRE(scan_count == 1);
+
+    SendWifiEvent(Event::kScanDone);
+    RunUntilStable();
+
+    REQUIRE(scan_count == 1);
+    REQUIRE(TakeScanResults().size() == 1);
+    REQUIRE(CurrentState() == State::kConnected);
+    REQUIRE(connected_ssid == "Neighbour");
+}
+
+TEST_CASE_FIXTURE(Fixture, "a requested network is stored first, and connected to")
+{
+    WHEN("it's a new network")
+    {
+        networks_in_range = InRange({"Neighbour"});
+        Start();
+        REQUIRE(CurrentState() == State::kIdle);
+
+        RequestConnect("Neighbour", "neighbour-password");
+
+        THEN("it's stored and connected")
+        {
+            REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {
+                                           {"Neighbour", "neighbour-password"},
+                                           {"Home", "home-password"},
+                                       });
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Neighbour");
+            REQUIRE(connected_password == "neighbour-password");
+            REQUIRE(scan_count == 2);
+        }
+    }
+
+    WHEN("it's already known")
+    {
+        {
+            auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+            ps.GetWritableReference<AS::configuration>().wifi_ssid_data.networks.push_back(
+                {"Office", "old-password"});
+        }
+        networks_in_range = InRange({"Office"});
+        Start();
+
+        RequestConnect("Office", "new-password");
+
+        THEN("it's moved first, with the new password")
+        {
+            REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {
+                                           {"Office", "new-password"},
+                                           {"Home", "home-password"},
+                                       });
+            REQUIRE(connected_password == "new-password");
+        }
+    }
+
+    WHEN("it's an open network")
+    {
+        networks_in_range = {{"Cafe", -60, false}};
+        Start();
+
+        RequestConnect("Cafe", "");
+
+        THEN("it's connected without a password")
+        {
+            REQUIRE(KnownNetworks().front() == WifiSsidNetwork {"Cafe", ""});
+            REQUIRE(connected_ssid == "Cafe");
+            REQUIRE(connected_password == "");
+        }
+    }
+
+    WHEN("it's not in range")
+    {
+        networks_in_range = InRange({"Neighbour"});
+        Start();
+
+        RequestConnect("Office", "office-password");
+
+        THEN("it's still stored")
+        {
+            REQUIRE(KnownNetworks().front() == WifiSsidNetwork {"Office", "office-password"});
+            REQUIRE(CurrentState() == State::kIdle);
+        }
+
+        AND_WHEN("it comes in range")
+        {
+            networks_in_range = InRange({"Neighbour", "Office"});
+            Advance(10s);
+
+            THEN("it's connected")
+            {
+                REQUIRE(CurrentState() == State::kConnected);
+                REQUIRE(connected_ssid == "Office");
+            }
+        }
+    }
+
+    WHEN("the wifi is off since moving")
+    {
+        Start();
+        SetMoving(true);
+        SendWifiEvent(Event::kDisconnected);
+        Advance(1min);
+        REQUIRE(CurrentState() == State::kOff);
+        networks_in_range = InRange({"Home", "Office"});
+
+        RequestConnect("Office", "office-password");
+
+        THEN("the wifi is turned on and connected")
+        {
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Office");
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a requested network replaces the current connection")
+{
+    networks_in_range = InRange({"Home", "Office"});
+
+    WHEN("connected")
+    {
+        Start();
+        REQUIRE(connected_ssid == "Home");
+
+        RequestConnect("Office", "office-password");
+
+        THEN("the current network is disconnected first")
+        {
+            REQUIRE(disconnect_count == 1);
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Office");
+            REQUIRE(state.Get<AS::wifi_connected>());
+        }
+    }
+
+    WHEN("waiting to retry a failed connection")
+    {
+        failing_ssids = {"Home"};
+        Start();
+        REQUIRE(CurrentState() == State::kRetryConnect);
+
+        RequestConnect("Office", "office-password");
+
+        THEN("the retries are abandoned")
+        {
+            REQUIRE(disconnect_count == 0);
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Office");
+        }
+    }
+
+    WHEN("a connection attempt is ongoing")
+    {
+        hanging_ssids = {"Home"};
+        Start();
+        REQUIRE(CurrentState() == State::kConnect);
+
+        RequestConnect("Office", "office-password");
+
+        THEN("the attempt is stopped")
+        {
+            REQUIRE(disconnect_count == 1);
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Office");
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a requested network with a wrong password is kept")
+{
+    networks_in_range = InRange({"Home", "Office"});
+    failing_ssids = {"Office"};
+    Start();
+
+    RequestConnect("Office", "wrong-password");
+    Advance(15s);
+
+    THEN("the next known network is used, but the requested one is still stored")
+    {
+        REQUIRE(CurrentState() == State::kConnected);
+        REQUIRE(connected_ssid == "Home");
+        REQUIRE(KnownNetworks().front() == WifiSsidNetwork {"Office", "wrong-password"});
+    }
+
+    AND_WHEN("it's requested again, with the right password")
+    {
+        failing_ssids = {};
+        RequestConnect("Office", "right-password");
+
+        THEN("it's tried again, although it failed here")
+        {
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Office");
+            REQUIRE(connected_password == "right-password");
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a failed network requested again during a scan is tried")
+{
+    networks_in_range = InRange({"Office"});
+    failing_ssids = {"Office"};
+    Start();
+    RequestConnect("Office", "wrong-password");
+    Advance(15s);
+    REQUIRE(CurrentState() == State::kIdle);
+
+    // The periodic scan is ongoing when the password is retyped
+    failing_ssids = {};
+    scans_complete = false;
+    Advance(10s);
+    REQUIRE(CurrentState() == State::kScanning);
+
+    // Handled in the same activation, i.e., before the configuration change is seen
+    post_office.Send(MSG::wifi_connect {"Office", "right-password"});
+    SendWifiEvent(Event::kScanDone);
+    RunUntilStable();
+
+    REQUIRE(CurrentState() == State::kConnected);
+    REQUIRE(connected_password == "right-password");
+}
+
+TEST_CASE_FIXTURE(Fixture, "invalid requested networks are ignored")
+{
+    Start();
+    REQUIRE(CurrentState() == State::kConnected);
+    const auto known = KnownNetworks();
+
+    WHEN("the SSID is empty")
+    {
+        RequestConnect("", "password");
+    }
+    WHEN("the SSID is too long")
+    {
+        RequestConnect(std::string(33, 'x'), "password");
+    }
+    WHEN("the password is too long")
+    {
+        RequestConnect("Office", std::string(65, 'x'));
+    }
+
+    REQUIRE(KnownNetworks() == known);
+    // Not disconnected for nothing
+    REQUIRE(disconnect_count == 0);
+    REQUIRE(scan_count == 1);
+    REQUIRE(CurrentState() == State::kConnected);
+}
+
+TEST_CASE_FIXTURE(Fixture, "requested networks at the length limits are accepted")
+{
+    const auto ssid = std::string(32, 's');
+    const auto password = std::string(64, 'a');
+    networks_in_range = InRange({ssid.c_str()});
+    Start();
+
+    RequestConnect(ssid, password);
+
+    REQUIRE(KnownNetworks().front() == WifiSsidNetwork {ssid, password});
+    REQUIRE(connected_ssid == ssid);
 }
 
 TEST_SUITE_END();

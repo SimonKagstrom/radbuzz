@@ -15,6 +15,12 @@
 
 struct WifiHandlerStateData : WifiStateMachineData
 {
+    struct Scanning : WifiStateMachineData::Scanning
+    {
+        // By the UI, so finished also when moving
+        bool requested {false};
+    };
+
     struct Idle : WifiStateMachineData::Idle
     {
         os::TimerHandle timer;
@@ -42,7 +48,7 @@ private:
 
     // WifiStateMachineBase, see wifi_state_machine.md
     On::Next Evaluate(On&) final;
-    Scanning::Next Evaluate(Scanning&) final;
+    Scanning::Next Evaluate(Scanning& state) final;
     Idle::Next Evaluate(Idle&) final;
     Connect::Next Evaluate(Connect&) final;
     RetryConnect::Next Evaluate(RetryConnect&) final;
@@ -52,11 +58,12 @@ private:
     Off::Next Evaluate(Off&) final;
 
     void Enter(On&) final;
-    void Enter(Scanning&) final;
+    void Enter(Scanning& state) final;
     void Enter(Idle& state) final;
     void Enter(Connect&) final;
     void Enter(RetryConnect& state) final;
     void Enter(ConnectFailed&) final;
+    void Exit(Connect&) final;
     void Enter(Connected&) final;
     void Exit(Connected&) final;
     void Enter(Off&) final;
@@ -71,6 +78,15 @@ private:
 
     // Send the last scan result to the UI (and others)
     void SendScanResult();
+
+    // Store a requested network first among the known networks. False if it's invalid
+    bool StoreRequestedNetwork(const MSG::wifi_connect& request);
+
+    // Disconnect, or stop an ongoing connection attempt
+    void Disconnect();
+
+    // A scan or connect request from the UI, which both start with a scan
+    bool ScanOrConnectRequested() const;
 
     // The first configured network found in the last scan, which hasn't failed here
     std::optional<WifiSsidNetwork> FindKnownNetwork() const;
@@ -88,6 +104,7 @@ private:
     ListenerCookie m_state_listener;
     ApplicationState::PartialReadOnlyCache<AS::is_moving, AS::configuration> m_state_cache;
     ListenerCookie m_wifi_listener;
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 
     // Set from the wifi client callback
     std::atomic_bool m_link_up {false};
@@ -100,6 +117,10 @@ private:
     // The network being connected to, and those which failed at this location
     std::string m_connecting_ssid;
     std::vector<std::string> m_failed_ssids;
+
+    // From MSG::start_wifi_scan/wifi_connect, until the next scan is started
+    bool m_scan_requested {false};
+    bool m_connect_requested {false};
 
     // Restarted when is_moving changes
     os::TimerHandle m_movement_timer;

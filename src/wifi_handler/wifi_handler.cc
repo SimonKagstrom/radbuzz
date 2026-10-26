@@ -52,6 +52,7 @@ WifiHandler::WifiHandler(ApplicationState& state,
     , m_wifi_client(wifi_client)
     , m_state_listener(m_state.AttachListener<AS::configuration, AS::is_moving>(GetSemaphore()))
     , m_state_cache(m_state)
+    , m_mailbox(m_post_office.Subscribe<MSG::start_wifi_scan, MSG::wifi_connect>(GetNotifier()))
 {
 }
 
@@ -100,6 +101,17 @@ WifiHandler::OnActivation()
             if (old_conf.wifi_ssid_data != new_conf.wifi_ssid_data)
             {
                 m_failed_ssids.clear();
+            }
+        });
+
+    // A scan in progress also covers the requests (and finds a requested network)
+    const auto scanning = CurrentState() == State::kScanning;
+    m_mailbox->Collect()
+        .On<MSG::start_wifi_scan>([this, scanning]() { m_scan_requested |= !scanning; })
+        .On<MSG::wifi_connect>([this, scanning](auto request) {
+            if (StoreRequestedNetwork(*request))
+            {
+                m_connect_requested |= !scanning;
             }
         });
 
@@ -199,6 +211,45 @@ WifiHandler::SendScanResult()
     m_post_office.Send(std::move(result));
 }
 
+bool
+WifiHandler::StoreRequestedNetwork(const MSG::wifi_connect& request)
+{
+    // The limits of the wifi standard (and the ESP32 driver). A 64 character password is a
+    // hex key instead of a passphrase
+    if (request.ssid.empty() || request.ssid.size() > 32 || request.password.size() > 64)
+    {
+        printf("Wifi: Ignoring invalid network '%s'\n", request.ssid.c_str());
+        return false;
+    }
+
+    auto ps = m_state.CheckoutPartialSnapshot<AS::configuration>();
+    auto& networks = ps.GetWritableReference<AS::configuration>().wifi_ssid_data.networks;
+
+    // First, so that it's preferred over the other known networks
+    std::erase_if(networks, [&request](const auto& network) { return network.ssid == request.ssid; });
+    networks.insert(networks.begin(), {request.ssid, request.password});
+
+    // E.g., retyped after a wrong password. Also cleared by the configuration change, but
+    // the scan result might be handled before that
+    std::erase(m_failed_ssids, request.ssid);
+
+    return true;
+}
+
+void
+WifiHandler::Disconnect()
+{
+    m_wifi_client.Disconnect();
+    // Not connected until a new connection is made, even if the event is late
+    m_link_up = false;
+}
+
+bool
+WifiHandler::ScanOrConnectRequested() const
+{
+    return m_scan_requested || m_connect_requested;
+}
+
 std::optional<WifiSsidNetwork>
 WifiHandler::FindKnownNetwork() const
 {
@@ -260,19 +311,24 @@ WifiHandler::Evaluate(On&)
 
 // Scanning
 void
-WifiHandler::Enter(Scanning&)
+WifiHandler::Enter(Scanning& state)
 {
     m_scan_result = std::nullopt;
     m_scan_done_event = false;
     m_connect_retries = 0;
 
+    // This scan handles the requests
+    state.requested = ScanOrConnectRequested();
+    m_scan_requested = false;
+    m_connect_requested = false;
+
     m_wifi_client.StartScan();
 }
 
 WifiHandler::Scanning::Next
-WifiHandler::Evaluate(Scanning&)
+WifiHandler::Evaluate(Scanning& state)
 {
-    if (MovingForAWhile())
+    if (!state.requested && MovingForAWhile())
     {
         return State::kOff;
     }
@@ -299,7 +355,7 @@ WifiHandler::Enter(Idle& state)
 WifiHandler::Idle::Next
 WifiHandler::Evaluate(Idle& state)
 {
-    if (state.timer->IsExpired())
+    if (state.timer->IsExpired() || ScanOrConnectRequested())
     {
         return State::kScanning;
     }
@@ -335,6 +391,10 @@ WifiHandler::Evaluate(Connect&)
     {
         return State::kConnected;
     }
+    if (m_connect_requested)
+    {
+        return State::kScanning;
+    }
     if (m_link_down_event)
     {
         if (m_connect_retries < kMaxConnectRetries)
@@ -346,6 +406,16 @@ WifiHandler::Evaluate(Connect&)
     }
 
     return kStay;
+}
+
+void
+WifiHandler::Exit(Connect&)
+{
+    // Neither connected nor failed, i.e., interrupted by a request for another network
+    if (!m_link_up && !m_link_down_event)
+    {
+        Disconnect();
+    }
 }
 
 
@@ -360,6 +430,10 @@ WifiHandler::Enter(RetryConnect& state)
 WifiHandler::RetryConnect::Next
 WifiHandler::Evaluate(RetryConnect& state)
 {
+    if (m_connect_requested)
+    {
+        return State::kScanning;
+    }
     if (state.timer->IsExpired())
     {
         return State::kConnect;
@@ -383,6 +457,10 @@ WifiHandler::Enter(ConnectFailed&)
 WifiHandler::ConnectFailed::Next
 WifiHandler::Evaluate(ConnectFailed&)
 {
+    if (m_connect_requested)
+    {
+        return State::kScanning;
+    }
     // From the same scan, since a new one would probably not find anything else
     if (FindKnownNetwork())
     {
@@ -404,6 +482,12 @@ void
 WifiHandler::Exit(Connected&)
 {
     m_state.Set<AS::wifi_connected>(false);
+
+    // Still connected, i.e., left for a requested network
+    if (m_link_up)
+    {
+        Disconnect();
+    }
 }
 
 WifiHandler::Connected::Next
@@ -412,6 +496,16 @@ WifiHandler::Evaluate(Connected&)
     if (!m_link_up)
     {
         return State::kLostConnection;
+    }
+    if (m_connect_requested)
+    {
+        return State::kScanning;
+    }
+    if (m_scan_requested)
+    {
+        // Scanning works while connected, so no need to leave the state
+        m_scan_requested = false;
+        m_wifi_client.StartScan();
     }
 
     return kStay;
@@ -422,6 +516,10 @@ WifiHandler::Evaluate(Connected&)
 WifiHandler::LostConnection::Next
 WifiHandler::Evaluate(LostConnection&)
 {
+    if (ScanOrConnectRequested())
+    {
+        return State::kScanning;
+    }
     if (MovingForAWhile())
     {
         return State::kOff;
@@ -446,7 +544,7 @@ WifiHandler::Enter(Off&)
 WifiHandler::Off::Next
 WifiHandler::Evaluate(Off&)
 {
-    if (StandingStillForAWhile())
+    if (StandingStillForAWhile() || ScanOrConnectRequested())
     {
         return State::kOn;
     }
