@@ -46,6 +46,7 @@ private:
     Idle::Next Evaluate(Idle&) final;
     Connect::Next Evaluate(Connect&) final;
     RetryConnect::Next Evaluate(RetryConnect&) final;
+    ConnectFailed::Next Evaluate(ConnectFailed&) final;
     Connected::Next Evaluate(Connected&) final;
     LostConnection::Next Evaluate(LostConnection&) final;
     Off::Next Evaluate(Off&) final;
@@ -55,6 +56,7 @@ private:
     void Enter(Idle& state) final;
     void Enter(Connect&) final;
     void Enter(RetryConnect& state) final;
+    void Enter(ConnectFailed&) final;
     void Enter(Connected&) final;
     void Exit(Connected&) final;
     void Enter(Off&) final;
@@ -70,7 +72,7 @@ private:
     // Send the last scan result to the UI (and others)
     void SendScanResult();
 
-    // The first configured network found in the last scan
+    // The first configured network found in the last scan, which hasn't failed here
     std::optional<WifiSsidNetwork> FindKnownNetwork() const;
 
     // Moving/standing still for at least kMovementTime
@@ -84,7 +86,7 @@ private:
     hal::IWifiClient& m_wifi_client;
 
     ListenerCookie m_state_listener;
-    ApplicationState::PartialReadOnlyCache<AS::is_moving> m_state_cache;
+    ApplicationState::PartialReadOnlyCache<AS::is_moving, AS::configuration> m_state_cache;
     ListenerCookie m_wifi_listener;
 
     // Set from the wifi client callback
@@ -94,6 +96,10 @@ private:
 
     std::optional<std::vector<hal::IWifiClient::AccessPoint>> m_scan_result;
     unsigned m_connect_retries {0};
+
+    // The network being connected to, and those which failed at this location
+    std::string m_connecting_ssid;
+    std::vector<std::string> m_failed_ssids;
 
     // Restarted when is_moving changes
     os::TimerHandle m_movement_timer;

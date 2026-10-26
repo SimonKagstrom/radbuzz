@@ -18,7 +18,10 @@ stateDiagram-v2
 
     Connect --> Connected : Connected
     Connect --> RetryConnect : Connection failed, retries left
-    Connect --> Scanning : Connection failed, no retries left
+    Connect --> ConnectFailed : Connection failed, no retries left
+
+    ConnectFailed --> Connect : Other known networks in the scan
+    ConnectFailed --> Idle : No more networks to try
 
     RetryConnect --> Connect : After 5 seconds
 
@@ -43,5 +46,7 @@ stateDiagram-v2
 - **Idle**: Wait for 10 seconds before scanning again
 - **Connect**: Connect to the matching network
 - **RetryConnect**: Wait 5 seconds before retrying the connection
+- **ConnectFailed**: Skip the network until the moped has moved, or the wifi networks in the
+  configuration have changed
 - **Connected**: Connected to a network
 - **LostConnection**: The connection was lost

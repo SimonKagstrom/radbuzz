@@ -64,7 +64,8 @@ public:
         }
 
         // Default behavior of the wifi client: Scans finish immediately with
-        // networks_in_range, and connections succeed (unless connect_succeeds is cleared)
+        // networks_in_range, and connections succeed (unless connect_succeeds is cleared, or
+        // the SSID is in failing_ssids)
         m_expectations.push_back(NAMED_ALLOW_CALL(wifi_client, AttachListener(_))
                                      .LR_SIDE_EFFECT(m_on_wifi_event = _1)
                                      .RETURN(ListenerCookie([]() {})));
@@ -83,7 +84,11 @@ public:
             connect_count++;
             connected_ssid = _1;
             connected_password = _2;
-            SendWifiEvent(connect_succeeds ? Event::kConnected : Event::kDisconnected);
+            connect_attempts.push_back(_1);
+
+            const auto fails = std::ranges::find(failing_ssids, connected_ssid) !=
+                               failing_ssids.end();
+            SendWifiEvent(connect_succeeds && !fails ? Event::kConnected : Event::kDisconnected);
         }));
 
         SetThread(&wifi_handler);
@@ -150,6 +155,7 @@ public:
     // Wifi client behavior
     std::vector<hal::IWifiClient::AccessPoint> networks_in_range {InRange({"Neighbour", "Home"})};
     bool connect_succeeds {true};
+    std::vector<std::string> failing_ssids;
 
     // Wifi client calls
     unsigned enable_count {0};
@@ -158,6 +164,8 @@ public:
     unsigned connect_count {0};
     std::string connected_ssid;
     std::string connected_password;
+    // The SSIDs of all Connect calls, in order
+    std::vector<std::string> connect_attempts;
 
 private:
     std::function<void(Event)> m_on_wifi_event;
@@ -409,7 +417,7 @@ TEST_CASE_FIXTURE(Fixture, "the wifi handler scans again when no known network i
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "failed connections are retried before scanning again")
+TEST_CASE_FIXTURE(Fixture, "failed connections are retried before giving up on the network")
 {
     connect_succeeds = false;
 
@@ -423,13 +431,25 @@ TEST_CASE_FIXTURE(Fixture, "failed connections are retried before scanning again
         REQUIRE(connect_count == 2);
         Advance(5s);
         REQUIRE(connect_count == 3);
+        Advance(5s);
+        REQUIRE(connect_count == 4);
         REQUIRE(scan_count == 1);
 
-        Advance(5s);
-
-        THEN("a new scan is done after the last retry")
+        THEN("the wifi handler waits for a new scan")
         {
+            REQUIRE(CurrentState() == State::kIdle);
+        }
+
+        AND_WHEN("the network is found again in the next scan")
+        {
+            Advance(10s);
             REQUIRE(scan_count == 2);
+
+            THEN("it's not tried again")
+            {
+                REQUIRE(connect_count == 4);
+                REQUIRE(CurrentState() == State::kIdle);
+            }
         }
     }
 
@@ -445,6 +465,169 @@ TEST_CASE_FIXTURE(Fixture, "failed connections are retried before scanning again
             REQUIRE(scan_count == 1);
         }
     }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the next known network is tried when one fails")
+{
+    {
+        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+        ps.GetWritableReference<AS::configuration>().wifi_ssid_data.networks = {
+            {"Home", "home-password"}, {"Office", "office-password"}, {"Cafe", ""}};
+    }
+    networks_in_range = InRange({"Neighbour", "Cafe", "Office", "Home"});
+
+    WHEN("the first one fails")
+    {
+        failing_ssids = {"Home"};
+        Start();
+        Advance(15s);
+
+        THEN("the second one is connected, without a new scan")
+        {
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Office");
+            REQUIRE(connected_password == "office-password");
+            REQUIRE(scan_count == 1);
+        }
+    }
+
+    WHEN("all but the last fail")
+    {
+        failing_ssids = {"Home", "Office"};
+        Start();
+        Advance(15s);
+        Advance(15s);
+
+        THEN("the networks are tried in the configured order")
+        {
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(connected_ssid == "Cafe");
+            REQUIRE(connect_attempts == std::vector<std::string> {"Home",
+                                                                  "Home",
+                                                                  "Home",
+                                                                  "Home",
+                                                                  "Office",
+                                                                  "Office",
+                                                                  "Office",
+                                                                  "Office",
+                                                                  "Cafe"});
+            REQUIRE(scan_count == 1);
+        }
+    }
+
+    WHEN("all fail")
+    {
+        failing_ssids = {"Home", "Office", "Cafe"};
+        Start();
+        Advance(15s);
+        Advance(15s);
+        Advance(15s);
+        REQUIRE(CurrentState() == State::kIdle);
+        const auto attempts = connect_count;
+
+        AND_WHEN("a new known network comes in range")
+        {
+            {
+                auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+                ps.GetWritableReference<AS::configuration>().wifi_ssid_data.networks.push_back(
+                    {"Hotspot", "hotspot-password"});
+            }
+            networks_in_range = InRange({"Cafe", "Office", "Home", "Hotspot"});
+            failing_ssids = {};
+            Advance(10s);
+
+            THEN("the configuration change makes all networks eligible again")
+            {
+                REQUIRE(CurrentState() == State::kConnected);
+                REQUIRE(connected_ssid == "Home");
+            }
+        }
+
+        AND_WHEN("only the scan changes")
+        {
+            networks_in_range = InRange({"Cafe", "Office", "Home", "Phone"});
+            Advance(10s);
+
+            THEN("the failed networks are not tried again")
+            {
+                REQUIRE(connect_count == attempts);
+                REQUIRE(CurrentState() == State::kIdle);
+            }
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "failed networks are tried again after moving")
+{
+    failing_ssids = {"Home"};
+    Start();
+    Advance(15s);
+    REQUIRE(CurrentState() == State::kIdle);
+    const auto attempts = connect_count;
+
+    // The network works at the new place
+    failing_ssids = {};
+
+    WHEN("the moped moves and stops again")
+    {
+        SetMoving(true);
+        Advance(10s);
+        SetMoving(false);
+        Advance(10s);
+
+        THEN("the network is tried again")
+        {
+            REQUIRE(connect_count == attempts + 1);
+            REQUIRE(CurrentState() == State::kConnected);
+        }
+    }
+
+    WHEN("the moped stays")
+    {
+        Advance(1min);
+
+        THEN("the network is not tried again")
+        {
+            REQUIRE(connect_count == attempts);
+            REQUIRE(CurrentState() == State::kIdle);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a failed network is tried again when its password changes")
+{
+    failing_ssids = {"Home"};
+    Start();
+    Advance(15s);
+    REQUIRE(CurrentState() == State::kIdle);
+
+    failing_ssids = {};
+    {
+        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+        ps.GetWritableReference<AS::configuration>().wifi_ssid_data.networks[0].password =
+            "new-password";
+    }
+    Advance(10s);
+
+    REQUIRE(CurrentState() == State::kConnected);
+    REQUIRE(connected_password == "new-password");
+}
+
+TEST_CASE_FIXTURE(Fixture, "other configuration changes don't make a failed network eligible")
+{
+    failing_ssids = {"Home"};
+    Start();
+    Advance(15s);
+    const auto attempts = connect_count;
+
+    {
+        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
+        ps.GetWritableReference<AS::configuration>().max_watts = 1234;
+    }
+    Advance(10s);
+
+    REQUIRE(connect_count == attempts);
+    REQUIRE(CurrentState() == State::kIdle);
 }
 
 TEST_CASE_FIXTURE(Fixture, "a lost connection is re-established when standing still")
