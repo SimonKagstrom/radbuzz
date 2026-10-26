@@ -89,7 +89,7 @@ add_library(user_interface EXCLUDE_FROM_ALL
     message_box.cc
     navigation_widget.cc
     ota_update_screen.cc
-    settings_menu_screen.cc
+    settings/settings_menu_screen.cc
     side_pane.cc
     speech_bubble.cc
     speedometer_only_screen.cc

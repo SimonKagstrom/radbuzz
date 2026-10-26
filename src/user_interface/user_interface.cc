@@ -7,7 +7,7 @@
 #include "navigation_widget.hh"
 #include "ota_update_screen.hh"
 #include "painter.hh"
-#include "settings_menu_screen.hh"
+#include "settings/settings_menu_screen.hh"
 #include "side_pane.hh"
 #include "speedometer_only_screen.hh"
 #include "trip_meter_screen.hh"
