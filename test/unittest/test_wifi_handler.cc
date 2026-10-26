@@ -453,7 +453,7 @@ TEST_CASE_FIXTURE(Fixture, "failed connections are retried before giving up on t
     connect_succeeds = false;
 
     Start();
-    REQUIRE(CurrentState() == State::kRetryConnect);
+    REQUIRE(CurrentState() == State::kConnecting);
     REQUIRE(connect_count == 1);
 
     WHEN("the retries fail")
@@ -960,7 +960,7 @@ TEST_CASE_FIXTURE(Fixture, "a scan requested while connecting is done afterwards
 {
     connect_succeeds = false;
     Start();
-    REQUIRE(CurrentState() == State::kRetryConnect);
+    REQUIRE(CurrentState() == State::kConnecting);
 
     RequestScan();
     REQUIRE(scan_count == 1);
@@ -1138,7 +1138,7 @@ TEST_CASE_FIXTURE(Fixture, "a requested network replaces the current connection"
     {
         failing_ssids = {"Home"};
         Start();
-        REQUIRE(CurrentState() == State::kRetryConnect);
+        REQUIRE(CurrentState() == State::kConnecting);
 
         RequestConnect("Office", "office-password");
 
@@ -1154,7 +1154,7 @@ TEST_CASE_FIXTURE(Fixture, "a requested network replaces the current connection"
     {
         hanging_ssids = {"Home"};
         Start();
-        REQUIRE(CurrentState() == State::kConnect);
+        REQUIRE(CurrentState() == State::kConnecting);
 
         RequestConnect("Office", "office-password");
 

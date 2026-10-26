@@ -6,6 +6,7 @@
 #include "hal/i_wifi_client.hh"
 #include "messages.hh"
 #include "post_office.hh"
+#include "wifi_connector.hh"
 #include "wifi_state_machine_base.hh"
 
 #include <atomic>
@@ -26,9 +27,12 @@ struct WifiHandlerStateData : WifiStateMachineData
         os::TimerHandle timer;
     };
 
-    struct RetryConnect : WifiStateMachineData::RetryConnect
+    struct Connecting : WifiStateMachineData::Connecting
     {
-        os::TimerHandle timer;
+        // Created on entry (state data must be default-constructible)
+        std::optional<WifiConnector> connector;
+        // From the last evaluation, for Exit()
+        WifiConnector::Result result {WifiConnector::Result::kPending};
     };
 };
 
@@ -43,15 +47,12 @@ public:
 private:
     static constexpr auto kMovementTime = 1min;
     static constexpr auto kIdleTime = 10s;
-    static constexpr auto kRetryConnectTime = 5s;
-    static constexpr auto kMaxConnectRetries = 3;
 
     // WifiStateMachineBase, see wifi_state_machine.md
     On::Next Evaluate(On&) final;
     Scanning::Next Evaluate(Scanning& state) final;
     Idle::Next Evaluate(Idle&) final;
-    Connect::Next Evaluate(Connect&) final;
-    RetryConnect::Next Evaluate(RetryConnect&) final;
+    Connecting::Next Evaluate(Connecting& state) final;
     ConnectFailed::Next Evaluate(ConnectFailed&) final;
     Connected::Next Evaluate(Connected&) final;
     LostConnection::Next Evaluate(LostConnection&) final;
@@ -60,10 +61,8 @@ private:
     void Enter(On&) final;
     void Enter(Scanning& state) final;
     void Enter(Idle& state) final;
-    void Enter(Connect&) final;
-    void Enter(RetryConnect& state) final;
-    void Enter(ConnectFailed&) final;
-    void Exit(Connect&) final;
+    void Enter(Connecting& state) final;
+    void Exit(Connecting& state) final;
     void Enter(Connected&) final;
     void Exit(Connected&) final;
     void Enter(Off&) final;
@@ -112,10 +111,8 @@ private:
     std::atomic_bool m_scan_done_event {false};
 
     std::optional<std::vector<hal::IWifiClient::AccessPoint>> m_scan_result;
-    unsigned m_connect_retries {0};
 
-    // The network being connected to, and those which failed at this location
-    std::string m_connecting_ssid;
+    // The networks which failed at this location
     std::vector<std::string> m_failed_ssids;
 
     // From MSG::start_wifi_scan/wifi_connect, until the next scan is started

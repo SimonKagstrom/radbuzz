@@ -315,7 +315,6 @@ WifiHandler::Enter(Scanning& state)
 {
     m_scan_result = std::nullopt;
     m_scan_done_event = false;
-    m_connect_retries = 0;
 
     // This scan handles the requests
     state.requested = ScanOrConnectRequested();
@@ -338,7 +337,7 @@ WifiHandler::Evaluate(Scanning& state)
     }
     if (FindKnownNetwork())
     {
-        return State::kConnect;
+        return State::kConnecting;
     }
 
     return State::kIdle;
@@ -364,30 +363,28 @@ WifiHandler::Evaluate(Idle& state)
 }
 
 
-// Connect
+// Connecting
 void
-WifiHandler::Enter(Connect&)
+WifiHandler::Enter(Connecting& state)
 {
-    m_link_down_event = false;
-
+    // Found by the state before, unless another thread changed the configuration in between
     if (auto network = FindKnownNetwork(); network)
     {
-        m_connecting_ssid = network->ssid;
-        m_wifi_client.Connect(network->ssid.c_str(), network->password.c_str());
-    }
-    else
-    {
-        // Removed from the configuration since the scan, so nothing to retry
-        m_connecting_ssid.clear();
-        m_connect_retries = kMaxConnectRetries;
-        m_link_down_event = true;
+        state.connector.emplace(
+            m_wifi_client, GetTimerManager(), m_link_up, m_link_down_event, *network);
     }
 }
 
-WifiHandler::Connect::Next
-WifiHandler::Evaluate(Connect&)
+WifiHandler::Connecting::Next
+WifiHandler::Evaluate(Connecting& state)
 {
-    if (m_link_up)
+    if (!state.connector)
+    {
+        return State::kConnectFailed;
+    }
+
+    state.result = state.connector->EvaluateConnection();
+    if (state.result == WifiConnector::Result::kSucceeded)
     {
         return State::kConnected;
     }
@@ -395,13 +392,8 @@ WifiHandler::Evaluate(Connect&)
     {
         return State::kScanning;
     }
-    if (m_link_down_event)
+    if (state.result == WifiConnector::Result::kFailed)
     {
-        if (m_connect_retries < kMaxConnectRetries)
-        {
-            return State::kRetryConnect;
-        }
-
         return State::kConnectFailed;
     }
 
@@ -409,62 +401,27 @@ WifiHandler::Evaluate(Connect&)
 }
 
 void
-WifiHandler::Exit(Connect&)
+WifiHandler::Exit(Connecting& state)
 {
-    // Neither connected nor failed, i.e., interrupted by a request for another network
-    if (!m_link_up && !m_link_down_event)
+    // An ongoing attempt is stopped when the connector is destroyed
+    if (state.connector && state.result == WifiConnector::Result::kFailed)
     {
-        Disconnect();
+        // Skip it until somewhere else, or until the configuration has changed
+        m_failed_ssids.push_back(state.connector->Ssid());
     }
-}
-
-
-// RetryConnect
-void
-WifiHandler::Enter(RetryConnect& state)
-{
-    m_connect_retries++;
-    state.timer = StartTimer(kRetryConnectTime);
-}
-
-WifiHandler::RetryConnect::Next
-WifiHandler::Evaluate(RetryConnect& state)
-{
-    if (m_connect_requested)
-    {
-        return State::kScanning;
-    }
-    if (state.timer->IsExpired())
-    {
-        return State::kConnect;
-    }
-
-    return kStay;
 }
 
 
 // ConnectFailed
-void
-WifiHandler::Enter(ConnectFailed&)
-{
-    if (!m_connecting_ssid.empty())
-    {
-        m_failed_ssids.push_back(m_connecting_ssid);
-    }
-    m_connect_retries = 0;
-}
-
 WifiHandler::ConnectFailed::Next
 WifiHandler::Evaluate(ConnectFailed&)
 {
-    if (m_connect_requested)
-    {
-        return State::kScanning;
-    }
+    // Connect requests are handled by Connecting, so none here
+
     // From the same scan, since a new one would probably not find anything else
     if (FindKnownNetwork())
     {
-        return State::kConnect;
+        return State::kConnecting;
     }
 
     return State::kIdle;

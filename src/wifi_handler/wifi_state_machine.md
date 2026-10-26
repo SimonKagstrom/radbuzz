@@ -14,23 +14,18 @@ stateDiagram-v2
 
     On --> Scanning : Scan
 
-    Scanning --> Connect : Matching SSID found
+    Scanning --> Connecting : Matching SSID found
     Scanning --> Idle : No known networks found
     Scanning --> Off : Moving (1 min)
 
     Idle --> Scanning : After 10 seconds, or scan/connect requested
 
-    Connect --> Connected : Connected
-    Connect --> RetryConnect : Connection failed, retries left
-    Connect --> ConnectFailed : Connection failed, no retries left
-    Connect --> Scanning : Connect requested
+    Connecting --> Connected : Succeeded
+    Connecting --> ConnectFailed : Failed
+    Connecting --> Scanning : Connect requested
 
-    ConnectFailed --> Connect : Other known networks in the scan
+    ConnectFailed --> Connecting : Other known networks in the scan
     ConnectFailed --> Idle : No more networks to try
-    ConnectFailed --> Scanning : Connect requested
-
-    RetryConnect --> Connect : After 5 seconds
-    RetryConnect --> Scanning : Connect requested
 
     Connected --> LostConnection : Lost connection
     Connected --> Scanning : Connect requested
@@ -52,9 +47,10 @@ stateDiagram-v2
 - **Off**: Turn off wifi
 - **Scanning**: Scan for networks. Requests during the scan are covered by it
 - **Idle**: Wait for 10 seconds before scanning again
-- **Connect**: Connect to the matching network. A scan request waits until the connection
-  has succeeded or failed, since the wifi driver can't scan while connecting
-- **RetryConnect**: Wait 5 seconds before retrying the connection
+- **Connecting**: Connect to the first known network in the scan, with retries, using the
+  [wifi connect state machine](wifi_connect_state_machine.md). An ongoing attempt is
+  stopped when leaving for a connect request. A scan request waits until the connection has
+  succeeded or failed, since the wifi driver can't scan while connecting
 - **ConnectFailed**: Skip the network until the moped has moved, or the wifi networks in the
   configuration have changed
 - **Connected**: Connected to a network. A scan request scans without disconnecting, while a
