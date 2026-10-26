@@ -112,4 +112,9 @@ MySsid
 PasswordForMySsid
 OtherSsid
 PasswordForOtherSsid
+OpenCafeSsid
+
 ```
+
+Leave the password line empty for open networks. The networks are stored on the
+board, and the file is only imported again when its contents change.

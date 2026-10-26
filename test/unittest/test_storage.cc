@@ -340,6 +340,8 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     conf.bms_overheat_temperature = 93;
     conf.cell_overheat_temperature = 94;
     conf.wifi_ssid_data = {{{"cafe", "latte"}, {"open", ""}}};
+    // All 32 bits are used
+    conf.ssid_file_hash = 0xdeadbeef;
     REQUIRE(conf != Configuration());
 
     SetConfiguration(conf);

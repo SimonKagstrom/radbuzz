@@ -57,6 +57,7 @@ constexpr auto kSettings = std::tuple {
     Setting<&ConfigurationSettings::motor_overheat_temperature> {"1", 80},
     Setting<&ConfigurationSettings::bms_overheat_temperature> {"2", 60},
     Setting<&ConfigurationSettings::cell_overheat_temperature> {"3", 50},
+    Setting<&ConfigurationSettings::ssid_file_hash> {"h", 0},
 };
 
 // Not plain configuration values, handled separately

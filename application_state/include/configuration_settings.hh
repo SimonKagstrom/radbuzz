@@ -68,6 +68,8 @@ struct ConfigurationSettings
     Point home_position;
     // Configuration from the filesystem
     WifiSsidData wifi_ssid_data;
+    // Hash of the last imported SSID.TXT, so that it's only imported when changed
+    uint32_t ssid_file_hash;
     /// @brief Maximum power in watts
     uint16_t max_watts;
 
