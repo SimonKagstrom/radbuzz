@@ -19,10 +19,16 @@ WifiClientHost::StartScan()
     m_on_event(hal::IWifiClient::Event::kScanDone);
 }
 
-std::vector<std::string>
+std::vector<hal::IWifiClient::AccessPoint>
 WifiClientHost::GetScanResult()
 {
-    return {"Sifod", "LaPlanta", "Zundapp"};
+    // Strongest first, like the ESP32
+    return {
+        {"Sifod", -48, true},
+        {"LaPlanta", -63, true},
+        {"Café Gratis", -71, false},
+        {"Zundapp", -85, true},
+    };
 }
 
 void

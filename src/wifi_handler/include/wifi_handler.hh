@@ -92,7 +92,7 @@ private:
     std::atomic_bool m_link_down_event {false};
     std::atomic_bool m_scan_done_event {false};
 
-    std::optional<std::vector<std::string>> m_scan_result;
+    std::optional<std::vector<hal::IWifiClient::AccessPoint>> m_scan_result;
     unsigned m_connect_retries {0};
 
     // Restarted when is_moving changes

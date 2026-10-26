@@ -9,7 +9,7 @@ public:
     MAKE_MOCK0(Enable, void(), override);
     MAKE_MOCK0(Disable, void(), override);
     MAKE_MOCK0(StartScan, void(), override);
-    MAKE_MOCK0(GetScanResult, std::vector<std::string>(), override);
+    MAKE_MOCK0(GetScanResult, std::vector<AccessPoint>(), override);
     MAKE_MOCK2(Connect, void(const char*, const char*), override);
     MAKE_MOCK0(Disconnect, void(), override);
     MAKE_MOCK1(AttachListener,

@@ -23,6 +23,33 @@ public:
     }
 };
 
+// Secured access points, all with the same signal strength
+std::vector<hal::IWifiClient::AccessPoint>
+InRange(std::initializer_list<const char*> ssids)
+{
+    std::vector<hal::IWifiClient::AccessPoint> access_points;
+
+    for (auto ssid : ssids)
+    {
+        access_points.push_back({ssid, -60, true});
+    }
+
+    return access_points;
+}
+
+std::vector<std::string>
+Ssids(const MSG::wifi_scan_result& result)
+{
+    std::vector<std::string> ssids;
+
+    for (const auto& network : result.networks)
+    {
+        ssids.push_back(network.ssid);
+    }
+
+    return ssids;
+}
+
 class Fixture : public ThreadFixture
 {
 public:
@@ -121,7 +148,7 @@ public:
     Filesystem filesystem {"/"};
 
     // Wifi client behavior
-    std::vector<std::string> networks_in_range {"Neighbour", "Home"};
+    std::vector<hal::IWifiClient::AccessPoint> networks_in_range {InRange({"Neighbour", "Home"})};
     bool connect_succeeds {true};
 
     // Wifi client calls
@@ -164,7 +191,7 @@ TEST_CASE_FIXTURE(Fixture, "a known network in range is connected at startup")
 TEST_CASE_FIXTURE(Fixture, "networks from SSID.TXT are added to the known networks")
 {
     mock_filesystem::SetFile("SSID.TXT", "Office\noffice-password\n");
-    networks_in_range = {"Office"};
+    networks_in_range = InRange({"Office"});
 
     Start();
 
@@ -175,7 +202,7 @@ TEST_CASE_FIXTURE(Fixture, "networks from SSID.TXT are added to the known networ
 
 TEST_CASE_FIXTURE(Fixture, "the wifi handler scans again when no known network is found")
 {
-    networks_in_range = {"Neighbour"};
+    networks_in_range = InRange({"Neighbour"});
 
     Start();
     REQUIRE(CurrentState() == State::kIdle);
@@ -194,7 +221,7 @@ TEST_CASE_FIXTURE(Fixture, "the wifi handler scans again when no known network i
 
     WHEN("a known network comes in range")
     {
-        networks_in_range = {"Neighbour", "Home"};
+        networks_in_range = InRange({"Neighbour", "Home"});
         Advance(10s);
 
         THEN("it's connected")
@@ -324,7 +351,7 @@ TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when moving without a connect
 
 TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when scanning while moving")
 {
-    networks_in_range = {"Neighbour"};
+    networks_in_range = InRange({"Neighbour"});
     // Moving already at startup
     state.Set<AS::is_moving>(true);
 
@@ -339,25 +366,24 @@ TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when scanning while moving")
 
 TEST_CASE_FIXTURE(Fixture, "the wifi handler sends the result of every scan")
 {
-    networks_in_range = {"Neighbour"};
+    networks_in_range = InRange({"Neighbour"});
 
     Start();
 
     auto results = TakeScanResults();
     REQUIRE(results.size() == 1);
-    REQUIRE(results[0].networks == std::vector<MSG::WifiScanEntry> {{"Neighbour"}});
+    REQUIRE(Ssids(results[0]) == std::vector<std::string> {"Neighbour"});
 
     WHEN("the periodic scan finds a known network")
     {
-        networks_in_range = {"Neighbour", "Home"};
+        networks_in_range = InRange({"Neighbour", "Home"});
         Advance(10s);
 
         THEN("that result is also sent")
         {
             results = TakeScanResults();
             REQUIRE(results.size() == 1);
-            REQUIRE(results[0].networks ==
-                    std::vector<MSG::WifiScanEntry> {{"Neighbour"}, {"Home"}});
+            REQUIRE(Ssids(results[0]) == std::vector<std::string> {"Neighbour", "Home"});
             REQUIRE(CurrentState() == State::kConnected);
         }
 
@@ -377,25 +403,56 @@ TEST_CASE_FIXTURE(Fixture, "the wifi handler sends the result of every scan")
 TEST_CASE_FIXTURE(Fixture, "the scan result has unique, non-empty SSIDs in the scanned order")
 {
     // Hidden networks, and the same network from several access points
-    networks_in_range = {"Neighbour", "", "Home", "Neighbour", "", "Café 5G", "Home"};
+    networks_in_range = InRange({"Neighbour", "", "Home", "Neighbour", "", "Café 5G", "Home"});
 
     Start();
 
     auto results = TakeScanResults();
     REQUIRE(results.size() == 1);
+    REQUIRE(Ssids(results[0]) == std::vector<std::string> {"Neighbour", "Home", "Café 5G"});
+}
 
-    const auto& networks = results[0].networks;
-    REQUIRE(networks.size() == 3);
-    REQUIRE(networks[0].ssid == "Neighbour");
-    REQUIRE(networks[1].ssid == "Home");
-    REQUIRE(networks[2].ssid == "Café 5G");
+TEST_CASE_FIXTURE(Fixture, "the scan result has the signal strength and type of the networks")
+{
+    networks_in_range = {
+        {"Home", -42, true},
+        {"Café", -67, false},
+        // Extremes of int8_t
+        {"Far away", -128, true},
+        {"Next to it", 127, false},
+    };
 
-    // Not reported by the wifi client yet
-    for (const auto& network : networks)
-    {
-        REQUIRE(network.rssi == std::nullopt);
-        REQUIRE(network.type == MSG::WifiType::kUnknown);
-    }
+    Start();
+
+    auto results = TakeScanResults();
+    REQUIRE(results.size() == 1);
+    REQUIRE(results[0].networks == std::vector<MSG::WifiScanEntry> {
+                                       {"Home", -42, MSG::WifiType::kSecured},
+                                       {"Café", -67, MSG::WifiType::kOpen},
+                                       {"Far away", -128, MSG::WifiType::kSecured},
+                                       {"Next to it", 127, MSG::WifiType::kOpen},
+                                   });
+}
+
+TEST_CASE_FIXTURE(Fixture, "the first of several access points with the same SSID is kept")
+{
+    // The ESP32 driver sorts by RSSI, so the first is the strongest
+    networks_in_range = {
+        {"Mesh", -50, true},
+        {"Neighbour", -60, true},
+        {"Mesh", -80, true},
+        // Same SSID, but a different type (e.g., a guest network). Still the same name to pick
+        {"Mesh", -55, false},
+    };
+
+    Start();
+
+    auto results = TakeScanResults();
+    REQUIRE(results.size() == 1);
+    REQUIRE(results[0].networks == std::vector<MSG::WifiScanEntry> {
+                                       {"Mesh", -50, MSG::WifiType::kSecured},
+                                       {"Neighbour", -60, MSG::WifiType::kSecured},
+                                   });
 }
 
 TEST_CASE_FIXTURE(Fixture, "an empty scan is also sent")
@@ -420,7 +477,7 @@ TEST_CASE_FIXTURE(Fixture, "an empty scan is also sent")
 
     WHEN("only hidden networks are in range")
     {
-        networks_in_range = {"", ""};
+        networks_in_range = InRange({"", ""});
         Start();
 
         THEN("an empty result is sent")

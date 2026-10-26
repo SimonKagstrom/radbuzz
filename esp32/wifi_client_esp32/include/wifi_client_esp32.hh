@@ -13,7 +13,7 @@ private:
     void Enable() final;
     void Disable() final;
     void StartScan() final;
-    std::vector<std::string> GetScanResult() final;
+    std::vector<AccessPoint> GetScanResult() final;
     void Connect(const char* ssid, const char* password) final;
     void Disconnect() final;
     ListenerCookie AttachListener(std::function<void(Event)> on_event) final;

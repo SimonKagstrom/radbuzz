@@ -119,17 +119,19 @@ WifiHandler::SendScanResult()
 {
     MSG::wifi_scan_result result;
 
-    for (const auto& ssid : *m_scan_result)
+    for (const auto& ap : *m_scan_result)
     {
-        // Hidden networks have no SSID, and the same network can be seen from several APs
-        if (ssid.empty() || std::ranges::find(result.networks, ssid, &MSG::WifiScanEntry::ssid) !=
-                                result.networks.end())
+        // Hidden networks have no SSID, and the same network can be seen from several APs.
+        // Keep the first one, which is the strongest if the client sorts by RSSI.
+        if (ap.ssid.empty() ||
+            std::ranges::find(result.networks, ap.ssid, &MSG::WifiScanEntry::ssid) !=
+                result.networks.end())
         {
             continue;
         }
 
-        // RSSI and security are not reported by the wifi client yet
-        result.networks.push_back({ssid, std::nullopt, MSG::WifiType::kUnknown});
+        result.networks.push_back(
+            {ap.ssid, ap.rssi, ap.secured ? MSG::WifiType::kSecured : MSG::WifiType::kOpen});
     }
 
     m_post_office.Send(std::move(result));
@@ -146,7 +148,9 @@ WifiHandler::FindKnownNetwork() const
     auto conf = m_state.Get<AS::configuration>();
     for (const auto& network : conf->wifi_ssid_data.networks)
     {
-        if (std::ranges::find(*m_scan_result, network.ssid) != m_scan_result->end())
+        if (std::ranges::find(*m_scan_result,
+                              network.ssid,
+                              &hal::IWifiClient::AccessPoint::ssid) != m_scan_result->end())
         {
             return network;
         }

@@ -2,6 +2,7 @@
 
 #include "listener_cookie.hh"
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -20,6 +21,15 @@ public:
         kScanDone,
     };
 
+    struct AccessPoint
+    {
+        std::string ssid;
+        // dBm
+        int8_t rssi;
+        // Needs a password
+        bool secured;
+    };
+
     virtual ~IWifiClient() = default;
 
     // Turn the wifi on/off
@@ -29,8 +39,8 @@ public:
     // Start a scan in the background, kScanDone is sent when it's finished
     virtual void StartScan() = 0;
 
-    // The SSIDs found by the last finished scan. Only valid once per scan
-    virtual std::vector<std::string> GetScanResult() = 0;
+    // The access points found by the last finished scan. Only valid once per scan
+    virtual std::vector<AccessPoint> GetScanResult() = 0;
 
     virtual void Connect(const char* ssid, const char* password) = 0;
     virtual void Disconnect() = 0;

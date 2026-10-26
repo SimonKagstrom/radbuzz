@@ -43,10 +43,10 @@ WifiClientEsp32::StartScan()
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_scan_start(nullptr, false));
 }
 
-std::vector<std::string>
+std::vector<hal::IWifiClient::AccessPoint>
 WifiClientEsp32::GetScanResult()
 {
-    std::vector<std::string> ssids;
+    std::vector<AccessPoint> access_points;
 
     // Note: Getting the records frees them in the wifi driver, so this only works once per scan
     uint16_t ap_count = 0;
@@ -55,12 +55,18 @@ WifiClientEsp32::GetScanResult()
     std::vector<wifi_ap_record_t> ap_records(ap_count);
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_count, ap_records.data()));
 
+    // Sorted by RSSI (strongest first) by the driver
     for (const auto& record : ap_records)
     {
-        ssids.emplace_back(reinterpret_cast<const char*>(record.ssid));
+        // OWE (Enhanced Open) is encrypted, but needs no password
+        const auto secured =
+            record.authmode != WIFI_AUTH_OPEN && record.authmode != WIFI_AUTH_OWE;
+
+        access_points.push_back(
+            {reinterpret_cast<const char*>(record.ssid), record.rssi, secured});
     }
 
-    return ssids;
+    return access_points;
 }
 
 void
