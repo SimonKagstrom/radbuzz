@@ -70,7 +70,24 @@ WifiPage::OnScanResult(const MSG::wifi_scan_result& result)
     }
 
     m_scan_pending = false;
+    m_last_result = result;
     Fill(result);
+}
+
+void
+WifiPage::Update()
+{
+    // Nothing shown yet, or about to be refilled anyway
+    if (!m_last_result || m_scan_pending)
+    {
+        return;
+    }
+
+    if (*m_state.Get<AS::connected_wifi_ssid>() != m_shown_connected_ssid ||
+        m_state.Get<AS::configuration>()->wifi_ssid_data.networks != m_shown_known_networks)
+    {
+        Fill(*m_last_result);
+    }
 }
 
 void
@@ -96,11 +113,11 @@ WifiPage::Rescan()
 void
 WifiPage::Fill(const MSG::wifi_scan_result& result)
 {
-    const auto conf = m_state.Get<AS::configuration>();
-    const auto connected_ssid = m_state.Get<AS::connected_wifi_ssid>();
+    m_shown_connected_ssid = *m_state.Get<AS::connected_wifi_ssid>();
+    m_shown_known_networks = m_state.Get<AS::configuration>()->wifi_ssid_data.networks;
 
     const auto networks =
-        CreateWifiNetworkList(result.networks, conf->wifi_ssid_data.networks, *connected_ssid);
+        CreateWifiNetworkList(result.networks, m_shown_known_networks, m_shown_connected_ssid);
 
     m_page.Clear();
     if (networks.empty())

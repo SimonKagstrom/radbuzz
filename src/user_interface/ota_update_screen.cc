@@ -5,7 +5,7 @@ namespace
 {
 
 constexpr std::string_view kProgressText =
-    "Als Gregor Samsa eines Morgens aus unruhigen Traumen erwachte, fand er sich in seinem Bett zu "
+    "Als Gregor Samsa eines Morgens aus unruhigen Träumen erwachte, fand er sich in seinem Bett zu "
     "einem ungeheuren Ungeziefer verwandelt";
 
 constexpr auto kNumberOfWords = std::ranges::count(kProgressText, ' ') + 1;
@@ -35,10 +35,8 @@ ProgressToString(uint8_t progress)
 OtaUpdateScreen::OtaUpdateScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
 {
+    // The theme font
     m_label = lv_label_create(m_screen);
-
-    lv_obj_set_style_text_font(m_label, &lv_font_montserrat_22, LV_PART_MAIN);
-
     lv_label_set_text(m_label, "");
 
     lv_obj_set_style_text_align(m_label, LV_TEXT_ALIGN_CENTER, 0);

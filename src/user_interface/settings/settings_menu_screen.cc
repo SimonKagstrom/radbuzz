@@ -291,6 +291,11 @@ SettingsMenuScreen::Update()
     lv_label_set_text(m_consumed_regen_label,
                       std::format("Consumed: -{:.1f}+{:.1f} kWh", consumed_kwh, regen_kwh).c_str());
     lv_obj_align_to(m_consumed_regen_label, m_odometer_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+
+    if (m_wifi_page)
+    {
+        m_wifi_page->Update();
+    }
 }
 
 void

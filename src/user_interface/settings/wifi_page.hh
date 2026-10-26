@@ -24,6 +24,10 @@ public:
     // Shown if requested by this page, since the wifi handler also scans periodically
     void OnScanResult(const MSG::wifi_scan_result& result);
 
+    // Refill from the last scan when the connected or known networks have changed, e.g.,
+    // after selecting a network. Not from an event callback (see MenuScreen::Page::Clear)
+    void Update();
+
 private:
     void RequestScan();
     void Rescan();
@@ -38,4 +42,9 @@ private:
     bool m_scan_pending {false};
     // The label of the "Rescan" entry, deleted when the page is cleared
     lv_obj_t* m_rescan_label {nullptr};
+
+    // What the page was last filled with
+    std::optional<MSG::wifi_scan_result> m_last_result;
+    std::string m_shown_connected_ssid;
+    std::vector<WifiSsidNetwork> m_shown_known_networks;
 };

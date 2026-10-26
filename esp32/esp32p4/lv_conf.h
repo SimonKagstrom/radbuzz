@@ -567,7 +567,7 @@
 #define LV_FONT_MONTSERRAT_16 0
 #define LV_FONT_MONTSERRAT_18 0
 #define LV_FONT_MONTSERRAT_20 0
-#define LV_FONT_MONTSERRAT_22 1
+#define LV_FONT_MONTSERRAT_22 0
 #define LV_FONT_MONTSERRAT_24 0
 #define LV_FONT_MONTSERRAT_26 0
 #define LV_FONT_MONTSERRAT_28 0
@@ -589,7 +589,8 @@
 #define LV_FONT_SIMSUN_16_CJK            0  /**< 1000 most common CJK radicals */
 
 /** Pixel perfect monospaced fonts */
-#define LV_FONT_UNSCII_8  0
+/* The (tiny) default font, only until the UI sets the theme with the radbuzz font */
+#define LV_FONT_UNSCII_8  1
 #define LV_FONT_UNSCII_16 0
 
 /** Optionally declare custom fonts here.
@@ -604,7 +605,7 @@
 #define LV_FONT_CUSTOM_DECLARE
 
 /** Always set a default font */
-#define LV_FONT_DEFAULT &lv_font_montserrat_22
+#define LV_FONT_DEFAULT &lv_font_unscii_8
 
 /** Enable handling large font and/or fonts with a lot of characters.
  *  The limit depends on the font size, font face and bpp.
