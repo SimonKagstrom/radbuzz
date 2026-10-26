@@ -580,7 +580,10 @@ MapScreen::HandleInput(const Input::Event& event)
         dx = 1;
         break;
     case hal::IInput::EventType::kButtonDown:
-        m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
+        if (m_parent.m_state.Get<AS::is_moving>() == false || m_parent.m_state.Get<AS::demo_mode>())
+        {
+            m_parent.ActivateScreen(*m_parent.m_settings_menu_screen);
+        }
         return;
     default:
         break;
