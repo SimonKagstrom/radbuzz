@@ -74,10 +74,20 @@ WifiClientEsp32::Connect(const char* ssid, const char* password)
 {
     wifi_config_t sta_config = {};
 
-    // Setup ssid etc
-    strcpy((char*)sta_config.sta.ssid, ssid);
-    strcpy((char*)sta_config.sta.password, password);
-    sta_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    // Setup ssid etc. A 32 byte SSID/64 byte (hex) password fill the field without a NUL
+    memcpy(sta_config.sta.ssid, ssid, strnlen(ssid, sizeof(sta_config.sta.ssid)));
+    memcpy(sta_config.sta.password, password, strnlen(password, sizeof(sta_config.sta.password)));
+
+    if (password[0] == '\0')
+    {
+        // Open network, or OWE (Enhanced Open), which is encrypted without a password
+        sta_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
+        sta_config.sta.owe_enabled = 1;
+    }
+    else
+    {
+        sta_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    }
     sta_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_HUNT_AND_PECK;
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
