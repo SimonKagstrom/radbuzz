@@ -1188,7 +1188,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
 			(at 82.042 156.21 90)
 			(hide yes)
 			(show_name no)
@@ -1349,7 +1349,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
 			(at 143.51 39.37 0)
 			(hide yes)
 			(show_name no)
@@ -1437,7 +1437,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
 			(at 96.012 144.78 90)
 			(hide yes)
 			(show_name no)
@@ -1768,7 +1768,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
 			(at 82.042 80.01 90)
 			(hide yes)
 			(show_name no)
@@ -1850,7 +1850,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
 			(at 96.012 68.58 90)
 			(hide yes)
 			(show_name no)

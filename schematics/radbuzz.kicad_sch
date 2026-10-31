@@ -238,6 +238,52 @@
 		)
 	)
 	(sheet
+		(at 55.88 67.31)
+		(size 24.13 19.05)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "8b8fb8ad-09f8-49c7-aab9-fae5706c667b")
+		(property "Sheetname" "Indicators input"
+			(at 55.88 66.5984 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "indicators_input.kicad_sch"
+			(at 55.88 86.9446 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4"
+					(page "9")
+				)
+			)
+		)
+	)
+	(sheet
 		(at 53.34 121.92)
 		(size 62.23 3.81)
 		(exclude_from_sim no)

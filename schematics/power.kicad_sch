@@ -2168,7 +2168,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
 			(at 185.1152 130.81 0)
 			(hide yes)
 			(show_name no)
@@ -2247,7 +2247,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Fuse:Fuse_1812_4532Metric"
 			(at 104.14 114.3 0)
 			(hide yes)
 			(show_name no)
@@ -2408,7 +2408,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:CP_Elec_6.3x7.7"
 			(at 157.1752 130.81 0)
 			(hide yes)
 			(show_name no)
@@ -2735,7 +2735,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Fuse:Fuse_1812_4532Metric"
 			(at 76.2 73.66 0)
 			(hide yes)
 			(show_name no)
@@ -2976,7 +2976,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_1206_3216Metric"
 			(at 147.0152 134.62 0)
 			(hide yes)
 			(show_name no)
@@ -3056,7 +3056,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_JST:JST_VH_B2P-VH-B_1x02_P3.96mm_Vertical"
 			(at 34.29 135.89 0)
 			(hide yes)
 			(show_name no)

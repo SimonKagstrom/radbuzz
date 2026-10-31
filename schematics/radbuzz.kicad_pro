@@ -430,7 +430,7 @@
         "uuid": "cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4"
       }
     ],
-    "used_designators": "#FLG1-4,#PWR1-27,C1-12,D1-7,F1-2,FB1,J1-7,JP1-2,Q1-4,R1-19,U1-3",
+    "used_designators": "#FLG1-4,#PWR1-32,C1-13,D1-7,F1-2,FB1,J1-8,JP1-2,Q1-4,R1-23,U1-4",
     "variants": []
   },
   "sheets": [
@@ -465,6 +465,10 @@
     [
       "38e82a11-4f31-43e0-a8cf-065045c66a4a",
       "Indicator outputs"
+    ],
+    [
+      "8b8fb8ad-09f8-49c7-aab9-fae5706c667b",
+      "Indicators input"
     ]
   ],
   "text_variables": {},

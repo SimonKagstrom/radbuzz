@@ -2081,7 +2081,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
 			(at 127.762 109.22 90)
 			(hide yes)
 			(show_name no)
@@ -2244,7 +2244,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
 			(at 179.07 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -2326,7 +2326,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
 			(at 177.292 99.06 90)
 			(hide yes)
 			(show_name no)
@@ -2486,7 +2486,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
 			(at 78.4352 105.41 0)
 			(hide yes)
 			(show_name no)
@@ -2566,7 +2566,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical"
 			(at 222.25 99.06 0)
 			(hide yes)
 			(show_name no)
