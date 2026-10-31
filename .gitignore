@@ -1,8 +1,12 @@
 # Should not be added, private to the user
 *osm_api_key.txt
 
-# Kicad lock files
-*.lck
+# Kicad
+schematics/.history/
+schematics/*.lck
+schematics/*-backups/
+schematics/fp-info-cache
+schematics/*.kicad_prl
 
 # Scratch files I use :-)
 *kalkon.py
