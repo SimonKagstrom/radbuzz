@@ -2232,7 +2232,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "Conn_01x04"
+		(property "Value" "ROTARY_ENCODER"
 			(at 44.45 110.4899 0)
 			(show_name no)
 			(do_not_autoplace no)

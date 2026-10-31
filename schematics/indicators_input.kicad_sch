@@ -2453,7 +2453,7 @@
 				)
 			)
 		)
-		(property "Value" "Conn_01x03_Pin"
+		(property "Value" "IND_INPUT"
 			(at 74.295 82.55 0)
 			(show_name no)
 			(do_not_autoplace no)

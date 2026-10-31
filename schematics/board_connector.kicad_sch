@@ -1265,6 +1265,129 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Mechanical:MountingHole_Pad"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "H"
+				(at 0 6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "MountingHole_Pad"
+				(at 0 4.445 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Mounting Hole with connection"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "mounting hole"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "MountingHole*Pad*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "MountingHole_Pad_0_1"
+				(circle
+					(center 0 1.27)
+					(radius 1.27)
+					(stroke
+						(width 1.27)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "MountingHole_Pad_1_1"
+				(pin input line
+					(at 0 -2.54 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "power:+3V3"
 			(power global)
 			(pin_numbers
@@ -1774,6 +1897,16 @@
 			(embedded_fonts no)
 		)
 	)
+	(text "TP_INT via bodge wire TP2"
+		(exclude_from_sim no)
+		(at 121.158 105.664 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "2027a753-6d6b-40c4-b7f2-09e6020483fe")
+	)
 	(junction
 		(at 130.81 121.92)
 		(diameter 0)
@@ -1799,10 +1932,22 @@
 		(uuid "4148567e-fdcc-4a55-95ff-d0cc7bd26870")
 	)
 	(junction
+		(at 57.15 44.45)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "46a0ca7a-c092-4cf5-888c-3c2291d58d6a")
+	)
+	(junction
 		(at 171.45 59.69)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "7c947120-b934-494c-9295-9eb02e6fba17")
+	)
+	(junction
+		(at 72.39 44.45)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "7fe2c388-066d-4703-bca2-49d3a6e93f2e")
 	)
 	(junction
 		(at 147.32 121.92)
@@ -1815,6 +1960,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "90fe212c-4d16-4a93-99f5-4fe86a17640f")
+	)
+	(junction
+		(at 36.83 44.45)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "96f7b79f-2cb8-497b-af90-847537ddb28f")
 	)
 	(junction
 		(at 177.8 82.55)
@@ -1851,8 +2002,8 @@
 		(uuid "189d0c91-3575-457b-8851-9ad104b97381")
 	)
 	(no_connect
-		(at 134.62 97.79)
-		(uuid "5c5ff6fd-0f4d-4d74-833e-dbbada1784d2")
+		(at 134.62 105.41)
+		(uuid "18bc1d99-07fa-4ad1-a093-5abd469f78ed")
 	)
 	(no_connect
 		(at 134.62 72.39)
@@ -1925,6 +2076,16 @@
 			(type default)
 		)
 		(uuid "0addc45f-21e0-44ad-96ef-ba7c6ef46692")
+	)
+	(wire
+		(pts
+			(xy 72.39 29.21) (xy 72.39 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0b4eda52-321e-422c-93c8-3539d272bea8")
 	)
 	(wire
 		(pts
@@ -2085,6 +2246,16 @@
 			(type default)
 		)
 		(uuid "4f621ade-4f29-47ed-a3f2-0d0edc0f76a3")
+	)
+	(wire
+		(pts
+			(xy 72.39 44.45) (xy 57.15 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4f72f0da-2c87-4e6a-8339-be505550e386")
 	)
 	(wire
 		(pts
@@ -2258,13 +2429,13 @@
 	)
 	(wire
 		(pts
-			(xy 120.65 105.41) (xy 134.62 105.41)
+			(xy 36.83 44.45) (xy 57.15 44.45)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a5f08f25-8cbf-406f-b5ec-e834ccf59b47")
+		(uuid "b6236569-a03d-42ae-a0ca-3f783ebbc14c")
 	)
 	(wire
 		(pts
@@ -2275,6 +2446,16 @@
 			(type default)
 		)
 		(uuid "bf7f6f6f-e384-446f-ba39-a658242ffad2")
+	)
+	(wire
+		(pts
+			(xy 36.83 29.21) (xy 36.83 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c2c210f0-7117-4d43-b9e8-b42f17e92b8c")
 	)
 	(wire
 		(pts
@@ -2295,6 +2476,16 @@
 			(type default)
 		)
 		(uuid "cee51d8d-8ad8-4342-bdc4-6cc730aa1fe2")
+	)
+	(wire
+		(pts
+			(xy 72.39 44.45) (xy 72.39 58.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d4242217-e802-4d64-b3e1-9df0cc508dde")
 	)
 	(wire
 		(pts
@@ -2346,6 +2537,26 @@
 		)
 		(uuid "f2b7e0fe-e5ae-42ba-be69-a8c772066295")
 	)
+	(wire
+		(pts
+			(xy 36.83 44.45) (xy 36.83 58.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f6fbce53-6d5e-42d9-86c7-ecd24c99264c")
+	)
+	(wire
+		(pts
+			(xy 132.08 97.79) (xy 134.62 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fa59f8b3-d669-44ee-8b29-203c1e0ace4c")
+	)
 	(global_label "GPS_RX"
 		(shape input)
 		(at 151.13 97.79 0)
@@ -2391,6 +2602,30 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+			)
+		)
+	)
+	(global_label "ENC_B"
+		(shape input)
+		(at 132.08 97.79 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "2997d29d-b85b-42cc-92be-8f791c28d2dd")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 123.1077 97.79 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
 			)
 		)
 	)
@@ -2562,30 +2797,6 @@
 			)
 		)
 	)
-	(global_label "ENC_B"
-		(shape input)
-		(at 120.65 105.41 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "c1dda334-bf3e-4ea1-a157-65b78cae1958")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 111.6777 105.41 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-	)
 	(global_label "BUZZ_R"
 		(shape input)
 		(at 120.65 87.63 180)
@@ -2731,6 +2942,84 @@
 			(project "radbuzz"
 				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
 					(reference "#PWR03")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 57.15 44.45 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "124f479b-7be2-4203-a4f9-37e6d5f691ff")
+		(property "Reference" "#PWR033"
+			(at 57.15 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 57.15 49.53 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 57.15 44.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 57.15 44.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 57.15 44.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "def7e4c1-ad68-4593-942b-53efeca4af63")
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
+					(reference "#PWR033")
 					(unit 1)
 				)
 			)
@@ -2893,6 +3182,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 36.83 60.96 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "5c3e686d-604b-485e-bb84-60fdbe527892")
+		(property "Reference" "H2"
+			(at 39.37 60.9599 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "MountingHole_Pad"
+			(at 39.37 63.4999 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 36.83 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 36.83 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 36.83 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "33dd2e12-99ab-4f9d-af15-1d3c6fea329a")
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
+					(reference "H2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 177.8 124.46 0)
 		(unit 1)
@@ -2965,6 +3333,85 @@
 			(project "radbuzz"
 				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
 					(reference "#PWR05")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 72.39 26.67 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "7f00c361-2825-4d38-8a88-885bf3a957d6")
+		(property "Reference" "H4"
+			(at 74.93 24.1299 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "MountingHole_Pad"
+			(at 74.93 26.6699 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 72.39 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 72.39 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 72.39 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "dcf0bf48-0382-4e6f-acc9-f0e75b27e904")
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
+					(reference "H4")
 					(unit 1)
 				)
 			)
@@ -3049,6 +3496,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 72.39 60.96 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "a3744b85-4aef-4fe8-8358-235ca3065862")
+		(property "Reference" "H3"
+			(at 74.93 60.9599 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "MountingHole_Pad"
+			(at 74.93 63.4999 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 72.39 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 72.39 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 72.39 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "edce7076-6af8-4e17-b811-8e1b6fe88e36")
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
+					(reference "H3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Connector_Generic:Conn_02x20_Odd_Even")
 		(at 142.24 82.55 0)
 		(mirror y)
@@ -3071,7 +3597,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "Conn_02x20_Odd_Even"
+		(property "Value" "BOARD"
 			(at 139.7001 110.49 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3317,6 +3843,85 @@
 			(project "radbuzz"
 				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
 					(reference "#FLG03")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 36.83 26.67 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "f9e17b4b-552c-4942-ba4f-f11a1fc7e166")
+		(property "Reference" "H1"
+			(at 39.37 24.1299 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "MountingHole_Pad"
+			(at 39.37 26.6699 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 36.83 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 36.83 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 36.83 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "5ba00393-297e-4015-9d29-bee979fb1eeb")
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/23a58882-3c9f-4004-9800-40cba7ee079b"
+					(reference "H1")
 					(unit 1)
 				)
 			)

@@ -1315,6 +1315,18 @@
 		(uuid "70cd79e3-864d-471f-9680-21824cefb68b")
 	)
 	(junction
+		(at 116.84 121.92)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "795a0d9f-0ea5-4f3f-b735-d4e48f22a259")
+	)
+	(junction
+		(at 113.03 39.37)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "7b760b04-e37d-48d3-9b5e-f1f6ec8ca3c8")
+	)
+	(junction
 		(at 34.29 119.38)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1406,7 +1418,7 @@
 	)
 	(wire
 		(pts
-			(xy 76.2 121.92) (xy 148.59 121.92)
+			(xy 76.2 121.92) (xy 116.84 121.92)
 		)
 		(stroke
 			(width 0)
@@ -1433,6 +1445,26 @@
 			(type default)
 		)
 		(uuid "3625a692-f73c-4e1f-801c-8f383f873ab0")
+	)
+	(wire
+		(pts
+			(xy 113.03 39.37) (xy 172.72 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "36369f23-8f92-4378-9f02-d563c752c344")
+	)
+	(wire
+		(pts
+			(xy 113.03 39.37) (xy 113.03 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3f550386-30c0-4ca6-830a-f421efddbbd3")
 	)
 	(wire
 		(pts
@@ -1466,7 +1498,7 @@
 	)
 	(wire
 		(pts
-			(xy 76.2 39.37) (xy 172.72 39.37)
+			(xy 76.2 39.37) (xy 113.03 39.37)
 		)
 		(stroke
 			(width 0)
@@ -1563,6 +1595,26 @@
 			(type default)
 		)
 		(uuid "9021d28c-65ca-451f-94c0-be73f75b2ac0")
+	)
+	(wire
+		(pts
+			(xy 116.84 121.92) (xy 148.59 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "92eb107b-8c7f-47b3-80b1-cc7bdcda7041")
+	)
+	(wire
+		(pts
+			(xy 116.84 121.92) (xy 116.84 125.73)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9b6af715-7277-47af-b029-ce38e1e6eeaa")
 	)
 	(wire
 		(pts
@@ -1763,6 +1815,26 @@
 			(type default)
 		)
 		(uuid "fc6ce5da-32ba-41eb-8e46-8d19221b5e41")
+	)
+	(label "MOTOR_L_N"
+		(at 113.03 41.91 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "07a705a6-d2b7-4ee2-bb1d-b4d15b847fdb")
+	)
+	(label "MOTOR_R_N"
+		(at 116.84 125.73 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "c76ef133-56b3-473c-b64d-739bf574f2ca")
 	)
 	(global_label "BUZZ_L"
 		(shape input)
@@ -2728,7 +2800,7 @@
 				)
 			)
 		)
-		(property "Value" "Conn_01x04"
+		(property "Value" "MOTOR"
 			(at 177.8 33.02 0)
 			(show_name no)
 			(do_not_autoplace no)

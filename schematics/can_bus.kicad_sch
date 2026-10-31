@@ -2556,7 +2556,7 @@
 				)
 			)
 		)
-		(property "Value" "Conn_01x03_Pin"
+		(property "Value" "CAN"
 			(at 221.615 93.98 0)
 			(show_name no)
 			(do_not_autoplace no)

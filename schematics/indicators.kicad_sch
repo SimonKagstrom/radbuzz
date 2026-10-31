@@ -799,6 +799,12 @@
 		(uuid "0be1b46e-fac8-4508-bb08-649f8058a638")
 	)
 	(junction
+		(at 92.71 39.37)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "17ea5bc2-19ce-4c93-9046-035504ab70c2")
+	)
+	(junction
 		(at 83.82 148.59)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -822,6 +828,12 @@
 		(color 0 0 0 0)
 		(uuid "7fd69cf0-54b2-4e53-9733-5ae449932ddd")
 	)
+	(junction
+		(at 119.38 115.57)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d0effb98-55b7-4b1b-9f47-717730239b98")
+	)
 	(wire
 		(pts
 			(xy 134.62 115.57) (xy 134.62 44.45)
@@ -834,7 +846,7 @@
 	)
 	(wire
 		(pts
-			(xy 72.39 39.37) (xy 138.43 39.37)
+			(xy 72.39 39.37) (xy 92.71 39.37)
 		)
 		(stroke
 			(width 0)
@@ -851,6 +863,16 @@
 			(type default)
 		)
 		(uuid "2191160d-c6a7-4cf1-9e55-99e9406d328b")
+	)
+	(wire
+		(pts
+			(xy 119.38 113.03) (xy 119.38 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "320d3989-bc5e-454d-9530-926844c84efb")
 	)
 	(wire
 		(pts
@@ -994,7 +1016,7 @@
 	)
 	(wire
 		(pts
-			(xy 72.39 115.57) (xy 134.62 115.57)
+			(xy 72.39 115.57) (xy 119.38 115.57)
 		)
 		(stroke
 			(width 0)
@@ -1034,6 +1056,16 @@
 	)
 	(wire
 		(pts
+			(xy 119.38 115.57) (xy 134.62 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c3f6269b-09fa-4596-a81e-ac72d85f582f")
+	)
+	(wire
+		(pts
 			(xy 72.39 115.57) (xy 72.39 135.89)
 		)
 		(stroke
@@ -1051,6 +1083,16 @@
 			(type default)
 		)
 		(uuid "c60e16c0-d0a1-4482-b5ee-fb0a7086b0e0")
+	)
+	(wire
+		(pts
+			(xy 92.71 39.37) (xy 138.43 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c7b94be9-f9a5-4114-9a29-dcb9396afa9a")
 	)
 	(wire
 		(pts
@@ -1081,6 +1123,36 @@
 			(type default)
 		)
 		(uuid "ec448ccc-a139-4b53-810e-7ccec33267f8")
+	)
+	(wire
+		(pts
+			(xy 92.71 39.37) (xy 92.71 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fe509b16-de9f-42a8-9ee2-1fb8779b1adc")
+	)
+	(label "LAMP_L_N"
+		(at 92.71 41.91 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "455dc57d-4454-4a73-9ae7-ad92f7bcd3e9")
+	)
+	(label "LAMP_R_N"
+		(at 119.38 113.03 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "af0c7928-1d56-4f92-8fc5-b80b9506af90")
 	)
 	(global_label "IND_R"
 		(shape input)
@@ -1338,7 +1410,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "Conn_01x04"
+		(property "Value" "IND_OUTPUT"
 			(at 146.05 41.9099 0)
 			(show_name no)
 			(do_not_autoplace no)

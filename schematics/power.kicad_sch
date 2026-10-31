@@ -1679,6 +1679,18 @@
 		(uuid "0a2a6139-1487-4512-a757-fecea5dbfac9")
 	)
 	(junction
+		(at 45.72 123.19)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "1966dc43-d513-4f0d-a52e-6bfd985f4be8")
+	)
+	(junction
+		(at 106.68 115.57)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "254783c4-dd97-451f-a08c-c6fb460f75e9")
+	)
+	(junction
 		(at 146.05 115.57)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1689,6 +1701,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "2e71f912-c76d-477d-879e-2ba21058f7e2")
+	)
+	(junction
+		(at 189.23 115.57)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "3762e660-647b-4abc-bc2a-fc9538047956")
 	)
 	(junction
 		(at 116.84 115.57)
@@ -1703,22 +1721,10 @@
 		(uuid "445ca639-6088-4dc2-8135-2d827f9b8b6c")
 	)
 	(junction
-		(at 95.25 115.57)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "4abab10a-a058-4fcf-8437-6c3a9bf9f0db")
-	)
-	(junction
 		(at 156.21 115.57)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "54e60b2e-48ef-4c63-a847-f03e5f6c0731")
-	)
-	(junction
-		(at 102.87 115.57)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "6df25947-615e-40d0-a45a-b10fc4f8b2b5")
 	)
 	(junction
 		(at 184.15 115.57)
@@ -1749,6 +1755,16 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "e06344c7-6e6d-4dae-9c79-48fcdedb736b")
+	)
+	(wire
+		(pts
+			(xy 95.25 115.57) (xy 95.25 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0287696e-1818-4960-a8b1-a461e2f6fabe")
 	)
 	(wire
 		(pts
@@ -1822,7 +1838,17 @@
 	)
 	(wire
 		(pts
-			(xy 45.72 74.93) (xy 45.72 135.89)
+			(xy 189.23 111.76) (xy 189.23 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "383351f4-0600-4063-9b98-ffbeabd2cd26")
+	)
+	(wire
+		(pts
+			(xy 45.72 74.93) (xy 45.72 123.19)
 		)
 		(stroke
 			(width 0)
@@ -1902,7 +1928,7 @@
 	)
 	(wire
 		(pts
-			(xy 184.15 115.57) (xy 190.5 115.57)
+			(xy 184.15 115.57) (xy 189.23 115.57)
 		)
 		(stroke
 			(width 0)
@@ -1939,6 +1965,26 @@
 			(type default)
 		)
 		(uuid "6310b5bb-9fcf-49f1-ad23-f4846e175d58")
+	)
+	(wire
+		(pts
+			(xy 45.72 123.19) (xy 45.72 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "66e2aa6a-f384-44a3-8476-8186b9f84896")
+	)
+	(wire
+		(pts
+			(xy 189.23 115.57) (xy 190.5 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "69b73b0f-0643-4a16-90ff-1f076b5aaf15")
 	)
 	(wire
 		(pts
@@ -1999,6 +2045,26 @@
 			(type default)
 		)
 		(uuid "89c2c6e7-02f0-4721-a25c-9cbd0bec197c")
+	)
+	(wire
+		(pts
+			(xy 40.64 123.19) (xy 45.72 123.19)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8a62d99a-6133-46d6-9a4b-7154cfaf9cf6")
+	)
+	(wire
+		(pts
+			(xy 106.68 105.41) (xy 106.68 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8f4766fa-8d99-4ee0-972f-4c70ef810d23")
 	)
 	(wire
 		(pts
@@ -2090,25 +2156,35 @@
 		)
 		(uuid "e89212b2-3886-4b4e-8a9c-ba17beb4b475")
 	)
-	(wire
-		(pts
-			(xy 102.87 115.57) (xy 95.25 115.57)
+	(label "VIN_RAW"
+		(at 40.64 123.19 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
 		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "ec39df44-f958-476f-824c-41e505e762fc")
+		(uuid "36bb68c5-90e2-4150-ac92-38150eebb561")
 	)
-	(wire
-		(pts
-			(xy 95.25 135.89) (xy 95.25 115.57)
+	(label "VIN_FUSED"
+		(at 106.68 105.41 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
 		)
-		(stroke
-			(width 0)
-			(type default)
+		(uuid "3e15e438-09f8-4b60-9ebf-f03896e54277")
+	)
+	(label "5V_PRE"
+		(at 189.23 111.76 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
 		)
-		(uuid "ed856b98-a270-47fc-928a-aa1ab394f12e")
+		(uuid "ec32b49d-ffee-436c-95f3-8fcef0dfd06f")
 	)
 	(global_label "LAMP_12V"
 		(shape input)
@@ -3046,7 +3122,7 @@
 				)
 			)
 		)
-		(property "Value" "Conn_01x02_Pin"
+		(property "Value" "POWER"
 			(at 34.925 133.35 0)
 			(show_name no)
 			(do_not_autoplace no)

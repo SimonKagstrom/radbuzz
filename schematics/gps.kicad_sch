@@ -1991,7 +1991,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "Conn_01x04"
+		(property "Value" "GPS"
 			(at 212.09 86.3599 0)
 			(show_name no)
 			(do_not_autoplace no)
