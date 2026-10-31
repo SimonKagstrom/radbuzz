@@ -1,6 +1,9 @@
 # Should not be added, private to the user
 *osm_api_key.txt
 
+# Kicad lock files
+*.lck
+
 # Scratch files I use :-)
 *kalkon.py
 
