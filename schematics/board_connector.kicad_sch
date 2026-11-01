@@ -3215,7 +3215,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "MountingHole:MountingHole_2.7mm_M2.5_Pad_Via"
 			(at 36.83 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -3372,7 +3372,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "MountingHole:MountingHole_2.7mm_M2.5_Pad_Via"
 			(at 72.39 26.67 0)
 			(hide yes)
 			(show_name no)
@@ -3529,7 +3529,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "MountingHole:MountingHole_2.7mm_M2.5_Pad_Via"
 			(at 72.39 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -3882,7 +3882,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "MountingHole:MountingHole_2.7mm_M2.5_Pad_Via"
 			(at 36.83 26.67 0)
 			(hide yes)
 			(show_name no)
