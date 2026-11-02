@@ -1339,6 +1339,12 @@
 		(uuid "7c5ce950-d6df-4703-a3c7-0a9cb4fd1d6d")
 	)
 	(junction
+		(at 219.71 118.11)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8fcec66c-56ab-4965-b6f8-74b7ec6f0a93")
+	)
+	(junction
 		(at 177.8 107.95)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1418,7 +1424,7 @@
 	)
 	(wire
 		(pts
-			(xy 214.63 118.11) (xy 224.79 118.11)
+			(xy 214.63 118.11) (xy 219.71 118.11)
 		)
 		(stroke
 			(width 0)
@@ -1488,6 +1494,26 @@
 	)
 	(wire
 		(pts
+			(xy 219.71 118.11) (xy 224.79 118.11)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6fd698b4-eb54-4fd5-a534-d14c32e1ab12")
+	)
+	(wire
+		(pts
+			(xy 219.71 119.38) (xy 219.71 118.11)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "71731155-7874-4083-969b-71d13a914b45")
+	)
+	(wire
+		(pts
 			(xy 194.31 107.95) (xy 196.85 107.95)
 		)
 		(stroke
@@ -1545,6 +1571,16 @@
 			(type default)
 		)
 		(uuid "b786cdeb-3fec-436e-9649-a9474aa835f2")
+	)
+	(wire
+		(pts
+			(xy 219.71 127) (xy 219.71 125.73)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ba6bd2ec-d936-4cc0-a4d2-5b40b7697883")
 	)
 	(wire
 		(pts
@@ -1641,6 +1677,88 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 219.71 123.19 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "201817e2-8bac-4ab9-94b6-4e3b01229117")
+		(property "Reference" "R24"
+			(at 222.25 121.9199 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10k"
+			(at 222.25 124.4599 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
+			(at 217.932 123.19 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 219.71 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 219.71 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "5739dc44-d2b1-4f4c-aaf8-2cc66f4eac59")
+		)
+		(pin "2"
+			(uuid "867cbe22-37cf-4c5b-9883-8108cd826389")
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/6298edf0-dc53-45f4-8459-c1485ab640cb"
+					(reference "R24")
+					(unit 1)
+				)
 			)
 		)
 	)
@@ -1805,6 +1923,85 @@
 			(project "radbuzz"
 				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/6298edf0-dc53-45f4-8459-c1485ab640cb"
 					(reference "JP2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3V3")
+		(at 219.71 125.73 0)
+		(mirror x)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "44aefcab-f0d1-4390-aa29-14c18b3e6593")
+		(property "Reference" "#PWR034"
+			(at 219.71 121.92 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 219.71 130.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 219.71 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 219.71 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3V3\""
+			(at 219.71 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "53c8eeb0-aa10-4905-91ab-db7404bf3d69")
+		)
+		(instances
+			(project "radbuzz"
+				(path "/cc7b00c3-2f97-4a85-8899-aaad2b7c8fc4/6298edf0-dc53-45f4-8459-c1485ab640cb"
+					(reference "#PWR034")
 					(unit 1)
 				)
 			)
