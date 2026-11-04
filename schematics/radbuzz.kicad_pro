@@ -552,15 +552,15 @@
       },
       {
         "netclass": "Power",
-        "pattern": "VIN*"
+        "pattern": "*VIN*"
       },
       {
         "netclass": "Power",
-        "pattern": "MOTOR_*"
+        "pattern": "*MOTOR_*"
       },
       {
         "netclass": "Power",
-        "pattern": "5V_PRE"
+        "pattern": "*5V_PRE"
       }
     ]
   },
