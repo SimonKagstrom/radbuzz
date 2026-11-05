@@ -1394,6 +1394,16 @@
 	)
 	(wire
 		(pts
+			(xy 193.04 83.82) (xy 204.47 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "12b4d9c6-25db-45e5-9390-0449952ebdeb")
+	)
+	(wire
+		(pts
 			(xy 207.01 118.11) (xy 200.66 118.11)
 		)
 		(stroke
@@ -1414,13 +1424,13 @@
 	)
 	(wire
 		(pts
-			(xy 200.66 88.9) (xy 204.47 88.9)
+			(xy 200.66 81.28) (xy 200.66 118.11)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "3bd71bf1-1aef-4487-9daa-dbee55910b5e")
+		(uuid "38c883c0-93c1-4889-8424-d501843872d0")
 	)
 	(wire
 		(pts
@@ -1441,26 +1451,6 @@
 			(type default)
 		)
 		(uuid "4a9c420e-8301-428f-a08b-df16c68cb6f2")
-	)
-	(wire
-		(pts
-			(xy 196.85 86.36) (xy 204.47 86.36)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5190ba9d-026a-4c57-a8e0-796f2422f3c0")
-	)
-	(wire
-		(pts
-			(xy 200.66 118.11) (xy 200.66 88.9)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "52162be7-06bd-45c6-b8ce-f9f2ffe38074")
 	)
 	(wire
 		(pts
@@ -1534,26 +1524,6 @@
 	)
 	(wire
 		(pts
-			(xy 196.85 107.95) (xy 196.85 86.36)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "99b0e883-5c3a-492a-8a58-c66c28fe8d37")
-	)
-	(wire
-		(pts
-			(xy 193.04 83.82) (xy 204.47 83.82)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9e57f5b8-f3b8-4797-9067-0f4e999b6e36")
-	)
-	(wire
-		(pts
 			(xy 171.45 83.82) (xy 171.45 76.2)
 		)
 		(stroke
@@ -1584,6 +1554,26 @@
 	)
 	(wire
 		(pts
+			(xy 196.85 78.74) (xy 196.85 107.95)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bee48121-44c0-49dd-a860-7904552a6315")
+	)
+	(wire
+		(pts
+			(xy 200.66 81.28) (xy 204.47 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c6c4c375-9f83-40d9-8d1e-9a367793edc1")
+	)
+	(wire
+		(pts
 			(xy 171.45 91.44) (xy 171.45 99.06)
 		)
 		(stroke
@@ -1604,16 +1594,6 @@
 	)
 	(wire
 		(pts
-			(xy 204.47 76.2) (xy 204.47 81.28)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d752adca-4873-477b-8f35-aa1bfc52cef5")
-	)
-	(wire
-		(pts
 			(xy 177.8 107.95) (xy 186.69 107.95)
 		)
 		(stroke
@@ -1621,6 +1601,16 @@
 			(type default)
 		)
 		(uuid "dec7168f-4d3e-4ba8-b880-016243d04513")
+	)
+	(wire
+		(pts
+			(xy 196.85 78.74) (xy 204.47 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "df8f6dd1-bcbd-4d8b-9c37-15fab28ddf35")
 	)
 	(wire
 		(pts
@@ -2167,7 +2157,8 @@
 	)
 	(symbol
 		(lib_id "Connector_Generic:Conn_01x04")
-		(at 209.55 83.82 0)
+		(at 209.55 81.28 0)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -2175,10 +2166,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "560cd0cf-8665-4881-aeb9-b1649f8ac3f5")
 		(property "Reference" "J4"
-			(at 212.09 83.8199 0)
+			(at 212.09 81.2801 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2189,7 +2179,7 @@
 			)
 		)
 		(property "Value" "GPS"
-			(at 212.09 86.3599 0)
+			(at 212.09 78.7401 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2200,7 +2190,7 @@
 			)
 		)
 		(property "Footprint" "Connector_JST:JST_SH_BM04B-SRSS-TB_1x04-1MP_P1.00mm_Vertical"
-			(at 209.55 83.82 0)
+			(at 209.55 81.28 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2211,7 +2201,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 209.55 83.82 0)
+			(at 209.55 81.28 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2222,7 +2212,7 @@
 			)
 		)
 		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 209.55 83.82 0)
+			(at 209.55 81.28 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

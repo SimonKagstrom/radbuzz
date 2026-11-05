@@ -1285,7 +1285,7 @@
 	(footprint "Diode_SMD:D_SMA"
 		(layer "F.Cu")
 		(uuid "1d26db2c-3e0c-4d1a-8a48-933f96604702")
-		(at 131.525 100.55)
+		(at 129.025 100.55)
 		(descr "Diode SMA (DO-214AC)")
 		(tags "Diode SMA (DO-214AC)")
 		(property "Reference" "D4"
@@ -1694,7 +1694,7 @@
 			(size 1 1.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net "Net-(J4-Pin_1)")
+			(net "Net-(J4-Pin_4)")
 			(pintype "passive")
 			(uuid "80272b1d-6a14-4e87-a81f-2dbe42a91638")
 		)
@@ -4072,7 +4072,7 @@
 			(size 0.875 1.2)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net "Net-(J4-Pin_1)")
+			(net "Net-(J4-Pin_4)")
 			(pintype "passive")
 			(uuid "6a37055c-0fee-4864-8c74-7aafce6e1e72")
 		)
@@ -4372,7 +4372,7 @@
 	(footprint "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical"
 		(layer "F.Cu")
 		(uuid "625b6b4f-55c3-43cb-ba8d-a1cd9c88ac8b")
-		(at 72.025 58.05)
+		(at 72.525 57.55)
 		(descr "JST PH series connector, B4B-PH-K (http://www.jst-mfg.com/product/pdf/eng/ePH.pdf)")
 		(tags "connector JST PH vertical")
 		(property "Reference" "J5"
@@ -4987,7 +4987,7 @@
 			(size 1 1.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net "Net-(J4-Pin_1)")
+			(net "Net-(J4-Pin_4)")
 			(pintype "passive")
 			(uuid "c0e82f8d-13f2-4729-8fcc-4efc3fe98b99")
 		)
@@ -6035,7 +6035,7 @@
 			(size 0.6 1.55)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net "Net-(J4-Pin_1)")
+			(net "GND")
 			(pinfunction "Pin_1_1")
 			(pintype "passive")
 			(uuid "4fe17153-3f02-4cb1-ac3d-4641c96ca762")
@@ -6045,7 +6045,7 @@
 			(size 0.6 1.55)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net "GND")
+			(net "Net-(J4-Pin_2)")
 			(pinfunction "Pin_2_2")
 			(pintype "passive")
 			(uuid "7e2f2ba3-38e7-4ada-9039-f67acd3f3aab")
@@ -7727,7 +7727,7 @@
 			(size 1.025 1.4)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.243902)
-			(net "Net-(J4-Pin_4)")
+			(net "Net-(J4-Pin_2)")
 			(pintype "passive")
 			(uuid "8c3e20a5-f1c6-43f5-ad8d-0c058c5ad989")
 		)
@@ -8519,7 +8519,7 @@
 	(footprint "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
 		(layer "F.Cu")
 		(uuid "9bbaba21-c66a-4e0a-bdd4-336d196027c7")
-		(at 104.025 58.55)
+		(at 104.025 58.05)
 		(descr "JST XH series connector, B4B-XH-A (http://www.jst-mfg.com/product/pdf/eng/eXH.pdf)")
 		(tags "connector JST XH vertical")
 		(property "Reference" "J6"
@@ -8842,7 +8842,7 @@
 				)
 			)
 		)
-		(property "Value" "10 µF"
+		(property "Value" "22 µF"
 			(at 0 1.68 90)
 			(layer "F.Fab")
 			(uuid "2b00a042-73e3-4e2b-a8f6-83593be0ab17")
@@ -9921,7 +9921,7 @@
 	(footprint "Capacitor_SMD:C_1206_3216Metric"
 		(layer "F.Cu")
 		(uuid "c2d478fd-63cc-473d-b18b-ebc2236296dd")
-		(at 132 86.05 180)
+		(at 134.05 83.05 180)
 		(descr "Capacitor SMD 1206 (3216 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C2"
@@ -11429,14 +11429,12 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Converter_DCDC:Converter_DCDC_TRACO_TSR2-xxxx_THT"
+	(footprint "radbuzz:K7805-2000R3"
 		(layer "F.Cu")
 		(uuid "e29431ee-1ed6-458c-8fd9-349d7bf42fc3")
-		(at 140.525 86.05)
-		(descr "DCDC-Converter, TRACO, TSR2-xxxx, 2A, Rev. January 20. 2025, https://www.tracopower.com/products/tsr2.pdf")
-		(tags "DCDC-Converter SWITCHING-REGULATOR STEP-DOWN TRACO TSR2 2.54MM THT SIP-3 2A")
+		(at 138.525 91.59 -90)
 		(property "Reference" "U2"
-			(at -0.14 -5.87 0)
+			(at -6.96 0 90)
 			(layer "F.SilkS")
 			(uuid "16be6d53-0eff-49c2-82b3-ef60861310a8")
 			(effects
@@ -11446,8 +11444,8 @@
 				)
 			)
 		)
-		(property "Value" "TSR2-2450"
-			(at -0.14 11.03 0)
+		(property "Value" "K7805-2000R3"
+			(at 0 4 90)
 			(layer "F.Fab")
 			(uuid "00536235-eb13-4a5c-b5d7-48c6daf779b0")
 			(effects
@@ -11458,7 +11456,7 @@
 			)
 		)
 		(property "Datasheet" "https://www.tracopower.com/products/tsr2.pdf"
-			(at 0 0 0)
+			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "d6fbf58f-7231-4ef2-82a9-049a95da0309")
@@ -11469,7 +11467,7 @@
 			)
 		)
 		(property "Description" "2A step-down regulator, fixed 5V output voltage, 6.5-36V input voltage, TO-220 compatible LM78xx replacement, SIP-3"
-			(at 0 0 0)
+			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "76b69ae2-c416-41c4-bf54-71930536d1d2")
@@ -11479,15 +11477,14 @@
 				)
 			)
 		)
-		(property "KiLib_Generator" "converter_ACDC_DCDC"
-			(at 0 0 0)
-			(layer "F.SilkS")
+		(property "LCSC Part" "C427901"
+			(at 0 0 90)
+			(layer "F.Fab")
 			(hide yes)
 			(uuid "e63737c5-64c5-4d83-a778-aae24cbbc37e")
 			(effects
 				(font
-					(size 1 1)
-					(thickness 0.15)
+					(size 1.27 1.27)
 				)
 			)
 		)
@@ -11504,92 +11501,98 @@
 		(attr through_hole)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
-			(start -4.5 -5.03)
-			(end 4.22 -5.03)
+			(start 5.77 6.86)
+			(end -5.74 6.86)
 			(stroke
-				(width 0.12)
+				(width 0.25)
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(uuid "85d34aaa-2ef1-4894-8a71-7f74637674c0")
+			(uuid "6736a3d1-b950-4090-8960-e7aea11c8aa2")
 		)
 		(fp_line
-			(start -4.5 -0.296)
-			(end -4.5 -5.03)
+			(start 5.77 6.84)
+			(end 5.77 -2.16)
 			(stroke
-				(width 0.12)
-				(type solid)
-			)
-			(layer "F.SilkS")
-			(uuid "d921f774-c5fd-4a6a-8d76-bdbc8352fde6")
-		)
-		(fp_line
-			(start -4.5 10.19)
-			(end -4.5 0.296)
-			(stroke
-				(width 0.12)
+				(width 0.25)
 				(type solid)
 			)
 			(layer "F.SilkS")
 			(uuid "ef999913-a920-4491-abb2-2331bf80566b")
 		)
 		(fp_line
-			(start 4.22 -5.03)
-			(end 4.22 10.19)
+			(start -5.74 -2.16)
+			(end -5.74 6.84)
 			(stroke
-				(width 0.12)
+				(width 0.25)
+				(type solid)
+			)
+			(layer "F.SilkS")
+			(uuid "85d34aaa-2ef1-4894-8a71-7f74637674c0")
+		)
+		(fp_line
+			(start -5.73 -2.16)
+			(end 5.77 -2.16)
+			(stroke
+				(width 0.25)
 				(type solid)
 			)
 			(layer "F.SilkS")
 			(uuid "65369201-a4c5-4c96-834a-c2607c6b010f")
 		)
+		(fp_circle
+			(center -5.8 6.86)
+			(end -5.77 6.86)
+			(stroke
+				(width 0.06)
+				(type solid)
+			)
+			(fill no)
+			(layer "F.SilkS")
+			(uuid "7cd854fc-4972-4ed5-a5b5-27539f02747c")
+		)
 		(fp_line
-			(start 4.22 10.19)
-			(end -4.5 10.19)
-			(stroke
-				(width 0.12)
-				(type solid)
-			)
-			(layer "F.SilkS")
-			(uuid "6736a3d1-b950-4090-8960-e7aea11c8aa2")
-		)
-		(fp_poly
-			(pts
-				(xy -4.5 0) (xy -4.97 0.34) (xy -4.97 -0.34)
-			)
-			(stroke
-				(width 0.12)
-				(type solid)
-			)
-			(fill yes)
-			(layer "F.SilkS")
-			(uuid "9317f06c-f094-4893-acab-9e34361c5589")
-		)
-		(fp_rect
-			(start -4.64 -5.17)
-			(end 4.36 10.33)
+			(start -5.8 6.86)
+			(end -5.8 -2.14)
 			(stroke
 				(width 0.05)
 				(type solid)
 			)
-			(fill no)
 			(layer "F.CrtYd")
-			(uuid "d2b4488b-a6dd-4fe6-9d0c-674d67f1688d")
+			(uuid "bab1a961-ae56-4ec1-9cb9-38cb4266351c")
 		)
-		(fp_poly
-			(pts
-				(xy -2.89 -4.42) (xy 3.61 -4.42) (xy 3.61 9.58) (xy -3.89 9.58) (xy -3.89 -3.42)
-			)
+		(fp_line
+			(start 5.8 6.86)
+			(end -5.8 6.86)
 			(stroke
-				(width 0.1)
+				(width 0.05)
 				(type solid)
 			)
-			(fill no)
-			(layer "F.Fab")
-			(uuid "a10460b6-d552-4764-9f9e-bb164b02efa4")
+			(layer "F.CrtYd")
+			(uuid "d5a7d4c1-0085-4bfa-a7b8-a6952cad99d5")
+		)
+		(fp_line
+			(start -5.8 -2.14)
+			(end 5.8 -2.14)
+			(stroke
+				(width 0.05)
+				(type solid)
+			)
+			(layer "F.CrtYd")
+			(uuid "d921f774-c5fd-4a6a-8d76-bdbc8352fde6")
+		)
+		(fp_line
+			(start 5.8 -2.14)
+			(end 5.8 6.86)
+			(stroke
+				(width 0.05)
+				(type solid)
+			)
+			(layer "F.CrtYd")
+			(uuid "dd1a7f45-92ad-4c30-b741-6fcf301db04a")
 		)
 		(fp_text user "${REFERENCE}"
-			(at -0.14 2.58 0)
+			(at 0 0 90)
 			(layer "F.Fab")
 			(uuid "b6041ed8-0b8d-4625-af4c-85b287086976")
 			(effects
@@ -11599,22 +11602,21 @@
 				)
 			)
 		)
-		(pad "1" thru_hole roundrect
-			(at 0 0)
+		(pad "1" thru_hole rect
+			(at -2.54 0 270)
 			(size 1.7 1.7)
-			(drill 1.1)
+			(drill 1.2)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(roundrect_rratio 0.147059)
 			(net "+12V")
 			(pinfunction "Vin_1")
 			(pintype "power_in")
 			(uuid "0976f4dd-7d53-4e7b-9f98-54640d53a60f")
 		)
 		(pad "2" thru_hole circle
-			(at 0 2.54)
+			(at 0 0 270)
 			(size 1.7 1.7)
-			(drill 1.1)
+			(drill 1.2)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(net "GND")
@@ -11623,9 +11625,9 @@
 			(uuid "19e3aced-55d7-4e43-91de-1fc3eca218ae")
 		)
 		(pad "3" thru_hole circle
-			(at 0 5.08)
+			(at 2.54 0 270)
 			(size 1.7 1.7)
-			(drill 1.1)
+			(drill 1.2)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(net "/Power/5V_PRE")
@@ -11634,7 +11636,7 @@
 			(uuid "fa239487-9c3a-4267-9696-ad52f63adc27")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Converter_DCDC.3dshapes/Converter_DCDC_TRACO_TSR2-xxxx_THT.step"
+		(model "${KIPRJMOD}/3dmodels/K7805-2000R3.step"
 			(offset
 				(xyz 0 0 0)
 			)

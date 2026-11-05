@@ -2233,7 +2233,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10 µF"
+		(property "Value" "22 µF"
 			(at 187.96 128.2699 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2636,7 +2636,7 @@
 				)
 			)
 		)
-		(property "Value" "TSR2-2450"
+		(property "Value" "K7805-2000R3"
 			(at 168.91 110.49 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2646,7 +2646,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Converter_DCDC:Converter_DCDC_TRACO_TSR2-xxxx_THT"
+		(property "Footprint" "radbuzz:K7805-2000R3"
 			(at 168.91 124.206 0)
 			(hide yes)
 			(show_name no)
