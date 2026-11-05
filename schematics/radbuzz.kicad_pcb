@@ -1565,7 +1565,7 @@
 	(footprint "Capacitor_SMD:C_0805_2012Metric"
 		(layer "F.Cu")
 		(uuid "2298462e-9309-4d65-bd09-f806ade0f143")
-		(at 70.075 97.55 180)
+		(at 70.875 97.55 180)
 		(descr "Capacitor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf, https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing)")
 		(tags "capacitor")
 		(property "Reference" "C6"
@@ -2947,7 +2947,7 @@
 	(footprint "Resistor_SMD:R_0805_2012Metric"
 		(layer "F.Cu")
 		(uuid "4515994f-b8fe-4420-b3ec-f9736c85f74e")
-		(at 65.025 90.55 -90)
+		(at 65.825 90.55 -90)
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor")
 		(property "Reference" "R24"
@@ -4048,7 +4048,7 @@
 			(uuid "b4893161-c519-4388-8fce-7c25a2fc924b")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 90)
+			(at 0 -0.8 90)
 			(layer "F.Fab")
 			(uuid "f24e1263-fd6d-4228-a4c6-cd232c0df4fa")
 			(effects
@@ -4858,7 +4858,7 @@
 	(footprint "Capacitor_SMD:C_0805_2012Metric"
 		(layer "F.Cu")
 		(uuid "6579c9db-1804-4c75-80cc-c1e29bc65897")
-		(at 64.025 96.05 180)
+		(at 64.825 96.05 180)
 		(descr "Capacitor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf, https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing)")
 		(tags "capacitor")
 		(property "Reference" "C5"
@@ -5296,7 +5296,7 @@
 	(footprint "Jumper:SolderJumper-3_P1.3mm_Bridged12_RoundedPad1.0x1.5mm"
 		(layer "F.Cu")
 		(uuid "75a1d56c-9efb-43ed-8e81-83fa5e4ad563")
-		(at 72.225 91.55)
+		(at 73.025 91.55)
 		(descr "SMD Solder 3-pad Jumper, 1x1.5mm rounded Pads, 0.3mm gap, pads 1-2 bridged with 1 copper strip")
 		(tags "net tie solder jumper bridged")
 		(property "Reference" "JP2"
@@ -5624,7 +5624,7 @@
 	(footprint "Connector_JST:JST_SH_BM04B-SRSS-TB_1x04-1MP_P1.00mm_Vertical"
 		(layer "F.Cu")
 		(uuid "75ac0298-a761-4285-8f8e-49c140b2f178")
-		(at 63.525 102.875 180)
+		(at 64.525 102.875 180)
 		(descr "JST SH series connector, BM04B-SRSS-TB (http://www.jst-mfg.com/product/pdf/eng/eSH.pdf)")
 		(tags "connector JST SH vertical")
 		(property "Reference" "J4"
@@ -7598,7 +7598,7 @@
 	(footprint "Resistor_SMD:R_0805_2012Metric"
 		(layer "F.Cu")
 		(uuid "88e6784d-e91b-402d-940a-ff0ee2218e8f")
-		(at 56.9375 96.55)
+		(at 57.7375 96.55)
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor")
 		(property "Reference" "R4"
@@ -8361,7 +8361,7 @@
 	(footprint "Resistor_SMD:R_0805_2012Metric"
 		(layer "F.Cu")
 		(uuid "9a5b663a-7579-4e74-aef8-ffdbaebcd92c")
-		(at 56.9375 91.55)
+		(at 57.7375 91.55)
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor")
 		(property "Reference" "R5"
@@ -9447,7 +9447,7 @@
 	(footprint "Resistor_SMD:R_0805_2012Metric"
 		(layer "F.Cu")
 		(uuid "a62d2478-5cc2-41cb-816f-e573fdc6335e")
-		(at 60.9375 86.05 180)
+		(at 61.7375 86.05 180)
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor")
 		(property "Reference" "R3"
@@ -12595,7 +12595,7 @@
 	)
 	(gr_line
 		(start 138.525 62.05)
-		(end 138.525 78.55)
+		(end 138.525 77.55)
 		(stroke
 			(width 0.1)
 			(type solid)
@@ -12604,8 +12604,8 @@
 		(uuid "d957bd50-52ad-4c9a-b2b3-dda5802f230a")
 	)
 	(gr_line
-		(start 138.525 78.55)
-		(end 145.525 78.55)
+		(start 138.525 77.55)
+		(end 145.525 77.55)
 		(stroke
 			(width 0.1)
 			(type solid)
@@ -12655,7 +12655,7 @@
 		(uuid "642f884f-78dd-4041-8cfc-50e481f068ee")
 	)
 	(gr_line
-		(start 145.525 78.55)
+		(start 145.525 77.55)
 		(end 145.525 111.55)
 		(stroke
 			(width 0.1)
@@ -12702,7 +12702,7 @@
 		)
 		(polygon
 			(pts
-				(xy 73.525 106.55) (xy 73.525 113.05) (xy 65.025 113.05) (xy 65.025 106.55)
+				(xy 75.025 106.55) (xy 75.025 113.05) (xy 66.525 113.05) (xy 66.525 106.55)
 			)
 		)
 	)
@@ -12763,7 +12763,7 @@
 		)
 		(polygon
 			(pts
-				(xy 55.025 55.05) (xy 55.025 60.05) (xy 64.025 60.05) (xy 64.025 55.05)
+				(xy 60.025 54.55) (xy 60.025 59.55) (xy 69.025 59.55) (xy 69.025 54.55)
 			)
 		)
 	)
@@ -12793,7 +12793,7 @@
 		)
 		(polygon
 			(pts
-				(xy 43.025 67.55) (xy 50.525 67.55) (xy 50.525 97.55) (xy 43.025 97.55)
+				(xy 43.025 68.55) (xy 50.525 68.55) (xy 50.525 97.55) (xy 43.025 97.55)
 			)
 		)
 	)
@@ -12824,7 +12824,7 @@
 		)
 		(polygon
 			(pts
-				(xy 52.093359 106.05) (xy 59.093359 106.05) (xy 59.093359 99.55) (xy 52.093359 99.55)
+				(xy 53.093359 106.05) (xy 60.093359 106.05) (xy 60.093359 99.55) (xy 53.093359 99.55)
 			)
 		)
 	)
