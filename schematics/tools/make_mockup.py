@@ -306,16 +306,18 @@ def build(board_path, output_path):
     y_min, y_max = -y_neg_max, -y_neg_min
     result = to_manifold(plate_mesh)
 
-    for x0, y0, x1, y1 in read_keepouts(board):
-        if x0 - x_min < MIN_PRINTABLE_WALL:
-            x0 = x_min - 1
-        if x_max - x1 < MIN_PRINTABLE_WALL:
-            x1 = x_max + 1
-        if y0 - y_min < MIN_PRINTABLE_WALL:
-            y0 = y_min - 1
-        if y_max - y1 < MIN_PRINTABLE_WALL:
-            y1 = y_max + 1
-        result = result - box(x0, y0, x1, y1, -1, board_top + 1)
+    # Enable to cut out keepouts
+    if False:
+        for x0, y0, x1, y1 in read_keepouts(board):
+            if x0 - x_min < MIN_PRINTABLE_WALL:
+                x0 = x_min - 1
+            if x_max - x1 < MIN_PRINTABLE_WALL:
+                x1 = x_max + 1
+            if y0 - y_min < MIN_PRINTABLE_WALL:
+                y0 = y_min - 1
+            if y_max - y1 < MIN_PRINTABLE_WALL:
+                y1 = y_max + 1
+            result = result - box(x0, y0, x1, y1, -1, board_top + 1)
 
     report = []
     for reference in references:
