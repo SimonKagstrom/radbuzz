@@ -6,6 +6,7 @@
 #include "side_pane.hh"
 #include "time_string.hh"
 #include "trip_utils.hh"
+#include "ui_style.hh"
 
 #include <algorithm>
 #include <cstddef>
@@ -48,12 +49,7 @@ GetSideTextBaselineYOffset()
 TripMeterScreen::TripMeterScreen(UserInterface& parent)
     : ScreenBase(parent, lv_obj_create(nullptr))
 {
-
-    lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(m_screen, UserInterface::GetBackgroundColor(), 0);
-
-    lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
+    ui::StyleScreen(m_screen);
 
     m_stat_rows.reserve(7);
     m_stat_rows.emplace_back(StatRow {"SoC/trip usage",
@@ -64,11 +60,8 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     m_stat_rows.emplace_back(StatRow {"Trip time", "", StatValueKind::kTime, nullptr, "Trip time"});
     m_stat_rows.emplace_back(
         StatRow {"Distance", "m", StatValueKind::kTripDistance, nullptr, "Distance"});
-    m_stat_rows.emplace_back(StatRow {"Trip consumption",
-                                      "Wh/km",
-                                      StatValueKind::kTripAverageWhPerKm,
-                                      nullptr,
-                                      "Consumption"});
+    m_stat_rows.emplace_back(StatRow {
+        "Trip consumption", "Wh/km", StatValueKind::kTripAverageWhPerKm, nullptr, "Consumption"});
     m_stat_rows.emplace_back(StatRow {"Consumed/regenerated",
                                       "Wh",
                                       StatValueKind::kConsumedWh,
@@ -88,35 +81,16 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
     {
         y_offset = kFirstRowYOffset + static_cast<int>(row_index) * kRowSpacing;
 
-        row.label = lv_label_create(m_screen);
-        lv_obj_set_style_text_font(row.label, &radbuzz_font_22, LV_PART_MAIN);
+        row.label = ui::CreateLabel(m_screen, nullptr, row.label_text);
         lv_obj_set_width(row.label, kLabelColumnWidth);
-        lv_label_set_text(row.label, row.label_text);
         lv_obj_set_style_text_align(row.label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
-        row.value = lv_label_create(m_screen);
-        lv_obj_set_style_text_font(row.value, &radbuzz_font_60, LV_PART_MAIN);
-        if (row.second_column)
-        {
-            lv_obj_set_width(row.value, kValueColumnWidth);
-        }
-        else
-        {
-            lv_obj_set_width(row.value, kSingleColumnValueWidth);
-        }
+        row.value = ui::CreateLabel(m_screen, &radbuzz_font_60, "0");
+        lv_obj_set_width(row.value,
+                         row.second_column ? kValueColumnWidth : kSingleColumnValueWidth);
         lv_obj_set_style_text_align(row.value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-        lv_label_set_text(row.value, "0");
 
-        row.unit = lv_label_create(m_screen);
-        lv_obj_set_style_text_font(row.unit, &radbuzz_font_22, LV_PART_MAIN);
-        lv_obj_align_to(row.unit,
-                        row.value,
-                        LV_ALIGN_OUT_RIGHT_BOTTOM,
-                        kValueToUnitGap,
-                        side_text_baseline_y_offset);
-        //        lv_obj_set_width(row.unit, kUnitColumnWidth);
-        lv_obj_set_style_text_align(row.unit, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-        lv_label_set_text(row.unit, row.unit_text);
+        row.unit = ui::CreateLabel(m_screen, nullptr, row.unit_text);
 
         if (row.second_column)
         {
@@ -145,18 +119,14 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
 
         if (row.second_column)
         {
-            row.second_column->value = lv_label_create(m_screen);
-            lv_obj_set_style_text_font(row.second_column->value, &radbuzz_font_60, LV_PART_MAIN);
+            row.second_column->value = ui::CreateLabel(m_screen, &radbuzz_font_60, "0");
             lv_obj_set_width(row.second_column->value, kValueColumnWidth);
             lv_obj_set_style_text_align(
                 row.second_column->value, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-            lv_label_set_text(row.second_column->value, "0");
 
-            row.second_column->unit = lv_label_create(m_screen);
-            lv_obj_set_style_text_font(row.second_column->unit, &radbuzz_font_22, LV_PART_MAIN);
+            row.second_column->unit =
+                ui::CreateLabel(m_screen, nullptr, row.second_column->unit_text);
             lv_obj_set_width(row.second_column->unit, kUnitColumnWidth);
-            lv_obj_set_style_text_align(row.second_column->unit, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-            lv_label_set_text(row.second_column->unit, row.second_column->unit_text);
 
             lv_obj_align(row.second_column->value,
                          LV_ALIGN_TOP_MID,
@@ -173,10 +143,7 @@ TripMeterScreen::TripMeterScreen(UserInterface& parent)
         ++row_index;
     }
 
-    m_max_power_label = lv_label_create(m_screen);
-    lv_obj_set_style_text_font(m_max_power_label, &radbuzz_font_16, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_max_power_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_max_power_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    m_max_power_label = ui::CreateLabel(m_screen, &radbuzz_font_16);
     lv_obj_align(m_max_power_label, LV_ALIGN_TOP_RIGHT, -10, 1);
 }
 
@@ -207,9 +174,8 @@ TripMeterScreen::Update()
             continue;
         }
 
-        const int y_offset =
-            (side_pane_shown ? kSidePaneFirstRowYOffset : kFirstRowYOffset) +
-            static_cast<int>(row_index) * kRowSpacing;
+        const int y_offset = (side_pane_shown ? kSidePaneFirstRowYOffset : kFirstRowYOffset) +
+                             static_cast<int>(row_index) * kRowSpacing;
         std::string value_text {"0"};
         std::string unit_text {row.unit_text};
         std::string label_text {side_pane_shown ? row.side_pane_label_text : row.label_text};
@@ -285,8 +251,7 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripDistance: {
-            auto [value, unit] =
-                DistanceToValueAndUnit(m_parent.m_state.Get<AS::trip_distance>());
+            auto [value, unit] = DistanceToValueAndUnit(m_parent.m_state.Get<AS::trip_distance>());
 
             value_text = std::move(value);
             unit_text = std::move(unit);

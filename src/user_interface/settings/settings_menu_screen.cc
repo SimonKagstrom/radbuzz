@@ -4,7 +4,6 @@
 #include "tile_styles.hh"
 
 #include <array>
-#include <radbuzz_font_22.h>
 #include <string_view>
 
 constexpr auto kSpeedometerTypeOptions = std::to_array<std::string_view>({
@@ -250,15 +249,9 @@ SettingsMenuScreen::OnActivation()
 
 
     m_odometer_label = lv_label_create(m_screen);
-    lv_obj_set_style_text_font(m_odometer_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_style_text_align(m_odometer_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
     lv_obj_align(m_odometer_label, LV_ALIGN_TOP_MID, 0, 0);
 
     m_consumed_regen_label = lv_label_create(m_screen);
-
-    lv_obj_set_style_text_font(m_consumed_regen_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_style_text_align(m_consumed_regen_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-
     lv_obj_align_to(m_consumed_regen_label, m_odometer_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 
 

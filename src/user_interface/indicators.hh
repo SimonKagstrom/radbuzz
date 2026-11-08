@@ -1,6 +1,5 @@
 #pragma once
 
-#include "radbuzz_font_22.h"
 #include "radbuzz_symbols_22.h"
 #include "user_interface.hh"
 
@@ -11,8 +10,6 @@ public:
         : UserInterface::IndicatorBase(parent, position)
         , m_bms_label(lv_label_create(lv_layer_top()))
     {
-        lv_obj_set_style_text_font(m_bms_label, &radbuzz_font_22, LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(m_bms_label, LV_OPA_TRANSP, LV_PART_MAIN);
         lv_label_set_recolor(m_bms_label, true);
         lv_label_set_text(m_bms_label, "•");
 

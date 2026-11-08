@@ -108,6 +108,7 @@ add_library(user_interface EXCLUDE_FROM_ALL
     speech_bubble.cc
     speedometer_only_screen.cc
     trip_meter_screen.cc
+    ui_style.cc
     user_interface.cc
 )
 

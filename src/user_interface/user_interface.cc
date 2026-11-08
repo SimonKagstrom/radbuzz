@@ -71,7 +71,6 @@ UserInterface::IndicatorBase::IndicatorBase(UserInterface& parent,
 {
 
     lv_obj_set_style_text_font(m_indicator_label, font ? font : &radbuzz_symbols_40, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_indicator_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_label_set_recolor(m_indicator_label, true);
     lv_label_set_text(m_indicator_label, "");
 

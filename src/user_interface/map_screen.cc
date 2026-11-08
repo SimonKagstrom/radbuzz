@@ -31,7 +31,8 @@ MapScreen::DrawRangeCircle(lv_layer_t* layer, uint32_t estimated_range_km, uint8
     // Road distance is typically 1.2-1.4x the straight-line distance, so shrink the range circle
     constexpr float kRouteDetourFactor = 1.3f;
     const float meters_per_pixel = MetersPerPixelAtPoint(vehicle_point);
-    const float radius_px_float = (estimated_range_km * 1000.0f) / kRouteDetourFactor / meters_per_pixel;
+    const float radius_px_float =
+        (estimated_range_km * 1000.0f) / kRouteDetourFactor / meters_per_pixel;
     const int radius = std::clamp(static_cast<int>(radius_px_float),
                                   kMinRangeCircleRadiusPx,
                                   static_cast<int>(std::numeric_limits<uint16_t>::max()));
@@ -204,7 +205,6 @@ MapScreen::MapScreen(UserInterface& parent,
 
     m_home_label = lv_label_create(m_screen);
     lv_obj_set_style_text_font(m_home_label, &radbuzz_symbols_22, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_home_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_text_color(m_home_label, lv_color_black(), LV_PART_MAIN);
     lv_label_set_text(m_home_label, LV_SYMBOL_HOME);
 
@@ -219,7 +219,6 @@ MapScreen::LayoutForSidePane(bool shown)
 
     m_laid_out_for_side_pane = shown;
     m_center_x = (left_x + hal::kDisplayWidth) / 2;
-
 }
 
 void
@@ -539,8 +538,7 @@ MapScreen::StartHomeHoldTimer()
             // Movement, ignore the hold
             return std::nullopt;
         }
-        const int32_t touch_offset_x =
-            static_cast<int32_t>(m_home_hold_x) - m_center_x;
+        const int32_t touch_offset_x = static_cast<int32_t>(m_home_hold_x) - m_center_x;
         const int32_t touch_offset_y =
             static_cast<int32_t>(m_home_hold_y) - static_cast<int32_t>(hal::kDisplayHeight / 2);
 
@@ -670,11 +668,11 @@ MapScreen::SetHelp(bool on)
                                        SpeechBubble::Direction::kAbove,
                                        "Icon for current navigation\ndirections",
                                        Point {64, 0}));
-    m_explanatory_bubbles.push_back(std::make_unique<SpeechBubble>(
-        m_parent.m_navigation->GetDescriptionLabel(),
-        SpeechBubble::Direction::kAbove,
-        "Next street name",
-        Point {256, 0}));
+    m_explanatory_bubbles.push_back(
+        std::make_unique<SpeechBubble>(m_parent.m_navigation->GetDescriptionLabel(),
+                                       SpeechBubble::Direction::kAbove,
+                                       "Next street name",
+                                       Point {256, 0}));
 
     m_explanatory_bubbles.push_back(
         std::make_unique<SpeechBubble>(m_position_dot_obj,

@@ -1,5 +1,7 @@
 #include "speech_bubble.hh"
 
+#include "ui_style.hh"
+
 constexpr auto kOffset = 4;
 
 SpeechBubble::SpeechBubble(lv_obj_t* pointing_at,
@@ -13,19 +15,12 @@ SpeechBubble::SpeechBubble(lv_obj_t* pointing_at,
     m_bubble = lv_obj_create(lv_layer_top());
 
     lv_obj_set_style_bg_color(m_bubble, lv_color_make(80, 80, 80), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_bubble, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(m_bubble, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(m_bubble, 8, LV_PART_MAIN);
     lv_obj_set_style_pad_all(m_bubble, 8, LV_PART_MAIN);
-    lv_obj_set_width(m_bubble, LV_SIZE_CONTENT);
-    lv_obj_set_height(m_bubble, LV_SIZE_CONTENT);
+    lv_obj_set_size(m_bubble, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
 
-    m_text_label = lv_label_create(m_bubble);
-    lv_label_set_text(m_text_label, text);
-    lv_obj_set_style_text_color(m_text_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_text_label, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_text_font(m_text_label, &radbuzz_font_16, LV_PART_MAIN);
-
+    m_text_label = ui::CreateLabel(m_bubble, &radbuzz_font_16, text);
     lv_obj_center(m_text_label);
 
     UpdatePosition();

@@ -1,10 +1,10 @@
 #include "navigation_widget.hh"
 
 #include "distance_string.hh"
+#include "ui_style.hh"
 
 #include <array>
 #include <format>
-#include <radbuzz_font_22.h>
 #include <radbuzz_turn_symbols_60.h>
 
 namespace
@@ -56,62 +56,29 @@ NavigationWidget::NavigationWidget(lv_obj_t* parent)
     lv_obj_set_size(m_left_box, 128 + 10, hal::kDisplayHeight + 10);
     lv_obj_set_style_bg_opa(m_left_box, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(m_left_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(m_left_box, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(m_left_box, 0, LV_PART_MAIN);
-    lv_obj_set_scrollbar_mode(m_left_box, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(m_left_box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(m_left_box, LV_OBJ_FLAG_SCROLLABLE);
 
     // Push left rounded corners off-screen for the navigation pane while keeping right corners.
     constexpr int kLeftCornerClipPx = 16;
     constexpr int kPaneCornerRadius = 18;
 
     // Navigation
-    m_navigation_box = lv_obj_create(m_left_box);
+    m_navigation_box = ui::CreatePane(m_left_box, kPaneCornerRadius);
     lv_obj_set_size(m_navigation_box, 128 + kLeftCornerClipPx, 128);
     lv_obj_align(m_navigation_box, LV_ALIGN_BOTTOM_LEFT, -32, 32);
-    lv_obj_set_style_border_width(m_navigation_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_outline_width(m_navigation_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(m_navigation_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_navigation_box, LV_OPA_100, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(m_navigation_box, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_bg_image_opa(m_navigation_box, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_dir(m_navigation_box, LV_GRAD_DIR_NONE, LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_opa(m_navigation_box, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_radius(m_navigation_box, kPaneCornerRadius, LV_PART_MAIN);
-    lv_obj_set_scrollbar_mode(m_navigation_box, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(m_navigation_box, LV_OBJ_FLAG_SCROLLABLE);
 
-    m_current_turn_symbol = lv_label_create(m_navigation_box);
+    m_current_turn_symbol = ui::CreateLabel(m_navigation_box, &radbuzz_turn_symbols_60);
     lv_obj_align(m_current_turn_symbol, LV_ALIGN_TOP_MID, 8, 0);
-    lv_obj_set_style_text_font(m_current_turn_symbol, &radbuzz_turn_symbols_60, LV_PART_MAIN);
-    lv_label_set_long_mode(m_current_turn_symbol, LV_LABEL_LONG_WRAP);
-    lv_obj_clear_flag(m_current_turn_symbol, LV_OBJ_FLAG_SCROLLABLE);
 
-    m_distance_left_label = lv_label_create(m_navigation_box);
+    m_distance_left_label = ui::CreateLabel(m_navigation_box);
     lv_obj_align(m_distance_left_label, LV_ALIGN_BOTTOM_MID, 0, 2);
-    lv_obj_set_style_text_font(m_distance_left_label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_label_set_long_mode(m_distance_left_label, LV_LABEL_LONG_WRAP);
-    lv_obj_clear_flag(m_distance_left_label, LV_OBJ_FLAG_SCROLLABLE);
 
     // Positioned and sized in SetLeftX()
-    m_navigation_description_box = lv_obj_create(parent);
-    lv_obj_set_style_border_width(m_navigation_description_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_outline_width(m_navigation_description_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(m_navigation_description_box, 0, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_navigation_description_box, LV_OPA_100, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(m_navigation_description_box, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_bg_image_opa(m_navigation_description_box, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_dir(m_navigation_description_box, LV_GRAD_DIR_NONE, LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_opa(m_navigation_description_box, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_radius(m_navigation_description_box, 0, LV_PART_MAIN);
-    lv_obj_set_scrollbar_mode(m_navigation_description_box, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(m_navigation_description_box, LV_OBJ_FLAG_SCROLLABLE);
+    m_navigation_description_box = ui::CreatePane(parent);
 
-    m_description_label = lv_label_create(m_navigation_description_box);
-    lv_obj_set_style_text_font(m_description_label, &radbuzz_font_22, LV_PART_MAIN);
+    m_description_label = ui::CreateLabel(m_navigation_description_box);
     lv_obj_align(m_description_label, LV_ALIGN_TOP_LEFT, 4, -18);
-    lv_label_set_long_mode(m_description_label, LV_LABEL_LONG_WRAP);
-    lv_obj_clear_flag(m_description_label, LV_OBJ_FLAG_SCROLLABLE);
 
     SetLeftX(0);
 }

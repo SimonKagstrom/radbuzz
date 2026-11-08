@@ -1,11 +1,12 @@
 #include "side_pane.hh"
 
 #include "lv_event_listener.hh"
+#include "ui_style.hh"
 
 #include <algorithm>
 #include <format>
-#include <utility>
 #include <radbuzz_font_22.h>
+#include <utility>
 
 namespace
 {
@@ -29,48 +30,23 @@ constexpr lv_opa_t kBackgroundOpacity = LV_OPA_COVER;
 constexpr int32_t kLineHeight = 26;
 constexpr int32_t kScrollStep = 2 * kLineHeight;
 
-void
-MakeTransparent(lv_obj_t* obj)
-{
-    lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(obj, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
-}
-
-lv_obj_t*
-CreateLabel(lv_obj_t* parent)
-{
-    auto label = lv_label_create(parent);
-
-    lv_obj_set_style_text_font(label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
-    lv_label_set_text(label, "");
-
-    return label;
-}
-
 } // namespace
 
 SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismissed)
     : m_on_dismissed(std::move(on_dismissed))
-    , m_pane(lv_obj_create(parent))
+    , m_pane(ui::CreatePane(parent, kCornerRadius))
 {
     lv_obj_set_size(m_pane, kWidth + kCornerRadius, hal::kDisplayHeight);
     lv_obj_align(m_pane, LV_ALIGN_TOP_LEFT, -kCornerRadius, 0);
-    lv_obj_set_style_bg_color(m_pane, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(m_pane, kBackgroundOpacity, LV_PART_MAIN);
-    lv_obj_set_style_border_width(m_pane, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(m_pane, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(m_pane, kCornerRadius, LV_PART_MAIN);
+    // Gestures (swipe to dismiss)
+    lv_obj_add_flag(m_pane, LV_OBJ_FLAG_CLICKABLE);
     // The part outside the screen + the visible padding
     lv_obj_set_style_pad_left(m_pane, kCornerRadius + kPadding, LV_PART_MAIN);
     lv_obj_set_style_pad_right(m_pane, kPadding, LV_PART_MAIN);
     lv_obj_set_style_pad_top(m_pane, kTopMargin, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(m_pane, kPadding, LV_PART_MAIN);
     lv_obj_set_style_pad_row(m_pane, kPadding, LV_PART_MAIN);
-    lv_obj_clear_flag(m_pane, LV_OBJ_FLAG_SCROLLABLE);
     // Don't pass drags on to the top layer, which is scrollable since widgets stick out of the
     // screen. It would otherwise move everything on it sideways on horizontal drags, and no
     // gestures are detected while scrolling
@@ -81,15 +57,14 @@ SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismiss
     lv_obj_set_flex_flow(m_pane, LV_FLEX_FLOW_COLUMN);
 
     // <source>: <title>, on one line
-    m_title_label = CreateLabel(m_pane);
+    m_title_label = ui::CreateLabel(m_pane);
     // A fixed height, since the label would otherwise grow instead of cutting the text
     lv_obj_set_size(m_title_label, LV_PCT(100), lv_font_get_line_height(&radbuzz_font_22));
     lv_obj_set_style_text_align(m_title_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_label_set_long_mode(m_title_label, LV_LABEL_LONG_DOT);
 
     // The message, scrollable in the remaining space
-    m_body = lv_obj_create(m_pane);
-    MakeTransparent(m_body);
+    m_body = ui::CreateContainer(m_pane);
     lv_obj_set_width(m_body, LV_PCT(100));
     lv_obj_set_flex_grow(m_body, 1);
     lv_obj_set_scroll_dir(m_body, LV_DIR_VER);
@@ -98,29 +73,26 @@ SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismiss
     // Both for the encoder and touch drags
     LvEventListener::Create(m_body, LV_EVENT_SCROLL, [this](lv_event_t*) { UpdateOkButton(); });
 
-    m_body_label = CreateLabel(m_body);
+    m_body_label = ui::CreateLabel(m_body);
     lv_obj_set_width(m_body_label, LV_PCT(100));
-    lv_label_set_long_mode(m_body_label, LV_LABEL_LONG_WRAP);
 
     // OK centered, with the counter to the right of it
-    auto bottom_row = lv_obj_create(m_pane);
-    MakeTransparent(bottom_row);
+    auto bottom_row = ui::CreateContainer(m_pane);
     lv_obj_set_size(bottom_row, LV_PCT(100), kButtonHeight);
-    lv_obj_clear_flag(bottom_row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(bottom_row, LV_OBJ_FLAG_SCROLLABLE);
 
     m_ok_button = lv_button_create(bottom_row);
     lv_obj_set_size(m_ok_button, kButtonWidth, kButtonHeight);
     lv_obj_set_style_radius(m_ok_button, 8, LV_PART_MAIN);
     lv_obj_align(m_ok_button, LV_ALIGN_CENTER, 0, 0);
 
-    auto ok_label = CreateLabel(m_ok_button);
-    lv_label_set_text(ok_label, "OK");
+    auto ok_label = ui::CreateLabel(m_ok_button, nullptr, "OK");
     lv_obj_center(ok_label);
 
     // Touch always dismisses, also before the end has been reached
     LvEventListener::Create(m_ok_button, LV_EVENT_CLICKED, [this](lv_event_t*) { Dismiss(); });
 
-    m_counter_label = CreateLabel(bottom_row);
+    m_counter_label = ui::CreateLabel(bottom_row);
     lv_obj_set_width(m_counter_label, kCounterWidth);
     lv_obj_align(
         m_counter_label, LV_ALIGN_CENTER, kButtonWidth / 2 + kCounterGap + kCounterWidth / 2, 0);

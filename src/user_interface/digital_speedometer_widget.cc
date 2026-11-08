@@ -1,11 +1,11 @@
 #include "digital_speedometer_widget.hh"
 
 #include "time_string.hh"
+#include "ui_style.hh"
 #include "user_interface.hh"
 
 #include <format>
 #include <radbuzz_font_16.h>
-#include <radbuzz_font_22.h>
 #include <radbuzz_font_60.h>
 
 constexpr auto kSpeedometerBox = 0;
@@ -30,60 +30,28 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
     // Digital speedometer
     for (auto& box : m_boxes)
     {
-        box = lv_obj_create(parent);
-
+        box = ui::CreatePane(parent, kPaneCornerRadius);
         lv_obj_set_size(box, 128 + kCornerClipPx, kBoxDimensions + 32);
-        lv_obj_set_style_border_width(box, 0, LV_PART_MAIN);
-        lv_obj_set_style_outline_width(box, 0, LV_PART_MAIN);
-        lv_obj_set_style_shadow_width(box, 0, LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(box, LV_OPA_100, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(box, lv_color_black(), LV_PART_MAIN);
-        lv_obj_set_style_bg_image_opa(box, LV_OPA_TRANSP, LV_PART_MAIN);
-        lv_obj_set_style_bg_grad_dir(box, LV_GRAD_DIR_NONE, LV_PART_MAIN);
-        lv_obj_set_style_bg_grad_opa(box, LV_OPA_TRANSP, LV_PART_MAIN);
-        lv_obj_set_style_radius(box, kPaneCornerRadius, LV_PART_MAIN);
-        lv_obj_set_scrollbar_mode(box, LV_SCROLLBAR_MODE_OFF);
-        lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_clear_flag(box, LV_OBJ_FLAG_CLICKABLE);
     }
     lv_obj_align(
         m_boxes[kSpeedometerBox], LV_ALIGN_TOP_LEFT, kSpeedometerBoxOffset, kSpeedometerBoxOffset);
     lv_obj_align(m_boxes[kDistanceBox], LV_ALIGN_TOP_RIGHT, 32, -32);
 
-    m_speed_digits_label = lv_label_create(m_boxes[kSpeedometerBox]);
-    lv_obj_set_style_text_font(m_speed_digits_label, &radbuzz_font_60, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_speed_digits_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_speed_digits_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    m_speed_digits_label = ui::CreateLabel(m_boxes[kSpeedometerBox], &radbuzz_font_60, "0");
     lv_obj_set_align(m_speed_digits_label, LV_ALIGN_CENTER);
     lv_obj_set_pos(m_speed_digits_label, 12, 14);
-    lv_label_set_text(m_speed_digits_label, "0");
 
-    m_gps_speed_label = lv_label_create(m_boxes[kSpeedometerBox]);
-    lv_obj_set_style_text_font(m_gps_speed_label, &radbuzz_font_16, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_gps_speed_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(m_gps_speed_label, LV_OPA_TRANSP, LV_PART_MAIN);
+    m_gps_speed_label = ui::CreateLabel(m_boxes[kSpeedometerBox], &radbuzz_font_16, "0");
     lv_obj_set_align(m_gps_speed_label, LV_ALIGN_BOTTOM_RIGHT);
     lv_obj_set_pos(m_gps_speed_label, 8, 4);
-    lv_label_set_text(m_gps_speed_label, "0");
-
-    for (auto& label : m_distance_labels)
-    {
-        label = lv_label_create(m_boxes[kDistanceBox]);
-        lv_obj_set_style_text_font(label, &radbuzz_font_22, LV_PART_MAIN);
-        lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(label, LV_OPA_TRANSP, LV_PART_MAIN);
-    }
-
-    for (auto& label : m_distance_unit_labels)
-    {
-        label = lv_label_create(m_boxes[kDistanceBox]);
-        lv_obj_set_style_text_font(label, &radbuzz_font_22, LV_PART_MAIN);
-        lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(label, LV_OPA_TRANSP, LV_PART_MAIN);
-    }
 
     for (std::size_t i = 0; i < m_distance_labels.size(); ++i)
     {
+        // The units are aligned once, after the width of the placeholder (room for the values)
+        m_distance_labels[i] =
+            ui::CreateLabel(m_boxes[kDistanceBox], nullptr, ui::kLvglPlaceholderText);
+        m_distance_unit_labels[i] = ui::CreateLabel(m_boxes[kDistanceBox]);
+
         lv_obj_align(m_distance_labels[i],
                      LV_ALIGN_TOP_LEFT,
                      kDistanceValueXOffset,

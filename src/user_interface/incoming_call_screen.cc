@@ -1,8 +1,8 @@
 #include "incoming_call_screen.hh"
 
 #include "lv_event_listener.hh"
+#include "ui_style.hh"
 
-#include <radbuzz_font_22.h>
 #include <radbuzz_turn_symbols_60.h>
 
 namespace
@@ -30,27 +30,18 @@ constexpr auto kPhoneIcon = "\xEE\x82\xB0";
 IncomingCallScreen::IncomingCallScreen(UserInterface& parent)
     : UserInterface::ScreenBase(parent, lv_obj_create(nullptr))
 {
+    ui::StyleScreen(m_screen);
 
-    lv_obj_set_style_bg_opa(m_screen, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(m_screen, UserInterface::GetBackgroundColor(), LV_PART_MAIN);
-    lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
-
-    m_phone_icon_label = lv_label_create(m_screen);
-    lv_obj_set_style_text_font(m_phone_icon_label, &radbuzz_turn_symbols_60, LV_PART_MAIN);
-    lv_obj_set_style_text_color(m_phone_icon_label, lv_color_white(), LV_PART_MAIN);
-    lv_label_set_text(m_phone_icon_label, kPhoneIcon);
+    m_phone_icon_label = ui::CreateLabel(m_screen, &radbuzz_turn_symbols_60, kPhoneIcon);
     lv_obj_align(m_phone_icon_label, LV_ALIGN_TOP_MID, kCenterXOffset, kIconY);
 
     for (auto label : {&m_name_label, &m_number_label})
     {
-        *label = lv_label_create(m_screen);
-        lv_obj_set_style_text_font(*label, &radbuzz_font_22, LV_PART_MAIN);
-        lv_obj_set_style_text_color(*label, lv_color_white(), LV_PART_MAIN);
+        *label = ui::CreateLabel(m_screen);
         lv_obj_set_style_text_align(*label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         // Fixed width, so that long names are cut off and stay centered
         lv_obj_set_width(*label, hal::kDisplayWidth - kPowerBarWidth - 2 * kMargin);
         lv_label_set_long_mode(*label, LV_LABEL_LONG_DOT);
-        lv_label_set_text(*label, "");
     }
     lv_obj_align(m_name_label, LV_ALIGN_TOP_MID, kCenterXOffset, kNameY);
     lv_obj_align(m_number_label, LV_ALIGN_TOP_MID, kCenterXOffset, kNumberY);
@@ -78,10 +69,7 @@ IncomingCallScreen::CreateButton(Choice choice, const char* text, lv_color_t col
     lv_obj_set_style_outline_width(button, 6, LV_STATE_FOCUSED);
     lv_obj_set_style_outline_pad(button, 4, LV_STATE_FOCUSED);
 
-    auto label = lv_label_create(button);
-    lv_obj_set_style_text_font(label, &radbuzz_font_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
-    lv_label_set_text(label, text);
+    auto label = ui::CreateLabel(button, nullptr, text);
     lv_obj_center(label);
 
     // Touch
