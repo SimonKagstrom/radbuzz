@@ -72,6 +72,7 @@ BuzzHandler::Indicate()
     case TurnSymbol::kRoundaboutLeft:
         m_left_buzzer.SetState(true);
         m_right_buzzer.SetState(false);
+        delay = 200ms;
         break;
     case TurnSymbol::kTurnRight:
     case TurnSymbol::kRampRight:
