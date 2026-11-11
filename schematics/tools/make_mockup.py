@@ -34,6 +34,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.textpath import TextPath
 
 # Connector on the back side. It is not drawn as a block; its holes are widened.
+# Boards without it skip the widening and the pin 1 marker.
 HEADER_REF = "J2"
 HEADER_DRILL_MM = 1.3
 HEADER_FOOTPRINT = "PinHeader_2x20"
@@ -42,6 +43,15 @@ HEADER_FOOTPRINT = "PinHeader_2x20"
 FALLBACK_HEIGHTS = {"J3": 13.0, "F1": 1.8}
 DEFAULT_HEIGHT = 0.6
 MIN_HEIGHT = 0.6
+
+# KiCad has no 3D model for the EC11 encoder, so it is drawn as a body, a
+# threaded bushing and a shaft. Heights are from the board surface and are
+# typical EC11E values for a 20 mm shaft; measure your encoder and adjust.
+ENCODER_FOOTPRINT = "RotaryEncoder_Alps_EC11E"
+ENCODER_SHAFT_CENTER = (7.5, 2.5)  # In footprint coordinates
+ENCODER_BODY = (12.0, 11.6, 6.5)  # Width, depth, height
+ENCODER_BUSHING = (7.0, 11.5)  # Diameter, top
+ENCODER_SHAFT = (6.0, 20.0)  # Diameter, top
 
 COURTYARD_INSET = 0.3
 HEIGHT_SEARCH_MARGIN = 0.05
@@ -147,6 +157,19 @@ def read_courtyards(board):
     return result
 
 
+def read_placements(board):
+    """Return {reference: (footprint name, x, y, angle)}."""
+    result = {}
+    for footprint in children(board, "footprint"):
+        at = child(footprint, "at")
+        reference = next(
+            p[2] for p in children(footprint, "property") if p[1] == "Reference"
+        )
+        angle = float(at[3]) if len(at) > 3 else 0.0
+        result[reference] = (footprint[1], float(at[1]), float(at[2]), angle)
+    return result
+
+
 def read_pad(board, reference, number):
     """Return the board position of one pad of a footprint."""
     for footprint in children(board, "footprint"):
@@ -182,11 +205,14 @@ def read_keepouts(board):
 
 
 def widen_header_holes(path):
-    """Enlarge the header drills in the temporary copy of the board."""
+    """Enlarge the header drills in the temporary copy of the board.
+
+    Return False if the board has no header.
+    """
     text = path.read_text()
     match = re.search(r"\(footprint \"[^\"]*" + HEADER_FOOTPRINT, text)
     if not match:
-        raise ValueError(f"No {HEADER_FOOTPRINT} footprint on the board")
+        return False
     start = match.start()
     end = text.find("\n\t(footprint ", start + 10)
     section, count = re.subn(
@@ -195,6 +221,7 @@ def widen_header_holes(path):
     if not count:
         raise ValueError("Header footprint has no drills")
     path.write_text(text[:start] + section + text[end:])
+    return True
 
 
 def run_export(board_path, output, *flags):
@@ -274,6 +301,22 @@ def component_block(reference, courtyard, height, board_top):
     return block
 
 
+def encoder_block(placement, board_top):
+    _, x, y, angle = placement
+    center_x, center_y = rotate(*ENCODER_SHAFT_CENTER, x, y, angle)
+    width, depth, height = ENCODER_BODY
+    body = m3d.Manifold.cube([width, depth, height + 0.2], center=True).translate(
+        [0, 0, (height - 0.2) / 2]
+    )
+    # The body is not square, so it follows the footprint rotation
+    body = body.rotate([0, 0, angle])
+    bushing = m3d.Manifold.cylinder(ENCODER_BUSHING[1], ENCODER_BUSHING[0] / 2,
+                                    ENCODER_BUSHING[0] / 2, 64)
+    shaft = m3d.Manifold.cylinder(ENCODER_SHAFT[1], ENCODER_SHAFT[0] / 2,
+                                  ENCODER_SHAFT[0] / 2, 64)
+    return (body + bushing + shaft).translate([center_x, -center_y, board_top])
+
+
 def build(board_path, output_path):
     board_path = board_path.resolve()
     source = board_path.parent
@@ -289,11 +332,16 @@ def build(board_path, output_path):
                 shutil.copytree(source / folder, work / folder)
         copy = work / board_path.name
         shutil.copy(board_path, copy)
-        widen_header_holes(copy)
+        has_header = widen_header_holes(copy)
 
         courtyards = read_courtyards(board)
+        placements = read_placements(board)
+        encoders = [
+            r for r in courtyards if ENCODER_FOOTPRINT in placements[r][0]
+        ]
         references = [
-            r for r in courtyards if r != HEADER_REF and not r.startswith("H")
+            r for r in courtyards
+            if r != HEADER_REF and not r.startswith("H") and r not in encoders
         ]
         plate_mesh = run_export(copy, work / "plate.stl", "--board-only")
         parts_mesh = run_export(
@@ -329,12 +377,17 @@ def build(board_path, output_path):
             reference, courtyards[reference], height, board_top
         )
 
-    pin1_x, pin1_y = read_pad(board, HEADER_REF, "1")
-    outline, _ = text_outline("PIN 1 +5V", pin1_x - 7, pin1_y - 5.5, 2.6)
-    result = result - outline.extrude(1.0).translate([0, 0, board_top - 0.4])
-    result = result - m3d.Manifold.cylinder(2, 1.1, 1.1, 48).translate(
-        [pin1_x + 2.9, -pin1_y, board_top - 0.5]
-    )
+    for reference in encoders:
+        result = result + encoder_block(placements[reference], board_top)
+        report.append((reference, ENCODER_SHAFT[1], "encoder estimate"))
+
+    if has_header:
+        pin1_x, pin1_y = read_pad(board, HEADER_REF, "1")
+        outline, _ = text_outline("PIN 1 +5V", pin1_x - 7, pin1_y - 5.5, 2.6)
+        result = result - outline.extrude(1.0).translate([0, 0, board_top - 0.4])
+        result = result - m3d.Manifold.cylinder(2, 1.1, 1.1, 48).translate(
+            [pin1_x + 2.9, -pin1_y, board_top - 0.5]
+        )
 
     mesh = result.to_mesh()
     final = trimesh.Trimesh(mesh.vert_properties[:, :3], mesh.tri_verts, process=True)
