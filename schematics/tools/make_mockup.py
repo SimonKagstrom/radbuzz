@@ -15,6 +15,9 @@ Setup:
 Usage, from the schematics directory:
     venv/bin/python tools/make_mockup.py radbuzz.kicad_pcb radbuzz_mockup.stl
 
+For the encoder board, --no-encoder leaves the encoder out and widens its
+holes, so the print can be tested with a real encoder.
+
 The project is copied to a temporary directory, so nothing in it is changed.
 Requires kicad-cli on PATH.
 """
@@ -52,6 +55,10 @@ ENCODER_SHAFT_CENTER = (7.5, 2.5)  # In footprint coordinates
 ENCODER_BODY = (12.0, 11.6, 6.5)  # Width, depth, height
 ENCODER_BUSHING = (7.0, 11.5)  # Diameter, top
 ENCODER_SHAFT = (6.0, 20.0)  # Diameter, top
+# With --no-encoder, the holes are widened so a real encoder fits the print.
+# The slots are kept within their pads, or KiCad rejects the board.
+ENCODER_PIN_DRILL_MM = 1.5
+ENCODER_TAB_DRILL_MM = (3.2, 2.0)
 
 COURTYARD_INSET = 0.3
 HEIGHT_SEARCH_MARGIN = 0.05
@@ -204,24 +211,32 @@ def read_keepouts(board):
     return result
 
 
-def widen_header_holes(path):
-    """Enlarge the header drills in the temporary copy of the board.
+def widen_holes(path, footprint_name, round_drill, oval_drill=None):
+    """Enlarge the drills of footprints in the temporary copy of the board.
 
-    Return False if the board has no header.
+    Return False if the board has no such footprint.
     """
     text = path.read_text()
-    match = re.search(r"\(footprint \"[^\"]*" + HEADER_FOOTPRINT, text)
-    if not match:
-        return False
-    start = match.start()
-    end = text.find("\n\t(footprint ", start + 10)
-    section, count = re.subn(
-        r"\(drill [\d.]+\)", f"(drill {HEADER_DRILL_MM})", text[start:end]
-    )
-    if not count:
-        raise ValueError("Header footprint has no drills")
-    path.write_text(text[:start] + section + text[end:])
-    return True
+    matches = list(re.finditer(r"\(footprint \"[^\"]*" + footprint_name, text))
+    for match in reversed(matches):
+        start = match.start()
+        end = text.find("\n\t(footprint ", start + 10)
+        if end < 0:
+            end = len(text)
+        section, count = re.subn(
+            r"\(drill [\d.]+\)", f"(drill {round_drill})", text[start:end]
+        )
+        if oval_drill:
+            section, ovals = re.subn(
+                r"\(drill oval [\d.]+ [\d.]+\)",
+                f"(drill oval {oval_drill[0]} {oval_drill[1]})", section,
+            )
+            count += ovals
+        if not count:
+            raise ValueError(f"{footprint_name} footprint has no drills")
+        text = text[:start] + section + text[end:]
+    path.write_text(text)
+    return bool(matches)
 
 
 def run_export(board_path, output, *flags):
@@ -317,7 +332,7 @@ def encoder_block(placement, board_top):
     return (body + bushing + shaft).translate([center_x, -center_y, board_top])
 
 
-def build(board_path, output_path):
+def build(board_path, output_path, with_encoder=True):
     board_path = board_path.resolve()
     source = board_path.parent
     board = parse_sexpr(board_path.read_text())
@@ -332,7 +347,10 @@ def build(board_path, output_path):
                 shutil.copytree(source / folder, work / folder)
         copy = work / board_path.name
         shutil.copy(board_path, copy)
-        has_header = widen_header_holes(copy)
+        has_header = widen_holes(copy, HEADER_FOOTPRINT, HEADER_DRILL_MM)
+        if not with_encoder:
+            widen_holes(copy, ENCODER_FOOTPRINT, ENCODER_PIN_DRILL_MM,
+                        ENCODER_TAB_DRILL_MM)
 
         courtyards = read_courtyards(board)
         placements = read_placements(board)
@@ -377,7 +395,7 @@ def build(board_path, output_path):
             reference, courtyards[reference], height, board_top
         )
 
-    for reference in encoders:
+    for reference in encoders if with_encoder else []:
         result = result + encoder_block(placements[reference], board_top)
         report.append((reference, ENCODER_SHAFT[1], "encoder estimate"))
 
@@ -407,8 +425,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("board", type=Path, help="Path to the .kicad_pcb file")
     parser.add_argument("output", type=Path, help="STL file to write")
+    parser.add_argument(
+        "--no-encoder", action="store_true",
+        help="Leave out the encoder and widen its holes to fit a real one",
+    )
     arguments = parser.parse_args()
-    build(arguments.board, arguments.output)
+    build(arguments.board, arguments.output, with_encoder=not arguments.no_encoder)
 
 
 if __name__ == "__main__":
