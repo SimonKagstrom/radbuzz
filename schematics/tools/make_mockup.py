@@ -43,7 +43,7 @@ HEADER_DRILL_MM = 1.3
 HEADER_FOOTPRINT = "PinHeader_2x20"
 
 # Estimated heights in mm for parts with no 3D model in the KiCad library.
-FALLBACK_HEIGHTS = {"J3": 13.0, "F1": 1.8}
+FALLBACK_HEIGHTS = {"F1": 1.8}
 DEFAULT_HEIGHT = 0.6
 MIN_HEIGHT = 0.6
 
