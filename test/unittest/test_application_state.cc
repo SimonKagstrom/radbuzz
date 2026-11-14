@@ -268,6 +268,170 @@ TEST_CASE("PartialStateCaches can be used to track changes")
     }
 }
 
+TEST_CASE("A pulled partial state cache keeps its values until pulled again")
+{
+    ApplicationState app_state;
+    auto state_cache =
+        ApplicationState::PartialReadOnlyCache<AS::speed, AS::next_street>(app_state);
+
+    app_state.Set<AS::speed>(10);
+    app_state.Set<AS::next_street>("Tunavägen");
+    const auto& co = state_cache.Pull();
+    REQUIRE(co.Get<AS::next_street>() == "Tunavägen");
+
+    WHEN("the global values are changed after pulling")
+    {
+        app_state.Set<AS::speed>(11);
+        app_state.Set<AS::next_street>("St Mickelsgatan");
+
+        THEN("the checkout still holds the pulled values")
+        {
+            REQUIRE(co.Get<AS::speed>() == 10);
+            REQUIRE(co.Get<AS::next_street>() == "Tunavägen");
+            REQUIRE(state_cache.Get<AS::speed>() == 10);
+            REQUIRE(state_cache.Get<AS::next_street>() == "Tunavägen");
+        }
+
+        AND_WHEN("the cache is pulled again")
+        {
+            const auto& next_co = state_cache.Pull();
+
+            THEN("the new values are visible, and marked as changed")
+            {
+                REQUIRE(next_co.Get<AS::speed>() == 11);
+                REQUIRE(next_co.Get<AS::next_street>() == "St Mickelsgatan");
+                REQUIRE(next_co.IsChanged<AS::speed>());
+                REQUIRE(next_co.IsChanged<AS::next_street>());
+            }
+
+            AND_WHEN("the values are changed and pulled a third time")
+            {
+                app_state.Set<AS::speed>(12);
+                app_state.Set<AS::next_street>("Östra Prinsgatan");
+
+                REQUIRE(next_co.Get<AS::speed>() == 11);
+                REQUIRE(next_co.Get<AS::next_street>() == "St Mickelsgatan");
+
+                const auto& third_co = state_cache.Pull();
+
+                THEN("the reused buffer holds the new values, and the old ones are the previous")
+                {
+                    REQUIRE(third_co.Get<AS::speed>() == 12);
+                    REQUIRE(third_co.Get<AS::next_street>() == "Östra Prinsgatan");
+
+                    third_co
+                        .OnChangedValue<AS::speed>([](const auto& old, const auto& new_value) {
+                            REQUIRE(old == 11);
+                            REQUIRE(new_value == 12);
+                        })
+                        .OnChangedValue<AS::next_street>(
+                            [](const auto& old, const auto& new_value) {
+                                REQUIRE(old == "St Mickelsgatan");
+                                REQUIRE(new_value == "Östra Prinsgatan");
+                            });
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE("Partial state caches share non-atomic values with the global state")
+{
+    ApplicationState app_state;
+    app_state.Set<AS::next_street>("Tunavägen");
+
+    auto state_cache =
+        ApplicationState::PartialReadOnlyCache<AS::speed, AS::next_street>(app_state);
+
+    WHEN("a non-atomic value is unchanged between pulls")
+    {
+        const auto* before = &state_cache.Get<AS::next_street>();
+
+        app_state.Set<AS::speed>(10);
+        const auto& co = state_cache.Pull();
+
+        THEN("the value is not copied")
+        {
+            REQUIRE(co.IsChanged<AS::speed>());
+            REQUIRE(co.IsChanged<AS::next_street>() == false);
+            REQUIRE(&co.Get<AS::next_street>() == before);
+            REQUIRE(&co.Get<AS::next_street>() == app_state.Get<AS::next_street>().get());
+        }
+    }
+
+    WHEN("a non-atomic value is changed and then changed back between pulls")
+    {
+        const auto* before = &state_cache.Get<AS::next_street>();
+
+        app_state.Set<AS::next_street>("St Mickelsgatan");
+        app_state.Set<AS::next_street>("Tunavägen");
+        const auto& co = state_cache.Pull();
+
+        THEN("the new value is pulled, but not marked as changed")
+        {
+            REQUIRE(&co.Get<AS::next_street>() != before);
+            REQUIRE(&co.Get<AS::next_street>() == app_state.Get<AS::next_street>().get());
+            REQUIRE(co.Get<AS::next_street>() == "Tunavägen");
+            REQUIRE(co.IsChanged<AS::next_street>() == false);
+        }
+    }
+
+    WHEN("a reference to a non-atomic value is taken, and the global value changes")
+    {
+        app_state.Set<AS::next_street>("St Mickelsgatan");
+        const auto& old_value = state_cache.Get<AS::next_street>();
+
+        THEN("the reference is unaffected before pulling")
+        {
+            REQUIRE(old_value == "Tunavägen");
+        }
+
+        AND_WHEN("the cache is pulled")
+        {
+            const auto& co = state_cache.Pull();
+
+            THEN("the new value is passed by reference")
+            {
+                REQUIRE(co.IsChanged<AS::next_street>());
+
+                co.OnNewValue<AS::next_street>([&app_state](const auto& value) {
+                    REQUIRE(&value == app_state.Get<AS::next_street>().get());
+                    REQUIRE(value == "St Mickelsgatan");
+                });
+            }
+
+            AND_THEN("the reference is still valid, and holds the previous value")
+            {
+                REQUIRE(old_value == "Tunavägen");
+
+                co.OnChangedValue<AS::next_street>(
+                    [&old_value](const auto& previous, const auto& value) {
+                        REQUIRE(&previous == &old_value);
+                        REQUIRE(value == "St Mickelsgatan");
+                    });
+            }
+        }
+    }
+}
+
+TEST_CASE("A single-parameter partial state cache tracks non-atomic values")
+{
+    ApplicationState app_state;
+    auto state_cache = ApplicationState::PartialReadOnlyCache<AS::position>(app_state);
+
+    REQUIRE(state_cache.Get<AS::position>().speed == 0.0f);
+
+    app_state.Set<AS::position>(GpsData {.position = {59.3293f, 18.0686f}, .speed = 50.0f});
+    REQUIRE(state_cache.Get<AS::position>().speed == 0.0f);
+
+    const auto& co = state_cache.Pull();
+    REQUIRE(co.IsChanged<AS::position>());
+    REQUIRE(co.Get<AS::position>().speed == 50.0f);
+    REQUIRE(&co.Get<AS::position>() == app_state.Get<AS::position>().get());
+
+    REQUIRE(state_cache.Pull().IsChanged<AS::position>() == false);
+}
+
 TEST_CASE("Listeners can be added to the application state")
 {
     ApplicationState app_state;
