@@ -1,4 +1,5 @@
 #include "application_state.hh"
+#include "mock_debug_assert.hh"
 #include "semaphore.hh"
 #include "test.hh"
 
@@ -529,8 +530,16 @@ TEST_CASE("There's a finite number of listeners that can be attached")
 
         THEN("no more listeners can be added")
         {
+            MockAssertHandler asserts;
+            auto r_asserts = NAMED_REQUIRE_CALL(asserts, OnAssert(_, _, _));
+
             auto extra_listener = app_state.AttachListener<AS::speed>(sem);
             REQUIRE(!extra_listener);
+
+            THEN("the debug assert is triggered")
+            {
+                r_asserts = nullptr;
+            }
 
             AND_WHEN("a listener is removed")
             {
