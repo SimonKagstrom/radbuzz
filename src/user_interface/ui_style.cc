@@ -44,8 +44,8 @@ ui::CreatePane(lv_obj_t* parent, int32_t radius)
 
     lv_obj_add_style(obj, &GetStyles().pane, LV_PART_MAIN);
     lv_obj_set_style_radius(obj, radius, LV_PART_MAIN);
-    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_scrollable(obj, false);
+    lv_obj_set_clickable(obj, false);
 
     return obj;
 }
@@ -79,5 +79,5 @@ void
 ui::StyleScreen(lv_obj_t* screen)
 {
     lv_obj_add_style(screen, &GetStyles().screen, LV_PART_MAIN);
-    lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollable(screen, false);
 }

@@ -162,12 +162,12 @@ TripMeterScreen::Update()
         const auto hidden = side_pane_shown && row.side_pane_label_text == nullptr;
         for (auto obj : {row.label, row.value, row.unit})
         {
-            lv_obj_set_flag(obj, LV_OBJ_FLAG_HIDDEN, hidden);
+            lv_obj_set_hidden(obj, hidden);
         }
         if (row.second_column)
         {
-            lv_obj_set_flag(row.second_column->value, LV_OBJ_FLAG_HIDDEN, side_pane_shown);
-            lv_obj_set_flag(row.second_column->unit, LV_OBJ_FLAG_HIDDEN, side_pane_shown);
+            lv_obj_set_hidden(row.second_column->value, side_pane_shown);
+            lv_obj_set_hidden(row.second_column->unit, side_pane_shown);
         }
         if (hidden)
         {

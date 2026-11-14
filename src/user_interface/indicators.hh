@@ -46,13 +46,11 @@ public:
         lv_label_set_text(m_indicator_label, m_text.c_str());
         lv_label_set_text(m_bms_label, bms_text);
 
-        lv_obj_set_flag(m_indicator_label,
-                        LV_OBJ_FLAG_HIDDEN,
-                        m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen());
-        lv_obj_set_flag(m_bms_label,
-                        LV_OBJ_FLAG_HIDDEN,
-                        m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen() ||
-                            !state.Get<AS::bms_data>()->valid);
+        lv_obj_set_hidden(m_indicator_label,
+                          m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen());
+        lv_obj_set_hidden(m_bms_label,
+                          m_parent.OnTripMeterScreen() || m_parent.OnSpeedometerScreen() ||
+                              !state.Get<AS::bms_data>()->valid);
     }
 
     void ForceShow() final
@@ -79,7 +77,7 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, !state.Get<AS::wifi_connected>());
+        lv_obj_set_hidden(m_indicator_label, !state.Get<AS::wifi_connected>());
     }
 };
 
@@ -96,8 +94,7 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        lv_obj_set_flag(
-            m_indicator_label, LV_OBJ_FLAG_HIDDEN, !state.Get<AS::bluetooth_connected>());
+        lv_obj_set_hidden(m_indicator_label, !state.Get<AS::bluetooth_connected>());
     }
 };
 
@@ -113,7 +110,7 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, state.Get<AS::is_moving>());
+        lv_obj_set_hidden(m_indicator_label, state.Get<AS::is_moving>());
     }
 };
 
@@ -131,12 +128,12 @@ public:
     {
         if (state.Get<AS::gps_status>() == GpsStatus::kPositionValid)
         {
-            lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, true);
+            lv_obj_set_hidden(m_indicator_label, true);
             return;
         }
 
         // Show
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, false);
+        lv_obj_set_hidden(m_indicator_label, false);
         if (state.Get<AS::gps_status>() == GpsStatus::kNoFix)
         {
             lv_label_set_text(m_indicator_label,
@@ -164,7 +161,7 @@ public:
 
     void Update(ApplicationState& state) final
     {
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, !state.Get<AS::overheated>());
+        lv_obj_set_hidden(m_indicator_label, !state.Get<AS::overheated>());
     }
 };
 
@@ -191,7 +188,7 @@ public:
             hide = true;
         }
 
-        lv_obj_set_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN, hide);
+        lv_obj_set_hidden(m_indicator_label, hide);
         lv_label_set_text(m_indicator_label, m_text.c_str());
     }
 

@@ -95,15 +95,15 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
         lv_label_set_text(m_gps_speed_label,
                           std::format("{}", static_cast<uint8_t>(gps_speed)).c_str());
 
-        lv_obj_remove_flag(m_boxes[kSpeedometerBox], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_flag(m_gps_speed_label, LV_OBJ_FLAG_HIDDEN, !conf->show_gps_speed);
+        lv_obj_set_hidden(m_boxes[kSpeedometerBox], false);
+        lv_obj_set_hidden(m_speed_digits_label, false);
+        lv_obj_set_hidden(m_gps_speed_label, !conf->show_gps_speed);
     }
     else
     {
-        lv_obj_add_flag(m_boxes[kSpeedometerBox], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(m_speed_digits_label, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(m_gps_speed_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(m_boxes[kSpeedometerBox], true);
+        lv_obj_set_hidden(m_speed_digits_label, true);
+        lv_obj_set_hidden(m_gps_speed_label, true);
     }
 
     if (show_distance)
@@ -128,18 +128,11 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
         auto seconds = state.Get<AS::trip_duration>().count();
         lv_label_set_text(m_distance_labels[kTripTimeIndex], SecondsToString(seconds).c_str());
 
-        if (seconds >= 60)
-        {
-            lv_obj_add_flag(m_distance_unit_labels[kTripTimeIndex], LV_OBJ_FLAG_HIDDEN);
-        }
-        else
-        {
-            lv_obj_remove_flag(m_distance_unit_labels[kTripTimeIndex], LV_OBJ_FLAG_HIDDEN);
-        }
-        lv_obj_remove_flag(m_boxes[kDistanceBox], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(m_distance_unit_labels[kTripTimeIndex], seconds >= 60);
+        lv_obj_set_hidden(m_boxes[kDistanceBox], false);
     }
     else
     {
-        lv_obj_add_flag(m_boxes[kDistanceBox], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(m_boxes[kDistanceBox], true);
     }
 }

@@ -26,7 +26,7 @@ ClockWidget::ClockWidget(lv_obj_t* parent)
     lv_obj_set_style_pad_hor(m_box, kHorizontalPadding, LV_PART_MAIN);
     lv_obj_align(m_box, LV_ALIGN_TOP_MID, 0, -kCornerRadius);
 
-    lv_obj_add_flag(m_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_hidden(m_box, true);
 }
 
 std::optional<milliseconds>
@@ -34,7 +34,7 @@ ClockWidget::Update(ApplicationState& state, bool show)
 {
     if (!show || !state.Get<AS::configuration>()->show_clock)
     {
-        lv_obj_add_flag(m_box, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(m_box, true);
         return std::nullopt;
     }
 
@@ -42,7 +42,7 @@ ClockWidget::Update(ApplicationState& state, bool show)
     const auto utc = state.Get<AS::clock>();
     if (utc == 0)
     {
-        lv_obj_add_flag(m_box, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(m_box, true);
         return kInvalidRecheckTime;
     }
 
@@ -52,7 +52,7 @@ ClockWidget::Update(ApplicationState& state, bool show)
         m_text = std::move(text);
         lv_label_set_text(m_label, m_text.c_str());
     }
-    lv_obj_remove_flag(m_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_hidden(m_box, false);
 
     return seconds(SecondsToNextMinute(utc));
 }

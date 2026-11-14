@@ -40,7 +40,7 @@ SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismiss
     lv_obj_align(m_pane, LV_ALIGN_TOP_LEFT, -kCornerRadius, 0);
     lv_obj_set_style_bg_opa(m_pane, kBackgroundOpacity, LV_PART_MAIN);
     // Gestures (swipe to dismiss)
-    lv_obj_add_flag(m_pane, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(m_pane, true);
     // The part outside the screen + the visible padding
     lv_obj_set_style_pad_left(m_pane, kCornerRadius + kPadding, LV_PART_MAIN);
     lv_obj_set_style_pad_right(m_pane, kPadding, LV_PART_MAIN);
@@ -50,9 +50,9 @@ SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismiss
     // Don't pass drags on to the top layer, which is scrollable since widgets stick out of the
     // screen. It would otherwise move everything on it sideways on horizontal drags, and no
     // gestures are detected while scrolling
-    lv_obj_clear_flag(m_pane, LV_OBJ_FLAG_SCROLL_CHAIN);
+    lv_obj_set_scroll_chain(m_pane, false);
     // Swipes anywhere on the pane end up here (the text only scrolls vertically)
-    lv_obj_clear_flag(m_pane, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_set_gesture_bubble(m_pane, false);
     LvEventListener::Create(m_pane, LV_EVENT_GESTURE, [this](lv_event_t*) { OnGesture(); });
     lv_obj_set_flex_flow(m_pane, LV_FLEX_FLOW_COLUMN);
 
@@ -68,7 +68,7 @@ SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismiss
     lv_obj_set_width(m_body, LV_PCT(100));
     lv_obj_set_flex_grow(m_body, 1);
     lv_obj_set_scroll_dir(m_body, LV_DIR_VER);
-    lv_obj_clear_flag(m_body, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);
+    lv_obj_set_scroll_chain_hor(m_body, false);
     lv_obj_set_scrollbar_mode(m_body, LV_SCROLLBAR_MODE_OFF);
     // Both for the encoder and touch drags
     LvEventListener::Create(m_body, LV_EVENT_SCROLL, [this](lv_event_t*) { UpdateOkButton(); });
@@ -79,7 +79,7 @@ SidePane::SidePane(lv_obj_t* parent, std::function<void(uint32_t id)> on_dismiss
     // OK centered, with the counter to the right of it
     auto bottom_row = ui::CreateContainer(m_pane);
     lv_obj_set_size(bottom_row, LV_PCT(100), kButtonHeight);
-    lv_obj_remove_flag(bottom_row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollable(bottom_row, false);
 
     m_ok_button = lv_button_create(bottom_row);
     lv_obj_set_size(m_ok_button, kButtonWidth, kButtonHeight);
@@ -367,5 +367,5 @@ SidePane::UpdateOkButton()
 void
 SidePane::UpdateVisibility()
 {
-    lv_obj_set_flag(m_pane, LV_OBJ_FLAG_HIDDEN, !IsShown());
+    lv_obj_set_hidden(m_pane, !IsShown());
 }

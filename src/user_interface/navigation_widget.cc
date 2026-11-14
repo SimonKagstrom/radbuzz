@@ -57,7 +57,7 @@ NavigationWidget::NavigationWidget(lv_obj_t* parent)
     lv_obj_set_style_bg_opa(m_left_box, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(m_left_box, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(m_left_box, 0, LV_PART_MAIN);
-    lv_obj_remove_flag(m_left_box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollable(m_left_box, false);
 
     // Push left rounded corners off-screen for the navigation pane while keeping right corners.
     constexpr int kLeftCornerClipPx = 16;
@@ -106,8 +106,8 @@ NavigationWidget::Update(ApplicationState& state, bool show, int32_t left_x)
 
     auto navigation_active = show && state.Get<AS::navigation_active>();
 
-    lv_obj_set_flag(m_navigation_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
-    lv_obj_set_flag(m_navigation_description_box, LV_OBJ_FLAG_HIDDEN, !navigation_active);
+    lv_obj_set_hidden(m_navigation_box, !navigation_active);
+    lv_obj_set_hidden(m_navigation_description_box, !navigation_active);
 
     if (navigation_active)
     {

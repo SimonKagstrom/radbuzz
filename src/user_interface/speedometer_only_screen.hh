@@ -29,7 +29,7 @@ public:
 
         void SetHidden(bool hidden)
         {
-            lv_obj_set_flag(container, LV_OBJ_FLAG_HIDDEN, hidden);
+            lv_obj_set_hidden(container, hidden);
         }
 
         // Place relative to the screen. Kept by LVGL when the size changes

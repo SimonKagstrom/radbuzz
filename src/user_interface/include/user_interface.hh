@@ -122,7 +122,7 @@ public:
         // Force showing, assuming it's on a compatible screen
         virtual void ForceShow()
         {
-            lv_obj_clear_flag(m_indicator_label, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(m_indicator_label, false);
         }
 
     protected:

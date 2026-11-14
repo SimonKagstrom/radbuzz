@@ -49,8 +49,8 @@ CreateFlexContainer(lv_obj_t* parent, lv_flex_flow_t flow)
     auto obj = ui::CreateContainer(parent);
 
     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_scrollable(obj, false);
+    lv_obj_set_clickable(obj, false);
     lv_obj_set_flex_flow(obj, flow);
 
     return obj;
@@ -115,9 +115,9 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
     m_histogram = ui::CreateContainer(m_screen);
     lv_obj_set_size(m_histogram, hal::kDisplayWidth, hal::kDisplayHeight);
     lv_obj_set_pos(m_histogram, 0, 0);
-    lv_obj_remove_flag(m_histogram, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollable(m_histogram, false);
     // Let touch (swipes) through to the screen
-    lv_obj_remove_flag(m_histogram, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(m_histogram, false);
 
     // Callback to draw histogram lines on the background (not called when hidden)
     lv_obj_add_event_cb(
@@ -138,7 +138,7 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
         lv_obj_set_size(bar, kHistogramBarWidth, 0);
         lv_obj_set_style_bg_color(bar, kBarColor, LV_PART_MAIN);
         lv_obj_set_style_radius(bar, 0, LV_PART_MAIN);
-        lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(bar, false);
 
         lv_obj_align(bar, LV_ALIGN_BOTTOM_LEFT, i * kHistogramBarSpacing, 0);
 
@@ -246,8 +246,8 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_battery.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::battery_soc>()).c_str());
 
-    lv_obj_set_flag(m_small_speedometer_label, LV_OBJ_FLAG_HIDDEN, !conf->show_gps_speed);
-    lv_obj_set_flag(m_small_speedometer_unit_label, LV_OBJ_FLAG_HIDDEN, !conf->show_gps_speed);
+    lv_obj_set_hidden(m_small_speedometer_label, !conf->show_gps_speed);
+    lv_obj_set_hidden(m_small_speedometer_unit_label, !conf->show_gps_speed);
 
     std::string temperature_text = "Controller";
     std::string temperature_value_text =
@@ -397,15 +397,15 @@ SpeedometerOnlyScreen::Layout(bool side_pane_shown, bool navigating)
     m_laid_out_for_navigation = navigating;
 
     // The navigation widget covers the bottom left part of the histogram
-    lv_obj_set_flag(m_histogram, LV_OBJ_FLAG_HIDDEN, side_pane_shown || navigating);
+    lv_obj_set_hidden(m_histogram, side_pane_shown || navigating);
     m_range.SetHidden(side_pane_shown);
     m_consumption.SetHidden(side_pane_shown);
 
     // A single line above the navigation description box, with "Trip" above the time
     m_trip_time.Align(LV_ALIGN_BOTTOM_RIGHT,
                       navigating ? kTripTimeNavigationPosition : kTripTimePosition);
-    lv_obj_set_flag(m_trip_distance.description_label, LV_OBJ_FLAG_HIDDEN, navigating);
-    lv_obj_set_flag(m_trip_time.description_label, LV_OBJ_FLAG_HIDDEN, !navigating);
+    lv_obj_set_hidden(m_trip_distance.description_label, navigating);
+    lv_obj_set_hidden(m_trip_time.description_label, !navigating);
     if (navigating)
     {
         m_trip_distance.AlignTo(

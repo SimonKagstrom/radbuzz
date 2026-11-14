@@ -124,7 +124,7 @@ MapScreen::MapScreen(UserInterface& parent,
 {
     lv_obj_set_style_bg_opa(m_screen, LV_OPA_TRANSP, 0);
     lv_obj_set_scrollbar_mode(m_screen, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(m_screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollable(m_screen, false);
 
     /*
      * Tiles are blitted directly into the LVGL render buffer during LV_EVENT_DRAW_MAIN,
