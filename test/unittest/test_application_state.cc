@@ -764,6 +764,49 @@ TEST_CASE("Non-atomic values are not copied needlessly when written")
     }
 }
 
+TEST_CASE("Written values are converted to the type of the parameter")
+{
+    ApplicationState app_state;
+    os::binary_semaphore sem {0};
+    auto listener = app_state.AttachListener<AS::battery_millivolts, AS::position>(sem);
+
+    app_state.Set<AS::battery_millivolts>(48300);
+    REQUIRE(sem.try_acquire());
+
+    WHEN("a value of another type is set, which converts to the current value")
+    {
+        // E.g., the result of a float calculation
+        const float millivolts = 48300.25f;
+        app_state.Set<AS::battery_millivolts>(millivolts);
+
+        THEN("it's compared after the conversion, so nothing changes")
+        {
+            REQUIRE(app_state.Get<AS::battery_millivolts>() == 48300);
+            REQUIRE(sem.try_acquire() == false);
+        }
+    }
+
+    WHEN("structs are set from braced initializers")
+    {
+        app_state.Set<AS::position>({.position = {59.3293f, 18.0686f}, .speed = 50.0f});
+
+        THEN("the value is written")
+        {
+            REQUIRE(app_state.Get<AS::position>()->speed == 50.0f);
+            REQUIRE(sem.try_acquire());
+        }
+
+        AND_WHEN("written via a queued writer and a partial snapshot")
+        {
+            app_state.CheckoutQueuedWriter<AS::position>().Set<AS::position>({.speed = 25.0f});
+            REQUIRE(app_state.Get<AS::position>()->speed == 25.0f);
+
+            app_state.CheckoutPartialSnapshot<AS::position>().Set<AS::position>({.speed = 15.0f});
+            REQUIRE(app_state.Get<AS::position>()->speed == 15.0f);
+        }
+    }
+}
+
 TEST_CASE("the build is OK even with parameters not in the application state")
 {
     ApplicationState app_state;
