@@ -678,6 +678,92 @@ TEST_CASE("listeners are notified of multiple changes in a batch")
     }
 }
 
+TEST_CASE("Non-atomic values are not copied needlessly when written")
+{
+    ApplicationState app_state;
+    os::binary_semaphore sem {0};
+    auto listener = app_state.AttachListener<AS::copy_counted>(sem);
+
+    CopyCounted::copies = 0;
+
+    WHEN("an equal value is set")
+    {
+        app_state.Set<AS::copy_counted>(CopyCounted {});
+
+        THEN("it's compared without copies, and not written")
+        {
+            REQUIRE(CopyCounted::copies == 0);
+            REQUIRE(sem.try_acquire() == false);
+        }
+    }
+
+    WHEN("a new temporary value is set")
+    {
+        app_state.Set<AS::copy_counted>(CopyCounted {1});
+
+        THEN("it's moved into the global state")
+        {
+            REQUIRE(CopyCounted::copies == 0);
+            REQUIRE(app_state.Get<AS::copy_counted>()->value == 1);
+            REQUIRE(sem.try_acquire());
+        }
+    }
+
+    WHEN("a new value is set from a variable")
+    {
+        const CopyCounted value {2};
+        app_state.Set<AS::copy_counted>(value);
+
+        THEN("it's copied once, into the global state")
+        {
+            REQUIRE(CopyCounted::copies == 1);
+            REQUIRE(app_state.Get<AS::copy_counted>()->value == 2);
+            REQUIRE(sem.try_acquire());
+        }
+    }
+
+    WHEN("a value is changed in a partial snapshot")
+    {
+        {
+            auto snapshot = app_state.CheckoutPartialSnapshot<AS::copy_counted>();
+            snapshot.GetWritableReference<AS::copy_counted>().value = 3;
+        }
+
+        THEN("only the checkout copies, and the value is moved back")
+        {
+            REQUIRE(CopyCounted::copies == 1);
+            REQUIRE(app_state.Get<AS::copy_counted>()->value == 3);
+            REQUIRE(sem.try_acquire());
+        }
+    }
+
+    WHEN("a reference is taken in a partial snapshot, without changes")
+    {
+        {
+            auto snapshot = app_state.CheckoutPartialSnapshot<AS::copy_counted>();
+            snapshot.GetWritableReference<AS::copy_counted>();
+        }
+
+        THEN("only the checkout copies, and nothing is written")
+        {
+            REQUIRE(CopyCounted::copies == 1);
+            REQUIRE(sem.try_acquire() == false);
+        }
+    }
+
+    WHEN("a temporary value is set in a queued writer")
+    {
+        app_state.CheckoutQueuedWriter<AS::copy_counted>().Set<AS::copy_counted>(CopyCounted {4});
+
+        THEN("it's moved all the way into the global state")
+        {
+            REQUIRE(CopyCounted::copies == 0);
+            REQUIRE(app_state.Get<AS::copy_counted>()->value == 4);
+            REQUIRE(sem.try_acquire());
+        }
+    }
+}
+
 TEST_CASE("the build is OK even with parameters not in the application state")
 {
     ApplicationState app_state;

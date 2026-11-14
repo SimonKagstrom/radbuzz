@@ -21,6 +21,11 @@ generate_application_state(radbuzz_unittest_application_state
         unittest_parameters.yml
 )
 
+target_include_directories(radbuzz_unittest_application_state
+PUBLIC
+    include
+)
+
 add_library(generated_application_state ALIAS radbuzz_unittest_application_state)
 add_library(messages ALIAS radbuzz_messages)
 

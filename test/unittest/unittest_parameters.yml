@@ -1,3 +1,13 @@
+cpp_includes:
+  - "copy_counted.hh"
+
 parameters:
   only_as_a_parameter:
     type: bool
+
+  # Counts its copies, to test that the application state doesn't copy values needlessly
+  copy_counted:
+    type: struct CopyCounted
+
+application_state:
+  copy_counted: {}
