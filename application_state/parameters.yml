@@ -51,6 +51,7 @@ parameters:
   battery_soc:
     type: uint8_t
 
+  # Written from several threads. See warning in ApplicationState::CheckoutPartialSnapshot()
   configuration:
     type: struct ConfigurationSettings
 
