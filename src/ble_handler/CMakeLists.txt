@@ -3,7 +3,12 @@ cmake_policy(SET CMP0135 NEW)
 
 include(FetchContent)
 
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+# SYSTEM, to silence warnings from its headers. 3.12.0 uses std::is_trivial, which GCC 15 warns
+# about since it's deprecated in C++26 (fixed upstream, but not yet in a release)
+FetchContent_Declare(json
+    SYSTEM
+    URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+)
 FetchContent_MakeAvailable(json)
 
 
