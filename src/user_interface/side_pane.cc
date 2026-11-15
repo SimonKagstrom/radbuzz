@@ -328,8 +328,7 @@ SidePane::Scroll(int32_t dy)
     lv_point_t scroll_end;
     lv_obj_get_scroll_end(m_body, &scroll_end);
 
-    const auto max_y = lv_obj_get_scroll_top(m_body) + lv_obj_get_scroll_bottom(m_body);
-    const auto y = std::clamp<int32_t>(scroll_end.y + dy, 0, max_y);
+    const auto y = std::clamp<int32_t>(scroll_end.y + dy, 0, MaxScrollY());
 
     lv_obj_scroll_to_y(m_body, y, LV_ANIM_ON);
     UpdateOkButton();
@@ -350,9 +349,14 @@ SidePane::AtBottom() const
     lv_point_t scroll_end;
     lv_obj_get_scroll_end(m_body, &scroll_end);
 
-    const auto max_y = lv_obj_get_scroll_top(m_body) + lv_obj_get_scroll_bottom(m_body);
+    return scroll_end.y >= MaxScrollY();
+}
 
-    return scroll_end.y >= max_y;
+int32_t
+SidePane::MaxScrollY() const
+{
+    // scroll_bottom is negative when the content is shorter than the body
+    return std::max<int32_t>(0, lv_obj_get_scroll_top(m_body) + lv_obj_get_scroll_bottom(m_body));
 }
 
 void

@@ -73,6 +73,8 @@ private:
     // The scroll position, including a running scroll animation, has reached the start/end
     bool AtTop() const;
     bool AtBottom() const;
+    // The largest valid scroll position (0 if the content fits)
+    int32_t MaxScrollY() const;
     // Gray until the end of the message has been reached (for the encoder)
     void UpdateOkButton();
     void UpdateVisibility();
