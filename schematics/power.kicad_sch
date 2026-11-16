@@ -2233,7 +2233,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "22 µF"
+		(property "Value" "22 µF, 25 V, X5R, 0805, Samsung CL21A226MAQNNNE"
 			(at 187.96 128.2699 0)
 			(show_name no)
 			(do_not_autoplace no)

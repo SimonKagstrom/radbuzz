@@ -1762,7 +1762,6 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "27071350-25b9-4237-8cf7-b8f46363c062")
 		(property "Reference" "C5"
 			(at 175.26 86.3599 0)
@@ -1775,8 +1774,8 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10µF"
-			(at 175.26 88.8999 0)
+		(property "Value" "22µF/25V X5R"
+			(at 167.894 90.932 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
