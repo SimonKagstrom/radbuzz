@@ -1,4 +1,5 @@
 #include "app_simulator.hh"
+#include "backlight_ledc_esp32.hh"
 #include "ble_handler.hh"
 #include "ble_server_esp32.hh"
 #include "blitter_esp32.hh"
@@ -22,6 +23,7 @@
 #include "sdkconfig.h"
 #include "speedometer_handler.hh"
 #include "st7701_display_esp32.hh"
+#include "st7701_panel_waveshare_4_3.hh"
 #include "stepper_motor_esp32.hh"
 #include "storage.hh"
 #include "temperature_monitor.hh"
@@ -35,14 +37,9 @@
 #include "wifi_handler.hh"
 
 #include <algorithm>
-#include <driver/ledc.h>
 #include <driver/sdmmc_host.h>
 #include <esp_app_format.h>
 #include <esp_hosted.h>
-#include <esp_lcd_mipi_dsi.h>
-#include <esp_lcd_panel_io.h>
-#include <esp_lcd_st7701.h>
-#include <esp_ldo_regulator.h>
 #include <esp_partition.h>
 #include <esp_random.h>
 #include <esp_vfs_fat.h>
@@ -56,7 +53,7 @@ namespace
 {
 
 constexpr auto kTftBacklight = GPIO_NUM_26;
-constexpr auto kBacklightOnLevel = 0;
+constexpr auto kBacklightPolarity = BacklightLedcEsp32::Polarity::kActiveLow;
 
 constexpr auto kPinLeftBuzzer = GPIO_NUM_25;  // TODO
 constexpr auto kPinRightBuzzer = GPIO_NUM_49; // TODO
@@ -81,192 +78,11 @@ constexpr auto kRotaryEncoderPinB = GPIO_NUM_52;
 constexpr auto kSdPwrCtrlLdoIoId = 4;
 
 constexpr auto kLcdResetPin = GPIO_NUM_27;
-constexpr auto kBacklightPin = GPIO_NUM_26; // set to -1 if not used
-constexpr auto kMipiDsiLaneNum = 4;
-
-constexpr auto kMipiDpiPxFormat = LCD_COLOR_FMT_RGB565;
-
-constexpr auto kMipiDsiPhyPwrLdoChan = 3;
+constexpr auto kMipiDsiPhyPwrLdoChan = 3; // LDO_VO3 is connected to VDD_MIPI_DPHY
 constexpr auto kMipiDsiPhyPwrLdoVoltageMv = 2500;
 
 constexpr const char* kC6FwPartitionLabel = "c6fw";
 constexpr size_t kSlaveOtaChunkSize = 1500;
-
-
-#define BSP_LCD_BACKLIGHT       (GPIO_NUM_26)
-#define BSP_LCD_RST             (GPIO_NUM_27)
-#define BSP_LCD_TOUCH_RST       (GPIO_NUM_23)
-#define BSP_LCD_TOUCH_INT       (GPIO_NUM_NC)
-#define BSP_LCD_PIXEL_CLOCK_MHZ (80)
-
-/* LCD display color format */
-#if CONFIG_BSP_LCD_COLOR_FORMAT_RGB888
-#define BSP_LCD_COLOR_FORMAT (ESP_LCD_COLOR_FORMAT_RGB888)
-#else
-#define BSP_LCD_COLOR_FORMAT (ESP_LCD_COLOR_FORMAT_RGB565)
-#endif
-/* LCD display color bytes endianess */
-#define BSP_LCD_BIGENDIAN (0)
-/* LCD display color bits */
-#define BSP_LCD_BITS_PER_PIXEL (16)
-/* LCD display color space */
-#define BSP_LCD_COLOR_SPACE (ESP_LCD_COLOR_SPACE_RGB)
-
-#define BSP_LCD_H_RES                      (480)
-#define BSP_LCD_V_RES                      (800)
-#define BSP_LCD_MIPI_DSI_LANE_BITRATE_MBPS (1500)
-
-#define BSP_LCD_MIPI_DSI_LANE_NUM           (2) // 2 data lanes
-#define BSP_MIPI_DSI_PHY_PWR_LDO_CHAN       (3) // LDO_VO3 is connected to VDD_MIPI_DPHY
-#define BSP_MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV (2500)
-
-// Bit number used to represent command and parameter
-#define LCD_LEDC_CH 1
-
-
-constexpr st7701_lcd_init_cmd_t lcd_init_cmds[] = {
-    {0xFF, (uint8_t[]) {0x77, 0x01, 0x00, 0x00, 0x13}, 5, 0},
-    {0xEF, (uint8_t[]) {0x08}, 1, 0},
-    {0xFF, (uint8_t[]) {0x77, 0x01, 0x00, 0x00, 0x10}, 5, 0},
-    {0xC0, (uint8_t[]) {0x63, 0x00}, 2, 0},
-    {0xC1, (uint8_t[]) {0x0D, 0x02}, 2, 0},
-    {0xC2, (uint8_t[]) {0x17, 0x08}, 2, 0},
-    {0xCC, (uint8_t[]) {0x10}, 1, 0},
-    {0xB0,
-     (uint8_t[]) {0x40,
-                  0xC9,
-                  0x94,
-                  0x0E,
-                  0x10,
-                  0x05,
-                  0x0B,
-                  0x09,
-                  0x08,
-                  0x26,
-                  0x04,
-                  0x52,
-                  0x10,
-                  0x69,
-                  0x6B,
-                  0x69},
-     16,
-     0},
-
-    {0xB1,
-     (uint8_t[]) {0x40,
-                  0xD2,
-                  0x98,
-                  0x0C,
-                  0x92,
-                  0x07,
-                  0x09,
-                  0x08,
-                  0x07,
-                  0x25,
-                  0x02,
-                  0x0E,
-                  0x0C,
-                  0x6E,
-                  0x78,
-                  0x55},
-     16,
-     0},
-
-    {0xFF, (uint8_t[]) {0x77, 0x01, 0x00, 0x00, 0x11}, 5, 0},
-    {0xB0, (uint8_t[]) {0x5D}, 1, 0},
-    {0xB1, (uint8_t[]) {0x4E}, 1, 0},
-    {0xB2, (uint8_t[]) {0x87}, 1, 0},
-    {0xB3, (uint8_t[]) {0x80}, 1, 0},
-    {0xB5, (uint8_t[]) {0x4E}, 1, 0},
-    {0xB7, (uint8_t[]) {0x85}, 1, 0},
-    {0xB8, (uint8_t[]) {0x21}, 1, 0},
-    {0xB9, (uint8_t[]) {0x10, 0x1F}, 2, 0},
-    {0xBB, (uint8_t[]) {0x03}, 1, 0},
-    {0xBC, (uint8_t[]) {0x00}, 1, 0},
-
-    {0xC1, (uint8_t[]) {0x78}, 1, 0},
-    {0xC2, (uint8_t[]) {0x78}, 1, 0},
-    {0xD0, (uint8_t[]) {0x88}, 1, 0},
-    {0xE0, (uint8_t[]) {0x00, 0x3A, 0x02}, 3, 0},
-    {0xE1, (uint8_t[]) {0x04, 0xA0, 0x00, 0xA0, 0x05, 0xA0, 0x00, 0xA0, 0x00, 0x40, 0x40}, 11, 0},
-
-    {0xE2,
-     (uint8_t[]) {0x30, 0x00, 0x40, 0x40, 0x32, 0xA0, 0x00, 0xA0, 0x00, 0xA0, 0x00, 0xA0, 0x00},
-     13,
-     0},
-
-    {0xE3, (uint8_t[]) {0x00, 0x00, 0x33, 0x33}, 4, 0},
-    {0xE4, (uint8_t[]) {0x44, 0x44}, 2, 0},
-    {0xE5,
-     (uint8_t[]) {0x09,
-                  0x2E,
-                  0xA0,
-                  0xA0,
-                  0x0B,
-                  0x30,
-                  0xA0,
-                  0xA0,
-                  0x05,
-                  0x2A,
-                  0xA0,
-                  0xA0,
-                  0x07,
-                  0x2C,
-                  0xA0,
-                  0xA0},
-     16,
-     0},
-
-    {0xE6, (uint8_t[]) {0x00, 0x00, 0x33, 0x33}, 4, 0},
-    {0xE7, (uint8_t[]) {0x44, 0x44}, 2, 0},
-    {0xE8,
-     (uint8_t[]) {0x08,
-                  0x2D,
-                  0xA0,
-                  0xA0,
-                  0x0A,
-                  0x2F,
-                  0xA0,
-                  0xA0,
-                  0x04,
-                  0x29,
-                  0xA0,
-                  0xA0,
-                  0x06,
-                  0x2B,
-                  0xA0,
-                  0xA0},
-     16,
-     0},
-
-    {0xEB, (uint8_t[]) {0x00, 0x00, 0x4E, 0x4E, 0x00, 0x00, 0x00}, 7, 0},
-    {0xEC, (uint8_t[]) {0x08, 0x01}, 2, 0},
-
-    {0xED,
-     (uint8_t[]) {0xB0,
-                  0x2B,
-                  0x98,
-                  0xA4,
-                  0x56,
-                  0x7F,
-                  0xFF,
-                  0xFF,
-                  0xFF,
-                  0xFF,
-                  0xF7,
-                  0x65,
-                  0x4A,
-                  0x89,
-                  0xB2,
-                  0x0B},
-     16,
-     0},
-
-    {0xEF, (uint8_t[]) {0x08, 0x08, 0x08, 0x45, 0x3F, 0x54}, 6, 0},
-    {0xFF, (uint8_t[]) {0x77, 0x01, 0x00, 0x00, 0x00}, 5, 0},
-    {0x11, (uint8_t[]) {0x00}, 0, 120},
-    {0x29, (uint8_t[]) {0x00}, 0, 0},
-};
 
 struct PartitionFirmwareInfo
 {
@@ -473,108 +289,6 @@ PerformC6SlaveOtaFromPartition(bool force)
     return true;
 }
 
-
-auto
-CreateDisplay()
-{
-    static esp_ldo_channel_handle_t ldo_mipi_phy = nullptr;
-    static esp_lcd_dsi_bus_handle_t mipi_dsi_bus = nullptr;
-    static esp_lcd_panel_io_handle_t mipi_dbi_io = nullptr;
-
-    esp_ldo_channel_config_t ldo_mipi_phy_config {};
-    ldo_mipi_phy_config.chan_id = kMipiDsiPhyPwrLdoChan;
-    ldo_mipi_phy_config.voltage_mv = kMipiDsiPhyPwrLdoVoltageMv;
-    ESP_ERROR_CHECK(esp_ldo_acquire_channel(&ldo_mipi_phy_config, &ldo_mipi_phy));
-
-    static esp_lcd_dsi_bus_config_t bus_config {};
-    bus_config.bus_id = 0;
-    bus_config.num_data_lanes = BSP_LCD_MIPI_DSI_LANE_NUM;
-    // Below esp32p4 v3
-    bus_config.phy_clk_src = MIPI_DSI_PHY_PLLREF_CLK_SRC_DEFAULT_LEGACY;
-    bus_config.lane_bit_rate_mbps = 1000;
-    bus_config.flags.clock_lane_force_hs = false;
-
-    ESP_ERROR_CHECK(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus));
-
-    static esp_lcd_dbi_io_config_t dbi_config {};
-    dbi_config.virtual_channel = 0;
-    dbi_config.lcd_cmd_bits = 8;
-    dbi_config.lcd_param_bits = 8;
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &dbi_config, &mipi_dbi_io));
-    static esp_lcd_dpi_panel_config_t dpi_config {};
-    dpi_config.virtual_channel = 0;
-    dpi_config.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
-    dpi_config.dpi_clock_freq_mhz = 36;
-    dpi_config.in_color_format = LCD_COLOR_FMT_RGB565;
-    dpi_config.out_color_format = LCD_COLOR_FMT_RGB565;
-    dpi_config.num_fbs = 2;
-    dpi_config.video_timing.h_size = BSP_LCD_H_RES;
-    dpi_config.video_timing.v_size = BSP_LCD_V_RES;
-    dpi_config.video_timing.hsync_pulse_width = 12;
-    dpi_config.video_timing.hsync_back_porch = 42;
-    dpi_config.video_timing.hsync_front_porch = 42;
-    dpi_config.video_timing.vsync_pulse_width = 8;
-    dpi_config.video_timing.vsync_back_porch = 2;
-    dpi_config.video_timing.vsync_front_porch = 12;
-    dpi_config.flags.disable_lp = false;
-
-    static st7701_vendor_config_t vendor_config {};
-    vendor_config.init_cmds = lcd_init_cmds;
-    vendor_config.init_cmds_size = sizeof(lcd_init_cmds) / sizeof(lcd_init_cmds[0]);
-    vendor_config.mipi_config.dsi_bus = mipi_dsi_bus;
-    vendor_config.mipi_config.dpi_config = &dpi_config;
-    vendor_config.flags.use_mipi_interface = 1;
-
-    static esp_lcd_panel_dev_config_t panel_config {};
-    panel_config.reset_gpio_num = BSP_LCD_RST;
-    panel_config.bits_per_pixel = 16;
-    panel_config.rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB;
-    panel_config.data_endian = LCD_RGB_DATA_ENDIAN_BIG;
-    panel_config.vendor_config = &vendor_config;
-
-    auto out = std::make_unique<DisplaySt7701>(mipi_dbi_io, panel_config);
-
-    return out;
-}
-
-// PWM on the backlight pin. Starts out off
-class BacklightEsp32 : public hal::IDisplayBrightness
-{
-public:
-    explicit BacklightEsp32(gpio_num_t pin)
-    {
-        ledc_timer_config_t timer_config {};
-        timer_config.speed_mode = LEDC_LOW_SPEED_MODE;
-        timer_config.duty_resolution = kDutyResolution;
-        timer_config.timer_num = LEDC_TIMER_0;
-        timer_config.freq_hz = 5000;
-        timer_config.clk_cfg = LEDC_AUTO_CLK;
-        ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
-
-        ledc_channel_config_t channel_config {};
-        channel_config.gpio_num = pin;
-        channel_config.speed_mode = LEDC_LOW_SPEED_MODE;
-        channel_config.channel = kChannel;
-        channel_config.timer_sel = LEDC_TIMER_0;
-        channel_config.duty = 0;
-        channel_config.flags.output_invert = kBacklightOnLevel == 0;
-        ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
-    }
-
-    void SetBrightness(uint8_t percent) final
-    {
-        // A duty of 1 << resolution is fully on
-        const auto duty = (std::min<uint32_t>(percent, 100) << kDutyResolution) / 100;
-
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, kChannel, duty);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, kChannel);
-    }
-
-private:
-    static constexpr auto kDutyResolution = LEDC_TIMER_10_BIT;
-    static constexpr auto kChannel = LEDC_CHANNEL_0;
-};
-
 } // namespace
 
 // esp_hosted calls esp_hosted_init() from a constructor, i.e., before the scheduler is started.
@@ -627,9 +341,14 @@ app_main(void)
 
 
     // Keep the backlight off until there is something on the display
-    auto backlight = std::make_unique<BacklightEsp32>(kTftBacklight);
+    auto backlight = std::make_unique<BacklightLedcEsp32>(
+        BacklightLedcEsp32::Config {.pin = kTftBacklight, .polarity = kBacklightPolarity});
 
-    auto display = CreateDisplay();
+    auto display = std::make_unique<DisplaySt7701>(
+        st7701::GetWaveshare4_3Panel(),
+        DisplaySt7701::BoardConfig {.reset_pin = kLcdResetPin,
+                                    .phy_ldo_channel = kMipiDsiPhyPwrLdoChan,
+                                    .phy_ldo_voltage_mv = kMipiDsiPhyPwrLdoVoltageMv});
 
     // Start with the background color, and let the UI draw on top of that. Flip, since that
     // also writes the frame buffer back from the cache

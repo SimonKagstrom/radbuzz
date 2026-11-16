@@ -44,10 +44,10 @@ target_link_libraries(${COMPONENT_TARGET}
     idf::vfs
     idf::fatfs
     idf::sdmmc
-    idf::esp_driver_ledc
     idf::espressif__esp_hosted
     wifi_client_esp32
     httpd_ota_updater_esp32
+    backlight_ledc_esp32
     blitter_esp32
     ble_handler
     ble_server_esp32
@@ -68,6 +68,7 @@ target_link_libraries(${COMPONENT_TARGET}
     input
     uart_esp32
     st7701_display_esp32
+    st7701_panel_waveshare_4_3
     buzz_handler
     tile_cache
     storage
