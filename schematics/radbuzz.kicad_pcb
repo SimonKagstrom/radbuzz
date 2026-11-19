@@ -13834,7 +13834,7 @@
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor")
 		(property "Reference" "R25"
-			(at 0 -1.5 90)
+			(at -2.5 0 180)
 			(layer "F.SilkS")
 			(uuid "86f6c8af-ab07-42ca-bed3-e4db8c72c880")
 			(effects
@@ -14913,7 +14913,7 @@
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor")
 		(property "Reference" "R26"
-			(at 0 -1.65 90)
+			(at 1.5875 -2 90)
 			(layer "F.SilkS")
 			(uuid "f6e54341-f360-40f1-9b7c-30b36f983ff3")
 			(effects
@@ -15538,7 +15538,7 @@
 		(descr "SOT, 3 Pin (JEDEC TO-236 Var AB https://www.jedec.org/document_search?search_api_views_fulltext=TO-236)")
 		(tags "SOT TO_SOT_SMD")
 		(property "Reference" "Q5"
-			(at 0 -2.4 90)
+			(at 0 -2.5 90)
 			(layer "F.SilkS")
 			(uuid "df826a03-a558-4393-99df-b13667fa7378")
 			(effects
@@ -15946,7 +15946,7 @@
 		(descr "Capacitor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf, https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing)")
 		(tags "capacitor")
 		(property "Reference" "C4"
-			(at 2.92 0 180)
+			(at 2.92 1.5 180)
 			(layer "F.SilkS")
 			(uuid "891e001e-5c96-433d-812a-d9dba6dbe486")
 			(effects
@@ -16707,7 +16707,7 @@
 		(descr "D_SOD-123F")
 		(tags "D_SOD-123F")
 		(property "Reference" "D7"
-			(at -3.6 -0.5 90)
+			(at -3.6 -0.5 180)
 			(layer "F.SilkS")
 			(uuid "df8201b0-f77d-43da-b2e0-c4c001fa2cfd")
 			(effects
@@ -21352,7 +21352,7 @@
 		(uuid "e29431ee-1ed6-458c-8fd9-349d7bf42fc3")
 		(at 140.025 91.51 -90)
 		(property "Reference" "U2"
-			(at -1.46 -3.5 90)
+			(at -0.96 -4 90)
 			(layer "F.SilkS")
 			(uuid "16be6d53-0eff-49c2-82b3-ef60861310a8")
 			(effects
@@ -25490,12 +25490,12 @@
 		(uuid "1a58ff07-7fb5-4cde-a9b1-e93a1894765d")
 	)
 	(segment
-		(start 119.025 89.05)
-		(end 119.525 89.05)
+		(start 119.525 89.55)
+		(end 119.025 89.05)
 		(width 1)
 		(layer "F.Cu")
 		(net "/Power/HOLDUP")
-		(uuid "3aee144c-0620-477d-8cb8-61aaecebcabe")
+		(uuid "55eb1be4-f43e-40b5-9d64-fa8bcfbc9d39")
 	)
 	(segment
 		(start 119.025 89.05)
@@ -25506,14 +25506,6 @@
 		(uuid "6088ccc0-e52d-4f9b-8a79-235d383cb076")
 	)
 	(segment
-		(start 120.025 89.55)
-		(end 127.025 89.55)
-		(width 1)
-		(layer "F.Cu")
-		(net "/Power/HOLDUP")
-		(uuid "6ad51ebc-0c80-47b3-9e83-371c93be01e0")
-	)
-	(segment
 		(start 127.025 89.55)
 		(end 131.025 93.55)
 		(width 1)
@@ -25522,20 +25514,12 @@
 		(uuid "7f50bdd6-6790-4ed8-a1ae-820615930623")
 	)
 	(segment
-		(start 118.892677 89.182323)
-		(end 119.025 89.05)
-		(width 0.2)
-		(layer "F.Cu")
-		(net "/Power/HOLDUP")
-		(uuid "da49453d-eaa3-4e81-9590-891ad6f66509")
-	)
-	(segment
-		(start 119.525 89.05)
-		(end 120.025 89.55)
+		(start 127.025 89.55)
+		(end 119.525 89.55)
 		(width 1)
 		(layer "F.Cu")
 		(net "/Power/HOLDUP")
-		(uuid "e1592906-edc4-4d31-93b7-e55c0057e791")
+		(uuid "e9f8006a-9ee1-44a1-8a6a-84d4e09acf62")
 	)
 	(zone
 		(net "GND")
