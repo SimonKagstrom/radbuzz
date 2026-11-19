@@ -8,12 +8,21 @@ checking fit against the host board and the case, not an accurate model.
 Heights come from KiCad's 3D models. Parts without a model use the values in
 FALLBACK_HEIGHTS, which are estimates, or a low default height.
 
+--skip leaves parts out, e.g. a module that is soldered on later. Their
+through-hole pins get widened holes, so the print can be tested with the real
+part. Without --skip, the parts in DEFAULT_SKIP are left out.
+
+--model draws parts in the shape of their KiCad 3D model (its convex hull)
+instead of as a block. Parts with a round courtyard, such as radial
+capacitors, are always drawn this way.
+
 Setup:
     python3 -m venv venv
     venv/bin/pip install trimesh manifold3d numpy scipy matplotlib
 
 Usage, from the schematics directory:
     venv/bin/python tools/make_mockup.py radbuzz.kicad_pcb radbuzz_mockup.stl
+    venv/bin/python tools/make_mockup.py radbuzz.kicad_pcb out.stl --skip J9,U2
 
 For the encoder board, --no-encoder leaves the encoder out and widens its
 holes, so the print can be tested with a real encoder.
@@ -41,6 +50,10 @@ from matplotlib.textpath import TextPath
 HEADER_REF = "J2"
 HEADER_DRILL_MM = 1.3
 HEADER_FOOTPRINT = "PinHeader_2x20"
+
+# Parts left out when --skip is not given. J9 is the GPS module's header, which
+# is soldered to the module rather than fitted to the board.
+DEFAULT_SKIP = ("J9",)
 
 # Estimated heights in mm for parts with no 3D model in the KiCad library.
 FALLBACK_HEIGHTS = {"F1": 1.8}
@@ -128,8 +141,15 @@ def rotate(x, y, origin_x, origin_y, degrees):
 
 
 def graphic_points(graphic):
+    center = child(graphic, "center")
+    if center:
+        # A circle is given as its center and a point on it
+        cx, cy = float(center[1]), float(center[2])
+        end = child(graphic, "end")
+        radius = math.hypot(float(end[1]) - cx, float(end[2]) - cy)
+        return [(cx - radius, cy - radius), (cx + radius, cy + radius)]
     points = []
-    for key in ("start", "end"):
+    for key in ("start", "mid", "end"):
         point = child(graphic, key)
         if point:
             points.append((float(point[1]), float(point[2])))
@@ -137,6 +157,23 @@ def graphic_points(graphic):
     if polygon:
         points += [(float(p[1]), float(p[2])) for p in children(polygon, "xy")]
     return points
+
+
+def round_courtyards(board):
+    """Return the references of footprints whose courtyard is a circle."""
+    result = set()
+    for footprint in children(board, "footprint"):
+        reference = next(
+            p[2] for p in children(footprint, "property") if p[1] == "Reference"
+        )
+        kinds = {
+            graphic[0] for graphic in footprint
+            if isinstance(graphic, list) and graphic and child(graphic, "layer")
+            and "CrtYd" in child(graphic, "layer")[1]
+        }
+        if kinds == {"fp_circle"}:
+            result.add(reference)
+    return result
 
 
 def read_courtyards(board):
@@ -150,7 +187,7 @@ def read_courtyards(board):
             p[2] for p in children(footprint, "property") if p[1] == "Reference"
         )
         points = []
-        for kind in ("fp_line", "fp_rect", "fp_poly"):
+        for kind in ("fp_line", "fp_rect", "fp_poly", "fp_circle", "fp_arc"):
             for graphic in children(footprint, kind):
                 layer = child(graphic, "layer")
                 if layer and "CrtYd" in layer[1]:
@@ -211,18 +248,27 @@ def read_keepouts(board):
     return result
 
 
-def widen_holes(path, footprint_name, round_drill, oval_drill=None):
+def widen_holes(path, round_drill, oval_drill=None, footprint_name=None,
+                reference=None):
     """Enlarge the drills of footprints in the temporary copy of the board.
 
-    Return False if the board has no such footprint.
+    Footprints are picked by footprint name or by reference. Return False if
+    the board has no such footprint.
     """
     text = path.read_text()
-    matches = list(re.finditer(r"\(footprint \"[^\"]*" + footprint_name, text))
-    for match in reversed(matches):
+    matches = []
+    for match in re.finditer(r"\n\t\(footprint \"([^\"]*)\"", text):
         start = match.start()
-        end = text.find("\n\t(footprint ", start + 10)
-        if end < 0:
-            end = len(text)
+        # A footprint ends at the first closing parenthesis on its own
+        # indentation level
+        end = text.index("\n\t)", start) + 3
+        section = text[start:end]
+        if footprint_name and footprint_name not in match.group(1):
+            continue
+        if reference and f'(property "Reference" "{reference}"' not in section:
+            continue
+        matches.append((start, end))
+    for start, end in reversed(matches):
         section, count = re.subn(
             r"\(drill [\d.]+\)", f"(drill {round_drill})", text[start:end]
         )
@@ -232,7 +278,8 @@ def widen_holes(path, footprint_name, round_drill, oval_drill=None):
                 f"(drill oval {oval_drill[0]} {oval_drill[1]})", section,
             )
             count += ovals
-        if not count:
+        # A skipped part may be surface mounted, with nothing to widen
+        if not count and footprint_name:
             raise ValueError(f"{footprint_name} footprint has no drills")
         text = text[:start] + section + text[end:]
     path.write_text(text)
@@ -316,6 +363,30 @@ def component_block(reference, courtyard, height, board_top):
     return block
 
 
+def model_shape(vertices, courtyard, board_top, height):
+    """Return the convex hull of a part's 3D model, stretched to height.
+
+    Return None if the courtyard holds no model.
+    """
+    x0, y0, x1, y1 = courtyard
+    margin = HEIGHT_SEARCH_MARGIN
+    inside = (
+        (vertices[:, 0] > x0 - margin) & (vertices[:, 0] < x1 + margin)
+        & (-vertices[:, 1] > y0 - margin) & (-vertices[:, 1] < y1 + margin)
+        & (vertices[:, 2] > board_top + 0.05)
+    )
+    if not inside.any():
+        return None
+    points = vertices[inside].astype(float)
+    # Follow FALLBACK_HEIGHTS if it overrides the model's height
+    model_height = points[:, 2].max() - board_top
+    points[:, 2] = board_top + (points[:, 2] - board_top) * height / model_height
+    # Sink the base into the plate so the two join
+    base = points.copy()
+    base[:, 2] = board_top - 0.2
+    return m3d.Manifold.hull_points(np.vstack([points, base]))
+
+
 def encoder_block(placement, board_top):
     _, x, y, angle = placement
     center_x, center_y = rotate(*ENCODER_SHAFT_CENTER, x, y, angle)
@@ -332,7 +403,10 @@ def encoder_block(placement, board_top):
     return (body + bushing + shaft).translate([center_x, -center_y, board_top])
 
 
-def build(board_path, output_path, with_encoder=True):
+def build(board_path, output_path, with_encoder=True, skip=None, model=()):
+    """Write the mock-up. skip=None leaves out DEFAULT_SKIP, if present."""
+    warn_skip = skip is not None
+    skip = DEFAULT_SKIP if skip is None else skip
     board_path = board_path.resolve()
     source = board_path.parent
     board = parse_sexpr(board_path.read_text())
@@ -347,10 +421,16 @@ def build(board_path, output_path, with_encoder=True):
                 shutil.copytree(source / folder, work / folder)
         copy = work / board_path.name
         shutil.copy(board_path, copy)
-        has_header = widen_holes(copy, HEADER_FOOTPRINT, HEADER_DRILL_MM)
+        has_header = widen_holes(copy, HEADER_DRILL_MM,
+                                 footprint_name=HEADER_FOOTPRINT)
+        skipped = [
+            r for r in skip if widen_holes(copy, HEADER_DRILL_MM, reference=r)
+        ]
+        for reference in sorted(set(skip) - set(skipped)) if warn_skip else []:
+            print(f"Warning: --skip {reference}: no such part on the board")
         if not with_encoder:
-            widen_holes(copy, ENCODER_FOOTPRINT, ENCODER_PIN_DRILL_MM,
-                        ENCODER_TAB_DRILL_MM)
+            widen_holes(copy, ENCODER_PIN_DRILL_MM, ENCODER_TAB_DRILL_MM,
+                        footprint_name=ENCODER_FOOTPRINT)
 
         courtyards = read_courtyards(board)
         placements = read_placements(board)
@@ -360,7 +440,11 @@ def build(board_path, output_path, with_encoder=True):
         references = [
             r for r in courtyards
             if r != HEADER_REF and not r.startswith("H") and r not in encoders
+            and r not in skipped
         ]
+        shaped = (set(model) | round_courtyards(board)) & set(references)
+        for reference in sorted(set(model) - set(courtyards)):
+            print(f"Warning: --model {reference}: no such part on the board")
         plate_mesh = run_export(copy, work / "plate.stl", "--board-only")
         parts_mesh = run_export(
             copy, work / "parts.stl", "--subst-models",
@@ -390,10 +474,19 @@ def build(board_path, output_path, with_encoder=True):
         height, origin = component_height(
             parts_mesh.vertices, courtyards[reference], board_top, reference
         )
+        shape = None
+        if reference in shaped:
+            shape = model_shape(
+                parts_mesh.vertices, courtyards[reference], board_top, height
+            )
+        if shape is None:
+            shape = component_block(
+                reference, courtyards[reference], height, board_top
+            )
+        else:
+            origin += ", model shape"
         report.append((reference, height, origin))
-        result = result + component_block(
-            reference, courtyards[reference], height, board_top
-        )
+        result = result + shape
 
     for reference in encoders if with_encoder else []:
         result = result + encoder_block(placements[reference], board_top)
@@ -417,8 +510,12 @@ def build(board_path, output_path, with_encoder=True):
     print(f"Size: {final.extents.round(2).tolist()} mm")
     for reference, height, origin in sorted(report, key=lambda r: -r[1])[:8]:
         print(f"  {reference:5} {height:5.1f} mm  {origin}")
-    guessed = sorted(r for r, _, origin in report if origin != "model")
+    guessed = sorted(
+        r for r, _, origin in report if not origin.startswith("model")
+    )
     print(f"Not from a 3D model: {', '.join(guessed)}")
+    if skipped:
+        print(f"Skipped: {', '.join(skipped)}")
 
 
 def main():
@@ -429,8 +526,23 @@ def main():
         "--no-encoder", action="store_true",
         help="Leave out the encoder and widen its holes to fit a real one",
     )
+    parser.add_argument(
+        "--skip", type=references_list, default=None,
+        help="Comma-separated parts to leave out; through-hole pins get "
+        f"widened holes (default: {','.join(DEFAULT_SKIP)}; '' skips none)",
+    )
+    parser.add_argument(
+        "--model", type=references_list, default=(),
+        help="Comma-separated parts to draw in the shape of their 3D model",
+    )
     arguments = parser.parse_args()
-    build(arguments.board, arguments.output, with_encoder=not arguments.no_encoder)
+    build(arguments.board, arguments.output,
+          with_encoder=not arguments.no_encoder, skip=arguments.skip,
+          model=arguments.model)
+
+
+def references_list(text):
+    return tuple(r.strip() for r in text.split(",") if r.strip())
 
 
 if __name__ == "__main__":
