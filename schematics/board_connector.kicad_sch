@@ -2040,10 +2040,6 @@
 		(uuid "cb585eef-8069-4af3-9d55-9ac9f8ba49ca")
 	)
 	(no_connect
-		(at 134.62 67.31)
-		(uuid "d419aad2-25ed-4042-bb7b-965af93e7f1a")
-	)
-	(no_connect
 		(at 134.62 92.71)
 		(uuid "d7e1c116-3924-4a33-abb0-346442a9176c")
 	)
@@ -2184,6 +2180,16 @@
 			(type default)
 		)
 		(uuid "3449a637-aca6-4910-8ccb-6ce3636f2b30")
+	)
+	(wire
+		(pts
+			(xy 132.08 67.31) (xy 134.62 67.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3725f36a-089d-48ad-841c-1f84650976f9")
 	)
 	(wire
 		(pts
@@ -2788,6 +2794,30 @@
 		(uuid "c41ede13-a1d8-4ef4-94c5-3993525fe0bb")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 121.8377 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+	)
+	(global_label "PWR_FAIL"
+		(shape input)
+		(at 132.08 67.31 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "def0b337-99ff-4c5c-8f97-5eeb1d1b954b")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 120.3257 67.31 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
