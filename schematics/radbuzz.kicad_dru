@@ -1,0 +1,9 @@
+(version 1)
+
+# The GPS module extends about 11 mm past J9's outermost pin, so J9's pins
+# must stay at least 11 mm from the left board edge. GPS_EDGE is a rule area
+# (no keepouts ticked) covering the left 10.15 mm of the board: 11 mm minus
+# the 0.85 mm pad radius, since the check is on the pad outline.
+(rule "GPS module must stay on the board"
+  (condition "A.Reference == 'J9' && A.intersectsArea('GPS_EDGE')")
+  (constraint disallow pad))
