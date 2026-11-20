@@ -22858,50 +22858,62 @@
 		(layer "Edge.Cuts")
 		(uuid "365b8ac0-399c-4e3c-af78-5dc55343f0a7")
 	)
-	(gr_text "V"
-		(at 55.025 112.55 0)
+	(gr_text "VCC RX TX GND"
+		(at 48.525 113.05 0)
 		(layer "F.SilkS")
-		(uuid "617a9dd3-b6cb-4b4a-bde5-03aec98c7076")
+		(uuid "62c9986c-87fa-432d-a484-b6fa10b92e8c")
 		(effects
 			(font
 				(size 1 1)
-				(thickness 0.15)
+				(thickness 0.1)
 			)
 			(justify left bottom)
 		)
 	)
-	(gr_text "R"
-		(at 56.025 112.55 0)
+	(gr_text "GND"
+		(at 52.025 101.05 0)
 		(layer "F.SilkS")
-		(uuid "0d45bda7-9c5b-442e-a0d0-ce9a5f34a99a")
+		(uuid "b0042427-0da5-49f4-b73f-214b80a0c6e6")
 		(effects
 			(font
 				(size 1 1)
-				(thickness 0.15)
+				(thickness 0.1)
 			)
 			(justify left bottom)
 		)
 	)
-	(gr_text "T"
-		(at 57.025 112.55 0)
+	(gr_text "TX"
+		(at 56.025 101.05 0)
 		(layer "F.SilkS")
-		(uuid "1984166c-9f09-4baa-b88a-f85ade349129")
+		(uuid "3756c0e4-6c3e-4769-90f3-21c424a0b245")
 		(effects
 			(font
 				(size 1 1)
-				(thickness 0.15)
+				(thickness 0.1)
 			)
 			(justify left bottom)
 		)
 	)
-	(gr_text "G"
-		(at 58.025 112.55 0)
+	(gr_text "RX"
+		(at 58.525 101.05 0)
 		(layer "F.SilkS")
-		(uuid "d42027f3-625b-48c8-8829-6a6011188043")
+		(uuid "f5fe2476-f526-44fc-9feb-d34cc59005b1")
 		(effects
 			(font
 				(size 1 1)
-				(thickness 0.15)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "Vcc"
+		(at 61.025 101.05 0)
+		(layer "F.SilkS")
+		(uuid "4c3e0f90-3544-469b-8bc9-5799a81e9c44")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
 			)
 			(justify left bottom)
 		)
