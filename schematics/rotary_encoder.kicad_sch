@@ -2018,6 +2018,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17414"
+			(at 144.78 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "7c8b3d3f-f458-453f-8340-f9c8bfab8f4a")
 		)
@@ -2090,6 +2101,17 @@
 			)
 		)
 		(property "Description" "ESD Protection Diodes with Low Clamping Voltage, SOT-23-6"
+			(at 71.12 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C85364"
 			(at 71.12 77.47 0)
 			(hide yes)
 			(show_name no)
@@ -2194,6 +2216,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17414"
+			(at 116.84 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "96d6628d-fb90-4261-872e-6b790ed29940")
 		)
@@ -2216,7 +2249,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -2266,6 +2299,17 @@
 			)
 		)
 		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 46.99 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
 			(at 46.99 107.95 0)
 			(hide yes)
 			(show_name no)
@@ -2517,6 +2561,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17513"
+			(at 106.68 30.48 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "eabaa826-f02c-4551-961e-f312fd0b8133")
 		)
@@ -2589,6 +2644,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 143.51 71.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C17414"
 			(at 143.51 71.12 0)
 			(hide yes)
 			(show_name no)
@@ -2913,6 +2979,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17513"
+			(at 133.35 82.55 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "b0687c9f-59a5-4022-9f95-7d1a06d409f8")
 		)
@@ -2995,6 +3072,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C1710"
+			(at 144.78 157.48 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "bb41a640-7059-457d-925d-66c255bad33b")
 		)
@@ -3066,6 +3154,17 @@
 		)
 		(property "Description" "Resistor"
 			(at 134.62 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C17513"
+			(at 134.62 147.32 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3235,6 +3334,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C1710"
+			(at 116.84 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "0f1a7407-d8c2-409c-a166-087afa0f3be9")
 		)
@@ -3385,6 +3495,17 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 143.51 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C1710"
 			(at 143.51 92.71 0)
 			(hide yes)
 			(show_name no)

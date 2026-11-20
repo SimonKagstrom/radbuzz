@@ -1293,6 +1293,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17408"
+			(at 83.82 156.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "fe98f21a-10e8-4504-8d66-1699b677919e")
 		)
@@ -1454,6 +1465,17 @@
 				)
 			)
 		)
+		(property "LCSC" ""
+			(at 143.51 39.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "3"
 			(uuid "e966a326-85ca-471c-95e6-d7b59594a69c")
 		)
@@ -1498,7 +1520,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100K"
+		(property "Value" "100k"
 			(at 100.33 146.0499 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1532,6 +1554,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 97.79 144.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C149504"
 			(at 97.79 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -1703,6 +1736,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C20917"
+			(at 83.82 138.43 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "34dd13f3-8fae-43c4-a9c7-ea1d1e2387fa")
 		)
@@ -1779,6 +1823,17 @@
 		)
 		(property "Description" "30V Vds, 5.7A Id, N-Channel MOSFET, SOT-23"
 			(at 83.82 62.23 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C20917"
+			(at 83.82 62.23 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1873,6 +1928,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17408"
+			(at 83.82 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "4229ec90-01f0-4ac8-b7eb-d1b7dd26a5d8")
 		)
@@ -1911,7 +1977,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100K"
+		(property "Value" "100k"
 			(at 100.33 69.8499 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1945,6 +2011,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 97.79 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C149504"
 			(at 97.79 68.58 0)
 			(hide yes)
 			(show_name no)

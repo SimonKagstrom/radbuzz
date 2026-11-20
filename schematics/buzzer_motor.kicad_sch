@@ -1951,6 +1951,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17408"
+			(at 85.09 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "8d26873e-944c-4f76-b26d-35cba2677d20")
 		)
@@ -1989,7 +2000,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100 nF"
+		(property "Value" "100nF"
 			(at 62.23 133.3499 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2023,6 +2034,17 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 58.42 132.08 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C28233"
 			(at 58.42 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -2115,6 +2137,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17408"
+			(at 85.09 82.55 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "ea87c3f8-9d54-4684-beb2-9b91801b3e1f")
 		)
@@ -2187,6 +2220,17 @@
 		)
 		(property "Description" "40V 1A Schottky Diode, SMA"
 			(at 34.29 132.08 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C2480"
+			(at 34.29 132.08 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2313,7 +2357,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100 nF"
+		(property "Value" "100nF"
 			(at 62.23 50.7999 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2347,6 +2391,17 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 58.42 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C28233"
 			(at 58.42 49.53 0)
 			(hide yes)
 			(show_name no)
@@ -2438,6 +2493,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C2480"
+			(at 34.29 49.53 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "dc72a44d-c5e3-4b59-8479-07456bd21f59")
 		)
@@ -2511,6 +2577,17 @@
 		)
 		(property "Description" "30V Vds, 5.7A Id, N-Channel MOSFET, SOT-23"
 			(at 85.09 64.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C20917"
+			(at 85.09 64.77 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2683,6 +2760,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C20917"
+			(at 85.09 147.32 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "62d0502f-bd0f-46a8-b937-57ef75fde8dd")
 		)
@@ -2785,7 +2873,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -2843,6 +2931,17 @@
 				)
 			)
 		)
+		(property "LCSC" ""
+			(at 177.8 39.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "4"
 			(uuid "4ef9f626-5dd9-4d1f-a255-9d749e914b0a")
 		)
@@ -2887,7 +2986,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100K"
+		(property "Value" "100k"
 			(at 101.6 72.3899 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2921,6 +3020,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 99.06 71.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C149504"
 			(at 99.06 71.12 0)
 			(hide yes)
 			(show_name no)
@@ -2969,7 +3079,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100K"
+		(property "Value" "100k"
 			(at 101.6 154.9399 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3003,6 +3113,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 99.06 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C149504"
 			(at 99.06 153.67 0)
 			(hide yes)
 			(show_name no)

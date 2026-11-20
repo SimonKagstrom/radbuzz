@@ -3256,6 +3256,17 @@
 				)
 			)
 		)
+		(property "LCSC" ""
+			(at 36.83 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "33dd2e12-99ab-4f9d-af15-1d3c6fea329a")
 		)
@@ -3403,6 +3414,17 @@
 			)
 		)
 		(property "Description" "Mounting Hole with connection"
+			(at 72.39 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
 			(at 72.39 26.67 0)
 			(hide yes)
 			(show_name no)
@@ -3570,6 +3592,17 @@
 				)
 			)
 		)
+		(property "LCSC" ""
+			(at 72.39 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "edce7076-6af8-4e17-b811-8e1b6fe88e36")
 		)
@@ -3640,6 +3673,17 @@
 		)
 		(property "Description" "Generic connector, double row, 02x20, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)"
 			(at 142.24 82.55 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
+			(at 142.24 82.55 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3913,6 +3957,17 @@
 			)
 		)
 		(property "Description" "Mounting Hole with connection"
+			(at 36.83 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
 			(at 36.83 26.67 0)
 			(hide yes)
 			(show_name no)

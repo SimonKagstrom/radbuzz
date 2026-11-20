@@ -3556,6 +3556,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C2123"
+			(at 101.6 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "4d5332f1-6308-41d9-828a-7ac97b82ee7c")
 		)
@@ -3628,6 +3639,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 135.89 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C17673"
 			(at 135.89 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -3720,6 +3742,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C51890337"
+			(at 135.89 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "298f4ab6-f610-421d-85d1-a4f36105f12d")
 		)
@@ -3758,7 +3791,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "22 µF, 25 V, X5R, 0805, Samsung CL21A226MAQNNNE"
+		(property "Value" "22µF/25V X5R"
 			(at 215.9 128.2699 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3792,6 +3825,17 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 212.09 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C45783"
 			(at 212.09 127 0)
 			(hide yes)
 			(show_name no)
@@ -3838,7 +3882,7 @@
 				)
 			)
 		)
-		(property "Value" "Polyfuse 1.5 A hold, ≥24 V, 1812 size"
+		(property "Value" "Polyfuse 1.5A/24V"
 			(at 85.344 111.76 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3873,6 +3917,17 @@
 		)
 		(property "Description" "Resettable fuse, polymeric positive temperature coefficient"
 			(at 99.06 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C32404"
+			(at 99.06 115.57 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4119,6 +4174,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C51890337"
+			(at 123.19 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "ce26407f-3dae-42c2-8b5d-da65fcbec845")
 		)
@@ -4199,6 +4265,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17414"
+			(at 119.38 77.47 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "6e3d86dd-390a-4b27-aa9e-f1152c9ff59e")
 		)
@@ -4237,7 +4314,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "47 µF/35 V"
+		(property "Value" "47µF/35V"
 			(at 187.96 127.3809 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4271,6 +4348,17 @@
 			)
 		)
 		(property "Description" "Polarized capacitor"
+			(at 184.15 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C2836440"
 			(at 184.15 127 0)
 			(hide yes)
 			(show_name no)
@@ -4362,6 +4450,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17414"
+			(at 139.7 54.61 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "1d3173a3-a6d1-4d8e-b6e6-8b213d62ab37")
 		)
@@ -4444,6 +4543,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C86819"
+			(at 151.13 128.27 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "e6224740-20e4-451b-81ce-e3ac4d637081")
 		)
@@ -4515,6 +4625,17 @@
 			)
 		)
 		(property "Description" "Polarized capacitor"
+			(at 129.54 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C51890337"
 			(at 129.54 140.97 0)
 			(hide yes)
 			(show_name no)
@@ -4632,6 +4753,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C20526"
+			(at 146.05 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "3"
 			(uuid "e16db207-52ad-482c-ad85-31bfa2527e6b")
 		)
@@ -4673,7 +4805,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10 Ω"
+		(property "Value" "10Ω"
 			(at 134.62 120.6499 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4717,6 +4849,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C16861"
+			(at 132.08 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "21245a55-7286-4dec-9b03-5f0295028b03")
 		)
@@ -4738,7 +4881,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -4788,6 +4931,17 @@
 			)
 		)
 		(property "Description" "2A step-down regulator, fixed 5V output voltage, 6.5-36V input voltage, TO-220 compatible LM78xx replacement, SIP-3"
+			(at 196.85 118.11 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
 			(at 196.85 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -4882,6 +5036,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C8678"
+			(at 222.25 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "11a7db90-5f5c-4fae-8f74-865e0023814a")
 		)
@@ -4919,7 +5084,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "Polyfuse 2.5 A hold, ≥24 V, 1812 size"
+		(property "Value" "Polyfuse 2.5A/24V"
 			(at 23.622 67.564 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4954,6 +5119,17 @@
 			)
 		)
 		(property "Description" "Resettable fuse, polymeric positive temperature coefficient"
+			(at 63.5 66.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
 			(at 63.5 66.04 0)
 			(hide yes)
 			(show_name no)
@@ -5044,6 +5220,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C8678"
+			(at 110.49 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "afe92b90-51cb-4415-bd5d-9d9b4814bbc7")
 		)
@@ -5116,6 +5303,17 @@
 			)
 		)
 		(property "Description" "Polarized capacitor"
+			(at 142.24 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C51890337"
 			(at 142.24 140.97 0)
 			(hide yes)
 			(show_name no)
@@ -5321,7 +5519,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10 µF/25 V X7R"
+		(property "Value" "10µF/50V X5R"
 			(at 177.8 132.0799 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5355,6 +5553,17 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 173.99 130.81 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C13585"
 			(at 173.99 130.81 0)
 			(hide yes)
 			(show_name no)
@@ -5522,6 +5731,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C2480"
+			(at 125.73 128.27 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "607e3aaf-e339-4f64-af8e-d3a6dac1abed")
 		)
@@ -5543,7 +5763,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -5592,6 +5812,17 @@
 			)
 		)
 		(property "Description" "Generic connector, single row, 01x02, script generated"
+			(at 34.29 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
 			(at 34.29 135.89 0)
 			(hide yes)
 			(show_name no)

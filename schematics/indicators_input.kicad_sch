@@ -1940,6 +1940,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C1710"
+			(at 176.53 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "5d7eefd6-b2a8-49f7-8cca-0d0cf9327ede")
 		)
@@ -2098,6 +2109,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17513"
+			(at 166.37 118.11 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "9d7f2267-d5fe-4b0a-b9bd-3a0d03ba2f5b")
 		)
@@ -2180,6 +2202,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C1710"
+			(at 176.53 128.27 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "8fe73468-1535-4673-96d0-6bdd5e11a548")
 		)
@@ -2251,6 +2284,17 @@
 		)
 		(property "Description" "Resistor"
 			(at 166.37 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C17513"
+			(at 166.37 50.8 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2496,6 +2540,17 @@
 				)
 			)
 		)
+		(property "LCSC" ""
+			(at 73.66 87.63 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "3"
 			(uuid "463c6e41-f577-4837-a805-f16af193ecb6")
 		)
@@ -2571,6 +2626,17 @@
 			)
 		)
 		(property "Description" "ESD Protection Diodes with Low Clamping Voltage, SOT-23-6"
+			(at 99.06 66.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C85364"
 			(at 99.06 66.04 0)
 			(hide yes)
 			(show_name no)
@@ -2754,6 +2820,17 @@
 				)
 			)
 		)
+		(property "LCSC" "C17414"
+			(at 176.53 39.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "df62aa17-6d92-4e5c-842e-3358d66f5370")
 		)
@@ -2826,6 +2903,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 176.53 106.68 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C17414"
 			(at 176.53 106.68 0)
 			(hide yes)
 			(show_name no)
