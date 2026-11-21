@@ -39,10 +39,16 @@ GpsReader::OnActivation()
     {
         m_heading = data->heading;
     }
+
+    auto qw =
+        m_application_state
+            .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_status, AS::gps_utc>();
+
+
     if (data->utc)
     {
         // The time is real also in demo mode
-        m_application_state.Set<AS::gps_utc>(*data->utc);
+        qw.Set<AS::gps_utc>(*data->utc);
     }
 
     if (m_application_state.Get<AS::demo_mode>())
@@ -54,8 +60,6 @@ GpsReader::OnActivation()
         return std::nullopt;
     }
 
-    auto qw = m_application_state
-                  .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_status>();
     if (m_application_state.Get<AS::gps_status>() == GpsStatus::kSilent)
     {
         // We have data, so at least NoFix should be set
