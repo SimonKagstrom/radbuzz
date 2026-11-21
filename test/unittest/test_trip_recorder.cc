@@ -65,9 +65,25 @@ public:
         RunLoopWhileReady();
     }
 
+    void ResetTrip()
+    {
+        post_office.Send<MSG::reset_trip>();
+        RunLoopWhileReady();
+    }
+
     static std::string TripPath(uint32_t utc)
     {
         return std::format("TRIPS/CURRENT/{:08X}.JSL", utc);
+    }
+
+    static std::string RawPath(uint32_t utc)
+    {
+        return std::format("TRIPS/RAW/{:08X}.JSL", utc);
+    }
+
+    static Filesystem::DirectoryEntry Entry(uint32_t utc)
+    {
+        return {std::format("{:08X}.JSL", utc), false};
     }
 
     // The lines of a file, or nothing if it doesn't exist
@@ -102,8 +118,9 @@ public:
     }
 
     ApplicationState state;
+    PostOffice<MSG::AllMessages> post_office;
     Filesystem filesystem {"/sdcard"};
-    TripRecorder recorder {state, filesystem};
+    TripRecorder recorder {state, post_office, filesystem};
 };
 
 } // namespace
@@ -295,6 +312,120 @@ TEST_CASE_FIXTURE(Fixture, "stopping without any fixes writes nothing")
     Stop();
 
     CHECK(filesystem.ListDirectory("").empty());
+}
+
+TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
+{
+    using Entries = std::vector<Filesystem::DirectoryEntry>;
+
+    Fix(kUtc);
+    Fix(kUtc + 1);
+
+    WHEN("the trip is reset while moving")
+    {
+        ResetTrip();
+
+        THEN("the buffered lines are written, and the trip is moved")
+        {
+            CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
+            CHECK(filesystem.ListDirectory("TRIPS/RAW") == Entries {Entry(kUtc)});
+            CHECK(JsonLines(RawPath(kUtc)).size() == 2);
+        }
+
+        AND_WHEN("more fixes arrive")
+        {
+            Fix(kUtc + 10);
+            Fix(kUtc + 11);
+            Stop();
+
+            THEN("they start a new trip, and the old one is unchanged")
+            {
+                CHECK(filesystem.ListDirectory("TRIPS/CURRENT") == Entries {Entry(kUtc + 10)});
+                CHECK(JsonLines(TripPath(kUtc + 10)).size() == 2);
+                CHECK(JsonLines(RawPath(kUtc)).size() == 2);
+            }
+
+            AND_WHEN("that trip is reset as well")
+            {
+                ResetTrip();
+
+                THEN("both trips are in RAW")
+                {
+                    CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
+                    CHECK(filesystem.ListDirectory("TRIPS/RAW") ==
+                          Entries {Entry(kUtc), Entry(kUtc + 10)});
+                }
+            }
+        }
+    }
+
+    WHEN("the trip is reset after stopping")
+    {
+        Stop();
+        REQUIRE(filesystem.FileExists(TripPath(kUtc)));
+
+        ResetTrip();
+
+        THEN("the written trip is moved")
+        {
+            CHECK_FALSE(filesystem.FileExists(TripPath(kUtc)));
+            CHECK(JsonLines(RawPath(kUtc)).size() == 2);
+        }
+    }
+
+    WHEN("the trip is reset twice")
+    {
+        ResetTrip();
+        ResetTrip();
+
+        THEN("the second reset does nothing")
+        {
+            CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
+            CHECK(filesystem.ListDirectory("TRIPS/RAW") == Entries {Entry(kUtc)});
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a trip reset without a trip does nothing")
+{
+    ResetTrip();
+
+    CHECK(filesystem.ListDirectory("").empty());
+
+    AND_WHEN("a fix arrives")
+    {
+        Fix(kUtc);
+        Stop();
+
+        THEN("a trip is started as usual")
+        {
+            CHECK(JsonLines(TripPath(kUtc)).size() == 1);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved is left in CURRENT")
+{
+    // E.g., a trip with the same name from before
+    mock_filesystem::SetFile(RawPath(kUtc), "old");
+
+    Fix(kUtc);
+    ResetTrip();
+
+    CHECK(JsonLines(TripPath(kUtc)).size() == 1);
+    CHECK(Lines(RawPath(kUtc)) == std::vector<std::string> {"old"});
+
+    AND_WHEN("more fixes arrive")
+    {
+        Fix(kUtc + 10);
+        Stop();
+
+        THEN("they still start a new trip")
+        {
+            CHECK(JsonLines(TripPath(kUtc)).size() == 1);
+            CHECK(JsonLines(TripPath(kUtc + 10)).size() == 1);
+        }
+    }
 }
 
 TEST_CASE_FIXTURE(Fixture, "lines which can't be written are dropped")

@@ -11,11 +11,14 @@ constexpr auto kMaxLineSize = 256uz;
 
 } // namespace
 
-TripRecorder::TripRecorder(ApplicationState& state, Filesystem& filesystem)
+TripRecorder::TripRecorder(ApplicationState& state,
+                           PostOffice<MSG::AllMessages>& post_office,
+                           Filesystem& filesystem)
     : m_state(state)
     , m_filesystem(filesystem)
     , m_listener(m_state.AttachListener<AS::pixel_position, AS::is_moving>(GetSemaphore()))
     , m_state_cache(m_state)
+    , m_mailbox(post_office.Subscribe<MSG::reset_trip>(GetSemaphore()))
 {
     m_buffer.reserve(kBufferSize + kMaxLineSize);
 }
@@ -23,6 +26,20 @@ TripRecorder::TripRecorder(ApplicationState& state, Filesystem& filesystem)
 std::optional<milliseconds>
 TripRecorder::OnActivation()
 {
+    m_mailbox->Collect().On<MSG::reset_trip>([this](auto) {
+        if (!m_filename.empty())
+        {
+            Flush();
+            if (!m_filesystem.Move(PathIn(kCurrentDirectory), PathIn(kRawDirectory)))
+            {
+                // Left in CURRENT, so the next trip still starts in a new file
+                printf("TripRecorder: can't move %s to %s\n", m_filename.c_str(), kRawDirectory);
+            }
+
+            m_filename.clear();
+        }
+    });
+
     // The pixel position is less noisy than the GPS position, and changes only when moving at
     // least a few meters. Written together with the position and time by the GPS reader
     m_state_cache.Pull()
@@ -52,9 +69,9 @@ TripRecorder::Record(const GpsData& data)
     }
     m_last_utc = utc;
 
-    if (m_path.empty())
+    if (m_filename.empty())
     {
-        m_path = std::format("{}/{:08X}.JSL", kCurrentDirectory, utc);
+        m_filename = std::format("{:08X}.JSL", utc);
     }
 
     std::format_to(std::back_inserter(m_buffer),
@@ -81,12 +98,20 @@ TripRecorder::Flush()
         return;
     }
 
-    auto file = m_filesystem.OpenWritable(m_path);
+    auto file = m_filesystem.OpenWritable(PathIn(kCurrentDirectory));
     if (!file || !file->Write(std::as_bytes(std::span(m_buffer))) || !file->Sync())
     {
         // Dropped, so that the buffer doesn't grow without bounds
-        printf("TripRecorder: can't write %s, dropping %zu bytes\n", m_path.c_str(), m_buffer.size());
+        printf("TripRecorder: can't write %s, dropping %zu bytes\n",
+               m_filename.c_str(),
+               m_buffer.size());
     }
 
     m_buffer.clear();
+}
+
+std::string
+TripRecorder::PathIn(std::string_view directory) const
+{
+    return std::format("{}/{}", directory, m_filename);
 }

@@ -12,4 +12,6 @@ PUBLIC
     application_state
     base_thread
     filesystem
+    post_office
+    radbuzz_messages
 )

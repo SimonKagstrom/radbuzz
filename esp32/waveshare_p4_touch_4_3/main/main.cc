@@ -530,7 +530,7 @@ app_main(void)
     auto vesc_can_bus_handler = std::make_unique<VescCanBusHandler>(*can, application_state);
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
-    auto trip_recorder = std::make_unique<TripRecorder>(application_state, *filesystem);
+    auto trip_recorder = std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
     auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
     auto brightness_controller = std::make_unique<BrightnessController>(
