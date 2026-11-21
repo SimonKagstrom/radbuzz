@@ -39,6 +39,11 @@ GpsReader::OnActivation()
     {
         m_heading = data->heading;
     }
+    if (data->utc)
+    {
+        // The time is real also in demo mode
+        m_application_state.Set<AS::gps_utc>(*data->utc);
+    }
 
     if (m_application_state.Get<AS::demo_mode>())
     {

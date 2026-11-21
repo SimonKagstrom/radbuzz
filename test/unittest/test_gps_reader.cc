@@ -163,6 +163,68 @@ TEST_CASE_FIXTURE(Fixture, "When demo mode is active, the GPS state is not updat
     REQUIRE(*state.Get<AS::pixel_position>() == stockholm);
 }
 
+TEST_CASE_FIXTURE(Fixture, "The GPS time is published to the application state")
+{
+    constexpr uint32_t kUtc = 1774269319;
+
+    REQUIRE(state.Get<AS::gps_utc>() == 0);
+
+    WHEN("data without a time arrives")
+    {
+        DeliverData({.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f});
+
+        THEN("the GPS time is unset")
+        {
+            CHECK(state.Get<AS::gps_utc>() == 0);
+        }
+    }
+
+    WHEN("only a time arrives")
+    {
+        DeliverData({.utc = kUtc});
+
+        THEN("the GPS time is set, although the position isn't valid")
+        {
+            CHECK(state.Get<AS::gps_utc>() == kUtc);
+            CHECK(state.Get<AS::gps_status>() == GpsStatus::kNoFix);
+        }
+
+        AND_WHEN("later data has no time")
+        {
+            AdvanceTime(1s);
+            DeliverData({.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f});
+
+            THEN("the last GPS time is kept")
+            {
+                CHECK(state.Get<AS::gps_utc>() == kUtc);
+            }
+        }
+
+        AND_WHEN("a newer time arrives")
+        {
+            AdvanceTime(1s);
+            DeliverData({.utc = kUtc + 1});
+
+            THEN("the GPS time is updated")
+            {
+                CHECK(state.Get<AS::gps_utc>() == kUtc + 1);
+            }
+        }
+    }
+
+    WHEN("demo mode is active")
+    {
+        state.Set<AS::demo_mode>(true);
+        DeliverData({.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f, .utc = kUtc});
+
+        THEN("the GPS time is still set, since it's real")
+        {
+            CHECK(state.Get<AS::gps_utc>() == kUtc);
+            CHECK(*state.Get<AS::pixel_position>() == stockholm);
+        }
+    }
+}
+
 TEST_CASE_FIXTURE(Fixture, "A valid position is kept while GPS data keeps arriving")
 {
     hal::RawGpsData raw_data {.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f};
