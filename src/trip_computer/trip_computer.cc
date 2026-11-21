@@ -5,6 +5,9 @@
 
 #include <numeric>
 
+static_assert(TripComputer::kNumberOfTripLogEntries <= kInvalidLogHandle,
+              "Handle type too small for number of entries");
+
 namespace
 {
 

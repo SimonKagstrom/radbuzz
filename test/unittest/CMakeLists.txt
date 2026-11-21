@@ -83,6 +83,7 @@ target_link_libraries(unittest_radbuzz
     storage
     tile_cache
     trip_computer
+    trip_log
     trip_recorder
     wifi_handler
 
