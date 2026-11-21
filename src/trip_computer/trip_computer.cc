@@ -394,7 +394,7 @@ TripComputer::UpdateTripLog()
     }
 
     auto position = *m_state.Get<AS::pixel_position>();
-    auto now = os::GetTimeStamp();
+    auto now = std::chrono::duration_cast<seconds>(os::GetTimeStamp());
     auto power = m_state.Get<AS::current_power_w>();
 
     //    m_export_log.AddEntry(position, now, power);

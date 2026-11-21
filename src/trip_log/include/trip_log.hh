@@ -22,7 +22,7 @@ class Fixture;
 
 struct TripLogEntry
 {
-    milliseconds timestamp;
+    seconds timestamp;
     Point position;
     bool stale;
     decltype(AS::current_power_w::current_power_w) power;
@@ -69,7 +69,7 @@ public:
         }
     };
 
-    std::optional<LogHandle> AddEntry(const Point& position, milliseconds timestamp, int16_t power);
+    std::optional<LogHandle> AddEntry(const Point& position, seconds timestamp, int16_t power);
 
     std::optional<LogHandle> GetLastHandle() const
     {
@@ -107,8 +107,9 @@ TripLog<Entries>::TriangleArea(const Point& a, const Point& b, const Point& c)
 {
     debug_assert(a.zoom == kDefaultZoom && b.zoom == kDefaultZoom && c.zoom == kDefaultZoom);
 
-    // Only the relation is important, not the absolute area
-    const auto doubled_area = (a.x) * (b.y - c.y) + (b.x) * (c.y - a.y) + (c.x) * (a.y - b.y);
+    // Only the relation is important, not the absolute area. Relative to a, and in 64 bits, since
+    // the pixel coordinates are large enough to overflow 32 bits when multiplied
+    const auto doubled_area = int64_t {b.x - a.x} * (c.y - a.y) - int64_t {c.x - a.x} * (b.y - a.y);
     static_assert(sizeof(doubled_area) > sizeof(TriangleAreaType));
 
     const auto abs_doubled_area = std::abs(doubled_area);
@@ -230,7 +231,7 @@ TripLog<Entries>::Link(LogHandle predecessor, LogHandle successor)
 
 template <size_t Entries>
 std::optional<LogHandle>
-TripLog<Entries>::AddEntry(const Point& position, milliseconds timestamp, int16_t power)
+TripLog<Entries>::AddEntry(const Point& position, seconds timestamp, int16_t power)
 {
     if (m_pending_log_entry &&
         std::abs(position.x - m_parent.Entry(m_pending_log_entry->handle).position.x) < 5 &&

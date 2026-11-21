@@ -168,14 +168,14 @@ TEST_CASE_FIXTURE(Fixture, "the trip log is empty by default")
 
 TEST_CASE_FIXTURE(Fixture, "an entry can be added to the trip log")
 {
-    auto handle = trip_log.AddEntry(P(0, 0), 10ms, 100);
+    auto handle = trip_log.AddEntry(P(0, 0), 10s, 100);
 
     REQUIRE(handle.has_value());
     CHECK(trip_log.GetLastHandle() == handle);
 
     auto& entry = allocator.Entry(*handle);
     CHECK(entry.position == Point {0, 0, kDefaultZoom});
-    CHECK(entry.timestamp == 10ms);
+    CHECK(entry.timestamp == 10s);
     CHECK(entry.power == 100);
     // The first entry
     CHECK(entry.predecessor == kInvalidLogHandle);
@@ -186,12 +186,12 @@ TEST_CASE_FIXTURE(Fixture, "closeness of entries determine if they are added")
 {
     GIVEN("an entry in the trip log")
     {
-        auto h0 = trip_log.AddEntry(P(0, 0), 10ms, 100);
+        auto h0 = trip_log.AddEntry(P(0, 0), 10s, 100);
         REQUIRE(h0.has_value());
 
         WHEN("a very close entry is added")
         {
-            auto h1 = trip_log.AddEntry(P(4, 4), 11ms, 100);
+            auto h1 = trip_log.AddEntry(P(4, 4), 11s, 100);
             THEN("it's not added")
             {
                 CHECK(!h1.has_value());
@@ -201,7 +201,7 @@ TEST_CASE_FIXTURE(Fixture, "closeness of entries determine if they are added")
         WHEN("an entry further away is added")
         {
             // On a straight line
-            auto h1 = trip_log.AddEntry(P(0, 6), 11ms, 100);
+            auto h1 = trip_log.AddEntry(P(0, 6), 11s, 100);
             THEN("it can be added")
             {
                 REQUIRE(h1.has_value());
@@ -224,7 +224,7 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
         for (auto i = 0; i < kTripLogSize + 1; i++)
         {
             // On a line downward
-            auto handle = trip_log.AddEntry(P(0, i * 10), 10ms, 100);
+            auto handle = trip_log.AddEntry(P(0, i * 10), 10s, 100);
             REQUIRE(handle.has_value());
             handles.push_back(*handle);
         }
@@ -235,7 +235,7 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
         {
             auto& last = allocator.Entry(handles.back());
             // To the right
-            auto handle = trip_log.AddEntry(P(10, last.position.y), 10ms, 100);
+            auto handle = trip_log.AddEntry(P(10, last.position.y), 10s, 100);
             REQUIRE(handle.has_value());
 
             THEN("one of the previous entries is pruned")
@@ -251,7 +251,7 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
             {
                 auto& last = allocator.Entry(*handle);
                 // Down from the above
-                auto next_handle = trip_log.AddEntry(P(10, last.position.y + 10), 10ms, 100);
+                auto next_handle = trip_log.AddEntry(P(10, last.position.y + 10), 10s, 100);
                 REQUIRE(next_handle.has_value());
 
                 THEN("the last added edgy is also kept")
@@ -283,14 +283,14 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
 
         for (auto& p : kLine)
         {
-            auto handle = trip_log.AddEntry(p, 10ms, 100);
+            auto handle = trip_log.AddEntry(p, 10s, 100);
             REQUIRE(handle.has_value());
             handles.push_back(*handle);
         }
 
         WHEN("another entry is added")
         {
-            auto new_handle = trip_log.AddEntry(P(70, 0), 10ms, 100);
+            auto new_handle = trip_log.AddEntry(P(70, 0), 10s, 100);
             REQUIRE(new_handle.has_value());
 
             THEN("the first expected removal is pruned")
@@ -304,7 +304,7 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
 
             AND_WHEN("yet another is added")
             {
-                auto new_handle = trip_log.AddEntry(P(80, 100), 10ms, 100);
+                auto new_handle = trip_log.AddEntry(P(80, 100), 10s, 100);
                 REQUIRE(new_handle.has_value());
 
                 THEN("the second smallest should be removed")
@@ -319,7 +319,7 @@ TEST_CASE_FIXTURE(Fixture, "points in the trip log are pruned depending on angle
 
                 AND_THEN("stale entries are removed")
                 {
-                    auto h3 = trip_log.AddEntry(P(90, 200), 10ms, 100);
+                    auto h3 = trip_log.AddEntry(P(90, 200), 10s, 100);
                     REQUIRE(h3.has_value());
                 }
             }
@@ -352,7 +352,7 @@ TEST_CASE_FIXTURE(Fixture, "user reported crash scenario")
     std::optional<LogHandle> handle;
     for (auto entry : kLine)
     {
-        auto h = trip_log.AddEntry(entry, 10ms, 100);
+        auto h = trip_log.AddEntry(entry, 10s, 100);
         if (h)
         {
             handle = h;
@@ -375,7 +375,7 @@ TEST_CASE_FIXTURE(Fixture, "a long random walk keeps the list consistent")
         x += next();
         y += next();
 
-        auto handle = trip_log.AddEntry(P(x, y), 10ms, 100);
+        auto handle = trip_log.AddEntry(P(x, y), 10s, 100);
         if (!handle)
         {
             continue;
