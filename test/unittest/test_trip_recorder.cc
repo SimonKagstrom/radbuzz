@@ -15,6 +15,19 @@ namespace
 constexpr uint32_t kUtc = 1774269319;
 constexpr GpsPosition kStockholm {59.3293, 18.0686};
 
+class NullNotifier : public IEventNotifier
+{
+public:
+    void Notify() final
+    {
+    }
+
+    bool NotifyFromIsr() final
+    {
+        return false;
+    }
+};
+
 class Fixture : public ThreadFixture
 {
 public:
@@ -71,6 +84,15 @@ public:
         RunLoopWhileReady();
     }
 
+    // The number of new_recorded_trip messages since the last call
+    unsigned NewRecordedTrips()
+    {
+        auto count = 0u;
+        m_mailbox->Collect().On<MSG::new_recorded_trip>([&count](auto) { count++; });
+
+        return count;
+    }
+
     static std::string TripPath(uint32_t utc)
     {
         return std::format("TRIPS/CURRENT/{:08X}.JSL", utc);
@@ -121,6 +143,11 @@ public:
     PostOffice<MSG::AllMessages> post_office;
     Filesystem filesystem {"/sdcard"};
     TripRecorder recorder {state, post_office, filesystem};
+
+private:
+    NullNotifier m_notifier;
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
+        post_office.Subscribe<MSG::new_recorded_trip>(m_notifier)};
 };
 
 } // namespace
@@ -190,6 +217,11 @@ TEST_CASE_FIXTURE(Fixture, "GPS fixes are recorded as JSON lines")
             REQUIRE(lines.size() == 2);
             CHECK(lines[0] == R"({"utc":1774269319,"lat":59.329300,"lon":18.068600,)"
                               R"("speed":30.0,"power":-1234,"soc":76})");
+        }
+
+        THEN("the trip isn't done, so there's no new recorded trip")
+        {
+            CHECK(NewRecordedTrips() == 0);
         }
 
         THEN("the lines are valid JSON")
@@ -332,6 +364,11 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
             CHECK(JsonLines(RawPath(kUtc)).size() == 2);
         }
 
+        THEN("a new recorded trip is announced")
+        {
+            CHECK(NewRecordedTrips() == 1);
+        }
+
         AND_WHEN("more fixes arrive")
         {
             Fix(kUtc + 10);
@@ -347,13 +384,15 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
 
             AND_WHEN("that trip is reset as well")
             {
+                REQUIRE(NewRecordedTrips() == 1);
                 ResetTrip();
 
-                THEN("both trips are in RAW")
+                THEN("both trips are in RAW, and the second one is announced")
                 {
                     CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
                     CHECK(filesystem.ListDirectory("TRIPS/RAW") ==
                           Entries {Entry(kUtc), Entry(kUtc + 10)});
+                    CHECK(NewRecordedTrips() == 1);
                 }
             }
         }
@@ -366,10 +405,11 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
 
         ResetTrip();
 
-        THEN("the written trip is moved")
+        THEN("the written trip is moved, and announced")
         {
             CHECK_FALSE(filesystem.FileExists(TripPath(kUtc)));
             CHECK(JsonLines(RawPath(kUtc)).size() == 2);
+            CHECK(NewRecordedTrips() == 1);
         }
     }
 
@@ -382,6 +422,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
         {
             CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
             CHECK(filesystem.ListDirectory("TRIPS/RAW") == Entries {Entry(kUtc)});
+            CHECK(NewRecordedTrips() == 1);
         }
     }
 }
@@ -391,6 +432,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset without a trip does nothing")
     ResetTrip();
 
     CHECK(filesystem.ListDirectory("").empty());
+    CHECK(NewRecordedTrips() == 0);
 
     AND_WHEN("a fix arrives")
     {
@@ -414,6 +456,8 @@ TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved is left in CURRENT")
 
     CHECK(JsonLines(TripPath(kUtc)).size() == 1);
     CHECK(Lines(RawPath(kUtc)) == std::vector<std::string> {"old"});
+    // Nothing new in RAW
+    CHECK(NewRecordedTrips() == 0);
 
     AND_WHEN("more fixes arrive")
     {

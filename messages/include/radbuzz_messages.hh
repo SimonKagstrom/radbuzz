@@ -22,6 +22,10 @@ struct reset_trip
 {
 };
 
+struct new_recorded_trip
+{
+};
+
 struct answer_call
 {
 };
@@ -71,6 +75,7 @@ struct show_about
 using RadbuzzMessages = std::tuple<incoming_call,
                                    tile_loaded,
                                    reset_trip,
+                                   new_recorded_trip,
                                    answer_call,
                                    decline_call,
                                    hangup_call,

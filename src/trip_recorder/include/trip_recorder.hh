@@ -41,6 +41,7 @@ private:
     Filesystem& m_filesystem;
     ListenerCookie m_listener;
     ApplicationState::PartialReadOnlyCache<AS::pixel_position, AS::is_moving> m_state_cache;
+    PostOffice<MSG::AllMessages>& m_post_office;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 
     /// The filename of the trip, empty until its first fix

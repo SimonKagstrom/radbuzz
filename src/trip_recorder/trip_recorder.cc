@@ -18,7 +18,8 @@ TripRecorder::TripRecorder(ApplicationState& state,
     , m_filesystem(filesystem)
     , m_listener(m_state.AttachListener<AS::pixel_position, AS::is_moving>(GetSemaphore()))
     , m_state_cache(m_state)
-    , m_mailbox(post_office.Subscribe<MSG::reset_trip>(GetSemaphore()))
+    , m_post_office(post_office)
+    , m_mailbox(m_post_office.Subscribe<MSG::reset_trip>(GetSemaphore()))
 {
     m_buffer.reserve(kBufferSize + kMaxLineSize);
 }
@@ -34,6 +35,10 @@ TripRecorder::OnActivation()
             {
                 // Left in CURRENT, so the next trip still starts in a new file
                 printf("TripRecorder: can't move %s to %s\n", m_filename.c_str(), kRawDirectory);
+            }
+            else
+            {
+                m_post_office.Send<MSG::new_recorded_trip>();
             }
 
             m_filename.clear();
