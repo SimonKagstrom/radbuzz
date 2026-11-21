@@ -76,6 +76,7 @@ target_link_libraries(${COMPONENT_TARGET}
     temperature_monitor
     speedometer_handler
     trip_computer
+    trip_recorder
     wifi_handler
     gps_reader
 )

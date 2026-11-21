@@ -61,6 +61,7 @@ add_executable(unittest_radbuzz
     test_tile_styles.cc
     test_trip_computer.cc
     test_trip_log.cc
+    test_trip_recorder.cc
     test_wifi_handler.cc
     test_wifi_network_list.cc
 )
@@ -82,6 +83,7 @@ target_link_libraries(unittest_radbuzz
     storage
     tile_cache
     trip_computer
+    trip_recorder
     wifi_handler
 
 
@@ -90,6 +92,8 @@ target_link_libraries(unittest_radbuzz
     user_interface
 
     doctest::doctest
+    # Reading the trip recorder output
+    nlohmann_json::nlohmann_json
     trompeloeil::trompeloeil
 )
 add_test(NAME unittest_radbuzz COMMAND unittest_radbuzz)

@@ -29,6 +29,7 @@
 #include "temperature_monitor.hh"
 #include "touch_esp32.hh"
 #include "trip_computer.hh"
+#include "trip_recorder.hh"
 #include "uart_esp32.hh"
 #include "uart_gps_esp32.hh"
 #include "user_interface.hh"
@@ -529,6 +530,7 @@ app_main(void)
     auto vesc_can_bus_handler = std::make_unique<VescCanBusHandler>(*can, application_state);
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
+    auto trip_recorder = std::make_unique<TripRecorder>(application_state, *filesystem);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
     auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
     auto brightness_controller = std::make_unique<BrightnessController>(
@@ -553,6 +555,7 @@ app_main(void)
 
     tile_cache->Start("tile_cache", 8192);
     gps_reader->Start("gps_reader");
+    trip_recorder->Start("trip_recorder", 4096);
 
     // References to these are kept elsewhere (e.g., by the UI), but the job pool owns them
     job_pool->AttachPooledThread(std::move(storage));
