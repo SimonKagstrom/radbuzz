@@ -28,6 +28,7 @@
 #include "storage.hh"
 #include "temperature_monitor.hh"
 #include "touch_esp32.hh"
+#include "trip_compactor.hh"
 #include "trip_computer.hh"
 #include "trip_recorder.hh"
 #include "uart_esp32.hh"
@@ -531,6 +532,7 @@ app_main(void)
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto trip_recorder = std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
+    auto trip_compactor = std::make_unique<TripCompactor>(post_office, *filesystem);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
     auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
     auto brightness_controller = std::make_unique<BrightnessController>(
@@ -565,6 +567,7 @@ app_main(void)
     job_pool->AttachPooledThread(std::move(temperature_monitor));
     job_pool->AttachPooledThread(std::move(clock_handler));
     job_pool->AttachPooledThread(std::move(brightness_controller));
+    job_pool->AttachPooledThread(std::move(trip_compactor));
 
     job_pool->Start("job_pool", 8192);
 
