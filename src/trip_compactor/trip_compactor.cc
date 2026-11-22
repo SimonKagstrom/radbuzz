@@ -180,8 +180,9 @@ ForEachLine(const Filesystem& filesystem, std::string_view path, OnLine on_line)
 } // namespace
 
 TripCompactor::TripCompactor(PostOffice<MSG::AllMessages>& post_office, Filesystem& filesystem)
-    : m_filesystem(filesystem)
-    , m_mailbox(post_office.Subscribe<MSG::new_recorded_trip>(*this))
+    : m_post_office(post_office)
+    , m_filesystem(filesystem)
+    , m_mailbox(m_post_office.Subscribe<MSG::new_recorded_trip>(*this))
 {
 }
 
@@ -209,19 +210,27 @@ TripCompactor::WalkRawDirectory()
             continue;
         }
 
-        if (!Compact(entry.name))
+        auto result = Compact(entry.name);
+        if (result == CompactResult::kFailed)
         {
             // Left in RAW, and retried on the next new trip
             printf("TripCompactor: can't compact %s\n", entry.name.c_str());
+            continue;
         }
-        else if (!m_filesystem.Remove(RawPath(entry.name)))
+
+        if (result == CompactResult::kWritten)
+        {
+            m_post_office.Send<MSG::new_compacted_trip>();
+        }
+
+        if (!m_filesystem.Remove(RawPath(entry.name)))
         {
             printf("TripCompactor: can't remove %s\n", entry.name.c_str());
         }
     }
 }
 
-bool
+TripCompactor::CompactResult
 TripCompactor::Compact(std::string_view name)
 {
     const auto raw_path = RawPath(name);
@@ -243,7 +252,7 @@ TripCompactor::Compact(std::string_view name)
 
     if (!opened)
     {
-        return false;
+        return CompactResult::kFailed;
     }
 
     // The kept points, from the last one and backwards
@@ -260,13 +269,13 @@ TripCompactor::Compact(std::string_view name)
     {
         // Nothing to keep, so done
         printf("TripCompactor: no points in %s\n", raw_path.c_str());
-        return true;
+        return CompactResult::kNoPoints;
     }
 
     auto file = m_filesystem.OpenWritable(LogPath(name), Filesystem::WriteMode::kTruncate);
     if (!file)
     {
-        return false;
+        return CompactResult::kFailed;
     }
 
     // Copy the kept lines unchanged, so the compacted trip has the same information
@@ -287,5 +296,10 @@ TripCompactor::Compact(std::string_view name)
         }
     });
 
-    return written && next == kept_utcs.end() && file->Sync();
+    if (!written || next != kept_utcs.end() || !file->Sync())
+    {
+        return CompactResult::kFailed;
+    }
+
+    return CompactResult::kWritten;
 }

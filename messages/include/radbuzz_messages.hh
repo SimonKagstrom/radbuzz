@@ -26,6 +26,10 @@ struct new_recorded_trip
 {
 };
 
+struct new_compacted_trip
+{
+};
+
 struct answer_call
 {
 };
@@ -76,6 +80,7 @@ using RadbuzzMessages = std::tuple<incoming_call,
                                    tile_loaded,
                                    reset_trip,
                                    new_recorded_trip,
+                                   new_compacted_trip,
                                    answer_call,
                                    decline_call,
                                    hangup_call,

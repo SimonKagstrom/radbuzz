@@ -13,8 +13,9 @@
  *
  * On MSG::new_recorded_trip, every trip in TRIPS/RAW is simplified to at most kMaxEntries
  * points with the TripLog, and the kept lines are copied unchanged to TRIPS/LOG, with the same
- * name. The raw trip is then removed. Lines which can't be parsed are skipped. A trip which
- * can't be written is left in TRIPS/RAW, and is retried on the next message.
+ * name, and MSG::new_compacted_trip is sent. The raw trip is then removed. Lines which can't be
+ * parsed are skipped. A trip which can't be written is left in TRIPS/RAW, and is retried on the
+ * next message. RAW is also walked at startup.
  */
 class TripCompactor : public PooledThreadBase
 {
@@ -25,15 +26,23 @@ public:
     TripCompactor(PostOffice<MSG::AllMessages>& post_office, Filesystem& filesystem);
 
 private:
+    enum class CompactResult
+    {
+        kWritten,
+        kNoPoints,
+        kFailed,
+    };
+
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
     /// Compact and remove every trip in TRIPS/RAW
     void WalkRawDirectory();
 
-    /// Compact a trip from TRIPS/RAW to TRIPS/LOG, true if it was written
-    bool Compact(std::string_view name);
+    /// Compact a trip from TRIPS/RAW to TRIPS/LOG
+    CompactResult Compact(std::string_view name);
 
+    PostOffice<MSG::AllMessages>& m_post_office;
     Filesystem& m_filesystem;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 };

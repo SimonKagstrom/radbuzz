@@ -86,6 +86,19 @@ IsSubsequence(const std::vector<std::string>& sub, const std::vector<std::string
     return true;
 }
 
+class NullNotifier : public IEventNotifier
+{
+public:
+    void Notify() final
+    {
+    }
+
+    bool NotifyFromIsr() final
+    {
+        return false;
+    }
+};
+
 class Fixture : public ThreadFixture
 {
 public:
@@ -108,6 +121,15 @@ public:
     ~Fixture()
     {
         mock_filesystem::Clear();
+    }
+
+    // The number of new_compacted_trip messages since the last call
+    unsigned NewCompactedTrips()
+    {
+        auto count = 0u;
+        m_mailbox->Collect().On<MSG::new_compacted_trip>([&count](auto) { count++; });
+
+        return count;
     }
 
     void NewRecordedTrip()
@@ -139,6 +161,13 @@ public:
     PostOffice<MSG::AllMessages> post_office;
     Filesystem filesystem {"/sdcard"};
 
+private:
+    // Before the job pool, so that messages sent at startup are received
+    NullNotifier m_notifier;
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
+        post_office.Subscribe<MSG::new_compacted_trip>(m_notifier)};
+
+public:
     JobPoolThread job_pool;
 };
 
@@ -165,6 +194,7 @@ TEST_CASE_FIXTURE(StartupFixture, "trips left in RAW are compacted at startup")
     CHECK(Lines(kLogPath) == std::vector {NorthLine(0), NorthLine(1)});
     CHECK(Lines("TRIPS/LOG/69C14000.JSL") == std::vector {NorthLine(100)});
     CHECK(filesystem.ListDirectory(TripRecorder::kRawDirectory).empty());
+    CHECK(NewCompactedTrips() == 2);
 }
 
 TEST_CASE_FIXTURE(Fixture, "trips added after startup are only compacted on new recorded trips")
@@ -174,6 +204,7 @@ TEST_CASE_FIXTURE(Fixture, "trips added after startup are only compacted on new 
 
     REQUIRE(filesystem.FileExists(kRawPath));
     REQUIRE(filesystem.ListDirectory(TripCompactor::kLogDirectory).empty());
+    REQUIRE(NewCompactedTrips() == 0);
 
     WHEN("a new trip has been recorded")
     {
@@ -183,6 +214,11 @@ TEST_CASE_FIXTURE(Fixture, "trips added after startup are only compacted on new 
         {
             CHECK(Lines(kLogPath) == std::vector {NorthLine(0), NorthLine(1)});
             CHECK_FALSE(filesystem.FileExists(kRawPath));
+        }
+
+        AND_THEN("the new compacted trip is announced")
+        {
+            CHECK(NewCompactedTrips() == 1);
         }
     }
 }
@@ -319,6 +355,11 @@ TEST_CASE_FIXTURE(Fixture, "a trip without any points is removed without a log")
 
     CHECK_FALSE(filesystem.FileExists(kRawPath));
     CHECK(filesystem.ListDirectory(TripCompactor::kLogDirectory).empty());
+
+    AND_THEN("nothing is announced")
+    {
+        CHECK(NewCompactedTrips() == 0);
+    }
 }
 
 TEST_CASE_FIXTURE(Fixture, "all trips in RAW are compacted")
@@ -337,6 +378,7 @@ TEST_CASE_FIXTURE(Fixture, "all trips in RAW are compacted")
     CHECK(Lines(kOtherLogPath) == std::vector {NorthLine(100), NorthLine(101)});
     CHECK(filesystem.ListDirectory(TripRecorder::kRawDirectory) ==
           std::vector<Filesystem::DirectoryEntry> {{"OLD", true}});
+    CHECK(NewCompactedTrips() == 2);
 
     AND_THEN("directories are left alone")
     {
@@ -362,6 +404,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip which can't be written is left in RAW")
     NewRecordedTrip();
 
     CHECK(filesystem.FileExists(kRawPath));
+    CHECK(NewCompactedTrips() == 0);
 
     WHEN("it can be written on the next new trip")
     {
@@ -372,6 +415,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip which can't be written is left in RAW")
         {
             CHECK(Lines(kLogPath) == std::vector {NorthLine(0), NorthLine(1)});
             CHECK_FALSE(filesystem.FileExists(kRawPath));
+            CHECK(NewCompactedTrips() == 1);
         }
     }
 }
