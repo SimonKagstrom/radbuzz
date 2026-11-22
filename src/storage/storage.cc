@@ -58,6 +58,7 @@ constexpr auto kSettings = std::tuple {
     Setting<&ConfigurationSettings::bms_overheat_temperature> {"2", 60},
     Setting<&ConfigurationSettings::cell_overheat_temperature> {"3", 50},
     Setting<&ConfigurationSettings::ssid_file_hash> {"h", 0},
+    Setting<&ConfigurationSettings::traccar_file_hash> {"t", 0},
 };
 
 // Not plain configuration values, handled separately
@@ -68,6 +69,9 @@ constexpr auto kWhConsumedKey = "C";
 constexpr auto kWhRegeneratedKey = "g";
 constexpr auto kTimezoneKey = "Z";
 constexpr auto kBrightnessModeKey = "L";
+constexpr auto kTraccarUrlKey = "U";
+constexpr auto kTraccarIdKey = "I";
+constexpr auto kTraccarDemoIdKey = "D";
 
 // UTC-12 to UTC+14 (Kiribati), in minutes
 constexpr int16_t kMinTimezone = -12 * 60;
@@ -89,7 +93,10 @@ KeysAreUnique()
                                         kWhConsumedKey,
                                         kWhRegeneratedKey,
                                         kTimezoneKey,
-                                        kBrightnessModeKey};
+                                        kBrightnessModeKey,
+                                        kTraccarUrlKey,
+                                        kTraccarIdKey,
+                                        kTraccarDemoIdKey};
     ForEachSetting([&keys](const auto& setting) { keys.push_back(setting.key); });
 
     std::ranges::sort(keys);
@@ -148,6 +155,12 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     auto brightness_mode =
         m_nvm.Get<BrightnessMode>(kBrightnessModeKey).value_or(BrightnessMode::kAuto);
     ps.Set<AS::brightness_mode>(IsValid(brightness_mode) ? brightness_mode : BrightnessMode::kAuto);
+
+    conf.traccar = {
+        .url = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarUrlKey).value_or("")),
+        .id = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarIdKey).value_or("")),
+        .demo_id = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarDemoIdKey).value_or("")),
+    };
 
     auto networks = m_nvm.Get<std::string>(kWifiNetworksKey);
     if (networks)
@@ -245,6 +258,12 @@ Storage::OnActivation()
                 networks += ssid + "@" + password;
             }
             m_nvm.Set<std::string>(kWifiNetworksKey, networks);
+        }
+        if (old_conf.traccar != new_conf.traccar)
+        {
+            m_nvm.Set<std::string>(kTraccarUrlKey, new_conf.traccar.url);
+            m_nvm.Set<std::string>(kTraccarIdKey, new_conf.traccar.id);
+            m_nvm.Set<std::string>(kTraccarDemoIdKey, new_conf.traccar.demo_id);
         }
     });
 

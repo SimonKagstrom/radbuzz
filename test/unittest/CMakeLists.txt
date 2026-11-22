@@ -60,6 +60,7 @@ add_executable(unittest_radbuzz
     test_tile_cache.cc
     test_tile_regions.cc
     test_tile_styles.cc
+    test_traccar_uploader.cc
     test_trip_compactor.cc
     test_trip_computer.cc
     test_trip_log.cc
@@ -85,6 +86,7 @@ target_link_libraries(unittest_radbuzz
     speedometer_handler
     storage
     tile_cache
+    traccar_uploader
     trip_compactor
     trip_computer
     trip_log

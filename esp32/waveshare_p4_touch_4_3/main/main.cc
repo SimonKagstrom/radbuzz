@@ -28,6 +28,7 @@
 #include "storage.hh"
 #include "temperature_monitor.hh"
 #include "touch_esp32.hh"
+#include "traccar_uploader.hh"
 #include "trip_compactor.hh"
 #include "trip_computer.hh"
 #include "trip_recorder.hh"
@@ -533,6 +534,10 @@ app_main(void)
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
     auto trip_recorder = std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
     auto trip_compactor = std::make_unique<TripCompactor>(post_office, *filesystem);
+    // A client of its own, since a client is a single connection, used from one thread
+    auto traccar_https_client = std::make_unique<HttpsClient>();
+    auto traccar_uploader = std::make_unique<TraccarUploader>(
+        application_state, post_office, *filesystem, *traccar_https_client);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
     auto clock_handler = std::make_unique<ClockHandler>(application_state, post_office);
     auto brightness_controller = std::make_unique<BrightnessController>(
@@ -558,6 +563,8 @@ app_main(void)
     tile_cache->Start("tile_cache", 8192);
     gps_reader->Start("gps_reader");
     trip_recorder->Start("trip_recorder", 4096);
+    // Large enough for the TLS handshake, like the tile cache
+    traccar_uploader->Start("traccar_uploader", 8192);
 
     // References to these are kept elsewhere (e.g., by the UI), but the job pool owns them
     job_pool->AttachPooledThread(std::move(storage));

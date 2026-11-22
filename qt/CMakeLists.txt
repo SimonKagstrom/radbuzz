@@ -72,6 +72,7 @@ target_link_libraries(radbuzz_qt
     job_pool_thread
     vesc_can_bus_handler
     tile_cache
+    traccar_uploader
     trip_compactor
     trip_computer
     trip_recorder

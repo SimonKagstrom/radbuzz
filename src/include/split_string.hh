@@ -1,7 +1,9 @@
 #pragma once
 
+#include <ranges>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace detail
@@ -32,4 +34,20 @@ SplitString(const std::string& s, std::string_view delims)
     }
 
     return elems;
+}
+
+/// The non-empty lines of a text, without the newlines. Views into the text
+inline std::vector<std::string_view>
+SplitLines(std::string_view text)
+{
+    std::vector<std::string_view> out;
+    for (auto line : std::views::split(text, '\n'))
+    {
+        if (!line.empty())
+        {
+            out.emplace_back(line.begin(), line.end());
+        }
+    }
+
+    return out;
 }

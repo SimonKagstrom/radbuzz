@@ -1,5 +1,7 @@
 #include "wifi_handler.hh"
 
+#include "fnv1a_hash.hh"
+
 #include <algorithm>
 #include <cstddef>
 #include <ranges>
@@ -8,21 +10,6 @@
 
 namespace
 {
-
-// 32-bit FNV-1a, to detect changes to SSID.TXT
-uint32_t
-Fnv1aHash(std::span<const std::byte> data)
-{
-    uint32_t hash = 2166136261u;
-
-    for (auto byte : data)
-    {
-        hash ^= std::to_integer<uint32_t>(byte);
-        hash *= 16777619u;
-    }
-
-    return hash;
-}
 
 // A line without the line ending (also \r\n, from Windows). False at the end of the file
 bool

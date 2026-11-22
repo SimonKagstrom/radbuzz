@@ -163,6 +163,7 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread sets default values if the NVM is
     REQUIRE(State().Get<AS::configuration>()->max_speedometer_speed == 30);
     REQUIRE(State().Get<AS::configuration>()->show_clock == true);
     REQUIRE(State().Get<AS::configuration>()->tile_style == TileStyle::kCycle);
+    REQUIRE(State().Get<AS::configuration>()->traccar == TraccarSettings {});
 }
 
 TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state changes")
@@ -342,6 +343,8 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     conf.wifi_ssid_data = {{{"cafe", "latte"}, {"open", ""}}};
     // All 32 bits are used
     conf.ssid_file_hash = 0xdeadbeef;
+    conf.traccar = {.url = "https://pi.tail.ts.net", .id = "k3v9x2qmw7rt", .demo_id = "p8d4"};
+    conf.traccar_file_hash = 0xfeedface;
     REQUIRE(conf != Configuration());
 
     SetConfiguration(conf);

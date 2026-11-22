@@ -22,6 +22,19 @@ struct WifiSsidData
     bool operator==(const WifiSsidData& other) const = default;
 };
 
+/// Where to upload trips, from traccar.txt. Not configured when the id is empty
+struct TraccarSettings
+{
+    /// The server, e.g., https://host.tailnet.ts.net
+    std::string url;
+    /// The Traccar device identifier for real trips
+    std::string id;
+    /// The Traccar device identifier for demo trips, which aren't uploaded when empty
+    std::string demo_id;
+
+    bool operator==(const TraccarSettings& other) const = default;
+};
+
 enum class SpeedometerType : uint8_t
 {
     kAnalog,
@@ -70,6 +83,10 @@ struct ConfigurationSettings
     WifiSsidData wifi_ssid_data;
     // Hash of the last imported SSID.TXT, so that it's only imported when changed
     uint32_t ssid_file_hash;
+    /// Where to upload trips, from the filesystem
+    TraccarSettings traccar;
+    /// Hash of the last imported traccar.txt, so that it's only imported when changed
+    uint32_t traccar_file_hash;
     /// @brief Maximum power in watts
     uint16_t max_watts;
 

@@ -23,6 +23,7 @@
 #include "temperature_monitor.hh"
 #include "tile_cache.hh"
 #include "time.hh"
+#include "traccar_uploader.hh"
 #include "trip_compactor.hh"
 #include "trip_computer.hh"
 #include "trip_recorder.hh"
@@ -111,6 +112,10 @@ main(int argc, char* argv[])
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
     auto trip_recorder = std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
     auto trip_compactor = std::make_unique<TripCompactor>(post_office, *filesystem);
+    // A client of its own, since a client is a single connection, used from one thread
+    auto traccar_https_client = std::make_unique<HttpsClient>();
+    auto traccar_uploader = std::make_unique<TraccarUploader>(
+        application_state, post_office, *filesystem, *traccar_https_client);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler =
@@ -147,6 +152,7 @@ main(int argc, char* argv[])
     user_interface->Start("user_interface");
     speedometer_handler->Start("speedometer_handler");
     trip_recorder->Start("trip_recorder");
+    traccar_uploader->Start("traccar_uploader");
 
     os::Sleep(10ms);
     job_pool->AttachPooledThread(std::move(storage));
