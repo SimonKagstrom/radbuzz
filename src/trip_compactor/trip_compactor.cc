@@ -79,15 +79,15 @@ private:
 };
 
 std::string
-RawPath(std::string_view name)
+RawPath(std::string_view root, std::string_view name)
 {
-    return std::format("{}/{}", TripRecorder::kRawDirectory, name);
+    return std::format("{}/{}", TripRecorder::Directory(root, TripRecorder::kRawDirectory), name);
 }
 
 std::string
-LogPath(std::string_view name)
+LogPath(std::string_view root, std::string_view name)
 {
-    return std::format("{}/{}", TripCompactor::kLogDirectory, name);
+    return std::format("{}/{}", TripRecorder::Directory(root, TripCompactor::kLogDirectory), name);
 }
 
 // The values used for compaction, or nothing if the line is broken
@@ -203,37 +203,41 @@ TripCompactor::OnActivation()
 void
 TripCompactor::WalkRawDirectory()
 {
-    for (const auto& entry : m_filesystem.ListDirectory(TripRecorder::kRawDirectory))
+    for (auto root : TripRecorder::kRoots)
     {
-        if (entry.is_directory)
+        for (const auto& entry :
+             m_filesystem.ListDirectory(TripRecorder::Directory(root, TripRecorder::kRawDirectory)))
         {
-            continue;
-        }
+            if (entry.is_directory)
+            {
+                continue;
+            }
 
-        auto result = Compact(entry.name);
-        if (result == CompactResult::kFailed)
-        {
-            // Left in RAW, and retried on the next new trip
-            printf("TripCompactor: can't compact %s\n", entry.name.c_str());
-            continue;
-        }
+            auto result = Compact(root, entry.name);
+            if (result == CompactResult::kFailed)
+            {
+                // Left in RAW, and retried on the next new trip
+                printf("TripCompactor: can't compact %s/%s\n", root, entry.name.c_str());
+                continue;
+            }
 
-        if (result == CompactResult::kWritten)
-        {
-            m_post_office.Send<MSG::new_compacted_trip>();
-        }
+            if (result == CompactResult::kWritten)
+            {
+                m_post_office.Send<MSG::new_compacted_trip>();
+            }
 
-        if (!m_filesystem.Remove(RawPath(entry.name)))
-        {
-            printf("TripCompactor: can't remove %s\n", entry.name.c_str());
+            if (!m_filesystem.Remove(RawPath(root, entry.name)))
+            {
+                printf("TripCompactor: can't remove %s/%s\n", root, entry.name.c_str());
+            }
         }
     }
 }
 
 TripCompactor::CompactResult
-TripCompactor::Compact(std::string_view name)
+TripCompactor::Compact(std::string_view root, std::string_view name)
 {
-    const auto raw_path = RawPath(name);
+    const auto raw_path = RawPath(root, name);
 
     // On the heap, since the TripLog queue alone is a few KB
     auto allocator = std::make_unique<EntryAllocator>();
@@ -272,7 +276,7 @@ TripCompactor::Compact(std::string_view name)
         return CompactResult::kNoPoints;
     }
 
-    auto file = m_filesystem.OpenWritable(LogPath(name), Filesystem::WriteMode::kTruncate);
+    auto file = m_filesystem.OpenWritable(LogPath(root, name), Filesystem::WriteMode::kTruncate);
     if (!file)
     {
         return CompactResult::kFailed;

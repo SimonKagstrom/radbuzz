@@ -31,9 +31,14 @@ public:
 class Fixture : public ThreadFixture
 {
 public:
-    Fixture()
+    // With files which exist before the recorder starts
+    explicit Fixture(const std::vector<std::pair<std::string, std::string>>& files = {})
     {
         mock_filesystem::Clear();
+        for (const auto& [path, contents] : files)
+        {
+            mock_filesystem::SetFile(path, contents);
+        }
 
         SetThread(&recorder);
         recorder.Start("trip_recorder");
@@ -103,6 +108,11 @@ public:
         return std::format("TRIPS/RAW/{:08X}.JSL", utc);
     }
 
+    static std::string DemoPath(std::string_view directory, uint32_t utc)
+    {
+        return std::format("DEMO/{}/{:08X}.JSL", directory, utc);
+    }
+
     static Filesystem::DirectoryEntry Entry(uint32_t utc)
     {
         return {std::format("{:08X}.JSL", utc), false};
@@ -148,6 +158,31 @@ private:
     NullNotifier m_notifier;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
         post_office.Subscribe<MSG::new_recorded_trip>(m_notifier)};
+};
+
+// Trips left in CURRENT at power-off
+class StartupFixture : public Fixture
+{
+public:
+    StartupFixture()
+        : Fixture({{"TRIPS/CURRENT/69C13387.JSL", "real 1\n"},
+                   {"TRIPS/CURRENT/69C14000.JSL", "real 2\n"},
+                   {"TRIPS/RAW/69C10000.JSL", "already raw\n"},
+                   {"DEMO/CURRENT/55BBC4A0.JSL", "demo\n"}})
+    {
+    }
+};
+
+// A trip left in CURRENT which can't be moved, and a directory which isn't a trip
+class StartupConflictFixture : public Fixture
+{
+public:
+    StartupConflictFixture()
+        : Fixture({{"TRIPS/CURRENT/69C13387.JSL", "new\n"},
+                   {"TRIPS/RAW/69C13387.JSL", "old\n"},
+                   {"TRIPS/CURRENT/OLD/69C10000.JSL", "in a directory\n"}})
+    {
+    }
 };
 
 } // namespace
@@ -297,29 +332,109 @@ TEST_CASE_FIXTURE(Fixture, "fixes without a new GPS time are skipped")
     CHECK(json[0]["speed"] == 30.0);
 }
 
-TEST_CASE_FIXTURE(Fixture, "nothing is recorded in demo mode")
+TEST_CASE_FIXTURE(Fixture, "demo trips are recorded separately")
 {
+    using Entries = std::vector<Filesystem::DirectoryEntry>;
+
     state.Set<AS::demo_mode>(true);
 
     Fix(kUtc);
     Fix(kUtc + 1);
     Stop();
 
-    CHECK(filesystem.ListDirectory("").empty());
+    CHECK(filesystem.ListDirectory("") == Entries {{"DEMO", true}});
+    CHECK(JsonLines(DemoPath("CURRENT", kUtc)).size() == 2);
 
-    AND_WHEN("demo mode ends")
+    AND_WHEN("the trip is reset")
+    {
+        ResetTrip();
+
+        THEN("it's moved to the demo RAW, and announced")
+        {
+            CHECK(filesystem.ListDirectory("DEMO/CURRENT").empty());
+            CHECK(JsonLines(DemoPath("RAW", kUtc)).size() == 2);
+            CHECK(NewRecordedTrips() == 1);
+        }
+
+        AND_WHEN("demo mode ends")
+        {
+            // The demo app resets the trip on demo mode changes
+            state.Set<AS::demo_mode>(false);
+            ResetTrip();
+
+            StartMoving();
+            Fix(kUtc + 2);
+            Stop();
+
+            THEN("the next trip is a real one")
+            {
+                CHECK(JsonLines(TripPath(kUtc + 2)).size() == 1);
+                CHECK(filesystem.ListDirectory("DEMO/CURRENT").empty());
+            }
+        }
+    }
+
+    AND_WHEN("demo mode ends without a trip reset")
     {
         state.Set<AS::demo_mode>(false);
         StartMoving();
         Fix(kUtc + 2);
         Stop();
 
-        THEN("the trip starts at the first real fix")
+        THEN("the trip stays a demo trip")
         {
-            auto json = JsonLines(TripPath(kUtc + 2));
-            REQUIRE(json.size() == 1);
+            CHECK(JsonLines(DemoPath("CURRENT", kUtc)).size() == 3);
+            CHECK_FALSE(filesystem.FileExists(TripPath(kUtc)));
         }
     }
+}
+
+TEST_CASE_FIXTURE(StartupFixture, "trips left from before a power-off are closed at startup")
+{
+    using Entries = std::vector<Filesystem::DirectoryEntry>;
+
+    THEN("real trips are moved to RAW, and announced")
+    {
+        CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
+        CHECK(filesystem.ListDirectory("TRIPS/RAW") ==
+              Entries {{"69C10000.JSL", false}, {"69C13387.JSL", false}, {"69C14000.JSL", false}});
+        CHECK(Lines("TRIPS/RAW/69C13387.JSL") == std::vector<std::string> {"real 1"});
+        CHECK(NewRecordedTrips() == 2);
+    }
+
+    THEN("demo trips are removed")
+    {
+        CHECK(filesystem.ListDirectory("DEMO/CURRENT").empty());
+        CHECK(filesystem.ListDirectory("DEMO/RAW").empty());
+    }
+
+    AND_WHEN("a fix arrives")
+    {
+        Fix(kUtc + 1000);
+        Stop();
+
+        THEN("it starts a new trip")
+        {
+            CHECK(filesystem.ListDirectory("TRIPS/CURRENT") == Entries {Entry(kUtc + 1000)});
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(StartupConflictFixture, "trips which can't be closed at startup are left")
+{
+    using Entries = std::vector<Filesystem::DirectoryEntry>;
+
+    CHECK(filesystem.ListDirectory("TRIPS/CURRENT") ==
+          Entries {{"69C13387.JSL", false}, {"OLD", true}});
+    CHECK(Lines("TRIPS/RAW/69C13387.JSL") == std::vector<std::string> {"old"});
+    CHECK(filesystem.FileExists("TRIPS/CURRENT/OLD/69C10000.JSL"));
+    CHECK(NewRecordedTrips() == 0);
+}
+
+TEST_CASE_FIXTURE(Fixture, "startup without trips left does nothing")
+{
+    CHECK(filesystem.ListDirectory("").empty());
+    CHECK(NewRecordedTrips() == 0);
 }
 
 TEST_CASE_FIXTURE(Fixture, "an unchanged pixel position isn't recorded")

@@ -24,6 +24,48 @@ TripRecorder::TripRecorder(ApplicationState& state,
     m_buffer.reserve(kBufferSize + kMaxLineSize);
 }
 
+std::string
+TripRecorder::Directory(std::string_view root, std::string_view directory)
+{
+    return std::format("{}/{}", root, directory);
+}
+
+void
+TripRecorder::OnStartup()
+{
+    // A trip left from before a power-off is closed, the same as on a reset
+    const auto current = Directory(kTripsRoot, kCurrentDirectory);
+    const auto raw = Directory(kTripsRoot, kRawDirectory);
+    for (const auto& entry : m_filesystem.ListDirectory(current))
+    {
+        if (entry.is_directory)
+        {
+            continue;
+        }
+
+        if (m_filesystem.Move(std::format("{}/{}", current, entry.name),
+                              std::format("{}/{}", raw, entry.name)))
+        {
+            m_post_office.Send<MSG::new_recorded_trip>();
+        }
+        else
+        {
+            printf("TripRecorder: can't move %s to %s\n", entry.name.c_str(), raw.c_str());
+        }
+    }
+
+    // A demo trip is only kept on a reset, so that it's a deliberate choice
+    const auto demo_current = Directory(kDemoRoot, kCurrentDirectory);
+    for (const auto& entry : m_filesystem.ListDirectory(demo_current))
+    {
+        if (!entry.is_directory &&
+            !m_filesystem.Remove(std::format("{}/{}", demo_current, entry.name)))
+        {
+            printf("TripRecorder: can't remove demo trip %s\n", entry.name.c_str());
+        }
+    }
+}
+
 std::optional<milliseconds>
 TripRecorder::OnActivation()
 {
@@ -34,7 +76,9 @@ TripRecorder::OnActivation()
             if (!m_filesystem.Move(PathIn(kCurrentDirectory), PathIn(kRawDirectory)))
             {
                 // Left in CURRENT, so the next trip still starts in a new file
-                printf("TripRecorder: can't move %s to %s\n", m_filename.c_str(), kRawDirectory);
+                printf("TripRecorder: can't move %s to %s\n",
+                       m_filename.c_str(),
+                       Directory(m_root, kRawDirectory).c_str());
             }
             else
             {
@@ -62,7 +106,7 @@ TripRecorder::OnActivation()
 void
 TripRecorder::Record(const GpsData& data)
 {
-    if (m_state.Get<AS::demo_mode>() || !m_state.Get<AS::is_moving>())
+    if (!m_state.Get<AS::is_moving>())
     {
         return;
     }
@@ -76,6 +120,8 @@ TripRecorder::Record(const GpsData& data)
 
     if (m_filename.empty())
     {
+        // Demo mode changes send a trip reset, so the whole trip is in the same mode
+        m_root = m_state.Get<AS::demo_mode>() ? kDemoRoot : kTripsRoot;
         m_filename = std::format("{:08X}.JSL", utc);
     }
 
@@ -118,5 +164,5 @@ TripRecorder::Flush()
 std::string
 TripRecorder::PathIn(std::string_view directory) const
 {
-    return std::format("{}/{}", directory, m_filename);
+    return std::format("{}/{}/{}", m_root, directory, m_filename);
 }
