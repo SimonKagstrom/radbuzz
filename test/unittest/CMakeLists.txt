@@ -47,6 +47,7 @@ endif()
 
 add_executable(unittest_radbuzz
     main.cc
+    test_app_simulator.cc
     test_application_state.cc
     test_ble_handler.cc
     test_buzz_handler.cc
@@ -74,6 +75,7 @@ PRIVATE
 )
 
 target_link_libraries(unittest_radbuzz
+    app_simulator
     application_state
     ble_handler_private
     buzz_handler

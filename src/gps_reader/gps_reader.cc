@@ -45,19 +45,19 @@ GpsReader::OnActivation()
             .CheckoutQueuedWriter<AS::position, AS::pixel_position, AS::gps_status, AS::gps_utc>();
 
 
-    if (data->utc)
-    {
-        // The time is real also in demo mode
-        qw.Set<AS::gps_utc>(*data->utc);
-    }
-
     if (m_application_state.Get<AS::demo_mode>())
     {
-        // No resetting of the state done while in demo mode
+        // No resetting of the state done while in demo mode. The time is also set by the demo
+        // app, which runs it faster
         m_gps_timeout_timer = nullptr;
         m_gps_data_timeout_timer = nullptr;
 
         return std::nullopt;
+    }
+
+    if (data->utc)
+    {
+        qw.Set<AS::gps_utc>(*data->utc);
     }
 
     if (m_application_state.Get<AS::gps_status>() == GpsStatus::kSilent)

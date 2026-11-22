@@ -112,6 +112,7 @@ AppSimulator::OnActivation()
                                                        AS::position,
                                                        AS::pixel_position,
                                                        AS::gps_status,
+                                                       AS::gps_utc,
                                                        AS::controller_temperature,
                                                        AS::battery_soc,
                                                        AS::bms_data>();
@@ -245,6 +246,8 @@ AppSimulator::OnActivation()
     qw.Set<AS::position>(mangled);
     qw.Set<AS::pixel_position>(m_current_point);
     qw.Set<AS::gps_status>(GpsStatus::kPositionValid);
+    // A second per step, so that time runs faster than in reality
+    qw.Set<AS::gps_utc>(++m_utc);
     qw.Set<AS::controller_temperature>(controller_temperature);
     qw.Set<AS::battery_soc>(m_soc);
     qw.Set<AS::bms_data>(bms);

@@ -217,9 +217,9 @@ TEST_CASE_FIXTURE(Fixture, "The GPS time is published to the application state")
         state.Set<AS::demo_mode>(true);
         DeliverData({.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f, .utc = kUtc});
 
-        THEN("the GPS time is still set, since it's real")
+        THEN("the GPS time is left to the demo app, like the position")
         {
-            CHECK(state.Get<AS::gps_utc>() == kUtc);
+            CHECK(state.Get<AS::gps_utc>() == 0);
             CHECK(*state.Get<AS::pixel_position>() == stockholm);
         }
     }
