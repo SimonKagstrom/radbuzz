@@ -23,7 +23,9 @@
 #include "temperature_monitor.hh"
 #include "tile_cache.hh"
 #include "time.hh"
+#include "trip_compactor.hh"
 #include "trip_computer.hh"
+#include "trip_recorder.hh"
 #include "user_interface.hh"
 #include "wgs84_to_osm_point.hh"
 #include "wifi_client_host.hh"
@@ -107,6 +109,8 @@ main(int argc, char* argv[])
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
+    auto trip_recorder = std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
+    auto trip_compactor = std::make_unique<TripCompactor>(post_office, *filesystem);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
     auto ble_handler =
@@ -142,6 +146,7 @@ main(int argc, char* argv[])
     tile_cache->Start("tile_cache");
     user_interface->Start("user_interface");
     speedometer_handler->Start("speedometer_handler");
+    trip_recorder->Start("trip_recorder");
 
     os::Sleep(10ms);
     job_pool->AttachPooledThread(std::move(storage));
@@ -151,6 +156,7 @@ main(int argc, char* argv[])
     job_pool->AttachPooledThread(std::move(temperature_monitor));
     job_pool->AttachPooledThread(std::move(clock_handler));
     job_pool->AttachPooledThread(std::move(brightness_controller));
+    job_pool->AttachPooledThread(std::move(trip_compactor));
 
     job_pool->Start("job_pool");
 
