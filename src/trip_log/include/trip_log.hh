@@ -11,6 +11,9 @@
 
 using LogHandle = uint16_t;
 using TriangleAreaType = uint16_t;
+
+// The area of the first entry, which is always kept. Other areas saturate below it
+constexpr TriangleAreaType kFirstEntryArea = std::numeric_limits<TriangleAreaType>::max();
 constexpr LogHandle kInvalidLogHandle = std::numeric_limits<LogHandle>::max();
 
 namespace
@@ -48,6 +51,8 @@ class TripLog
 public:
     // Live entries, plus stale replacements still in the queue, plus the pending and new ones
     static_assert(Entries * 2 + 2 < kInvalidLogHandle, "Handle type too small for number of entries");
+    // Besides the first and the pending entry, there must be something to remove
+    static_assert(Entries >= 3, "Too few entries to remove any");
 
     friend class ::Fixture;
 
@@ -114,10 +119,11 @@ TripLog<Entries>::TriangleArea(const Point& a, const Point& b, const Point& c)
 
     const auto abs_doubled_area = std::abs(doubled_area);
 
-    // Saturate the area for large values (triangles should normally be small)
-    if (abs_doubled_area > std::numeric_limits<TriangleAreaType>::max())
+    // Saturate the area for large values (triangles should normally be small), below the value
+    // reserved for the first entry, so that it's never picked for removal
+    if (abs_doubled_area >= kFirstEntryArea)
     {
-        return std::numeric_limits<TriangleAreaType>::max();
+        return kFirstEntryArea - 1;
     }
 
     return abs_doubled_area;
@@ -129,7 +135,7 @@ TripLog<Entries>::TriangleArea(const TripLogEntry& entry) const
 {
     if (entry.predecessor == kInvalidLogHandle)
     {
-        return std::numeric_limits<TriangleAreaType>::max();
+        return kFirstEntryArea;
     }
     debug_assert(entry.successor != kInvalidLogHandle);
 

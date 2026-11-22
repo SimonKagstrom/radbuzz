@@ -32,6 +32,11 @@ public:
     MAKE_MOCK1(WritableEntry, TripLogEntry&(LogHandle handle), final);
     MAKE_CONST_MOCK1(Entry, const TripLogEntry&(LogHandle handle), final);
 
+    size_t FreeEntries() const
+    {
+        return m_free_log_entries.size();
+    }
+
 private:
     std::optional<LogHandle> DoAllocateLogEntry()
     {
@@ -393,6 +398,42 @@ TEST_CASE_FIXTURE(Fixture, "a long random walk keeps the list consistent")
                 REQUIRE(allocator.Entry(entry.predecessor).successor == h);
             }
         }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the first entry is kept when every triangle area is saturated")
+{
+    // A zigzag with sharp, long legs, so every area is as large as the first entry's
+    std::optional<LogHandle> last;
+    for (auto i = 0; i < 50; i++)
+    {
+        last = trip_log.AddEntry(P(i % 2 == 0 ? 0 : 1000, i * 1000), seconds(i), 100);
+        REQUIRE(last);
+    }
+
+    auto path = WalkBack(*last);
+    REQUIRE(path.size() <= kTripLogSize);
+    CHECK(allocator.Entry(path.back()).position == P(0, 0));
+    CHECK(allocator.Entry(path.front()).position == P(1000, 49000));
+}
+
+TEST_CASE_FIXTURE(Fixture, "a reset frees every entry")
+{
+    // Reused after each reset
+    for (auto count : {1, 2, kTripLogSize, 50})
+    {
+        CAPTURE(count);
+
+        for (auto i = 0; i < count; i++)
+        {
+            REQUIRE(trip_log.AddEntry(P(i % 2 == 0 ? 0 : 10, i * 10), seconds(i), 100));
+        }
+        REQUIRE(allocator.FreeEntries() < kNumberOfTripLogEntries);
+
+        trip_log.Reset();
+
+        CHECK(allocator.FreeEntries() == kNumberOfTripLogEntries);
+        CHECK(trip_log.GetLastHandle() == std::nullopt);
     }
 }
 
