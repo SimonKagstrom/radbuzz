@@ -13,31 +13,31 @@
 /**
  * @brief Records trips to the filesystem, one JSON line per GPS fix
  *
- * A trip is written to <root>/CURRENT/<UTC of the first fix, in hex>.JSL, where the root is
- * TRIPS, or DEMO for trips started in demo mode. The lines are buffered, and appended when the
+ * A trip is written to <root>/current/<UTC of the first fix, in hex>.jsl, where the root is
+ * trips, or demo for trips started in demo mode. The lines are buffered, and appended when the
  * buffer is full or the vehicle stops. Only fixes with a GPS time, which move the pixel position
  * while the vehicle is moving, are recorded. On MSG::reset_trip, the trip is moved to
- * <root>/RAW, MSG::new_recorded_trip is sent, and the next fix starts a new trip.
+ * <root>/raw, MSG::new_recorded_trip is sent, and the next fix starts a new trip.
  *
- * At startup, a trip left in CURRENT (i.e., at power-off) is closed: a real one is moved to RAW
+ * At startup, a trip left in current (i.e., at power-off) is closed: a real one is moved to raw
  * like on a reset, and a demo one is removed, so that demo trips are only kept on purpose.
  */
 class TripRecorder : public os::BaseThread
 {
 public:
-    static constexpr auto kTripsRoot = "TRIPS";
-    static constexpr auto kDemoRoot = "DEMO";
+    static constexpr auto kTripsRoot = "trips";
+    static constexpr auto kDemoRoot = "demo";
     static constexpr auto kRoots = std::array {kTripsRoot, kDemoRoot};
 
-    static constexpr auto kCurrentDirectory = "CURRENT";
-    static constexpr auto kRawDirectory = "RAW";
+    static constexpr auto kCurrentDirectory = "current";
+    static constexpr auto kRawDirectory = "raw";
     static constexpr auto kBufferSize = 4096uz;
 
     TripRecorder(ApplicationState& state,
                  PostOffice<MSG::AllMessages>& post_office,
                  Filesystem& filesystem);
 
-    /// A directory in a root, e.g., TRIPS/RAW
+    /// A directory in a root, e.g., trips/raw
     static std::string Directory(std::string_view root, std::string_view directory);
 
 private:

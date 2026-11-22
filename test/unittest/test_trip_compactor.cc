@@ -15,11 +15,11 @@ namespace
 {
 
 constexpr uint32_t kUtc = 1774269319;
-constexpr auto kName = "69C13387.JSL";
-constexpr auto kRawPath = "TRIPS/RAW/69C13387.JSL";
-constexpr auto kLogPath = "TRIPS/LOG/69C13387.JSL";
-constexpr auto kRawDirectory = "TRIPS/RAW";
-constexpr auto kLogDirectory = "TRIPS/LOG";
+constexpr auto kName = "69c13387.jsl";
+constexpr auto kRawPath = "trips/raw/69c13387.jsl";
+constexpr auto kLogPath = "trips/log/69c13387.jsl";
+constexpr auto kRawDirectory = "trips/raw";
+constexpr auto kLogDirectory = "trips/log";
 
 // A line as written by the TripRecorder
 std::string
@@ -173,13 +173,13 @@ public:
     JobPoolThread job_pool;
 };
 
-// Trips left in RAW from before a restart
+// Trips left in raw from before a restart
 class StartupFixture : public Fixture
 {
 public:
     StartupFixture()
         : Fixture({{kRawPath, Join({NorthLine(0), NorthLine(1)})},
-                   {"TRIPS/RAW/69C14000.JSL", Join({NorthLine(100)})}})
+                   {"trips/raw/69c14000.jsl", Join({NorthLine(100)})}})
     {
     }
 };
@@ -189,12 +189,12 @@ public:
 
 TEST_SUITE_BEGIN("trip_compactor");
 
-TEST_CASE_FIXTURE(StartupFixture, "trips left in RAW are compacted at startup")
+TEST_CASE_FIXTURE(StartupFixture, "trips left in raw are compacted at startup")
 {
     RunLoopWhileReady();
 
     CHECK(Lines(kLogPath) == std::vector {NorthLine(0), NorthLine(1)});
-    CHECK(Lines("TRIPS/LOG/69C14000.JSL") == std::vector {NorthLine(100)});
+    CHECK(Lines("trips/log/69c14000.jsl") == std::vector {NorthLine(100)});
     CHECK(filesystem.ListDirectory(kRawDirectory).empty());
     CHECK(NewCompactedTrips() == 2);
 }
@@ -212,7 +212,7 @@ TEST_CASE_FIXTURE(Fixture, "trips added after startup are only compacted on new 
     {
         NewRecordedTrip();
 
-        THEN("the trip is moved to the log, and removed from RAW")
+        THEN("the trip is moved to the log, and removed from raw")
         {
             CHECK(Lines(kLogPath) == std::vector {NorthLine(0), NorthLine(1)});
             CHECK_FALSE(filesystem.FileExists(kRawPath));
@@ -364,11 +364,11 @@ TEST_CASE_FIXTURE(Fixture, "a trip without any points is removed without a log")
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "all trips in RAW are compacted")
+TEST_CASE_FIXTURE(Fixture, "all trips in raw are compacted")
 {
-    constexpr auto kOtherRawPath = "TRIPS/RAW/69C14000.JSL";
-    constexpr auto kOtherLogPath = "TRIPS/LOG/69C14000.JSL";
-    constexpr auto kInSubdirectory = "TRIPS/RAW/OLD/69C10000.JSL";
+    constexpr auto kOtherRawPath = "trips/raw/69c14000.jsl";
+    constexpr auto kOtherLogPath = "trips/log/69c14000.jsl";
+    constexpr auto kInSubdirectory = "trips/raw/old/69c10000.jsl";
 
     mock_filesystem::SetFile(kRawPath, Join({NorthLine(0), NorthLine(1)}));
     mock_filesystem::SetFile(kOtherRawPath, Join({NorthLine(100), NorthLine(101)}));
@@ -379,7 +379,7 @@ TEST_CASE_FIXTURE(Fixture, "all trips in RAW are compacted")
     CHECK(Lines(kLogPath) == std::vector {NorthLine(0), NorthLine(1)});
     CHECK(Lines(kOtherLogPath) == std::vector {NorthLine(100), NorthLine(101)});
     CHECK(filesystem.ListDirectory(kRawDirectory) ==
-          std::vector<Filesystem::DirectoryEntry> {{"OLD", true}});
+          std::vector<Filesystem::DirectoryEntry> {{"old", true}});
     CHECK(NewCompactedTrips() == 2);
 
     AND_THEN("directories are left alone")
@@ -390,14 +390,14 @@ TEST_CASE_FIXTURE(Fixture, "all trips in RAW are compacted")
 
 TEST_CASE_FIXTURE(Fixture, "demo trips are compacted to the demo log")
 {
-    mock_filesystem::SetFile("DEMO/RAW/69C13387.JSL", Join({NorthLine(0), NorthLine(1)}));
+    mock_filesystem::SetFile("demo/raw/69c13387.jsl", Join({NorthLine(0), NorthLine(1)}));
     mock_filesystem::SetFile(kRawPath, Join({NorthLine(100)}));
 
     NewRecordedTrip();
 
-    CHECK(Lines("DEMO/LOG/69C13387.JSL") == std::vector {NorthLine(0), NorthLine(1)});
+    CHECK(Lines("demo/log/69c13387.jsl") == std::vector {NorthLine(0), NorthLine(1)});
     CHECK(Lines(kLogPath) == std::vector {NorthLine(100)});
-    CHECK(filesystem.ListDirectory("DEMO/RAW").empty());
+    CHECK(filesystem.ListDirectory("demo/raw").empty());
     CHECK(filesystem.ListDirectory(kRawDirectory).empty());
     CHECK(NewCompactedTrips() == 2);
 }
@@ -412,7 +412,7 @@ TEST_CASE_FIXTURE(Fixture, "an existing log is replaced")
     CHECK(Lines(kLogPath) == std::vector {NorthLine(0)});
 }
 
-TEST_CASE_FIXTURE(Fixture, "a trip which can't be written is left in RAW")
+TEST_CASE_FIXTURE(Fixture, "a trip which can't be written is left in raw")
 {
     mock_filesystem::SetFile(kRawPath, Join({NorthLine(0), NorthLine(1)}));
     mock_filesystem::SetFile(kLogDirectory, "in the way");

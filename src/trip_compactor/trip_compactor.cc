@@ -216,7 +216,7 @@ TripCompactor::WalkRawDirectory()
             auto result = Compact(root, entry.name);
             if (result == CompactResult::kFailed)
             {
-                // Left in RAW, and retried on the next new trip
+                // Left in raw, and retried on the next new trip
                 printf("TripCompactor: can't compact %s/%s\n", root, entry.name.c_str());
                 continue;
             }

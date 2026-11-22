@@ -75,7 +75,7 @@ TripRecorder::OnActivation()
             Flush();
             if (!m_filesystem.Move(PathIn(kCurrentDirectory), PathIn(kRawDirectory)))
             {
-                // Left in CURRENT, so the next trip still starts in a new file
+                // Left in current, so the next trip still starts in a new file
                 printf("TripRecorder: can't move %s to %s\n",
                        m_filename.c_str(),
                        Directory(m_root, kRawDirectory).c_str());
@@ -122,7 +122,7 @@ TripRecorder::Record(const GpsData& data)
     {
         // Demo mode changes send a trip reset, so the whole trip is in the same mode
         m_root = m_state.Get<AS::demo_mode>() ? kDemoRoot : kTripsRoot;
-        m_filename = std::format("{:08X}.JSL", utc);
+        m_filename = std::format("{:08x}.jsl", utc);
     }
 
     std::format_to(std::back_inserter(m_buffer),

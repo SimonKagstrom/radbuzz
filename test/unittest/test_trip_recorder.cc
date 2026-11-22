@@ -100,22 +100,22 @@ public:
 
     static std::string TripPath(uint32_t utc)
     {
-        return std::format("TRIPS/CURRENT/{:08X}.JSL", utc);
+        return std::format("trips/current/{:08x}.jsl", utc);
     }
 
     static std::string RawPath(uint32_t utc)
     {
-        return std::format("TRIPS/RAW/{:08X}.JSL", utc);
+        return std::format("trips/raw/{:08x}.jsl", utc);
     }
 
     static std::string DemoPath(std::string_view directory, uint32_t utc)
     {
-        return std::format("DEMO/{}/{:08X}.JSL", directory, utc);
+        return std::format("demo/{}/{:08x}.jsl", directory, utc);
     }
 
     static Filesystem::DirectoryEntry Entry(uint32_t utc)
     {
-        return {std::format("{:08X}.JSL", utc), false};
+        return {std::format("{:08x}.jsl", utc), false};
     }
 
     // The lines of a file, or nothing if it doesn't exist
@@ -160,27 +160,27 @@ private:
         post_office.Subscribe<MSG::new_recorded_trip>(m_notifier)};
 };
 
-// Trips left in CURRENT at power-off
+// Trips left in current at power-off
 class StartupFixture : public Fixture
 {
 public:
     StartupFixture()
-        : Fixture({{"TRIPS/CURRENT/69C13387.JSL", "real 1\n"},
-                   {"TRIPS/CURRENT/69C14000.JSL", "real 2\n"},
-                   {"TRIPS/RAW/69C10000.JSL", "already raw\n"},
-                   {"DEMO/CURRENT/55BBC4A0.JSL", "demo\n"}})
+        : Fixture({{"trips/current/69c13387.jsl", "real 1\n"},
+                   {"trips/current/69c14000.jsl", "real 2\n"},
+                   {"trips/raw/69c10000.jsl", "already raw\n"},
+                   {"demo/current/55bbc4a0.jsl", "demo\n"}})
     {
     }
 };
 
-// A trip left in CURRENT which can't be moved, and a directory which isn't a trip
+// A trip left in current which can't be moved, and a directory which isn't a trip
 class StartupConflictFixture : public Fixture
 {
 public:
     StartupConflictFixture()
-        : Fixture({{"TRIPS/CURRENT/69C13387.JSL", "new\n"},
-                   {"TRIPS/RAW/69C13387.JSL", "old\n"},
-                   {"TRIPS/CURRENT/OLD/69C10000.JSL", "in a directory\n"}})
+        : Fixture({{"trips/current/69c13387.jsl", "new\n"},
+                   {"trips/raw/69c13387.jsl", "old\n"},
+                   {"trips/current/old/69c10000.jsl", "in a directory\n"}})
     {
     }
 };
@@ -245,8 +245,8 @@ TEST_CASE_FIXTURE(Fixture, "GPS fixes are recorded as JSON lines")
 
         THEN("the lines are written to a file named by the time of the first fix")
         {
-            CHECK(filesystem.ListDirectory("TRIPS/CURRENT") ==
-                  std::vector<Filesystem::DirectoryEntry> {{"69C13387.JSL", false}});
+            CHECK(filesystem.ListDirectory("trips/current") ==
+                  std::vector<Filesystem::DirectoryEntry> {{"69c13387.jsl", false}});
 
             auto lines = Lines(TripPath(kUtc));
             REQUIRE(lines.size() == 2);
@@ -342,17 +342,17 @@ TEST_CASE_FIXTURE(Fixture, "demo trips are recorded separately")
     Fix(kUtc + 1);
     Stop();
 
-    CHECK(filesystem.ListDirectory("") == Entries {{"DEMO", true}});
-    CHECK(JsonLines(DemoPath("CURRENT", kUtc)).size() == 2);
+    CHECK(filesystem.ListDirectory("") == Entries {{"demo", true}});
+    CHECK(JsonLines(DemoPath("current", kUtc)).size() == 2);
 
     AND_WHEN("the trip is reset")
     {
         ResetTrip();
 
-        THEN("it's moved to the demo RAW, and announced")
+        THEN("it's moved to the demo raw, and announced")
         {
-            CHECK(filesystem.ListDirectory("DEMO/CURRENT").empty());
-            CHECK(JsonLines(DemoPath("RAW", kUtc)).size() == 2);
+            CHECK(filesystem.ListDirectory("demo/current").empty());
+            CHECK(JsonLines(DemoPath("raw", kUtc)).size() == 2);
             CHECK(NewRecordedTrips() == 1);
         }
 
@@ -369,7 +369,7 @@ TEST_CASE_FIXTURE(Fixture, "demo trips are recorded separately")
             THEN("the next trip is a real one")
             {
                 CHECK(JsonLines(TripPath(kUtc + 2)).size() == 1);
-                CHECK(filesystem.ListDirectory("DEMO/CURRENT").empty());
+                CHECK(filesystem.ListDirectory("demo/current").empty());
             }
         }
     }
@@ -383,7 +383,7 @@ TEST_CASE_FIXTURE(Fixture, "demo trips are recorded separately")
 
         THEN("the trip stays a demo trip")
         {
-            CHECK(JsonLines(DemoPath("CURRENT", kUtc)).size() == 3);
+            CHECK(JsonLines(DemoPath("current", kUtc)).size() == 3);
             CHECK_FALSE(filesystem.FileExists(TripPath(kUtc)));
         }
     }
@@ -393,19 +393,19 @@ TEST_CASE_FIXTURE(StartupFixture, "trips left from before a power-off are closed
 {
     using Entries = std::vector<Filesystem::DirectoryEntry>;
 
-    THEN("real trips are moved to RAW, and announced")
+    THEN("real trips are moved to raw, and announced")
     {
-        CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
-        CHECK(filesystem.ListDirectory("TRIPS/RAW") ==
-              Entries {{"69C10000.JSL", false}, {"69C13387.JSL", false}, {"69C14000.JSL", false}});
-        CHECK(Lines("TRIPS/RAW/69C13387.JSL") == std::vector<std::string> {"real 1"});
+        CHECK(filesystem.ListDirectory("trips/current").empty());
+        CHECK(filesystem.ListDirectory("trips/raw") ==
+              Entries {{"69c10000.jsl", false}, {"69c13387.jsl", false}, {"69c14000.jsl", false}});
+        CHECK(Lines("trips/raw/69c13387.jsl") == std::vector<std::string> {"real 1"});
         CHECK(NewRecordedTrips() == 2);
     }
 
     THEN("demo trips are removed")
     {
-        CHECK(filesystem.ListDirectory("DEMO/CURRENT").empty());
-        CHECK(filesystem.ListDirectory("DEMO/RAW").empty());
+        CHECK(filesystem.ListDirectory("demo/current").empty());
+        CHECK(filesystem.ListDirectory("demo/raw").empty());
     }
 
     AND_WHEN("a fix arrives")
@@ -415,7 +415,7 @@ TEST_CASE_FIXTURE(StartupFixture, "trips left from before a power-off are closed
 
         THEN("it starts a new trip")
         {
-            CHECK(filesystem.ListDirectory("TRIPS/CURRENT") == Entries {Entry(kUtc + 1000)});
+            CHECK(filesystem.ListDirectory("trips/current") == Entries {Entry(kUtc + 1000)});
         }
     }
 }
@@ -424,10 +424,10 @@ TEST_CASE_FIXTURE(StartupConflictFixture, "trips which can't be closed at startu
 {
     using Entries = std::vector<Filesystem::DirectoryEntry>;
 
-    CHECK(filesystem.ListDirectory("TRIPS/CURRENT") ==
-          Entries {{"69C13387.JSL", false}, {"OLD", true}});
-    CHECK(Lines("TRIPS/RAW/69C13387.JSL") == std::vector<std::string> {"old"});
-    CHECK(filesystem.FileExists("TRIPS/CURRENT/OLD/69C10000.JSL"));
+    CHECK(filesystem.ListDirectory("trips/current") ==
+          Entries {{"69c13387.jsl", false}, {"old", true}});
+    CHECK(Lines("trips/raw/69c13387.jsl") == std::vector<std::string> {"old"});
+    CHECK(filesystem.FileExists("trips/current/old/69c10000.jsl"));
     CHECK(NewRecordedTrips() == 0);
 }
 
@@ -461,7 +461,7 @@ TEST_CASE_FIXTURE(Fixture, "stopping without any fixes writes nothing")
     CHECK(filesystem.ListDirectory("").empty());
 }
 
-TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
+TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to raw")
 {
     using Entries = std::vector<Filesystem::DirectoryEntry>;
 
@@ -474,8 +474,8 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
 
         THEN("the buffered lines are written, and the trip is moved")
         {
-            CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
-            CHECK(filesystem.ListDirectory("TRIPS/RAW") == Entries {Entry(kUtc)});
+            CHECK(filesystem.ListDirectory("trips/current").empty());
+            CHECK(filesystem.ListDirectory("trips/raw") == Entries {Entry(kUtc)});
             CHECK(JsonLines(RawPath(kUtc)).size() == 2);
         }
 
@@ -492,7 +492,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
 
             THEN("they start a new trip, and the old one is unchanged")
             {
-                CHECK(filesystem.ListDirectory("TRIPS/CURRENT") == Entries {Entry(kUtc + 10)});
+                CHECK(filesystem.ListDirectory("trips/current") == Entries {Entry(kUtc + 10)});
                 CHECK(JsonLines(TripPath(kUtc + 10)).size() == 2);
                 CHECK(JsonLines(RawPath(kUtc)).size() == 2);
             }
@@ -502,10 +502,10 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
                 REQUIRE(NewRecordedTrips() == 1);
                 ResetTrip();
 
-                THEN("both trips are in RAW, and the second one is announced")
+                THEN("both trips are in raw, and the second one is announced")
                 {
-                    CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
-                    CHECK(filesystem.ListDirectory("TRIPS/RAW") ==
+                    CHECK(filesystem.ListDirectory("trips/current").empty());
+                    CHECK(filesystem.ListDirectory("trips/raw") ==
                           Entries {Entry(kUtc), Entry(kUtc + 10)});
                     CHECK(NewRecordedTrips() == 1);
                 }
@@ -535,8 +535,8 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to RAW")
 
         THEN("the second reset does nothing")
         {
-            CHECK(filesystem.ListDirectory("TRIPS/CURRENT").empty());
-            CHECK(filesystem.ListDirectory("TRIPS/RAW") == Entries {Entry(kUtc)});
+            CHECK(filesystem.ListDirectory("trips/current").empty());
+            CHECK(filesystem.ListDirectory("trips/raw") == Entries {Entry(kUtc)});
             CHECK(NewRecordedTrips() == 1);
         }
     }
@@ -561,7 +561,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset without a trip does nothing")
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved is left in CURRENT")
+TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved is left in current")
 {
     // E.g., a trip with the same name from before
     mock_filesystem::SetFile(RawPath(kUtc), "old");
@@ -571,7 +571,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved is left in CURRENT")
 
     CHECK(JsonLines(TripPath(kUtc)).size() == 1);
     CHECK(Lines(RawPath(kUtc)) == std::vector<std::string> {"old"});
-    // Nothing new in RAW
+    // Nothing new in raw
     CHECK(NewRecordedTrips() == 0);
 
     AND_WHEN("more fixes arrive")
@@ -590,7 +590,7 @@ TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved is left in CURRENT")
 TEST_CASE_FIXTURE(Fixture, "lines which can't be written are dropped")
 {
     // A file in the way of the directory
-    mock_filesystem::SetFile("TRIPS/CURRENT", "in the way");
+    mock_filesystem::SetFile("trips/current", "in the way");
 
     Fix(kUtc);
     Stop();
@@ -599,7 +599,7 @@ TEST_CASE_FIXTURE(Fixture, "lines which can't be written are dropped")
 
     AND_WHEN("the problem goes away")
     {
-        REQUIRE(filesystem.Remove("TRIPS/CURRENT"));
+        REQUIRE(filesystem.Remove("trips/current"));
 
         StartMoving();
         Fix(kUtc + 1);
