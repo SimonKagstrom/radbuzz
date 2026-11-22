@@ -87,6 +87,14 @@ public:
         RunLoopWhileReady();
     }
 
+    std::string Contents(std::string_view path) const
+    {
+        auto data = filesystem.ReadFile(path);
+        REQUIRE(data);
+
+        return std::string(reinterpret_cast<const char*>(data->data()), data->size());
+    }
+
     // A request which fails, e.g., since the server can't be reached
     std::unique_ptr<trompeloeil::expectation> FailingRequest(const std::string& url)
     {
@@ -200,7 +208,12 @@ TEST_CASE_FIXTURE(Fixture, "a compacted trip is uploaded, a request per line")
     NewCompactedTrip();
 
     CHECK(requests == std::vector {Url(0), Url(1)});
-    CHECK(filesystem.ReadFile(kSentPath) == std::vector<std::byte> {});
+
+    THEN("the trip is moved to sent, unchanged")
+    {
+        CHECK_FALSE(filesystem.FileExists(kLogPath));
+        CHECK(Contents(kSentPath) == Trip(2));
+    }
 
     AND_WHEN("another trip is compacted")
     {
@@ -212,7 +225,8 @@ TEST_CASE_FIXTURE(Fixture, "a compacted trip is uploaded, a request per line")
         THEN("only the new trip is uploaded")
         {
             CHECK(requests == std::vector {Url(10)});
-            CHECK(filesystem.FileExists("trips/sent/69c14000.jsl"));
+            CHECK(filesystem.ListDirectory("trips/log").empty());
+            CHECK(filesystem.ListDirectory("trips/sent").size() == 2);
         }
     }
 }
@@ -233,6 +247,7 @@ TEST_CASE_FIXTURE(Fixture, "demo trips are uploaded with the demo id")
 
     CHECK(requests == std::vector {Url(5), Url(0, "radbuzz-demo")});
     CHECK(filesystem.FileExists("demo/sent/55bbb7a3.jsl"));
+    CHECK(filesystem.ListDirectory("demo/log").empty());
 }
 
 TEST_CASE_FIXTURE(WithoutDemoIdFixture, "demo trips aren't uploaded without a demo id")
@@ -249,7 +264,7 @@ TEST_CASE_FIXTURE(WithoutDemoIdFixture, "demo trips aren't uploaded without a de
 
     AND_THEN("the demo trip is left")
     {
-        CHECK_FALSE(filesystem.FileExists("demo/sent/55bbb7a3.jsl"));
+        CHECK(filesystem.FileExists("demo/log/55bbb7a3.jsl"));
     }
 }
 
@@ -284,6 +299,7 @@ TEST_CASE_FIXTURE(Fixture, "a failed upload is retried from the start")
     THEN("the upload stops at the failure, also for the other trips")
     {
         CHECK(requests == std::vector {Url(0), Url(1), Url(2)});
+        CHECK(filesystem.FileExists(kLogPath));
         CHECK_FALSE(filesystem.FileExists(kSentPath));
     }
 
@@ -296,7 +312,7 @@ TEST_CASE_FIXTURE(Fixture, "a failed upload is retried from the start")
         THEN("everything is uploaded, the failed trip from the start")
         {
             CHECK(requests == std::vector {Url(0), Url(1), Url(2), Url(3), Url(4), Url(10)});
-            CHECK(filesystem.FileExists(kSentPath));
+            CHECK(filesystem.ListDirectory("trips/log").empty());
         }
     }
 
@@ -334,14 +350,15 @@ TEST_CASE_FIXTURE(Fixture, "broken lines are skipped")
     CHECK(filesystem.FileExists(kSentPath));
 }
 
-TEST_CASE_FIXTURE(Fixture, "a trip which can't be marked as sent is uploaded again")
+TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved to sent is uploaded again")
 {
-    // A file in the way of the directory
-    mock_filesystem::SetFile("trips/sent", "in the way");
+    // E.g., a trip with the same name, sent before
+    mock_filesystem::SetFile(kSentPath, "old");
     mock_filesystem::SetFile(kLogPath, Trip(2));
 
     NewCompactedTrip();
     CHECK(requests == std::vector {Url(0), Url(1)});
+    CHECK(Contents(kSentPath) == "old");
 
     NewCompactedTrip();
     CHECK(requests == std::vector {Url(0), Url(1), Url(0), Url(1)});

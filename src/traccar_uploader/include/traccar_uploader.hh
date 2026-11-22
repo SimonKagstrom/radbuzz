@@ -19,9 +19,9 @@
  *
  *   {"url": "https://host.tailnet.ts.net", "id": "k3v9x2qmw7rt", "demo_id": "p8d4n6hzc1ya"}
  *
- * While wifi is connected, every line of the trips in <root>/log is sent as one request. An
- * empty <root>/sent/<name> marks a completely uploaded trip, and an interrupted upload starts
- * over (Traccar filters the duplicates). Nothing is uploaded without an id, and demo trips not
+ * While wifi is connected, every line of the trips in <root>/log is sent as one request. A
+ * completely uploaded trip is moved to <root>/sent, and an interrupted upload starts over
+ * (Traccar filters the duplicates). Nothing is uploaded without an id, and demo trips not
  * without a demo id.
  */
 class TraccarUploader : public os::BaseThread

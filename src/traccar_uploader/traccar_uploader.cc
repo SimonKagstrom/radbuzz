@@ -213,14 +213,9 @@ TraccarUploader::UploadAll()
 bool
 TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::string_view name)
 {
-    // Marks a completely uploaded trip
-    const auto sent_path = PathIn(root, kSentDirectory, name);
-    if (m_filesystem.FileExists(sent_path))
-    {
-        return true;
-    }
+    const auto log_path = PathIn(root, TripCompactor::kLogDirectory, name);
 
-    auto data = m_filesystem.ReadFile(PathIn(root, TripCompactor::kLogDirectory, name));
+    auto data = m_filesystem.ReadFile(log_path);
     if (!data)
     {
         // Removed since it was listed
@@ -242,10 +237,12 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
         }
     }
 
-    if (!m_filesystem.WriteFile(sent_path, {}))
+    // Done, so that only pending trips are left in the log directory
+    const auto sent_path = PathIn(root, kSentDirectory, name);
+    if (!m_filesystem.Move(log_path, sent_path))
     {
         // Uploaded again on the next upload
-        printf("TraccarUploader: can't write %s\n", sent_path.c_str());
+        printf("TraccarUploader: can't move %s to %s\n", log_path.c_str(), sent_path.c_str());
     }
 
     return true;
