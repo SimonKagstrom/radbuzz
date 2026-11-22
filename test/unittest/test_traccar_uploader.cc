@@ -350,18 +350,17 @@ TEST_CASE_FIXTURE(Fixture, "broken lines are skipped")
     CHECK(filesystem.FileExists(kSentPath));
 }
 
-TEST_CASE_FIXTURE(Fixture, "a trip which can't be moved to sent is uploaded again")
+TEST_CASE_FIXTURE(Fixture, "a sent trip with the same name is replaced")
 {
-    // E.g., a trip with the same name, sent before
+    // E.g., a demo trip from an earlier run
     mock_filesystem::SetFile(kSentPath, "old");
     mock_filesystem::SetFile(kLogPath, Trip(2));
 
     NewCompactedTrip();
-    CHECK(requests == std::vector {Url(0), Url(1)});
-    CHECK(Contents(kSentPath) == "old");
 
-    NewCompactedTrip();
-    CHECK(requests == std::vector {Url(0), Url(1), Url(0), Url(1)});
+    CHECK(requests == std::vector {Url(0), Url(1)});
+    CHECK(Contents(kSentPath) == Trip(2));
+    CHECK_FALSE(filesystem.FileExists(kLogPath));
 }
 
 TEST_SUITE_END();

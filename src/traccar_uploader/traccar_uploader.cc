@@ -237,8 +237,13 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
         }
     }
 
-    // Done, so that only pending trips are left in the log directory
+    // Done, so that only pending trips are left in the log directory. A trip with the same name
+    // is replaced, e.g., a demo trip from an earlier run (which starts at the same time)
     const auto sent_path = PathIn(root, kSentDirectory, name);
+    if (m_filesystem.FileExists(sent_path))
+    {
+        m_filesystem.Remove(sent_path);
+    }
     if (!m_filesystem.Move(log_path, sent_path))
     {
         // Uploaded again on the next upload
