@@ -5,6 +5,7 @@
 #include "trip_compactor.hh"
 #include "trip_recorder.hh"
 
+#include <cctype>
 #include <cstdio>
 #include <format>
 #include <nlohmann/json.hpp>
@@ -29,8 +30,8 @@ UrlEncode(std::string_view value)
     std::string out;
     for (auto ch : value)
     {
-        if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
-            ch == '-' || ch == '.' || ch == '_' || ch == '~')
+        if (std::isalnum(static_cast<unsigned char>(ch)) ||
+            std::string_view("-._~").find(ch) != std::string_view::npos)
         {
             out += ch;
         }
