@@ -118,7 +118,7 @@ std::optional<milliseconds>
 TraccarUploader::OnActivation()
 {
     // Only wakes up, the log directories are walked below
-    m_mailbox->Collect().On<MSG::new_compacted_trip>([](auto) {});
+    m_mailbox->Collect();
 
     if (!m_state.Get<AS::wifi_connected>())
     {
