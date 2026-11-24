@@ -62,6 +62,7 @@ constexpr auto kSettings = std::tuple {
     Setting<Conf::cell_overheat_temperature> {"3"},
     Setting<Conf::ssid_file_hash> {"h"},
     Setting<Conf::traccar_file_hash> {"t"},
+    Setting<Conf::brightness_mode> {"L"},
 };
 
 // Not plain configuration values, handled separately
@@ -71,7 +72,6 @@ constexpr auto kWifiNetworksKey = "W";
 constexpr auto kWhConsumedKey = "C";
 constexpr auto kWhRegeneratedKey = "g";
 constexpr auto kTimezoneKey = "Z";
-constexpr auto kBrightnessModeKey = "L";
 constexpr auto kTraccarUrlKey = "U";
 constexpr auto kTraccarIdKey = "I";
 constexpr auto kTraccarDemoIdKey = "D";
@@ -96,7 +96,6 @@ KeysAreUnique()
                                         kWhConsumedKey,
                                         kWhRegeneratedKey,
                                         kTimezoneKey,
-                                        kBrightnessModeKey,
                                         kTraccarUrlKey,
                                         kTraccarIdKey,
                                         kTraccarDemoIdKey};
@@ -124,16 +123,13 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
     , m_state_listener(
-          m_application_state
-              .AttachListener<AS::configuration, AS::is_moving, AS::timezone, AS::brightness_mode>(
-                  *this))
+          m_application_state.AttachListener<AS::configuration, AS::is_moving, AS::timezone>(*this))
     , m_state_cache(m_application_state)
 {
     auto qw = m_application_state.CheckoutQueuedWriter<AS::configuration,
                                                        AS::wh_consumed,
                                                        AS::wh_regenerated,
-                                                       AS::timezone,
-                                                       AS::brightness_mode>();
+                                                       AS::timezone>();
 
     ForEachSetting([this, &qw](const auto& setting) {
         using S = std::remove_cvref_t<decltype(setting)>;
@@ -153,10 +149,6 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     // From the phone, so that the local time is right also before it has connected
     auto timezone = m_nvm.Get<int16_t>(kTimezoneKey).value_or(0);
     qw.Set<AS::timezone>(timezone >= kMinTimezone && timezone <= kMaxTimezone ? timezone : 0);
-
-    auto brightness_mode =
-        m_nvm.Get<BrightnessMode>(kBrightnessModeKey).value_or(BrightnessMode::kAuto);
-    qw.Set<AS::brightness_mode>(IsValid(brightness_mode) ? brightness_mode : BrightnessMode::kAuto);
 
     qw.Set<Conf::traccar>({
         .url = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarUrlKey).value_or("")),
@@ -223,11 +215,6 @@ Storage::OnActivation()
     // Only on actual changes, although the phone sends it on every connect
     co.OnNewValue<AS::timezone>([this, &do_commit](auto timezone) {
         m_nvm.Set<int16_t>(kTimezoneKey, timezone);
-        do_commit = true;
-    });
-
-    co.OnNewValue<AS::brightness_mode>([this, &do_commit](auto mode) {
-        m_nvm.Set<BrightnessMode>(kBrightnessModeKey, mode);
         do_commit = true;
     });
 

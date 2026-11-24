@@ -186,6 +186,7 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread sets default values if the NVM is
     REQUIRE(State().Get<Conf::max_speedometer_speed>() == 30);
     REQUIRE(State().Get<Conf::show_clock>() == true);
     REQUIRE(State().Get<Conf::tile_style>() == TileStyle::kCycle);
+    REQUIRE(State().Get<Conf::brightness_mode>() == BrightnessMode::kAuto);
     REQUIRE(*State().Get<Conf::traccar>() == TraccarSettings {});
 }
 
@@ -306,6 +307,7 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     PresetNvm("1", 82);
     PresetNvm("2", 83);
     PresetNvm("3", 84);
+    PresetNvm("L", std::to_underlying(BrightnessMode::kMedium));
     PresetNvm("W", std::string("home@secret^work@pw"));
 
     StartBoard();
@@ -331,6 +333,7 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     REQUIRE(State().Get<Conf::motor_overheat_temperature>() == 82);
     REQUIRE(State().Get<Conf::bms_overheat_temperature>() == 83);
     REQUIRE(State().Get<Conf::cell_overheat_temperature>() == 84);
+    REQUIRE(State().Get<Conf::brightness_mode>() == BrightnessMode::kMedium);
     REQUIRE(*State().Get<Conf::wifi_ssid_data>() ==
             WifiSsidData {{WifiSsidNetwork {"home", "secret"}, WifiSsidNetwork {"work", "pw"}}});
 }
@@ -367,6 +370,7 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     State().Set<Conf::traccar>(
         {.url = "https://pi.tail.ts.net", .id = "k3v9x2qmw7rt", .demo_id = "p8d4"});
     State().Set<Conf::traccar_file_hash>(0xfeedface);
+    State().Set<Conf::brightness_mode>(BrightnessMode::kLow);
 
     // New settings must be added above
     const auto changed = Configuration();
@@ -425,6 +429,7 @@ TEST_CASE_FIXTURE(Fixture, "invalid enum values in the NVM are replaced by the d
     PresetNvm("S", std::to_underlying(SpeedometerType::kValueCount));
     PresetNvm("5", 255);
     PresetNvm("T", std::to_underlying(TileStyle::kValueCount));
+    PresetNvm("L", std::to_underlying(BrightnessMode::kValueCount));
 
     StartBoard();
 
@@ -432,6 +437,7 @@ TEST_CASE_FIXTURE(Fixture, "invalid enum values in the NVM are replaced by the d
     REQUIRE(State().Get<Conf::speedometer_type>() == SpeedometerType::kDigital);
     REQUIRE(State().Get<Conf::histogram_mode>() == HistogramMode::kPower);
     REQUIRE(State().Get<Conf::tile_style>() == TileStyle::kCycle);
+    REQUIRE(State().Get<Conf::brightness_mode>() == BrightnessMode::kAuto);
 }
 
 TEST_CASE_FIXTURE(Fixture, "changes to configurations are stored to the NVM")
@@ -518,52 +524,6 @@ TEST_CASE_FIXTURE(Fixture, "invalid timezones in the NVM are replaced by UTC")
         THEN("UTC is used")
         {
             REQUIRE(State().Get<AS::timezone>() == 0);
-        }
-    }
-}
-
-TEST_CASE_FIXTURE(Fixture, "the brightness mode is stored to the NVM")
-{
-    StartBoard();
-    REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kAuto);
-
-    State().Set<AS::brightness_mode>(BrightnessMode::kLow);
-    DoRunLoop();
-
-    WHEN("the board is restarted")
-    {
-        StartBoard();
-
-        THEN("the brightness mode is restored")
-        {
-            REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kLow);
-        }
-    }
-}
-
-TEST_CASE_FIXTURE(Fixture,
-                  "the brightness mode is read from the NVM, and invalid values are ignored")
-{
-    WHEN("it's valid")
-    {
-        // The key must not change
-        PresetNvm("L", std::to_underlying(BrightnessMode::kMedium));
-        StartBoard();
-
-        THEN("it's used")
-        {
-            REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kMedium);
-        }
-    }
-
-    WHEN("it's out of range, e.g., a corrupt NVM")
-    {
-        PresetNvm("L", std::to_underlying(BrightnessMode::kValueCount));
-        StartBoard();
-
-        THEN("auto is used")
-        {
-            REQUIRE(State().Get<AS::brightness_mode>() == BrightnessMode::kAuto);
         }
     }
 }

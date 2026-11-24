@@ -151,10 +151,8 @@ SettingsMenuScreen::OnActivation()
     settings_page.AddRollerEntry(
         "Brightness",
         std::span<const std::string_view>(kBrightnessModeOptions),
-        kBrightnessModeOptions[std::to_underlying(m_parent.m_state.Get<AS::brightness_mode>())],
-        [this](auto value) {
-            m_parent.m_state.Set<AS::brightness_mode>(static_cast<BrightnessMode>(value));
-        });
+        kBrightnessModeOptions[std::to_underlying(state.Get<Conf::brightness_mode>())],
+        ConfigurationSetter<Conf::brightness_mode>(state));
     settings_page.AddRollerEntry("Profile",
                                  std::span<const std::string_view>(kProfileOptions),
                                  kProfileOptions[std::to_underlying(state.Get<Conf::profile>())],
