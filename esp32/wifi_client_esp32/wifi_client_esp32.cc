@@ -50,10 +50,20 @@ WifiClientEsp32::GetScanResult()
 
     // Note: Getting the records frees them in the wifi driver, so this only works once per scan
     uint16_t ap_count = 0;
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+    // Fails if wifi has been turned off after the scan
+    if (ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_scan_get_ap_num(&ap_count)) != ESP_OK)
+    {
+        return access_points;
+    }
 
     std::vector<wifi_ap_record_t> ap_records(ap_count);
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_count, ap_records.data()));
+    if (ESP_ERROR_CHECK_WITHOUT_ABORT(
+            esp_wifi_scan_get_ap_records(&ap_count, ap_records.data())) != ESP_OK)
+    {
+        return access_points;
+    }
+    // Can be fewer than reported above
+    ap_records.resize(ap_count);
 
     // Sorted by RSSI (strongest first) by the driver
     for (const auto& record : ap_records)
