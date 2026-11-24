@@ -6,7 +6,9 @@ SpeedometerHandler::SpeedometerHandler(hal::IStepperMotor& motor,
     : m_motor(motor)
     , m_state(app_state)
     , m_zero_to_max_steps(zero_to_max_steps)
-    , m_state_listener(m_state.AttachListener<AS::speed, AS::configuration>(GetSemaphore()))
+    , m_state_listener(m_state.AttachListener<AS::speed,
+                                              AS::configuration::max_speedometer_speed,
+                                              AS::configuration::speedometer_type>(GetSemaphore()))
 {
 }
 
@@ -26,22 +28,23 @@ SpeedometerHandler::OnActivation()
         return 100ms - (now - m_last_step_time);
     }
 
-    auto conf = m_state.Get<AS::configuration>();
+    // Read once, so that it's the same when used below
+    const auto max_speed = m_state.Get<AS::configuration::max_speedometer_speed>();
 
-    if (conf->max_speedometer_speed == 0)
+    if (max_speed == 0)
     {
-        // Configuration not valid yet
+        // Invalid configuration
         return std::nullopt;
     }
-    if (conf->speedometer_type == SpeedometerType::kDigital)
+    if (m_state.Get<AS::configuration::speedometer_type>() == SpeedometerType::kDigital)
     {
         // Digital-only speedometer, so just ignore
         return std::nullopt;
     }
 
-    const int32_t target_speed = std::min(m_state.Get<AS::speed>(), conf->max_speedometer_speed);
+    const int32_t target_speed = std::min(m_state.Get<AS::speed>(), max_speed);
     const auto target_position =
-        (target_speed * m_zero_to_max_steps + (conf->max_speedometer_speed / 2u)) / conf->max_speedometer_speed;
+        (target_speed * m_zero_to_max_steps + (max_speed / 2u)) / max_speed;
 
     if (const auto delta = target_position - m_position; delta != 0)
     {

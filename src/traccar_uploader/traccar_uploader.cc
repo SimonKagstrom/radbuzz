@@ -147,7 +147,7 @@ TraccarUploader::ImportConfiguration()
 
     // Only import a changed file, like SSID.TXT
     const auto hash = Fnv1aHash(*data);
-    if (hash == m_state.Get<AS::configuration>()->traccar_file_hash)
+    if (hash == m_state.Get<AS::configuration::traccar_file_hash>())
     {
         return;
     }
@@ -167,15 +167,15 @@ TraccarUploader::ImportConfiguration()
         server.pop_back();
     }
 
-    auto ps = m_state.CheckoutPartialSnapshot<AS::configuration>();
-    auto& conf = ps.GetWritableReference<AS::configuration>();
+    auto qw = m_state.CheckoutQueuedWriter<AS::configuration::traccar,
+                                           AS::configuration::traccar_file_hash>();
 
-    conf.traccar = {
+    qw.Set<AS::configuration::traccar>({
         .url = server,
         .id = GetString(json, "id"),
         .demo_id = GetString(json, "demo_id"),
-    };
-    conf.traccar_file_hash = hash;
+    });
+    qw.Set<AS::configuration::traccar_file_hash>(hash);
 
     printf("TraccarUploader: imported %s\n", kConfigurationFile);
 }
@@ -183,14 +183,14 @@ TraccarUploader::ImportConfiguration()
 bool
 TraccarUploader::UploadAll()
 {
-    const auto traccar = m_state.Get<AS::configuration>()->traccar;
-    if (traccar.url.empty())
+    const auto traccar = m_state.Get<AS::configuration::traccar>();
+    if (traccar->url.empty())
     {
         return true;
     }
 
-    for (const auto& [root, device_id] : {std::pair {TripRecorder::kTripsRoot, traccar.id},
-                                          std::pair {TripRecorder::kDemoRoot, traccar.demo_id}})
+    for (const auto& [root, device_id] : {std::pair {TripRecorder::kTripsRoot, traccar->id},
+                                          std::pair {TripRecorder::kDemoRoot, traccar->demo_id}})
     {
         if (device_id.empty())
         {
@@ -224,7 +224,7 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
     }
 
     // Read at once, since compacted trips have a bounded size
-    const auto server = m_state.Get<AS::configuration>()->traccar.url;
+    const auto server = m_state.Get<AS::configuration::traccar>()->url;
     for (auto line :
          SplitLines(std::string_view(reinterpret_cast<const char*>(data->data()), data->size())))
     {

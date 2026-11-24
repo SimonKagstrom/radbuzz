@@ -228,8 +228,6 @@ SpeedometerOnlyScreen::SpeedometerOnlyScreen(UserInterface& parent)
 void
 SpeedometerOnlyScreen::Update()
 {
-    auto conf = m_parent.m_state.Get<AS::configuration>();
-
     if (m_parent.m_state.Get<AS::gps_status>() == GpsStatus::kPositionValid)
     {
         lv_label_set_text(m_small_speedometer_label,
@@ -246,8 +244,9 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_battery.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::battery_soc>()).c_str());
 
-    lv_obj_set_hidden(m_small_speedometer_label, !conf->show_gps_speed);
-    lv_obj_set_hidden(m_small_speedometer_unit_label, !conf->show_gps_speed);
+    const auto show_gps_speed = m_parent.m_state.Get<AS::configuration::show_gps_speed>();
+    lv_obj_set_hidden(m_small_speedometer_label, !show_gps_speed);
+    lv_obj_set_hidden(m_small_speedometer_unit_label, !show_gps_speed);
 
     std::string temperature_text = "Controller";
     std::string temperature_value_text =
@@ -324,10 +323,11 @@ SpeedometerOnlyScreen::Update()
     auto recent_entries = m_parent.m_trip_computer.GetRecentEntries();
     debug_assert(recent_entries.size() == m_recent_entry_bars.size());
 
-    const float max_watts = conf->max_watts;
-    const float max_consumption = conf->wh_per_km_for_range_estimation + 10;
+    const float max_watts = m_parent.m_state.Get<AS::configuration::max_watts>();
+    const float max_consumption =
+        m_parent.m_state.Get<AS::configuration::wh_per_km_for_range_estimation>() + 10;
 
-    if (conf->histogram_mode == HistogramMode::kPower)
+    if (m_parent.m_state.Get<AS::configuration::histogram_mode>() == HistogramMode::kPower)
     {
         lv_label_set_text(m_recent_entry_labels[0],
                           std::format("{:4} W", static_cast<int>(max_watts / 2)).c_str());
@@ -366,15 +366,15 @@ SpeedometerOnlyScreen::Update()
         }
     }
 
-    lv_label_set_text(
-        m_recent_entry_horizontal_labels[0],
-        std::format("-{} m", conf->recent_power_distance * TripComputer::kNumberOfRecentEntries)
-            .c_str());
+    const auto histogram_distance =
+        m_parent.m_state.Get<AS::configuration::recent_power_distance>() *
+        TripComputer::kNumberOfRecentEntries;
 
-    lv_label_set_text(
-        m_recent_entry_horizontal_labels[1],
-        std::format("-{} m", conf->recent_power_distance * TripComputer::kNumberOfRecentEntries / 2)
-            .c_str());
+    lv_label_set_text(m_recent_entry_horizontal_labels[0],
+                      std::format("-{} m", histogram_distance).c_str());
+
+    lv_label_set_text(m_recent_entry_horizontal_labels[1],
+                      std::format("-{} m", histogram_distance / 2).c_str());
 
 
     // Re-align the datums placed relative to other objects, since the values change size

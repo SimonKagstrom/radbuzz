@@ -11,11 +11,8 @@ class Fixture : public ThreadFixture
 public:
     Fixture()
     {
-        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
-        auto& ref = ps.GetWritableReference<AS::configuration>();
-
-        ref.speedometer_type = SpeedometerType::kAnalog;
-        ref.max_speedometer_speed = 60;
+        state.Set<AS::configuration::speedometer_type>(SpeedometerType::kAnalog);
+        state.Set<AS::configuration::max_speedometer_speed>(60);
 
         SetThread(&speedo);
     }
@@ -55,9 +52,23 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
     WHEN("The digital-only speedometer is used")
     {
         auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
-        auto ps = state.CheckoutPartialSnapshot<AS::configuration>()
-                      .GetWritableReference<AS::configuration>()
-                      .speedometer_type = SpeedometerType::kDigital;
+        state.Set<AS::configuration::speedometer_type>(SpeedometerType::kDigital);
+        state.Set<AS::speed>(17);
+
+        auto ran = DoRunLoop();
+
+        THEN("the stepper motor is not moved")
+        {
+            r_no_step = nullptr;
+
+            REQUIRE(ran);
+        }
+    }
+
+    WHEN("the maximum speed is invalid (zero)")
+    {
+        auto r_no_step = NAMED_FORBID_CALL(motor, Step(_));
+        state.Set<AS::configuration::max_speedometer_speed>(0);
         state.Set<AS::speed>(17);
 
         auto ran = DoRunLoop();
@@ -111,6 +122,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
             state.Set<AS::controller_temperature>(45);
             state.Set<AS::next_street>("Tunavägen");
             state.Set<AS::odometer>(100);
+            state.Set<AS::configuration::max_watts>(1234);
 
             auto ran = DoRunLoop();
 

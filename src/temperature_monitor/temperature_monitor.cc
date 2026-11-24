@@ -36,14 +36,15 @@ TemperatureMonitor::OnActivation()
 bool
 TemperatureMonitor::IsOverheated() const
 {
-    auto conf = m_state.Get<AS::configuration>();
+    using Conf = AS::configuration;
 
-    if (m_state.Get<AS::controller_temperature>() > conf->controller_overheat_temperature)
+    if (m_state.Get<AS::controller_temperature>() >
+        m_state.Get<Conf::controller_overheat_temperature>())
     {
         return true;
     }
 
-    if (m_state.Get<AS::motor_temperature>() > conf->motor_overheat_temperature)
+    if (m_state.Get<AS::motor_temperature>() > m_state.Get<Conf::motor_overheat_temperature>())
     {
         return true;
     }
@@ -54,6 +55,6 @@ TemperatureMonitor::IsOverheated() const
         return false;
     }
 
-    return bms_data->bms_temperature > conf->bms_overheat_temperature ||
-           bms_data->highest_cell_temp > conf->cell_overheat_temperature;
+    return bms_data->bms_temperature > m_state.Get<Conf::bms_overheat_temperature>() ||
+           bms_data->highest_cell_temp > m_state.Get<Conf::cell_overheat_temperature>();
 }

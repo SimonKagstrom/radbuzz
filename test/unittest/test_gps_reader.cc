@@ -12,8 +12,7 @@ class Fixture : public ThreadFixture
 public:
     Fixture()
     {
-        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
-        ps.GetWritableReference<AS::configuration>().recent_power_distance = 50;
+        state.Set<AS::configuration::recent_power_distance>(50);
 
         SetThread(&gps_reader);
 
@@ -249,7 +248,8 @@ TEST_CASE_FIXTURE(Fixture, "A valid position is kept while GPS data keeps arrivi
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "When data dries up after a valid position, the GPS state ends up kSilent")
+TEST_CASE_FIXTURE(Fixture,
+                  "When data dries up after a valid position, the GPS state ends up kSilent")
 {
     hal::RawGpsData raw_data {.position = kBraxenWgs84, .heading = 1.0f, .speed = 2.0f};
 

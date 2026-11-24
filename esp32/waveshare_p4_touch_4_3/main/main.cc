@@ -433,10 +433,8 @@ app_main(void)
     auto wifi_client = std::make_unique<WifiClientEsp32>();
 
     os::Sleep(3s);
-    auto force_upgrade = application_state.Get<AS::configuration>()->force_c6_update;
-    application_state.CheckoutPartialSnapshot<AS::configuration>()
-        .GetWritableReference<AS::configuration>()
-        .force_c6_update = false;
+    auto force_upgrade = application_state.Get<AS::configuration::force_c6_update>();
+    application_state.Set<AS::configuration::force_c6_update>(false);
     if (PerformC6SlaveOtaFromPartition(force_upgrade))
     {
         // Allow remote coprocessor reboot to settle, then restart host to resync transport.
@@ -532,7 +530,8 @@ app_main(void)
     auto vesc_can_bus_handler = std::make_unique<VescCanBusHandler>(*can, application_state);
 
     auto gps_reader = std::make_unique<GpsReader>(application_state, *gps);
-    auto trip_recorder = std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
+    auto trip_recorder =
+        std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
     auto trip_compactor = std::make_unique<TripCompactor>(post_office, *filesystem);
     // A client of its own, since a client is a single connection, used from one thread
     auto traccar_https_client = std::make_unique<HttpsClient>();
@@ -544,7 +543,7 @@ app_main(void)
         *backlight,
         application_state,
         BrightnessController::Levels {.night = 10, .dusk = 30, .low_sun = 60, .day = 100},
-        HomePositionOrDefault(*application_state.Get<AS::configuration>()));
+        HomePositionOrDefault(*application_state.Get<AS::configuration::home_position>()));
 
     auto ble_server = std::make_unique<BleServerEsp32>();
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);

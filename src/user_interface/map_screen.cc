@@ -75,7 +75,7 @@ MapScreen::DrawTripLines(lv_layer_t* layer)
     const auto kMidPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_AMBER));
     const auto kHighPowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_RED));
 
-    const auto kMaxPower = m_parent.m_state.Get<AS::configuration>()->max_watts;
+    const auto kMaxPower = m_parent.m_state.Get<AS::configuration::max_watts>();
 
     auto* dst = static_cast<uint16_t*>(static_cast<void*>(layer->draw_buf->data));
     for (++it; it != log.end(); ++it, ++last)
@@ -264,8 +264,6 @@ MapScreen::RotateBackground(int32_t angle_deg, uint16_t* dst)
 void
 MapScreen::Update()
 {
-    auto conf = m_parent.m_state.Get<AS::configuration>();
-
     if (const auto side_pane_shown = m_parent.SidePaneShown();
         side_pane_shown != m_laid_out_for_side_pane)
     {
@@ -278,10 +276,10 @@ MapScreen::Update()
     constexpr int kFollowAnchorY = (hal::kDisplayHeight * 2) / 3;
     const int display_center_x = m_center_x;
     constexpr int kDisplayCenterY = hal::kDisplayHeight / 2;
-    const bool follow_mode =
-        m_touch_timer->IsExpired() && (m_zoom == kDefaultZoom) && conf->rotate_map;
+    const auto rotate_map = m_parent.m_state.Get<AS::configuration::rotate_map>();
+    const bool follow_mode = m_touch_timer->IsExpired() && (m_zoom == kDefaultZoom) && rotate_map;
 
-    m_rotation_enabled = conf->rotate_map;
+    m_rotation_enabled = rotate_map;
 
     m_rotation_pivot_x = display_center_x;
     m_rotation_pivot_y = kDisplayCenterY;
@@ -324,7 +322,8 @@ MapScreen::Update()
 
 
     // Place the home position icon using the same transform as the map.
-    auto home_position = OsmPointToPoint(conf->home_position, m_zoom);
+    auto home_position =
+        OsmPointToPoint(*m_parent.m_state.Get<AS::configuration::home_position>(), m_zoom);
     int home_on_screen_x = home_position.x - m_current_view_center.x + display_cx;
     int home_on_screen_y = home_position.y - m_current_view_center.y + display_cy;
 
@@ -553,9 +552,8 @@ MapScreen::StartHomeHoldTimer()
             {
                 MessageBox::Button("Yes",
                                    [this, pixel_position]() {
-                                       m_parent.m_state.CheckoutPartialSnapshot<AS::configuration>()
-                                           .GetWritableReference<AS::configuration>()
-                                           .home_position = pixel_position;
+                                       m_parent.m_state.Set<AS::configuration::home_position>(
+                                           pixel_position);
                                        printf("Home position set\n");
                                    }),
                 MessageBox::Button("Cancel"),

@@ -81,7 +81,7 @@ TileCache::TileCache(ApplicationState& application_state,
     , m_filesystem(filesystem)
     , m_https_client(https_client)
     , m_state_listener(
-          m_state.AttachListener<AS::pixel_position, AS::configuration>(GetSemaphore()))
+          m_state.AttachListener<AS::pixel_position, AS::configuration::tile_style>(GetSemaphore()))
     , m_state_cache(m_state)
     , m_regions(kRegionConfigurations)
     , m_web_thread(std::make_unique<WebThread>(*this))
@@ -108,7 +108,7 @@ TileCache::OnStartup()
 
     MigrateUnstyledTiles(m_filesystem);
 
-    m_style = m_state.Get<AS::configuration>()->tile_style;
+    m_style = m_state.Get<AS::configuration::tile_style>();
     LoadRegions();
 
     m_web_thread->Start("web_tile_fetcher", 4096);
@@ -119,10 +119,11 @@ TileCache::OnActivation()
 {
     const auto& co = m_state_cache.Pull();
 
-    co.OnNewValue<AS::configuration>([this](const auto& configuration) {
-        if (configuration.tile_style != m_style)
+    co.OnNewValue<AS::configuration::tile_style>([this](auto style) {
+        // Might have been changed before OnStartup()
+        if (style != m_style)
         {
-            SetStyle(configuration.tile_style);
+            SetStyle(style);
         }
     });
 

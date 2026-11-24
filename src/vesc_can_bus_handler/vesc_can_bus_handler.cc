@@ -22,7 +22,7 @@ VescCanBusHandler::VescCanBusHandler(hal::ICan& bus, ApplicationState& app_state
     : m_bus(bus)
     , m_state(app_state)
     , m_state_cache(app_state)
-    , m_state_listener(m_state.AttachListener<AS::configuration>(GetSemaphore()))
+    , m_state_listener(m_state.AttachListener<AS::configuration::profile>(GetSemaphore()))
 {
     m_vesc_can_state = new VescCanState();
 }
@@ -93,7 +93,7 @@ VescCanBusHandler::OnActivation()
                 // Wait for the mcconf state to be valid until marking the can bus as active
                 if (m_vesc_can_state->mcconf)
                 {
-                    SetMaxSpeed(m_state.Get<AS::configuration>()->profile);
+                    SetMaxSpeed(m_state.Get<AS::configuration::profile>());
                     m_state.Set<AS::can_bus_active>(true);
                     out = std::nullopt;
                 }
@@ -115,12 +115,7 @@ VescCanBusHandler::OnActivation()
     {
         // Controller now known and mcconf is valid
         auto& co = m_state_cache.Pull();
-        co.OnChangedValue<AS::configuration>([this](auto& old_conf, auto& new_conf) {
-            if (old_conf.profile != new_conf.profile)
-            {
-                SetMaxSpeed(new_conf.profile);
-            }
-        });
+        co.OnNewValue<AS::configuration::profile>([this](auto profile) { SetMaxSpeed(profile); });
     }
 
     return std::nullopt;

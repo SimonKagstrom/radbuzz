@@ -5,10 +5,22 @@
 #include "thread_fixture.hh"
 
 #include <bit>
+#include <tuple>
 #include <unordered_map>
 
 namespace
 {
+
+using Conf = AS::configuration;
+
+template <class... T>
+bool
+AllDiffer(const std::tuple<T...>& a, const std::tuple<T...>& b)
+{
+    return [&a, &b]<size_t... I>(std::index_sequence<I...>) {
+        return ((std::get<I>(a) != std::get<I>(b)) && ...);
+    }(std::index_sequence_for<T...> {});
+}
 
 // What is restarted together with the board, i.e., everything except the NVM
 struct Board
@@ -60,14 +72,25 @@ public:
         return board->state;
     }
 
-    ConfigurationSettings Configuration()
+    template <typename S>
+    auto Value()
     {
-        return *State().Get<AS::configuration>();
+        if constexpr (S::IsAtomic())
+        {
+            return State().Get<S>();
+        }
+        else
+        {
+            return *State().Get<S>();
+        }
     }
 
-    void SetConfiguration(const ConfigurationSettings& conf)
+    // Everything in the configuration, as a tuple
+    auto Configuration()
     {
-        State().Set<AS::configuration>(conf);
+        return [this]<class... S>(AS::parameter_list<S...>) {
+            return std::tuple {Value<S>()...};
+        }(AS::configuration::parameters {});
     }
 
     // As if written (and committed) by an earlier boot
@@ -159,11 +182,11 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread sets default values if the NVM is
 {
     StartBoard();
 
-    REQUIRE(State().Get<AS::configuration>()->controller_overheat_temperature == 80);
-    REQUIRE(State().Get<AS::configuration>()->max_speedometer_speed == 30);
-    REQUIRE(State().Get<AS::configuration>()->show_clock == true);
-    REQUIRE(State().Get<AS::configuration>()->tile_style == TileStyle::kCycle);
-    REQUIRE(State().Get<AS::configuration>()->traccar == TraccarSettings {});
+    REQUIRE(State().Get<Conf::controller_overheat_temperature>() == 80);
+    REQUIRE(State().Get<Conf::max_speedometer_speed>() == 30);
+    REQUIRE(State().Get<Conf::show_clock>() == true);
+    REQUIRE(State().Get<Conf::tile_style>() == TileStyle::kCycle);
+    REQUIRE(*State().Get<Conf::traccar>() == TraccarSettings {});
 }
 
 TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state changes")
@@ -178,9 +201,7 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state ch
     REQUIRE_FALSE(ran);
 
     // A change that should wakeup
-    auto conf = *State().Get<AS::configuration>();
-    conf.max_watts = 9957;
-    State().Set<AS::configuration>(conf);
+    State().Set<Conf::max_watts>(9957);
 
     ran = DoRunLoop();
     CHECK(ran);
@@ -288,30 +309,29 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     PresetNvm("W", std::string("home@secret^work@pw"));
 
     StartBoard();
-    auto conf = Configuration();
 
-    REQUIRE(conf.max_speedometer_speed == 45);
-    REQUIRE(conf.profile == Profile::kMoped45);
-    REQUIRE(conf.battery_cell_series == 14);
-    REQUIRE(conf.battery_amp_hours == 30);
-    REQUIRE(conf.wh_per_km_for_range_estimation == 15);
-    REQUIRE(conf.speedometer_type == SpeedometerType::kBoth);
-    REQUIRE(conf.max_watts == 4000);
-    REQUIRE(conf.recent_power_distance == 250);
-    REQUIRE(conf.histogram_mode == HistogramMode::kConsumption);
-    REQUIRE(conf.rotate_map == true);
-    REQUIRE(conf.tile_style == TileStyle::kLandscape);
-    REQUIRE(conf.force_c6_update == true);
-    REQUIRE(conf.show_gps_speed == true);
-    REQUIRE(conf.show_clock == false);
-    REQUIRE(conf.show_speech_bubbles == false);
-    REQUIRE(conf.home_position.x == 1234);
-    REQUIRE(conf.home_position.y == 5678);
-    REQUIRE(conf.controller_overheat_temperature == 81);
-    REQUIRE(conf.motor_overheat_temperature == 82);
-    REQUIRE(conf.bms_overheat_temperature == 83);
-    REQUIRE(conf.cell_overheat_temperature == 84);
-    REQUIRE(conf.wifi_ssid_data ==
+    REQUIRE(State().Get<Conf::max_speedometer_speed>() == 45);
+    REQUIRE(State().Get<Conf::profile>() == Profile::kMoped45);
+    REQUIRE(State().Get<Conf::battery_cell_series>() == 14);
+    REQUIRE(State().Get<Conf::battery_amp_hours>() == 30);
+    REQUIRE(State().Get<Conf::wh_per_km_for_range_estimation>() == 15);
+    REQUIRE(State().Get<Conf::speedometer_type>() == SpeedometerType::kBoth);
+    REQUIRE(State().Get<Conf::max_watts>() == 4000);
+    REQUIRE(State().Get<Conf::recent_power_distance>() == 250);
+    REQUIRE(State().Get<Conf::histogram_mode>() == HistogramMode::kConsumption);
+    REQUIRE(State().Get<Conf::rotate_map>() == true);
+    REQUIRE(State().Get<Conf::tile_style>() == TileStyle::kLandscape);
+    REQUIRE(State().Get<Conf::force_c6_update>() == true);
+    REQUIRE(State().Get<Conf::show_gps_speed>() == true);
+    REQUIRE(State().Get<Conf::show_clock>() == false);
+    REQUIRE(State().Get<Conf::show_speech_bubbles>() == false);
+    REQUIRE(State().Get<Conf::home_position>()->x == 1234);
+    REQUIRE(State().Get<Conf::home_position>()->y == 5678);
+    REQUIRE(State().Get<Conf::controller_overheat_temperature>() == 81);
+    REQUIRE(State().Get<Conf::motor_overheat_temperature>() == 82);
+    REQUIRE(State().Get<Conf::bms_overheat_temperature>() == 83);
+    REQUIRE(State().Get<Conf::cell_overheat_temperature>() == 84);
+    REQUIRE(*State().Get<Conf::wifi_ssid_data>() ==
             WifiSsidData {{WifiSsidNetwork {"home", "secret"}, WifiSsidNetwork {"work", "pw"}}});
 }
 
@@ -319,39 +339,64 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
 {
     StartBoard();
 
-    auto conf = Configuration();
-    conf.max_speedometer_speed = 60;
-    conf.profile = Profile::kNoLimit;
-    conf.battery_cell_series = 20;
-    conf.battery_amp_hours = 40;
-    conf.wh_per_km_for_range_estimation = 22;
-    conf.speedometer_type = SpeedometerType::kAnalog;
-    conf.max_watts = 3000;
-    conf.recent_power_distance = 75;
-    conf.histogram_mode = HistogramMode::kConsumption;
-    conf.rotate_map = true;
-    conf.tile_style = TileStyle::kMobileAtlas;
-    conf.force_c6_update = true;
-    conf.show_gps_speed = true;
-    conf.show_clock = false;
-    conf.show_speech_bubbles = false;
-    conf.home_position = {-17, 4711, conf.home_position.zoom};
-    conf.controller_overheat_temperature = 91;
-    conf.motor_overheat_temperature = 92;
-    conf.bms_overheat_temperature = 93;
-    conf.cell_overheat_temperature = 94;
-    conf.wifi_ssid_data = {{{"cafe", "latte"}, {"open", ""}}};
-    // All 32 bits are used
-    conf.ssid_file_hash = 0xdeadbeef;
-    conf.traccar = {.url = "https://pi.tail.ts.net", .id = "k3v9x2qmw7rt", .demo_id = "p8d4"};
-    conf.traccar_file_hash = 0xfeedface;
-    REQUIRE(conf != Configuration());
+    const auto defaults = Configuration();
 
-    SetConfiguration(conf);
+    State().Set<Conf::max_speedometer_speed>(60);
+    State().Set<Conf::profile>(Profile::kNoLimit);
+    State().Set<Conf::battery_cell_series>(20);
+    State().Set<Conf::battery_amp_hours>(40);
+    State().Set<Conf::wh_per_km_for_range_estimation>(22);
+    State().Set<Conf::speedometer_type>(SpeedometerType::kAnalog);
+    State().Set<Conf::max_watts>(3000);
+    State().Set<Conf::recent_power_distance>(75);
+    State().Set<Conf::histogram_mode>(HistogramMode::kConsumption);
+    State().Set<Conf::rotate_map>(true);
+    State().Set<Conf::tile_style>(TileStyle::kMobileAtlas);
+    State().Set<Conf::force_c6_update>(true);
+    State().Set<Conf::show_gps_speed>(true);
+    State().Set<Conf::show_clock>(false);
+    State().Set<Conf::show_speech_bubbles>(false);
+    State().Set<Conf::home_position>({-17, 4711, kDefaultZoom});
+    State().Set<Conf::controller_overheat_temperature>(91);
+    State().Set<Conf::motor_overheat_temperature>(92);
+    State().Set<Conf::bms_overheat_temperature>(93);
+    State().Set<Conf::cell_overheat_temperature>(94);
+    State().Set<Conf::wifi_ssid_data>({{{"cafe", "latte"}, {"open", ""}}});
+    // All 32 bits are used
+    State().Set<Conf::ssid_file_hash>(0xdeadbeef);
+    State().Set<Conf::traccar>(
+        {.url = "https://pi.tail.ts.net", .id = "k3v9x2qmw7rt", .demo_id = "p8d4"});
+    State().Set<Conf::traccar_file_hash>(0xfeedface);
+
+    // New settings must be added above
+    const auto changed = Configuration();
+    REQUIRE(AllDiffer(changed, defaults));
+
     DoRunLoop();
 
     StartBoard();
-    REQUIRE(Configuration() == conf);
+    REQUIRE(Configuration() == changed);
+}
+
+TEST_CASE_FIXTURE(Fixture, "only changed settings are written to the NVM")
+{
+    StartBoard();
+    DoRunLoop();
+
+    auto r_no_other = NAMED_FORBID_CALL(nvm, SetUint32_t(_, _));
+    auto r_no_string = NAMED_FORBID_CALL(nvm, SetString(_, _));
+    // The last matching expectation is used
+    auto r_write = NAMED_REQUIRE_CALL(nvm, SetUint32_t(_, 3000u)).WITH(std::string_view(_1) == "P");
+    const auto commits_before = CommitCount();
+
+    State().Set<Conf::max_watts>(3000);
+    DoRunLoop();
+
+    THEN("a single value is written and committed")
+    {
+        r_write = nullptr;
+        REQUIRE(CommitCount() == commits_before + 1);
+    }
 }
 
 TEST_CASE_FIXTURE(Fixture, "broken wifi network entries are skipped")
@@ -360,7 +405,7 @@ TEST_CASE_FIXTURE(Fixture, "broken wifi network entries are skipped")
 
     StartBoard();
 
-    REQUIRE(Configuration().wifi_ssid_data ==
+    REQUIRE(*State().Get<Conf::wifi_ssid_data>() ==
             WifiSsidData {{WifiSsidNetwork {"home", "secret"}, WifiSsidNetwork {"work", "pw"}}});
 }
 
@@ -370,7 +415,7 @@ TEST_CASE_FIXTURE(Fixture, "wifi passwords can be empty or contain the separator
 
     StartBoard();
 
-    REQUIRE(Configuration().wifi_ssid_data ==
+    REQUIRE(*State().Get<Conf::wifi_ssid_data>() ==
             WifiSsidData {{WifiSsidNetwork {"open", ""}, WifiSsidNetwork {"cafe", "la@tte"}}});
 }
 
@@ -382,21 +427,18 @@ TEST_CASE_FIXTURE(Fixture, "invalid enum values in the NVM are replaced by the d
     PresetNvm("T", std::to_underlying(TileStyle::kValueCount));
 
     StartBoard();
-    auto conf = Configuration();
 
-    REQUIRE(conf.profile == Profile::kMoped30);
-    REQUIRE(conf.speedometer_type == SpeedometerType::kDigital);
-    REQUIRE(conf.histogram_mode == HistogramMode::kPower);
-    REQUIRE(conf.tile_style == TileStyle::kCycle);
+    REQUIRE(State().Get<Conf::profile>() == Profile::kMoped30);
+    REQUIRE(State().Get<Conf::speedometer_type>() == SpeedometerType::kDigital);
+    REQUIRE(State().Get<Conf::histogram_mode>() == HistogramMode::kPower);
+    REQUIRE(State().Get<Conf::tile_style>() == TileStyle::kCycle);
 }
 
 TEST_CASE_FIXTURE(Fixture, "changes to configurations are stored to the NVM")
 {
     StartBoard();
 
-    auto conf = *State().Get<AS::configuration>();
-    conf.max_speedometer_speed = 99;
-    State().Set<AS::configuration>(conf);
+    State().Set<Conf::max_speedometer_speed>(99);
     DoRunLoop();
 
     WHEN("the board is restarted")
@@ -405,7 +447,7 @@ TEST_CASE_FIXTURE(Fixture, "changes to configurations are stored to the NVM")
 
         THEN("the configuration is read from NVM")
         {
-            REQUIRE(State().Get<AS::configuration>()->max_speedometer_speed == 99);
+            REQUIRE(State().Get<Conf::max_speedometer_speed>() == 99);
         }
     }
 }

@@ -24,7 +24,7 @@ private:
     hal::ICan& m_bus;
     ApplicationState& m_state;
     std::optional<uint8_t> m_controller_id;
-    ApplicationState::PartialReadOnlyCache<AS::configuration> m_state_cache;
+    ApplicationState::PartialReadOnlyCache<AS::configuration::profile> m_state_cache;
     ListenerCookie m_state_listener;
 
     // Unknown, so not unique_ptr

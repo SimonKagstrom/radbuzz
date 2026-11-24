@@ -330,7 +330,7 @@ UserInterface::OnStartup()
 
     // Allow placing the objects first, so delay a bit
     m_show_help_timer = StartTimer(10ms, [this]() {
-        if (m_state.Get<AS::configuration>()->show_speech_bubbles)
+        if (m_state.Get<AS::configuration::show_speech_bubbles>())
         {
             ShowHelp();
         }
@@ -411,8 +411,6 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     const auto kPositivePowerColor = lv_color_to_u16(lv_color_black());
     const auto kNegativePowerColor = lv_color_to_u16(lv_palette_main(LV_PALETTE_GREEN));
 
-    auto conf = m_state.Get<AS::configuration>();
-
     auto height = hal::kDisplayHeight;
     auto y_start = 0;
     // Above the navigation description box
@@ -434,7 +432,8 @@ UserInterface::DrawPowerBar(uint16_t* dst)
 
     const auto watts_signed = static_cast<int16_t>(m_state.Get<AS::current_power_w>());
     const int abs_watts = std::abs(watts_signed);
-    const int max_watts = std::max(1, static_cast<int>(conf->max_watts));
+    const int max_watts =
+        std::max(1, static_cast<int>(m_state.Get<AS::configuration::max_watts>()));
     const int power_bar_size = (abs_watts * pixels_at_max_power) / max_watts;
     const int clamped_power_bar_size = std::min(power_bar_size, pixels_at_max_power);
 
@@ -494,7 +493,7 @@ UserInterface::OnActivation()
     if (co.IsChanged<AS::pixel_position>())
     {
         m_distance_home_meters = MetersBetweenPoints(
-            m_state.Get<AS::configuration>()->home_position, co.Get<AS::pixel_position>());
+            *m_state.Get<AS::configuration::home_position>(), co.Get<AS::pixel_position>());
     }
 
     Input::Event input_event;

@@ -51,14 +51,14 @@ static_assert(std::to_underlying(BrightnessMode::kAuto) == 3);
 namespace
 {
 
-template <typename Field>
+using Conf = AS::configuration;
+
+template <typename S>
 auto
-ConfigurationSetter(ApplicationState& state, Field ConfigurationSettings::* field)
+ConfigurationSetter(ApplicationState& state)
 {
-    return [&state, field](auto value) {
-        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
-        ps.GetWritableReference<AS::configuration>().*field = static_cast<Field>(value);
-    };
+    return
+        [&state](auto value) { state.Set<S>(static_cast<AS::storage::value_type_of<S>>(value)); };
 }
 
 } // namespace
@@ -80,7 +80,7 @@ SettingsMenuScreen::OnActivation()
         });
 
     auto& main = m_menu_screen->GetMainPage();
-    const auto conf = m_parent.m_state.Get<AS::configuration>();
+    auto& state = m_parent.m_state;
 
     auto& settings_page = main.AddSubPage("Settings");
     main.AddSeparator();
@@ -90,27 +90,23 @@ SettingsMenuScreen::OnActivation()
         temperature_limits.AddNumericEntry(
             "Motor (°C)",
             {30, 120, 5},
-            conf->motor_overheat_temperature,
-            ConfigurationSetter(m_parent.m_state,
-                                &ConfigurationSettings::motor_overheat_temperature));
+            state.Get<Conf::motor_overheat_temperature>(),
+            ConfigurationSetter<Conf::motor_overheat_temperature>(state));
         temperature_limits.AddNumericEntry(
             "Controller (°C)",
             {30, 120, 5},
-            conf->controller_overheat_temperature,
-            ConfigurationSetter(m_parent.m_state,
-                                &ConfigurationSettings::controller_overheat_temperature));
+            state.Get<Conf::controller_overheat_temperature>(),
+            ConfigurationSetter<Conf::controller_overheat_temperature>(state));
         temperature_limits.AddNumericEntry(
             "BMS (°C)",
             {30, 120, 5},
-            conf->bms_overheat_temperature,
-            ConfigurationSetter(m_parent.m_state,
-                                &ConfigurationSettings::bms_overheat_temperature));
+            state.Get<Conf::bms_overheat_temperature>(),
+            ConfigurationSetter<Conf::bms_overheat_temperature>(state));
         temperature_limits.AddNumericEntry(
             "Battery cells (°C)",
             {30, 120, 5},
-            conf->cell_overheat_temperature,
-            ConfigurationSetter(m_parent.m_state,
-                                &ConfigurationSettings::cell_overheat_temperature));
+            state.Get<Conf::cell_overheat_temperature>(),
+            ConfigurationSetter<Conf::cell_overheat_temperature>(state));
     }
 
     auto& map_style_page = settings_page.AddSubPage("Map style");
@@ -122,14 +118,15 @@ SettingsMenuScreen::OnActivation()
         }
 
         m_tile_style_sample = std::make_unique<SingleColorImage>(kTileSize, kTileSize, 2, 0);
-        ShowTileStyleSample(conf->tile_style);
+        const auto tile_style = state.Get<Conf::tile_style>();
+        ShowTileStyleSample(tile_style);
 
         // Show the sample of each style when scrolling through them
         map_style_page.AddRollerEntry(
             "Style",
             std::span<const std::string_view>(names),
-            TileStyleName(conf->tile_style),
-            ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::tile_style),
+            TileStyleName(tile_style),
+            ConfigurationSetter<Conf::tile_style>(state),
             [this](auto which) { ShowTileStyleSample(static_cast<TileStyle>(which)); });
         m_tile_style_sample_obj = map_style_page.AddImage(&m_tile_style_sample->lv_image_dsc);
     }
@@ -146,11 +143,10 @@ SettingsMenuScreen::OnActivation()
     if constexpr (false)
     {
         // Don't display this until we actually have an analogue speedometer
-        settings_page.AddNumericEntry(
-            "Max speedometer speed",
-            {25, 120, 5},
-            conf->max_speedometer_speed,
-            ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::max_speedometer_speed));
+        settings_page.AddNumericEntry("Max speedometer speed",
+                                      {25, 120, 5},
+                                      state.Get<Conf::max_speedometer_speed>(),
+                                      ConfigurationSetter<Conf::max_speedometer_speed>(state));
     }
     settings_page.AddRollerEntry(
         "Brightness",
@@ -159,32 +155,26 @@ SettingsMenuScreen::OnActivation()
         [this](auto value) {
             m_parent.m_state.Set<AS::brightness_mode>(static_cast<BrightnessMode>(value));
         });
-    settings_page.AddRollerEntry(
-        "Profile",
-        std::span<const std::string_view>(kProfileOptions),
-        kProfileOptions[std::to_underlying(conf->profile)],
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::profile));
-    settings_page.AddNumericEntry(
-        "Battery cell series",
-        {1, 36},
-        conf->battery_cell_series,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::battery_cell_series));
-    settings_page.AddNumericEntry(
-        "Battery Ah",
-        {1, 100},
-        conf->battery_amp_hours,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::battery_amp_hours));
-    settings_page.AddNumericEntry(
-        "Wh per km for range estimation",
-        {10, 100},
-        conf->wh_per_km_for_range_estimation,
-        ConfigurationSetter(m_parent.m_state,
-                            &ConfigurationSettings::wh_per_km_for_range_estimation));
-    settings_page.AddNumericEntry(
-        "Motor watts",
-        {500, 10000, 100},
-        conf->max_watts,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::max_watts));
+    settings_page.AddRollerEntry("Profile",
+                                 std::span<const std::string_view>(kProfileOptions),
+                                 kProfileOptions[std::to_underlying(state.Get<Conf::profile>())],
+                                 ConfigurationSetter<Conf::profile>(state));
+    settings_page.AddNumericEntry("Battery cell series",
+                                  {1, 36},
+                                  state.Get<Conf::battery_cell_series>(),
+                                  ConfigurationSetter<Conf::battery_cell_series>(state));
+    settings_page.AddNumericEntry("Battery Ah",
+                                  {1, 100},
+                                  state.Get<Conf::battery_amp_hours>(),
+                                  ConfigurationSetter<Conf::battery_amp_hours>(state));
+    settings_page.AddNumericEntry("Wh per km for range estimation",
+                                  {10, 100},
+                                  state.Get<Conf::wh_per_km_for_range_estimation>(),
+                                  ConfigurationSetter<Conf::wh_per_km_for_range_estimation>(state));
+    settings_page.AddNumericEntry("Motor watts",
+                                  {500, 10000, 100},
+                                  state.Get<Conf::max_watts>(),
+                                  ConfigurationSetter<Conf::max_watts>(state));
 
 
     if constexpr (false)
@@ -193,35 +183,29 @@ SettingsMenuScreen::OnActivation()
         settings_page.AddRollerEntry(
             "Speedometer",
             std::span<const std::string_view>(kSpeedometerTypeOptions),
-            kSpeedometerTypeOptions[std::to_underlying(conf->speedometer_type)],
-            ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::speedometer_type));
+            kSpeedometerTypeOptions[std::to_underlying(state.Get<Conf::speedometer_type>())],
+            ConfigurationSetter<Conf::speedometer_type>(state));
     }
     settings_page.AddRollerEntry(
         "Histogram display",
         std::span<const std::string_view>(kHistogramModeOptions),
-        kHistogramModeOptions[std::to_underlying(conf->histogram_mode)],
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::histogram_mode));
-    settings_page.AddNumericEntry(
-        "Histogram distance (meters)",
-        {25, 1000, 25},
-        conf->recent_power_distance,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::recent_power_distance));
+        kHistogramModeOptions[std::to_underlying(state.Get<Conf::histogram_mode>())],
+        ConfigurationSetter<Conf::histogram_mode>(state));
+    settings_page.AddNumericEntry("Histogram distance (meters)",
+                                  {25, 1000, 25},
+                                  state.Get<Conf::recent_power_distance>(),
+                                  ConfigurationSetter<Conf::recent_power_distance>(state));
+    settings_page.AddBooleanEntry("Show GPS speed",
+                                  state.Get<Conf::show_gps_speed>(),
+                                  ConfigurationSetter<Conf::show_gps_speed>(state));
     settings_page.AddBooleanEntry(
-        "Show GPS speed",
-        conf->show_gps_speed,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_gps_speed));
-    settings_page.AddBooleanEntry(
-        "Show clock",
-        conf->show_clock,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_clock));
-    settings_page.AddBooleanEntry(
-        "Rotate map with heading",
-        conf->rotate_map,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::rotate_map));
-    settings_page.AddBooleanEntry(
-        "Show speech bubbles at start",
-        conf->show_speech_bubbles,
-        ConfigurationSetter(m_parent.m_state, &ConfigurationSettings::show_speech_bubbles));
+        "Show clock", state.Get<Conf::show_clock>(), ConfigurationSetter<Conf::show_clock>(state));
+    settings_page.AddBooleanEntry("Rotate map with heading",
+                                  state.Get<Conf::rotate_map>(),
+                                  ConfigurationSetter<Conf::rotate_map>(state));
+    settings_page.AddBooleanEntry("Show speech bubbles at start",
+                                  state.Get<Conf::show_speech_bubbles>(),
+                                  ConfigurationSetter<Conf::show_speech_bubbles>(state));
     settings_page.AddSeparator();
     settings_page.AddEntry("Perform OTA update", [this]() {
         m_parent.m_state.Set<AS::ota_update_active>(true);

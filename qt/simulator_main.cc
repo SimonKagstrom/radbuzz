@@ -110,7 +110,8 @@ main(int argc, char* argv[])
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
     auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
-    auto trip_recorder = std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
+    auto trip_recorder =
+        std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
     auto trip_compactor = std::make_unique<TripCompactor>(post_office, *filesystem);
     // A client of its own, since a client is a single connection, used from one thread
     auto traccar_https_client = std::make_unique<HttpsClient>();
@@ -118,9 +119,8 @@ main(int argc, char* argv[])
         application_state, post_office, *filesystem, *traccar_https_client);
     auto tile_cache = std::make_unique<TileCache>(
         application_state, post_office, pm->CreateFullPowerLock(), *filesystem, *https_client);
-    auto ble_handler =
-        std::make_unique<BleHandler>(
-            *ble_server, *ble_client, application_state, post_office, *image_cache);
+    auto ble_handler = std::make_unique<BleHandler>(
+        *ble_server, *ble_client, application_state, post_office, *image_cache);
     auto buzz_handler = std::make_unique<BuzzHandler>(
         window.GetLeftBuzzer(), window.GetRightBuzzer(), application_state);
     auto temperature_monitor = std::make_unique<TemperatureMonitor>(application_state);
@@ -129,7 +129,7 @@ main(int argc, char* argv[])
         window.GetDisplayBrightness(),
         application_state,
         BrightnessController::Levels {.night = 10, .dusk = 30, .low_sun = 60, .day = 100},
-        HomePositionOrDefault(*application_state.Get<AS::configuration>()));
+        HomePositionOrDefault(*application_state.Get<AS::configuration::home_position>()));
     auto user_interface = std::make_unique<UserInterface>(window.GetDisplay(),
                                                           *blitter,
                                                           pm->CreateFullPowerLock(),

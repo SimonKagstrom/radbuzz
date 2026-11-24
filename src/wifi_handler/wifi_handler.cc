@@ -37,7 +37,8 @@ WifiHandler::WifiHandler(ApplicationState& state,
     , m_post_office(post_office)
     , m_filesystem(filesystem)
     , m_wifi_client(wifi_client)
-    , m_state_listener(m_state.AttachListener<AS::configuration, AS::is_moving>(GetSemaphore()))
+    , m_state_listener(
+          m_state.AttachListener<AS::configuration::wifi_ssid_data, AS::is_moving>(GetSemaphore()))
     , m_state_cache(m_state)
     , m_mailbox(m_post_office.Subscribe<MSG::start_wifi_scan, MSG::wifi_connect>(GetNotifier()))
 {
@@ -83,12 +84,9 @@ WifiHandler::OnActivation()
                 m_failed_ssids.clear();
             }
         })
-        .OnChangedValue<AS::configuration>([this](const auto& old_conf, const auto& new_conf) {
+        .OnChanged<AS::configuration::wifi_ssid_data>([this]() {
             // E.g., a changed password
-            if (old_conf.wifi_ssid_data != new_conf.wifi_ssid_data)
-            {
-                m_failed_ssids.clear();
-            }
+            m_failed_ssids.clear();
         });
 
     // A scan in progress also covers the requests (and finds a requested network)
@@ -125,7 +123,7 @@ WifiHandler::ReadSsidFile()
     // Only import a changed file, so that networks forgotten (or changed) on the device stay
     // that way. The same SD card can still be moved between boards to set them up.
     const auto hash = Fnv1aHash(*ssid_data);
-    if (hash == m_state.Get<AS::configuration>()->ssid_file_hash)
+    if (hash == m_state.Get<AS::configuration::ssid_file_hash>())
     {
         printf("SSID.TXT unchanged since the last import, ignoring it\n");
         return;
@@ -153,16 +151,16 @@ WifiHandler::ReadSsidFile()
         parsed_ssid_data.networks.push_back({ssid, password});
     }
 
-    auto ps = m_state.CheckoutPartialSnapshot<AS::configuration>();
-    auto& conf = ps.GetWritableReference<AS::configuration>();
+    auto ps = m_state.CheckoutPartialSnapshot<AS::configuration::ssid_file_hash,
+                                              AS::configuration::wifi_ssid_data>();
+    auto& networks = ps.GetWritableReference<AS::configuration::wifi_ssid_data>().networks;
 
-    conf.ssid_file_hash = hash;
+    ps.Set<AS::configuration::ssid_file_hash>(hash);
     for (auto& [ssid, password] : parsed_ssid_data.networks)
     {
-        auto it = std::ranges::find_if(conf.wifi_ssid_data.networks, [ssid](const auto& network) {
-            return network.ssid == ssid;
-        });
-        if (it != conf.wifi_ssid_data.networks.end())
+        auto it = std::ranges::find_if(
+            networks, [ssid](const auto& network) { return network.ssid == ssid; });
+        if (it != networks.end())
         {
             // Update password (if changed)
             it->password = password;
@@ -170,7 +168,7 @@ WifiHandler::ReadSsidFile()
         else
         {
             // Add new
-            conf.wifi_ssid_data.networks.push_back({ssid, password});
+            networks.push_back({ssid, password});
         }
     }
 }
@@ -209,11 +207,12 @@ WifiHandler::StoreRequestedNetwork(const MSG::wifi_connect& request)
         return false;
     }
 
-    auto ps = m_state.CheckoutPartialSnapshot<AS::configuration>();
-    auto& networks = ps.GetWritableReference<AS::configuration>().wifi_ssid_data.networks;
+    auto ps = m_state.CheckoutPartialSnapshot<AS::configuration::wifi_ssid_data>();
+    auto& networks = ps.GetWritableReference<AS::configuration::wifi_ssid_data>().networks;
 
     // First, so that it's preferred over the other known networks
-    std::erase_if(networks, [&request](const auto& network) { return network.ssid == request.ssid; });
+    std::erase_if(networks,
+                  [&request](const auto& network) { return network.ssid == request.ssid; });
     networks.insert(networks.begin(), {request.ssid, request.password});
 
     // E.g., retyped after a wrong password. Also cleared by the configuration change, but
@@ -245,16 +244,15 @@ WifiHandler::FindKnownNetwork() const
         return std::nullopt;
     }
 
-    auto conf = m_state.Get<AS::configuration>();
-    for (const auto& network : conf->wifi_ssid_data.networks)
+    auto wifi_ssid_data = m_state.Get<AS::configuration::wifi_ssid_data>();
+    for (const auto& network : wifi_ssid_data->networks)
     {
         if (std::ranges::find(m_failed_ssids, network.ssid) != m_failed_ssids.end())
         {
             continue;
         }
-        if (std::ranges::find(*m_scan_result,
-                              network.ssid,
-                              &hal::IWifiClient::AccessPoint::ssid) != m_scan_result->end())
+        if (std::ranges::find(*m_scan_result, network.ssid, &hal::IWifiClient::AccessPoint::ssid) !=
+            m_scan_result->end())
         {
             return network;
         }

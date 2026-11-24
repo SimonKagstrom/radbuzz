@@ -187,9 +187,7 @@ TripMeterScreen::Update()
             const auto consumed_wh = total_wh_consumed - trip_start.start_wh_consumed;
 
             const int wh_percent_used =
-                (consumed_wh / static_cast<float>(battery::FullPackWh(
-                                   m_parent.m_state.Get<AS::configuration>()))) *
-                100.0f;
+                (consumed_wh / static_cast<float>(battery::FullPackWh(m_parent.m_state))) * 100.0f;
 
             value_text = std::format("{}", m_parent.m_state.Get<AS::battery_soc>());
             lv_label_set_text(row.second_column->value, std::format("{}", wh_percent_used).c_str());
@@ -330,7 +328,7 @@ TripMeterScreen::Update()
         ++row_index;
     }
 
-    auto max_power = m_parent.m_state.Get<AS::configuration>()->max_watts;
+    auto max_power = m_parent.m_state.Get<AS::configuration::max_watts>();
     lv_label_set_text(m_max_power_label, std::format("+{} W", max_power).c_str());
 }
 

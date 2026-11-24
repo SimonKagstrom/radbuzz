@@ -14,8 +14,7 @@ class Fixture : public ThreadFixture
 public:
     Fixture()
     {
-        auto ps = state.CheckoutPartialSnapshot<AS::configuration>();
-        ps.GetWritableReference<AS::configuration>().recent_power_distance = 50;
+        state.Set<AS::configuration::recent_power_distance>(50);
 
         // Pooled, like on the target. The job pool owns it from here on
         job_pool.AttachPooledThread(std::move(trip_computer_owner));
@@ -252,7 +251,7 @@ TEST_CASE_FIXTURE(Fixture, "trip histograms are zeroed by default")
 TEST_CASE_FIXTURE(Fixture,
                   "the last entry of the trip histogram is updated with the current average")
 {
-    auto conf = state.Get<AS::configuration>();
+    const auto bucket_distance = state.Get<AS::configuration::recent_power_distance>();
 
     state.Set<AS::can_bus_active>(true);
     state.Set<AS::odometer>(0);
@@ -315,7 +314,7 @@ TEST_CASE_FIXTURE(Fixture,
 
         AND_WHEN("the moped moves")
         {
-            state.Set<AS::odometer>(conf->recent_power_distance + 1);
+            state.Set<AS::odometer>(bucket_distance + 1);
             state.Set<AS::current_power_w>(300);
             state.Set<AS::wh_consumed>(400);
             AdvanceTimeAndRunLoop(250ms);
@@ -336,12 +335,12 @@ TEST_CASE_FIXTURE(Fixture,
 
     WHEN("multiple negative samples are gotten")
     {
-        state.Set<AS::odometer>(conf->recent_power_distance + 1);
+        state.Set<AS::odometer>(bucket_distance + 1);
         state.Set<AS::current_power_w>(-300);
 
         AdvanceTimeAndRunLoop(250ms);
 
-        state.Set<AS::odometer>(conf->recent_power_distance + 1);
+        state.Set<AS::odometer>(bucket_distance + 1);
         state.Set<AS::current_power_w>(-300);
         AdvanceTimeAndRunLoop(250ms);
 
@@ -374,8 +373,8 @@ TEST_CASE_FIXTURE(Fixture, "the trip histogram consumption is valid when standin
     }
 }
 
-TEST_CASE_FIXTURE(Fixture,
-                  "the first trip histogram entry is relative to the odometer and consumption at start")
+TEST_CASE_FIXTURE(
+    Fixture, "the first trip histogram entry is relative to the odometer and consumption at start")
 {
     // A realistic setup, with previous distance and consumption
     state.Set<AS::odometer>(10000);
@@ -402,7 +401,7 @@ TEST_CASE_FIXTURE(Fixture,
 
 TEST_CASE_FIXTURE(Fixture, "a new trip histogram entry starts out empty")
 {
-    auto conf = state.Get<AS::configuration>();
+    const auto bucket_distance = state.Get<AS::configuration::recent_power_distance>();
 
     state.Set<AS::odometer>(1000);
     state.Set<AS::wh_consumed>(10);
@@ -417,7 +416,7 @@ TEST_CASE_FIXTURE(Fixture, "a new trip histogram entry starts out empty")
 
     WHEN("the moped moves into the next bucket")
     {
-        state.Set<AS::odometer>(1000 + conf->recent_power_distance + 10);
+        state.Set<AS::odometer>(1000 + bucket_distance + 10);
         state.Set<AS::wh_consumed>(13);
         AdvanceTimeAndRunLoop(250ms);
 
@@ -430,9 +429,10 @@ TEST_CASE_FIXTURE(Fixture, "a new trip histogram entry starts out empty")
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "movement within a histogram bucket is detected, but doesn't push entries")
+TEST_CASE_FIXTURE(Fixture,
+                  "movement within a histogram bucket is detected, but doesn't push entries")
 {
-    auto conf = state.Get<AS::configuration>();
+    const auto bucket_distance = state.Get<AS::configuration::recent_power_distance>();
 
     state.Set<AS::odometer>(1000);
     state.Set<AS::can_bus_active>(true);
@@ -443,7 +443,7 @@ TEST_CASE_FIXTURE(Fixture, "movement within a histogram bucket is detected, but 
 
     WHEN("the moped moves slowly, within a bucket")
     {
-        for (auto i = 1; i < conf->recent_power_distance; i++)
+        for (auto i = 1; i < bucket_distance; i++)
         {
             state.Set<AS::odometer>(1000 + i);
             AdvanceTimeAndRunLoop(250ms);
@@ -464,7 +464,7 @@ TEST_CASE_FIXTURE(Fixture, "movement within a histogram bucket is detected, but 
 
         AND_WHEN("the moped crosses into the next bucket")
         {
-            state.Set<AS::odometer>(1000 + conf->recent_power_distance);
+            state.Set<AS::odometer>(1000 + bucket_distance);
             AdvanceTimeAndRunLoop(250ms);
 
             THEN("exactly one entry is pushed")

@@ -133,7 +133,7 @@ TripComputer::StartMonitoring()
 TripComputer::DistanceType
 TripComputer::RecentDistance(TripComputer::DistanceType distance) const
 {
-    auto resolution = m_state.Get<AS::configuration>()->recent_power_distance;
+    auto resolution = m_state.Get<AS::configuration::recent_power_distance>();
 
     // Round to the nearest X meters
     return (distance / resolution) * resolution;
@@ -203,10 +203,10 @@ TripComputer::UpdateRange()
 
     m_last_soc = soc;
 
-    const auto conf = m_state.Get<AS::configuration>();
-    const uint8_t wh_per_km = std::max<uint8_t>(1, conf->wh_per_km_for_range_estimation);
+    const uint8_t wh_per_km =
+        std::max<uint8_t>(1, m_state.Get<AS::configuration::wh_per_km_for_range_estimation>());
 
-    auto full_pack_wh = battery::FullPackWh(conf);
+    auto full_pack_wh = battery::FullPackWh(m_state);
     const float wh_left = full_pack_wh * (static_cast<float>(soc) / 100.0f);
     uint32_t range = std::max(1.0f, wh_left / static_cast<float>(wh_per_km));
 
@@ -243,7 +243,7 @@ TripComputer::ResetTrip()
 void
 TripComputer::UpdateSoc(uint16_t millivolts)
 {
-    auto battery_cell_series = m_state.Get<AS::configuration>()->battery_cell_series;
+    auto battery_cell_series = m_state.Get<AS::configuration::battery_cell_series>();
 
     if (battery_cell_series == 0)
     {

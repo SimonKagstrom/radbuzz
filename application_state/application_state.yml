@@ -15,7 +15,32 @@ application_state:
   motor_temperature: 0
   battery_millivolts: 0
   battery_soc: 0
-  configuration: {}
+  # Also used when not stored in the NVM
+  configuration:
+    home_position: {}
+    wifi_ssid_data: {}
+    ssid_file_hash: 0
+    traccar: {}
+    traccar_file_hash: 0
+    max_watts: 1000
+    recent_power_distance: 100
+    speedometer_type: SpeedometerType::kDigital
+    histogram_mode: HistogramMode::kPower
+    rotate_map: false
+    tile_style: TileStyle::kCycle
+    battery_cell_series: 7
+    max_speedometer_speed: 30
+    profile: Profile::kMoped30
+    battery_amp_hours: 20
+    wh_per_km_for_range_estimation: 10
+    show_gps_speed: false
+    show_clock: true
+    show_speech_bubbles: true
+    motor_overheat_temperature: 80
+    controller_overheat_temperature: 80
+    bms_overheat_temperature: 60
+    cell_overheat_temperature: 50
+    force_c6_update: false
   current_power_w: 0
   wh_consumed: 0
   wh_regenerated: 0

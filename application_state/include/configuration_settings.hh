@@ -75,69 +75,14 @@ enum class Profile : uint8_t
     kValueCount,
 };
 
-struct ConfigurationSettings
-{
-    // @brief the home position
-    Point home_position;
-    // Configuration from the filesystem
-    WifiSsidData wifi_ssid_data;
-    // Hash of the last imported SSID.TXT, so that it's only imported when changed
-    uint32_t ssid_file_hash;
-    /// Where to upload trips, from the filesystem
-    TraccarSettings traccar;
-    /// Hash of the last imported traccar.txt, so that it's only imported when changed
-    uint32_t traccar_file_hash;
-    /// @brief Maximum power in watts
-    uint16_t max_watts;
-
-    /// Distance in meters between power bars on the speedometer screen
-    uint16_t recent_power_distance;
-
-    SpeedometerType speedometer_type;
-
-    HistogramMode histogram_mode;
-
-    /// Whether the map should rotate according to heading
-    bool rotate_map;
-    /// @brief The style of map tiles to use
-    TileStyle tile_style;
-    /// @brief Number of battery cells in series, used to calculate cell voltage from millivolts (14s3p etc)
-    uint8_t battery_cell_series;
-    /// @brief Maximum speed in km/h (for the analogue speedometer limits)
-    uint8_t max_speedometer_speed;
-    /// @brief Maximum moped speed in km/h
-    Profile profile;
-    /// @brief Battery capacity in ampere-hours (e.g., 20Ah)
-    uint8_t battery_amp_hours;
-    /// @brief Average watt-hours per kilometer for range estimation
-    uint8_t wh_per_km_for_range_estimation;
-    /// @brief show the gps speed in small numbers
-    bool show_gps_speed;
-    // Show the clock (local time) at the top of the map and speedometer screens
-    bool show_clock;
-    // Whether to show speech bubbles with info at start
-    bool show_speech_bubbles;
-
-    // Overheating limits
-    uint8_t motor_overheat_temperature;
-    uint8_t controller_overheat_temperature;
-    uint8_t bms_overheat_temperature;
-    uint8_t cell_overheat_temperature;
-
-    // @brief Whether to force a C6 update on the next boot (for testing)
-    bool force_c6_update;
-
-    bool operator==(const ConfigurationSettings& other) const = default;
-};
-
 // The home position, or Stockholm when it has not been set
 inline GpsPosition
-HomePositionOrDefault(const ConfigurationSettings& conf)
+HomePositionOrDefault(const Point& home_position)
 {
-    if (conf.home_position.x == 0 && conf.home_position.y == 0)
+    if (home_position.x == 0 && home_position.y == 0)
     {
         return GpsPosition {59.3293f, 18.0686f};
     }
 
-    return OsmPointToWgs84(conf.home_position);
+    return OsmPointToWgs84(home_position);
 }

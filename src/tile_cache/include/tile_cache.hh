@@ -140,7 +140,8 @@ private:
     TileStyle m_style {TileStyle::kCycle};
 
     ListenerCookie m_state_listener;
-    ApplicationState::PartialReadOnlyCache<AS::pixel_position, AS::configuration> m_state_cache;
+    ApplicationState::PartialReadOnlyCache<AS::pixel_position, AS::configuration::tile_style>
+        m_state_cache;
 
     SingleColorImage m_black_tile {kTileSize, kTileSize, 2, 0x0000}; // Black tile
 

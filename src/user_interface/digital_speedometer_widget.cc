@@ -85,11 +85,11 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
                      kSpeedometerBoxOffset);
     }
 
-    auto conf = state.Get<AS::configuration>();
+    auto speedometer_type = state.Get<AS::configuration::speedometer_type>();
     auto gps_speed = std::max(0.0f, state.Get<AS::position>()->speed);
 
-    if (show_speedometer && (conf->speedometer_type == SpeedometerType::kDigital ||
-                             conf->speedometer_type == SpeedometerType::kBoth))
+    if (show_speedometer && (speedometer_type == SpeedometerType::kDigital ||
+                             speedometer_type == SpeedometerType::kBoth))
     {
         lv_label_set_text(m_speed_digits_label, std::format("{}", state.Get<AS::speed>()).c_str());
         lv_label_set_text(m_gps_speed_label,
@@ -97,7 +97,7 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
 
         lv_obj_set_hidden(m_boxes[kSpeedometerBox], false);
         lv_obj_set_hidden(m_speed_digits_label, false);
-        lv_obj_set_hidden(m_gps_speed_label, !conf->show_gps_speed);
+        lv_obj_set_hidden(m_gps_speed_label, !state.Get<AS::configuration::show_gps_speed>());
     }
     else
     {

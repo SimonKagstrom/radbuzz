@@ -32,7 +32,7 @@ ClockWidget::ClockWidget(lv_obj_t* parent)
 std::optional<milliseconds>
 ClockWidget::Update(ApplicationState& state, bool show)
 {
-    if (!show || !state.Get<AS::configuration>()->show_clock)
+    if (!show || !state.Get<AS::configuration::show_clock>())
     {
         lv_obj_set_hidden(m_box, true);
         return std::nullopt;

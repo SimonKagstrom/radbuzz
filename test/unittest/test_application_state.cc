@@ -3,6 +3,29 @@
 #include "semaphore.hh"
 #include "test.hh"
 
+namespace
+{
+
+class CountingNotifier : public IEventNotifier
+{
+public:
+    unsigned count {0};
+
+private:
+    void Notify() final
+    {
+        count++;
+    }
+
+    bool NotifyFromIsr() final
+    {
+        Notify();
+        return false;
+    }
+};
+
+} // namespace
+
 TEST_SUITE_BEGIN("application_state");
 
 TEST_CASE("The application state has default values")
@@ -816,6 +839,209 @@ TEST_CASE("Written values are converted to the type of the parameter")
     }
 }
 
+TEST_CASE("Grouped parameters are independent of each other")
+{
+    ApplicationState app_state;
+
+    THEN("they have default values")
+    {
+        REQUIRE(app_state.Get<AS::test_group::number>() == 17);
+        REQUIRE(*app_state.Get<AS::test_group::text>() == "default");
+        REQUIRE(app_state.Get<AS::test_group::counted>()->value == 0);
+        REQUIRE(app_state.Get<AS::test_group::type>() == true);
+        REQUIRE(app_state.Get<AS::test_group::nested::flag>() == true);
+    }
+
+    WHEN("a parameter has the same name as one outside the group")
+    {
+        app_state.Set<AS::speed>(10);
+
+        THEN("they are still different parameters")
+        {
+            REQUIRE(app_state.Get<AS::speed>() == 10);
+            REQUIRE(app_state.Get<AS::test_group::speed>() == 70000);
+
+            AND_THEN("they can be used together")
+            {
+                {
+                    auto ps = app_state.CheckoutPartialSnapshot<AS::speed, AS::test_group::speed>();
+                    REQUIRE(ps.Get<AS::speed>() == 10);
+                    REQUIRE(ps.Get<AS::test_group::speed>() == 70000);
+
+                    ps.Set<AS::speed>(20);
+                    ps.Set<AS::test_group::speed>(80000);
+                }
+                REQUIRE(app_state.Get<AS::speed>() == 20);
+                REQUIRE(app_state.Get<AS::test_group::speed>() == 80000);
+            }
+        }
+    }
+
+    WHEN("a parameter is written while another is changed in a snapshot")
+    {
+        {
+            auto ps = app_state.CheckoutPartialSnapshot<AS::test_group::text>();
+            ps.GetWritableReference<AS::test_group::text>() += " changed";
+
+            // E.g., by another thread
+            app_state.Set<AS::test_group::number>(18);
+        }
+
+        THEN("none of the changes are lost")
+        {
+            REQUIRE(*app_state.Get<AS::test_group::text>() == "default changed");
+            REQUIRE(app_state.Get<AS::test_group::number>() == 18);
+        }
+    }
+
+    WHEN("a parameter is changed")
+    {
+        os::binary_semaphore sem_number {0}, sem_flag {0};
+        auto number_listener = app_state.AttachListener<AS::test_group::number>(sem_number);
+        auto flag_listener = app_state.AttachListener<AS::test_group::nested::flag>(sem_flag);
+
+        app_state.Set<AS::test_group::number>(18);
+
+        THEN("only its listeners are notified")
+        {
+            REQUIRE(sem_number.try_acquire() == true);
+            REQUIRE(sem_flag.try_acquire() == false);
+        }
+    }
+}
+
+TEST_CASE("Groups can be used as lists of parameters")
+{
+    ApplicationState app_state;
+
+    // Without the parameter which isn't in the application state
+    static_assert(std::is_same_v<AS::test_group::parameters,
+                                 AS::parameter_list<AS::test_group::number,
+                                                    AS::test_group::text,
+                                                    AS::test_group::counted,
+                                                    AS::test_group::speed,
+                                                    AS::test_group::type,
+                                                    AS::test_group::nested::flag,
+                                                    AS::test_group::server::url,
+                                                    AS::test_group::server::id>>);
+
+    WHEN("a listener is attached to a group (and a parameter)")
+    {
+        os::binary_semaphore sem {0};
+        auto listener = app_state.AttachListener<AS::test_group, AS::is_moving>(sem);
+
+        THEN("it's notified of changes to all in the group")
+        {
+            app_state.Set<AS::test_group::number>(18);
+            REQUIRE(sem.try_acquire() == true);
+            app_state.Set<AS::test_group::text>("other");
+            REQUIRE(sem.try_acquire() == true);
+            app_state.Set<AS::test_group::nested::flag>(false);
+            REQUIRE(sem.try_acquire() == true);
+        }
+        AND_THEN("it's notified of the other parameter")
+        {
+            app_state.Set<AS::is_moving>(true);
+            REQUIRE(sem.try_acquire() == true);
+        }
+        AND_THEN("it's not notified of parameters outside the group")
+        {
+            app_state.Set<AS::speed>(10);
+            REQUIRE(sem.try_acquire() == false);
+        }
+        AND_WHEN("the listener is removed")
+        {
+            listener.Reset();
+            app_state.Set<AS::test_group::number>(18);
+            app_state.Set<AS::test_group::nested::flag>(false);
+
+            THEN("it's no longer notified")
+            {
+                REQUIRE(sem.try_acquire() == false);
+            }
+        }
+    }
+
+    WHEN("a listener is attached to a nested group")
+    {
+        os::binary_semaphore sem {0};
+        auto listener = app_state.AttachListener<AS::test_group::nested>(sem);
+
+        THEN("it's only notified of changes to the nested group")
+        {
+            app_state.Set<AS::test_group::number>(18);
+            REQUIRE(sem.try_acquire() == false);
+            app_state.Set<AS::test_group::nested::flag>(false);
+            REQUIRE(sem.try_acquire() == true);
+        }
+    }
+
+    WHEN("a group is used in a read-only cache")
+    {
+        auto state_cache =
+            ApplicationState::PartialReadOnlyCache<AS::speed, AS::test_group>(app_state);
+
+        app_state.Set<AS::test_group::text>("other");
+        app_state.Set<AS::test_group::nested::flag>(false);
+        const auto& co = state_cache.Pull();
+
+        THEN("changes are seen per parameter")
+        {
+            REQUIRE(co.IsChanged<AS::test_group::text>());
+            REQUIRE(co.IsChanged<AS::test_group::nested::flag>());
+            REQUIRE_FALSE(co.IsChanged<AS::test_group::number>());
+            REQUIRE_FALSE(co.IsChanged<AS::test_group::speed>());
+            REQUIRE_FALSE(co.IsChanged<AS::speed>());
+
+            REQUIRE(co.Get<AS::test_group::text>() == "other");
+            REQUIRE(co.Get<AS::test_group::number>() == 17);
+        }
+    }
+
+    WHEN("a group is written in a batch")
+    {
+        os::binary_semaphore sem {0};
+        auto listener = app_state.AttachListener<AS::test_group>(sem);
+
+        auto require_only_changed_written = [&app_state, &sem]() {
+            REQUIRE(app_state.Get<AS::test_group::number>() == 18);
+            REQUIRE(app_state.Get<AS::test_group::nested::flag>() == false);
+            REQUIRE(*app_state.Get<AS::test_group::text>() == "other");
+            REQUIRE(app_state.Get<AS::test_group::speed>() == 70000);
+            REQUIRE(sem.try_acquire() == true);
+        };
+
+        THEN("a partial snapshot only writes the changed parameters")
+        {
+            {
+                auto ps = app_state.CheckoutPartialSnapshot<AS::test_group>();
+
+                ps.Set<AS::test_group::number>(ps.Get<AS::test_group::number>() + 1);
+                ps.Set<AS::test_group::nested::flag>(false);
+
+                // E.g., by another thread
+                app_state.Set<AS::test_group::text>("other");
+                REQUIRE(sem.try_acquire() == true);
+            }
+            require_only_changed_written();
+        }
+        AND_THEN("a queued writer only writes the changed parameters")
+        {
+            {
+                auto qw = app_state.CheckoutQueuedWriter<AS::test_group>();
+
+                qw.Set<AS::test_group::number>(18);
+                qw.Set<AS::test_group::nested::flag>(false);
+
+                // E.g., by another thread
+                app_state.Set<AS::test_group::text>("other");
+                REQUIRE(sem.try_acquire() == true);
+            }
+            require_only_changed_written();
+        }
+    }
+}
+
 TEST_CASE("the build is OK even with parameters not in the application state")
 {
     ApplicationState app_state;
@@ -824,6 +1050,7 @@ TEST_CASE("the build is OK even with parameters not in the application state")
     {
         // This doesn't exist in the application state, but as a parameter
         app_state.Get<AS::only_as_a_parameter>();
+        app_state.Get<AS::test_group::only_as_a_parameter>();
     }
 }
 
@@ -887,6 +1114,91 @@ TEST_CASE("A demo of the application state functionality")
         {
             REQUIRE(app_state.Get<AS::controller_temperature>() == 45);
             REQUIRE(app_state.Get<AS::battery_millivolts>() == 3000);
+        }
+    }
+
+    GIVEN("related parameters, in a group of their own")
+    {
+        // An alternative to a struct parameter, if they should also be usable on their own
+        using Server = AS::test_group::server;
+
+        // E.g., in a thread. Listen to (and cache) everything in the group
+        CountingNotifier notifier;
+        auto listener = app_state.AttachListener<Server>(notifier);
+        ApplicationState::PartialReadOnlyCache<Server> state_cache(app_state);
+
+        // E.g., in another thread. Write the parameters together
+        auto write_server = [&app_state](const std::string& url, const std::string& id) {
+            auto qw = app_state.CheckoutQueuedWriter<Server>();
+
+            qw.Set<Server::url>(url);
+            qw.Set<Server::id>(id);
+        };
+
+        write_server("https://first", "first");
+
+        THEN("parameters written together give a single notification")
+        {
+            REQUIRE(notifier.count == 1);
+        }
+
+        THEN("the parameters can be read one by one")
+        {
+            REQUIRE(*app_state.Get<Server::url>() == "https://first");
+            REQUIRE(*app_state.Get<Server::id>() == "first");
+        }
+
+        THEN("the parameters can be written one by one")
+        {
+            app_state.Set<Server::id>("second");
+
+            REQUIRE(*app_state.Get<Server::url>() == "https://first");
+            REQUIRE(*app_state.Get<Server::id>() == "second");
+        }
+
+        THEN("changes are seen per parameter")
+        {
+            state_cache.Pull();
+            app_state.Set<Server::id>("second");
+
+            std::string new_id;
+            state_cache.Pull()
+                .OnNewValue<Server::url>([](const auto&) { FAIL("The url hasn't changed"); })
+                .OnNewValue<Server::id>([&new_id](const auto& id) { new_id = id; });
+
+            REQUIRE(new_id == "second");
+        }
+
+        WHEN("the parameters are read one by one during a write")
+        {
+            auto url = app_state.Get<Server::url>();
+            write_server("https://second", "second");
+            auto id = app_state.Get<Server::id>();
+
+            THEN("the values might not belong together")
+            {
+                REQUIRE(*url == "https://first");
+                REQUIRE(*id == "second");
+            }
+        }
+
+        WHEN("the parameters are read via a cache (or snapshot) instead")
+        {
+            const auto& co = state_cache.Pull();
+            auto snapshot = app_state.CheckoutPartialSnapshot<Server>();
+
+            auto cached_url = co.Get<Server::url>();
+            auto snapshot_url = snapshot.Get<Server::url>();
+            write_server("https://second", "second");
+
+            THEN("the values belong together")
+            {
+                REQUIRE(cached_url == "https://first");
+                REQUIRE(co.Get<Server::id>() == "first");
+
+                REQUIRE(snapshot_url == "https://first");
+                REQUIRE(snapshot.Get<Server::id>() == "first");
+            }
         }
     }
 

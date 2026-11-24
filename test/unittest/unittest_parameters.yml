@@ -9,5 +9,49 @@ parameters:
   copy_counted:
     type: struct CopyCounted
 
+  test_group:
+    number:
+      type: uint16_t
+
+    text:
+      type: std::string
+
+    counted:
+      type: struct CopyCounted
+
+    # The same name as outside the group
+    speed:
+      type: uint32_t
+
+    only_as_a_parameter:
+      type: bool
+
+    # A parameter with an unfortunate name
+    type:
+      type: bool
+
+    nested:
+      flag:
+        type: bool
+
+    # Related parameters, for the demo in test_application_state.cc
+    server:
+      url:
+        type: std::string
+
+      id:
+        type: std::string
+
 application_state:
   copy_counted: {}
+  test_group:
+    number: 17
+    text: "default"
+    counted: {}
+    speed: 70000
+    type: true
+    nested:
+      flag: true
+    server:
+      url: ""
+      id: ""

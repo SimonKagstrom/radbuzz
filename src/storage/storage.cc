@@ -26,39 +26,42 @@ TrimAtFirstNul(std::string_view input)
 
 } // namespace
 
-template <auto Member>
+using Conf = AS::configuration;
+
+template <typename S>
 struct Setting
 {
-    using Type = std::remove_cvref_t<decltype(std::declval<ConfigurationSettings>().*Member)>;
-    static constexpr auto member = Member;
+    using Parameter = S;
+    using Type = AS::storage::value_type_of<S>;
+
+    static constexpr auto kDefaultValue = static_cast<Type>(AS::DefaultValue<S>());
 
     const char* key;
-    Type default_value;
 };
 
 // The keys must never change, since they are what is stored in the NVM
 constexpr auto kSettings = std::tuple {
-    Setting<&ConfigurationSettings::max_speedometer_speed> {"M", 30},
-    Setting<&ConfigurationSettings::profile> {"6", Profile::kMoped30},
-    Setting<&ConfigurationSettings::battery_cell_series> {"B", 7},
-    Setting<&ConfigurationSettings::battery_amp_hours> {"A", 20},
-    Setting<&ConfigurationSettings::wh_per_km_for_range_estimation> {"R", 10},
-    Setting<&ConfigurationSettings::speedometer_type> {"S", SpeedometerType::kDigital},
-    Setting<&ConfigurationSettings::max_watts> {"P", 1000},
-    Setting<&ConfigurationSettings::recent_power_distance> {"4", 100},
-    Setting<&ConfigurationSettings::histogram_mode> {"5", HistogramMode::kPower},
-    Setting<&ConfigurationSettings::rotate_map> {"r", false},
-    Setting<&ConfigurationSettings::tile_style> {"T", TileStyle::kCycle},
-    Setting<&ConfigurationSettings::force_c6_update> {"f", false},
-    Setting<&ConfigurationSettings::show_gps_speed> {"G", false},
-    Setting<&ConfigurationSettings::show_clock> {"c", true},
-    Setting<&ConfigurationSettings::show_speech_bubbles> {"b", true},
-    Setting<&ConfigurationSettings::controller_overheat_temperature> {"0", 80},
-    Setting<&ConfigurationSettings::motor_overheat_temperature> {"1", 80},
-    Setting<&ConfigurationSettings::bms_overheat_temperature> {"2", 60},
-    Setting<&ConfigurationSettings::cell_overheat_temperature> {"3", 50},
-    Setting<&ConfigurationSettings::ssid_file_hash> {"h", 0},
-    Setting<&ConfigurationSettings::traccar_file_hash> {"t", 0},
+    Setting<Conf::max_speedometer_speed> {"M"},
+    Setting<Conf::profile> {"6"},
+    Setting<Conf::battery_cell_series> {"B"},
+    Setting<Conf::battery_amp_hours> {"A"},
+    Setting<Conf::wh_per_km_for_range_estimation> {"R"},
+    Setting<Conf::speedometer_type> {"S"},
+    Setting<Conf::max_watts> {"P"},
+    Setting<Conf::recent_power_distance> {"4"},
+    Setting<Conf::histogram_mode> {"5"},
+    Setting<Conf::rotate_map> {"r"},
+    Setting<Conf::tile_style> {"T"},
+    Setting<Conf::force_c6_update> {"f"},
+    Setting<Conf::show_gps_speed> {"G"},
+    Setting<Conf::show_clock> {"c"},
+    Setting<Conf::show_speech_bubbles> {"b"},
+    Setting<Conf::controller_overheat_temperature> {"0"},
+    Setting<Conf::motor_overheat_temperature> {"1"},
+    Setting<Conf::bms_overheat_temperature> {"2"},
+    Setting<Conf::cell_overheat_temperature> {"3"},
+    Setting<Conf::ssid_file_hash> {"h"},
+    Setting<Conf::traccar_file_hash> {"t"},
 };
 
 // Not plain configuration values, handled separately
@@ -120,47 +123,46 @@ IsValid(T value)
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
-    , m_state_listener(m_application_state.AttachListener<AS::configuration,
-                                                          AS::is_moving,
-                                                          AS::timezone,
-                                                          AS::brightness_mode>(*this))
+    , m_state_listener(
+          m_application_state
+              .AttachListener<AS::configuration, AS::is_moving, AS::timezone, AS::brightness_mode>(
+                  *this))
     , m_state_cache(m_application_state)
 {
-    auto ps = m_application_state.CheckoutPartialSnapshot<AS::configuration,
-                                                          AS::wh_consumed,
-                                                          AS::wh_regenerated,
-                                                          AS::timezone,
-                                                          AS::brightness_mode>();
-    auto& conf = ps.GetWritableReference<AS::configuration>();
+    auto qw = m_application_state.CheckoutQueuedWriter<AS::configuration,
+                                                       AS::wh_consumed,
+                                                       AS::wh_regenerated,
+                                                       AS::timezone,
+                                                       AS::brightness_mode>();
 
-    ForEachSetting([this, &conf](const auto& setting) {
-        using Type = typename std::remove_cvref_t<decltype(setting)>::Type;
+    ForEachSetting([this, &qw](const auto& setting) {
+        using S = std::remove_cvref_t<decltype(setting)>;
 
-        auto value = m_nvm.Get<Type>(setting.key).value_or(setting.default_value);
-        conf.*setting.member = IsValid(value) ? value : setting.default_value;
+        auto value = m_nvm.Get<typename S::Type>(setting.key).value_or(S::kDefaultValue);
+        qw.Set<typename S::Parameter>(IsValid(value) ? value : S::kDefaultValue);
     });
 
-    conf.home_position = {m_nvm.Get<int32_t>(kHomeXPositionKey).value_or(0),
-                          m_nvm.Get<int32_t>(kHomeYPositionKey).value_or(0),
-                          kDefaultZoom};
+    qw.Set<Conf::home_position>({m_nvm.Get<int32_t>(kHomeXPositionKey).value_or(0),
+                                 m_nvm.Get<int32_t>(kHomeYPositionKey).value_or(0),
+                                 kDefaultZoom});
 
     // Set the stored consumed/regen values
-    ps.Set<AS::wh_consumed>(m_nvm.Get<float>(kWhConsumedKey).value_or(0.0f));
-    ps.Set<AS::wh_regenerated>(m_nvm.Get<float>(kWhRegeneratedKey).value_or(0.0f));
+    qw.Set<AS::wh_consumed>(m_nvm.Get<float>(kWhConsumedKey).value_or(0.0f));
+    qw.Set<AS::wh_regenerated>(m_nvm.Get<float>(kWhRegeneratedKey).value_or(0.0f));
 
     // From the phone, so that the local time is right also before it has connected
     auto timezone = m_nvm.Get<int16_t>(kTimezoneKey).value_or(0);
-    ps.Set<AS::timezone>(timezone >= kMinTimezone && timezone <= kMaxTimezone ? timezone : 0);
+    qw.Set<AS::timezone>(timezone >= kMinTimezone && timezone <= kMaxTimezone ? timezone : 0);
 
     auto brightness_mode =
         m_nvm.Get<BrightnessMode>(kBrightnessModeKey).value_or(BrightnessMode::kAuto);
-    ps.Set<AS::brightness_mode>(IsValid(brightness_mode) ? brightness_mode : BrightnessMode::kAuto);
+    qw.Set<AS::brightness_mode>(IsValid(brightness_mode) ? brightness_mode : BrightnessMode::kAuto);
 
-    conf.traccar = {
+    qw.Set<Conf::traccar>({
         .url = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarUrlKey).value_or("")),
         .id = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarIdKey).value_or("")),
         .demo_id = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarDemoIdKey).value_or("")),
-    };
+    });
 
     auto networks = m_nvm.Get<std::string>(kWifiNetworksKey);
     if (networks)
@@ -182,7 +184,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
 
             wifi_data.networks.push_back({ssid, password});
         }
-        conf.wifi_ssid_data = wifi_data;
+        qw.Set<Conf::wifi_ssid_data>(std::move(wifi_data));
     }
 }
 
@@ -229,42 +231,42 @@ Storage::OnActivation()
         do_commit = true;
     });
 
-    co.OnChangedValue<AS::configuration>([this, &do_commit](auto& old_conf, auto& new_conf) {
-        do_commit = true;
+    ForEachSetting([this, &co, &do_commit](const auto& setting) {
+        using S = std::remove_cvref_t<decltype(setting)>;
 
-        ForEachSetting([this, &old_conf, &new_conf](const auto& setting) {
-            if (old_conf.*setting.member != new_conf.*setting.member)
-            {
-                m_nvm.Set(setting.key, new_conf.*setting.member);
-            }
+        co.OnNewValue<typename S::Parameter>([this, &setting, &do_commit](auto value) {
+            m_nvm.Set(setting.key, value);
+            do_commit = true;
         });
+    });
 
-        if (old_conf.home_position != new_conf.home_position)
+    co.OnNewValue<Conf::home_position>([this, &do_commit](const auto& home_position) {
+        m_nvm.Set<int32_t>(kHomeXPositionKey, home_position.x);
+        m_nvm.Set<int32_t>(kHomeYPositionKey, home_position.y);
+        do_commit = true;
+    });
+
+    co.OnNewValue<Conf::wifi_ssid_data>([this, &do_commit](const auto& wifi_ssid_data) {
+        std::string networks;
+        for (const auto& network : wifi_ssid_data.networks)
         {
-            m_nvm.Set<int32_t>(kHomeXPositionKey, new_conf.home_position.x);
-            m_nvm.Set<int32_t>(kHomeYPositionKey, new_conf.home_position.y);
-        }
-        if (old_conf.wifi_ssid_data != new_conf.wifi_ssid_data)
-        {
-            std::string networks;
-            for (const auto& network : new_conf.wifi_ssid_data.networks)
+            const auto ssid = TrimAtFirstNul(network.ssid);
+            const auto password = TrimAtFirstNul(network.password);
+            if (!networks.empty())
             {
-                const auto ssid = TrimAtFirstNul(network.ssid);
-                const auto password = TrimAtFirstNul(network.password);
-                if (!networks.empty())
-                {
-                    networks += "^";
-                }
-                networks += ssid + "@" + password;
+                networks += "^";
             }
-            m_nvm.Set<std::string>(kWifiNetworksKey, networks);
+            networks += ssid + "@" + password;
         }
-        if (old_conf.traccar != new_conf.traccar)
-        {
-            m_nvm.Set<std::string>(kTraccarUrlKey, new_conf.traccar.url);
-            m_nvm.Set<std::string>(kTraccarIdKey, new_conf.traccar.id);
-            m_nvm.Set<std::string>(kTraccarDemoIdKey, new_conf.traccar.demo_id);
-        }
+        m_nvm.Set<std::string>(kWifiNetworksKey, networks);
+        do_commit = true;
+    });
+
+    co.OnNewValue<Conf::traccar>([this, &do_commit](const auto& traccar) {
+        m_nvm.Set<std::string>(kTraccarUrlKey, traccar.url);
+        m_nvm.Set<std::string>(kTraccarIdKey, traccar.id);
+        m_nvm.Set<std::string>(kTraccarDemoIdKey, traccar.demo_id);
+        do_commit = true;
     });
 
     if (do_commit)
