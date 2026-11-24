@@ -45,7 +45,7 @@ std::string
 Url(uint32_t index, std::string_view id = "radbuzz")
 {
     return std::format("{}/?id={}&timestamp={}&lat={:.6f}&lon=18.068600&speed=19.4&batt=76&"
-                       "power=-1234",
+                       "watts=-1234",
                        kServer,
                        id,
                        kUtc + index,

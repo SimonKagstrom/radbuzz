@@ -80,10 +80,11 @@ PointUrl(std::string_view server, std::string_view device_id, std::string_view l
     {
         out += std::format("&batt={}", soc->get<int64_t>());
     }
-    // Not part of the protocol, so stored as an attribute by Traccar
+    // Not part of the protocol, so stored as an attribute by Traccar. Not as "power", which is the
+    // supply voltage there
     if (auto power = json.find("power"); power != json.end() && power->is_number_integer())
     {
-        out += std::format("&power={}", power->get<int64_t>());
+        out += std::format("&watts={}", power->get<int64_t>());
     }
 
     return out;
