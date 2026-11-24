@@ -71,7 +71,7 @@ PointUrl(std::string_view server, std::string_view device_id, std::string_view l
                            latitude->get<double>(),
                            longitude->get<double>());
 
-    // Recorded in km/h. Traccar reads OsmAnd speeds in knots (to be verified with the server)
+    // Recorded in km/h. Traccar reads OsmAnd speeds in knots
     if (auto speed = json.find("speed"); speed != json.end() && speed->is_number())
     {
         out += std::format("&speed={:.1f}", speed->get<double>() / kKmhPerKnot);
@@ -230,8 +230,9 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
     {
         auto url = PointUrl(server, device_id, line);
 
-        // Broken lines are skipped. A failed trip is sent again from the start, and Traccar
-        // filters the duplicates
+        // Broken lines are skipped. A failed trip is sent again from the start, so Traccar gets
+        // the points before the failure twice (and stores them, it only filters duplicates of
+        // the newest point)
         if (url && !m_https_client.Get(*url))
         {
             return false;
