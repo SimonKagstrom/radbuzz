@@ -514,6 +514,41 @@ TEST_CASE("Listeners can be added to the application state")
 }
 
 
+TEST_CASE("A new listener isn't notified of what a removed listener listened to")
+{
+    ApplicationState app_state;
+    os::binary_semaphore sem_removed {0}, sem_new {0};
+
+    auto removed = app_state.AttachListener<AS::speed, AS::next_street>(sem_removed);
+    removed.Reset();
+
+    // Takes the place of the removed listener
+    auto listener = app_state.AttachListener<AS::next_street>(sem_new);
+
+    WHEN("a parameter only the removed listener listened to is changed")
+    {
+        app_state.Set<AS::speed>(10);
+
+        THEN("no-one is notified")
+        {
+            REQUIRE(sem_new.try_acquire() == false);
+            REQUIRE(sem_removed.try_acquire() == false);
+        }
+    }
+
+    WHEN("a parameter both listened to is changed")
+    {
+        app_state.Set<AS::next_street>("Kungsgatan");
+
+        THEN("only the new listener is notified")
+        {
+            REQUIRE(sem_new.try_acquire() == true);
+            REQUIRE(sem_removed.try_acquire() == false);
+        }
+    }
+}
+
+
 TEST_CASE("There's a finite number of listeners that can be attached")
 {
     ApplicationState app_state;
