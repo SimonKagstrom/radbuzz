@@ -74,7 +74,7 @@ PointUrl(std::string_view server, std::string_view device_id, std::string_view l
     // Recorded in km/h. Traccar reads OsmAnd speeds in knots
     if (auto speed = json.find("speed"); speed != json.end() && speed->is_number())
     {
-        out += std::format("&speed={:.1f}", speed->get<double>() / kKmhPerKnot);
+        out += std::format("&speed={:.1f}", speed->get<float>() / kKmhPerKnot);
     }
     if (auto soc = json.find("soc"); soc != json.end() && soc->is_number_integer())
     {
