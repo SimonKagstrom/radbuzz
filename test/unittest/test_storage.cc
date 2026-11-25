@@ -58,11 +58,22 @@ public:
     // Start, or restart, the board. Uncommitted NVM changes are lost, like on the target
     void StartBoard()
     {
+        CreateBoard();
+        StartThreads();
+    }
+
+    // The first half of StartBoard(): The storage is created, but its thread isn't started
+    void CreateBoard()
+    {
         // Destroy the old storage before the new one is created
         board = nullptr;
         m_staged = m_committed;
 
         board = std::make_unique<Board>(nvm);
+    }
+
+    void StartThreads()
+    {
         SetThread(&board->job_pool);
         board->job_pool.Start("job_pool");
     }
@@ -401,6 +412,53 @@ TEST_CASE_FIXTURE(Fixture, "only changed settings are written to the NVM")
         r_write = nullptr;
         REQUIRE(CommitCount() == commits_before + 1);
     }
+}
+
+TEST_CASE_FIXTURE(Fixture, "settings changed before the storage thread starts are stored")
+{
+    const TraccarSettings traccar {.url = "https://pi.tail.ts.net", .id = "k3v9", .demo_id = "p8"};
+    const WifiSsidData networks {{{"cafe", "latte"}}};
+
+    PresetNvm("M", 60);
+    CreateBoard();
+
+    // E.g., imported from the SD card by another thread, which was started first
+    State().Set<Conf::traccar>(traccar);
+    State().Set<Conf::traccar_file_hash>(0xfeedface);
+    State().Set<Conf::wifi_ssid_data>(networks);
+    State().Set<AS::timezone>(60);
+
+    StartThreads();
+    DoRunLoop();
+
+    WHEN("the board is restarted")
+    {
+        StartBoard();
+
+        THEN("the changes are kept, together with what was stored before")
+        {
+            CHECK(*State().Get<Conf::traccar>() == traccar);
+            CHECK(State().Get<Conf::traccar_file_hash>() == 0xfeedface);
+            CHECK(*State().Get<Conf::wifi_ssid_data>() == networks);
+            CHECK(State().Get<AS::timezone>() == 60);
+            CHECK(State().Get<Conf::max_speedometer_speed>() == 60);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "nothing is written to the NVM at startup, unless changed")
+{
+    PresetNvm("M", 60);
+    PresetNvm("Z", 60);
+    PresetNvm("W", std::string("home@secret"));
+    PresetNvm("U", std::string("https://pi.tail.ts.net"));
+    // Replaced by the default
+    PresetNvm("6", 77);
+
+    StartBoard();
+    DoRunLoop();
+
+    CHECK(CommitCount() == 0);
 }
 
 TEST_CASE_FIXTURE(Fixture, "broken wifi network entries are skipped")

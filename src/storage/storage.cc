@@ -126,6 +126,16 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
           m_application_state.AttachListener<AS::configuration, AS::is_moving, AS::timezone>(*this))
     , m_state_cache(m_application_state)
 {
+    LoadFromNvm();
+
+    // What the NVM contains. In the constructor, since other threads (started before this one)
+    // can change the configuration before OnStartup()
+    m_state_cache.Pull();
+}
+
+void
+Storage::LoadFromNvm()
+{
     auto qw = m_application_state.CheckoutQueuedWriter<AS::configuration,
                                                        AS::wh_consumed,
                                                        AS::wh_regenerated,
@@ -178,12 +188,6 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
         }
         qw.Set<Conf::wifi_ssid_data>(std::move(wifi_data));
     }
-}
-
-void
-Storage::OnStartup()
-{
-    m_state_cache.Pull();
 }
 
 std::optional<milliseconds>

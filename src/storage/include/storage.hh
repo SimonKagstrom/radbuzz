@@ -11,8 +11,9 @@ public:
     Storage(ApplicationState& application_state, hal::INvm& nvm);
 
 private:
-    void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
+
+    void LoadFromNvm();
 
     ApplicationState& m_application_state;
     hal::INvm& m_nvm;
