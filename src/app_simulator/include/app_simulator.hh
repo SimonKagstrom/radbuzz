@@ -15,9 +15,8 @@
 class AppSimulator : public PooledThreadBase
 {
 public:
-    /// 2015-07-31 20:00 in Stockholm (19:00 UTC), shortly before dusk. The demo GPS time starts
-    /// here, regardless of the real time
-    static constexpr uint32_t kDemoStartUtc = 1438365600;
+    /// The step of the demo GPS time for each start of demo mode, to keep demo trips apart
+    static constexpr auto kTimeBetweenStarts = seconds(13h);
 
     explicit AppSimulator(ApplicationState& app_state, PostOffice<MSG::AllMessages>& post_office);
 
@@ -58,6 +57,6 @@ private:
 
     TurnSymbol m_turn_symbol {TurnSymbol::kDestination};
 
-    /// The demo GPS time, which keeps running when demo mode is turned off and on again
-    uint32_t m_utc {kDemoStartUtc};
+    /// The demo GPS time, which is unrelated to the real time
+    uint32_t m_utc {0};
 };

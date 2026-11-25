@@ -7,6 +7,8 @@ namespace
 {
 
 constexpr uint32_t kUtc = 1774269319;
+constexpr uint32_t kDemoStartUtc = 1438365600;
+constexpr uint32_t kStep = 13 * 60 * 60;
 
 class Fixture : public ThreadFixture
 {
@@ -27,6 +29,14 @@ public:
     {
         state.Set<AS::demo_mode>(active);
         RunLoopWhileReady();
+    }
+
+    // Within a second, where the steps are at least 50 ms
+    bool IsSoonAfter(uint32_t start_utc)
+    {
+        const auto utc = state.Get<AS::gps_utc>();
+
+        return utc > start_utc && utc <= start_utc + 21;
     }
 
     ApplicationState state;
@@ -56,7 +66,7 @@ TEST_CASE_FIXTURE(Fixture, "the demo GPS time runs faster than real time")
 
     THEN("it starts from a fixed time")
     {
-        CHECK(state.Get<AS::gps_utc>() == AppSimulator::kDemoStartUtc + 1);
+        CHECK(IsSoonAfter(kDemoStartUtc));
     }
 
     AND_WHEN("time passes")
@@ -66,20 +76,74 @@ TEST_CASE_FIXTURE(Fixture, "the demo GPS time runs faster than real time")
 
         THEN("a second passes for each step")
         {
-            CHECK(state.Get<AS::gps_utc>() >= AppSimulator::kDemoStartUtc + 1 + 5);
+            CHECK(state.Get<AS::gps_utc>() >= kDemoStartUtc + 1 + 5);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the demo GPS time steps forward for each start of demo mode")
+{
+    WHEN("demo mode is started")
+    {
+        SetDemoMode(true);
+
+        THEN("the next start is later")
+        {
+            CHECK(state.Get<AS::demo::next_start_utc>() == kDemoStartUtc + kStep);
         }
 
-        AND_WHEN("demo mode is restarted")
+        AND_WHEN("the trip is reset")
+        {
+            AdvanceTimeAndRunLoop(1s);
+
+            const auto before = state.Get<AS::gps_utc>();
+            post_office.Send<MSG::reset_trip>();
+            AdvanceTimeAndRunLoop(1s);
+
+            THEN("the time just continues, so the next trip also has new times")
+            {
+                CHECK(state.Get<AS::gps_utc>() > before);
+                CHECK(IsSoonAfter(before));
+                CHECK(state.Get<AS::demo::next_start_utc>() == kDemoStartUtc + kStep);
+            }
+        }
+
+        AND_WHEN("demo mode is turned off")
         {
             const auto before = state.Get<AS::gps_utc>();
 
             SetDemoMode(false);
-            SetDemoMode(true);
+            AdvanceTimeAndRunLoop(1s);
 
-            THEN("the time continues, so that demo trips get new times")
+            THEN("the time stops, without a step")
             {
-                CHECK(state.Get<AS::gps_utc>() == before + 1);
+                CHECK(state.Get<AS::gps_utc>() == before);
+                CHECK(state.Get<AS::demo::next_start_utc>() == kDemoStartUtc + kStep);
             }
+
+            AND_WHEN("it's turned on again")
+            {
+                SetDemoMode(true);
+
+                THEN("the time has stepped once")
+                {
+                    CHECK(IsSoonAfter(kDemoStartUtc + kStep));
+                    CHECK(state.Get<AS::demo::next_start_utc>() == kDemoStartUtc + 2 * kStep);
+                }
+            }
+        }
+    }
+
+    WHEN("demo mode has been used in an earlier run")
+    {
+        // From the NVM
+        state.Set<AS::demo::next_start_utc>(kUtc);
+        SetDemoMode(true);
+
+        THEN("it starts after that")
+        {
+            CHECK(IsSoonAfter(kUtc));
+            CHECK(state.Get<AS::demo::next_start_utc>() == kUtc + kStep);
         }
     }
 }

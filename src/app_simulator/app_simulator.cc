@@ -94,6 +94,11 @@ AppSimulator::OnActivation()
             m_application_state.Set<AS::navigation_active>(false);
             m_application_state.Set<AS::bms_data>(BmsData {});
         }
+        else
+        {
+            m_utc = m_application_state.Get<AS::demo::next_start_utc>();
+            m_application_state.Set<AS::demo::next_start_utc>(m_utc + kTimeBetweenStarts.count());
+        }
 
         m_post_office.Send<MSG::reset_trip>();
     });

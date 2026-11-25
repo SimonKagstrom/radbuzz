@@ -69,6 +69,9 @@ main(int argc, char* argv[])
     ApplicationState application_state;
     PostOffice<MSG::AllMessages> post_office;
 
+    // Before demo mode is set, so that it's a change for the simulator
+    auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
+
     application_state.Set<AS::wifi_connected>(true);
     application_state.Set<AS::demo_mode>(!use_ble);
     // Stored by VESC, so update to 100km + some random number here
@@ -109,7 +112,6 @@ main(int argc, char* argv[])
         std::make_unique<WifiHandler>(application_state, post_office, *filesystem, *wifi_client);
     auto input = std::make_unique<Input>(window.GetButtonGpio(), window, window.GetTouch());
     auto trip_computer = std::make_unique<TripComputer>(application_state, post_office);
-    auto app_simulator = std::make_unique<AppSimulator>(application_state, post_office);
     auto trip_recorder =
         std::make_unique<TripRecorder>(application_state, post_office, *filesystem);
     auto trip_compactor = std::make_unique<TripCompactor>(post_office, *filesystem);

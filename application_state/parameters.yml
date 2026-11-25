@@ -136,6 +136,12 @@ parameters:
     ssid_file_hash:
       type: uint32_t
 
+  demo:
+    # UTC where demo mode starts the next time. Steps forward for each start, so that demo trips
+    # get different times. Stored in the NVM
+    next_start_utc:
+      type: uint32_t
+
   # Uploading trips to a Traccar server
   traccar:
     # Where to upload trips, from traccar.txt. Stored in the NVM
@@ -145,6 +151,11 @@ parameters:
     # Hash of the last imported traccar.txt, so that it's only imported when changed. Stored in
     # the NVM
     configuration_file_hash:
+      type: uint32_t
+
+    # UTC of the last point sent from a partly uploaded trip, or 0 if there is none. Used to
+    # continue an interrupted upload. Stored in the NVM
+    last_sent_utc:
       type: uint32_t
 
   current_power_w:

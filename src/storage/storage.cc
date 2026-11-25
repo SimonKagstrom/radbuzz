@@ -60,7 +60,9 @@ constexpr auto kSettings = std::tuple {
     Setting<Conf::bms_overheat_temperature> {"2"},
     Setting<Conf::cell_overheat_temperature> {"3"},
     Setting<AS::wifi::ssid_file_hash> {"h"},
+    Setting<AS::demo::next_start_utc> {"d"},
     Setting<AS::traccar::configuration_file_hash> {"t"},
+    Setting<AS::traccar::last_sent_utc> {"u"},
     Setting<Conf::brightness_mode> {"L"},
 };
 
@@ -123,6 +125,7 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     , m_nvm(nvm)
     , m_state_listener(m_application_state.AttachListener<AS::configuration,
                                                           AS::wifi,
+                                                          AS::demo,
                                                           AS::traccar,
                                                           AS::is_moving,
                                                           AS::timezone>(*this))
@@ -140,6 +143,7 @@ Storage::LoadFromNvm()
 {
     auto qw = m_application_state.CheckoutQueuedWriter<AS::configuration,
                                                        AS::wifi,
+                                                       AS::demo,
                                                        AS::traccar,
                                                        AS::wh_consumed,
                                                        AS::wh_regenerated,

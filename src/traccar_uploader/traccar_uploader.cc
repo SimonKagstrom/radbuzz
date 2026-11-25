@@ -5,10 +5,14 @@
 #include "trip_compactor.hh"
 #include "trip_recorder.hh"
 
+#include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <format>
+#include <iterator>
+#include <limits>
 #include <nlohmann/json.hpp>
+#include <span>
 
 namespace
 {
@@ -44,50 +48,35 @@ UrlEncode(std::string_view value)
     return out;
 }
 
-// The OsmAnd request for a trip line, or nothing if the line is broken
-std::optional<std::string>
-PointUrl(std::string_view server, std::string_view device_id, std::string_view line)
+// The UTC of a parsed trip line, or nothing if the line is broken. There are no exceptions on
+// target, so the types are checked before getting a value
+std::optional<uint32_t>
+GetUtc(const nlohmann::json& json)
 {
-    // No exceptions on target, so check every type before getting a value
-    auto json = nlohmann::json::parse(line, nullptr, false);
     if (!json.is_object())
     {
         return std::nullopt;
     }
 
     auto utc = json.find("utc");
-    auto latitude = json.find("lat");
-    auto longitude = json.find("lon");
-    if (utc == json.end() || !utc->is_number_unsigned() || latitude == json.end() ||
-        !latitude->is_number() || longitude == json.end() || !longitude->is_number())
+    if (utc == json.end() || !utc->is_number_unsigned() ||
+        utc->get<uint64_t>() > std::numeric_limits<uint32_t>::max())
     {
         return std::nullopt;
     }
 
-    auto out = std::format("{}/?id={}&timestamp={}&lat={:.6f}&lon={:.6f}",
-                           server,
-                           UrlEncode(device_id),
-                           utc->get<uint64_t>(),
-                           latitude->get<double>(),
-                           longitude->get<double>());
+    return utc->get<uint32_t>();
+}
 
-    // Recorded in km/h. Traccar reads OsmAnd speeds in knots
-    if (auto speed = json.find("speed"); speed != json.end() && speed->is_number())
-    {
-        out += std::format("&speed={:.1f}", speed->get<float>() / kKmhPerKnot);
-    }
-    if (auto soc = json.find("soc"); soc != json.end() && soc->is_number_integer())
-    {
-        out += std::format("&batt={}", soc->get<int64_t>());
-    }
-    // Not part of the protocol, so stored as an attribute by Traccar. Not as "power", which is the
-    // supply voltage there
-    if (auto power = json.find("power"); power != json.end() && power->is_number_integer())
-    {
-        out += std::format("&watts={}", power->get<int64_t>());
-    }
+// The lines after the one with the UTC, or all of them if it isn't in the trip
+std::span<const std::string_view>
+LinesAfter(std::span<const std::string_view> lines, uint32_t last_sent_utc)
+{
+    const auto it = std::ranges::find_if(lines, [last_sent_utc](auto line) {
+        return GetUtc(nlohmann::json::parse(line, nullptr, false)) == last_sent_utc;
+    });
 
-    return out;
+    return it == lines.end() ? lines : std::span(std::next(it), lines.end());
 }
 
 std::string
@@ -168,8 +157,7 @@ TraccarUploader::ImportConfiguration()
         server.pop_back();
     }
 
-    auto qw = m_state.CheckoutQueuedWriter<AS::traccar::configuration,
-                                           AS::traccar::configuration_file_hash>();
+    auto qw = m_state.CheckoutQueuedWriter<AS::traccar>();
 
     qw.Set<AS::traccar::configuration>({
         .url = server,
@@ -177,6 +165,8 @@ TraccarUploader::ImportConfiguration()
         .demo_id = GetString(json, "demo_id"),
     });
     qw.Set<AS::traccar::configuration_file_hash>(hash);
+    // A new server (or device) needs a partly uploaded trip from the start
+    qw.Set<AS::traccar::last_sent_utc>(0);
 
     printf("TraccarUploader: imported %s\n", kConfigurationFile);
 }
@@ -225,23 +215,49 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
     }
 
     // Read at once, since compacted trips have a bounded size
-    const auto server = m_state.Get<AS::traccar::configuration>()->url;
-    for (auto line :
-         SplitLines(std::string_view(reinterpret_cast<const char*>(data->data()), data->size())))
-    {
-        auto url = PointUrl(server, device_id, line);
+    const auto lines =
+        SplitLines(std::string_view(reinterpret_cast<const char*>(data->data()), data->size()));
+    auto unsent = LinesAfter(lines, m_state.Get<AS::traccar::last_sent_utc>());
 
-        // Broken lines are skipped. A failed trip is sent again from the start, so Traccar gets
-        // the points before the failure twice (and stores them, it only filters duplicates of
-        // the newest point)
-        if (url && !m_https_client.Get(*url))
+    const auto server = m_state.Get<AS::traccar::configuration>()->url;
+
+    std::optional<uint32_t> last_sent_utc;
+    auto sent = 0u;
+    for (auto line : unsent)
+    {
+        auto request = CreatePointRequest(server, device_id, line);
+        if (!request)
         {
+            // Skip broken lines
+            continue;
+        }
+
+        if (!m_https_client.Get(request->url))
+        {
+            // Continue with this point next time. If it did arrive after all, it's the newest
+            // point, which Traccar filters
+            if (last_sent_utc)
+            {
+                m_state.Set<AS::traccar::last_sent_utc>(*last_sent_utc);
+            }
             return false;
         }
+
+        last_sent_utc = request->utc;
+        sent++;
+        if (sent % kProgressInterval == 0)
+        {
+            m_state.Set<AS::traccar::last_sent_utc>(*last_sent_utc);
+        }
+    }
+    // Nothing is sent again if the trip can't be moved
+    if (last_sent_utc)
+    {
+        m_state.Set<AS::traccar::last_sent_utc>(*last_sent_utc);
     }
 
     // Done, so that only pending trips are left in the log directory. A trip with the same name
-    // is replaced, e.g., a demo trip from an earlier run (which starts at the same time)
+    // is replaced, e.g., if it was copied back to be uploaded again
     const auto sent_path = PathIn(root, kSentDirectory, name);
     if (m_filesystem.FileExists(sent_path))
     {
@@ -249,9 +265,59 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
     }
     if (!m_filesystem.Move(log_path, sent_path))
     {
-        // Uploaded again on the next upload
+        // Tried again on the next upload
         printf("TraccarUploader: can't move %s to %s\n", log_path.c_str(), sent_path.c_str());
+        return true;
     }
 
+    // So that the trip is sent from the start, if it's moved back
+    m_state.Set<AS::traccar::last_sent_utc>(0);
+
     return true;
+}
+
+std::optional<TraccarUploader::PointRequest>
+TraccarUploader::CreatePointRequest(std::string_view server,
+                                    std::string_view device_id,
+                                    std::string_view line)
+{
+    auto json = nlohmann::json::parse(line, nullptr, false);
+    auto utc = GetUtc(json);
+    if (!utc)
+    {
+        return std::nullopt;
+    }
+
+    auto latitude = json.find("lat");
+    auto longitude = json.find("lon");
+    if (latitude == json.end() || !latitude->is_number() || longitude == json.end() ||
+        !longitude->is_number())
+    {
+        return std::nullopt;
+    }
+
+    auto out = std::format("{}/?id={}&timestamp={}&lat={:.6f}&lon={:.6f}",
+                           server,
+                           UrlEncode(device_id),
+                           *utc,
+                           latitude->get<double>(),
+                           longitude->get<double>());
+
+    // Recorded in km/h. Traccar reads OsmAnd speeds in knots
+    if (auto speed = json.find("speed"); speed != json.end() && speed->is_number())
+    {
+        out += std::format("&speed={:.1f}", speed->get<float>() / kKmhPerKnot);
+    }
+    if (auto soc = json.find("soc"); soc != json.end() && soc->is_number_integer())
+    {
+        out += std::format("&batt={}", soc->get<int64_t>());
+    }
+    // Not part of the protocol, so stored as an attribute by Traccar. Not as "power", which is the
+    // supply voltage there
+    if (auto power = json.find("power"); power != json.end() && power->is_number_integer())
+    {
+        out += std::format("&watts={}", power->get<int64_t>());
+    }
+
+    return PointRequest {*utc, std::move(out)};
 }

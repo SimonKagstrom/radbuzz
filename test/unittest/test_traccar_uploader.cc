@@ -52,6 +52,12 @@ Url(uint32_t index, std::string_view id = "radbuzz")
                        59.3293 + index * 0.0002);
 }
 
+std::optional<TraccarUploader::PointRequest>
+CreateRequest(std::string_view line)
+{
+    return TraccarUploader::CreatePointRequest("https://pi", "id", line);
+}
+
 class Fixture : public ThreadFixture
 {
 public:
@@ -68,6 +74,7 @@ public:
         // Every request succeeds by default
         m_expectations.push_back(NAMED_ALLOW_CALL(*https_mock, Get(_))
                                      .SIDE_EFFECT(requests.push_back(_1))
+                                     .SIDE_EFFECT(progress.push_back(LastSentUtc()))
                                      .RETURN(std::vector<std::byte> {}));
 
         state.Set<AS::wifi_connected>(true);
@@ -79,6 +86,11 @@ public:
     ~Fixture()
     {
         mock_filesystem::Clear();
+    }
+
+    uint32_t LastSentUtc()
+    {
+        return state.Get<AS::traccar::last_sent_utc>();
     }
 
     void NewCompactedTrip()
@@ -112,6 +124,8 @@ public:
     TraccarUploader uploader {state, post_office, filesystem, https_client};
 
     std::vector<std::string> requests;
+    // LastSentUtc() at each of the (successful) requests
+    std::vector<uint32_t> progress;
 
 private:
     std::vector<std::unique_ptr<trompeloeil::expectation>> m_expectations;
@@ -159,6 +173,100 @@ public:
 
 TEST_SUITE_BEGIN("traccar_uploader");
 
+TEST_CASE("a request is created from a complete trip line")
+{
+    const auto request = CreateRequest(
+        R"({"utc":1774269319,"lat":59.329300,"lon":18.068600,"speed":36.0,"power":-1234,"soc":76})");
+
+    REQUIRE(request);
+    CHECK(request->utc == 1774269319);
+    // 36 km/h is 19.4 knots
+    CHECK(request->url ==
+          "https://pi/?id=id&timestamp=1774269319&lat=59.329300&lon=18.068600&speed=19.4&batt=76&"
+          "watts=-1234");
+}
+
+TEST_CASE("only the time and position are required for a request")
+{
+    const auto kRequired = "https://pi/?id=id&timestamp=1&lat=-59.500000&lon=-18.000000";
+
+    for (const std::string line : {
+             R"({"utc":1,"lat":-59.5,"lon":-18})",
+             // Values of the wrong type are skipped
+             R"({"utc":1,"lat":-59.5,"lon":-18,"speed":"36","power":"1","soc":"76"})",
+             R"({"utc":1,"lat":-59.5,"lon":-18,"speed":null,"power":1.5,"soc":7.5})",
+             R"({"utc":1,"lat":-59.5,"lon":-18,"speed":[],"power":{},"soc":true})",
+             R"({"utc":1,"lat":-59.5,"lon":-18,"unknown":17})",
+             // Windows line ending
+             "{\"utc\":1,\"lat\":-59.5,\"lon\":-18}\r",
+         })
+    {
+        CAPTURE(line);
+        const auto request = CreateRequest(line);
+
+        REQUIRE(request);
+        CHECK(request->utc == 1);
+        CHECK(request->url == kRequired);
+    }
+}
+
+TEST_CASE("the device id is URL encoded in a request")
+{
+    const auto request = TraccarUploader::CreatePointRequest(
+        "https://pi", "aZ09-._~ &=/\xc3\xa5", R"({"utc":1,"lat":1,"lon":2})");
+
+    REQUIRE(request);
+    CHECK(request->url ==
+          "https://pi/?id=aZ09-._~%20%26%3D%2F%C3%A5&timestamp=1&lat=1.000000&lon=2.000000");
+}
+
+TEST_CASE("the largest 32-bit time is valid in a request")
+{
+    const auto request = CreateRequest(R"({"utc":4294967295,"lat":1,"lon":2})");
+
+    REQUIRE(request);
+    CHECK(request->utc == 4294967295);
+}
+
+TEST_CASE("no request is created from a broken trip line")
+{
+    for (const std::string line : {
+             "",
+             "garbage",
+             "{}",
+             "[]",
+             "[1774269319,59.0,18.0]",
+             "17",
+             "null",
+             R"("utc")",
+             // Cut off, e.g., by a power-off
+             R"({"utc":1774269319,"lat":59.0,"lon":18.)",
+             R"({"utc":1774269319,"lat":59.0,"lon":18.0)",
+             R"({"utc":1774269319,"lat":59.0,"lon":18.0}{)",
+             // Missing values
+             R"({"lat":59.0,"lon":18.0})",
+             R"({"utc":1774269319,"lon":18.0})",
+             R"({"utc":1774269319,"lat":59.0})",
+             // Broken times
+             R"({"utc":"1774269319","lat":59.0,"lon":18.0})",
+             R"({"utc":null,"lat":59.0,"lon":18.0})",
+             R"({"utc":-1,"lat":59.0,"lon":18.0})",
+             R"({"utc":1.5,"lat":59.0,"lon":18.0})",
+             R"({"utc":4294967296,"lat":59.0,"lon":18.0})",
+             R"({"utc":99999999999999999999999,"lat":59.0,"lon":18.0})",
+             // Broken positions
+             R"({"utc":1774269319,"lat":"59.0","lon":18.0})",
+             R"({"utc":1774269319,"lat":59.0,"lon":null})",
+             R"({"utc":1774269319,"lat":[59.0],"lon":18.0})",
+             R"({"utc":1774269319,"lat":59.0,"lon":1e999})",
+             R"({"utc":1774269319,"lat":nan,"lon":18.0})",
+         })
+    {
+        CAPTURE(line);
+        CHECK_FALSE(CreateRequest(line));
+    }
+}
+
 TEST_CASE_FIXTURE(Fixture, "the configuration is imported from traccar.txt")
 {
     THEN("the trailing slash of the url is removed")
@@ -190,12 +298,32 @@ TEST_CASE_FIXTURE(Fixture, "an unchanged traccar.txt isn't imported again")
         auto ps = state.CheckoutPartialSnapshot<AS::traccar::configuration>();
         ps.GetWritableReference<AS::traccar::configuration>().id = "other";
     }
+    state.Set<AS::traccar::last_sent_utc>(kUtc);
 
     TraccarUploader second {state, post_office, filesystem, https_client};
     SetThread(&second);
     second.Start("traccar_uploader_2");
 
     CHECK(state.Get<AS::traccar::configuration>()->id == "other");
+    CHECK(LastSentUtc() == kUtc);
+}
+
+TEST_CASE_FIXTURE(Fixture, "a changed traccar.txt starts over with a partly uploaded trip")
+{
+    state.Set<AS::traccar::last_sent_utc>(kUtc + 1);
+    mock_filesystem::SetFile(kLogPath, Trip(3));
+    mock_filesystem::SetFile(TraccarUploader::kConfigurationFile,
+                             R"({"url": "https://other", "id": "new"})");
+
+    TraccarUploader second {state, post_office, filesystem, https_client};
+    SetThread(&second);
+    second.Start("traccar_uploader_2");
+    CHECK(LastSentUtc() == 0);
+
+    RunLoopWhileReady();
+
+    REQUIRE(requests.size() == 3);
+    CHECK(requests[0].starts_with(std::format("https://other/?id=new&timestamp={}&", kUtc)));
 }
 
 TEST_CASE_FIXTURE(Fixture, "a compacted trip is uploaded, a request per line")
@@ -285,7 +413,7 @@ TEST_CASE_FIXTURE(Fixture, "nothing is uploaded without wifi")
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "a failed upload is retried from the start")
+TEST_CASE_FIXTURE(Fixture, "a failed upload continues where it failed")
 {
     mock_filesystem::SetFile(kLogPath, Trip(5));
     mock_filesystem::SetFile("trips/log/69c14000.jsl", Trip(1, 10));
@@ -298,6 +426,7 @@ TEST_CASE_FIXTURE(Fixture, "a failed upload is retried from the start")
         CHECK(requests == std::vector {Url(0), Url(1), Url(2)});
         CHECK(filesystem.FileExists(kLogPath));
         CHECK_FALSE(filesystem.FileExists(kSentPath));
+        CHECK(LastSentUtc() == kUtc + 1);
     }
 
     AND_WHEN("the server is reachable again")
@@ -306,10 +435,25 @@ TEST_CASE_FIXTURE(Fixture, "a failed upload is retried from the start")
         requests.clear();
         AdvanceTimeAndRunLoop(TraccarUploader::kRetryTime);
 
-        THEN("everything is uploaded, the failed trip from the start")
+        THEN("the rest is uploaded, starting with the failed point")
         {
-            CHECK(requests == std::vector {Url(0), Url(1), Url(2), Url(3), Url(4), Url(10)});
+            CHECK(requests == std::vector {Url(2), Url(3), Url(4), Url(10)});
             CHECK(filesystem.ListDirectory("trips/log").empty());
+            CHECK(Contents(kSentPath) == Trip(5));
+            CHECK(LastSentUtc() == 0);
+        }
+    }
+
+    AND_WHEN("the server is still unreachable")
+    {
+        failing = FailingRequest(Url(2));
+        requests.clear();
+        AdvanceTimeAndRunLoop(TraccarUploader::kRetryTime);
+
+        THEN("the progress is kept")
+        {
+            CHECK(requests == std::vector {Url(2)});
+            CHECK(LastSentUtc() == kUtc + 1);
         }
     }
 
@@ -328,28 +472,135 @@ TEST_CASE_FIXTURE(Fixture, "a failed upload is retried from the start")
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "broken lines are skipped")
+TEST_CASE_FIXTURE(Fixture, "the progress is updated regularly")
 {
-    mock_filesystem::SetFile(kLogPath,
-                             Line(0) + "\ngarbage\n{}\n" + R"({"utc":"1","lat":59.0,"lon":18.0})" +
-                                 "\n" + Line(1) + "\n" +
-                                 // Only the required values
-                                 R"({"utc":1774269400,"lat":59.0,"lon":18.0})" + "\n");
+    constexpr auto kInterval = TraccarUploader::kProgressInterval;
+    mock_filesystem::SetFile(kLogPath, Trip(2 * kInterval + 1));
 
     NewCompactedTrip();
 
-    CHECK(requests ==
-          std::vector<std::string> {
-              Url(0),
-              Url(1),
-              std::format("{}/?id=radbuzz&timestamp=1774269400&lat=59.000000&lon=18.000000",
-                          kServer)});
+    // I.e., when sending the point with that index
+    REQUIRE(progress.size() == 2 * kInterval + 1);
+    CHECK(progress[kInterval - 1] == 0);
+    CHECK(progress[kInterval] == kUtc + kInterval - 1);
+    CHECK(progress[2 * kInterval - 1] == kUtc + kInterval - 1);
+    CHECK(progress[2 * kInterval] == kUtc + 2 * kInterval - 1);
+
+    THEN("it's reset when the trip is uploaded")
+    {
+        CHECK(LastSentUtc() == 0);
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "an upload interrupted by a power-off continues")
+{
+    GIVEN("a partly uploaded trip")
+    {
+        state.Set<AS::traccar::last_sent_utc>(kUtc + 2);
+        mock_filesystem::SetFile(kLogPath, Trip(5));
+
+        NewCompactedTrip();
+
+        THEN("only the rest is sent")
+        {
+            CHECK(requests == std::vector {Url(3), Url(4)});
+            CHECK(Contents(kSentPath) == Trip(5));
+            CHECK(LastSentUtc() == 0);
+        }
+    }
+
+    GIVEN("a trip where only the move to sent is left")
+    {
+        state.Set<AS::traccar::last_sent_utc>(kUtc + 4);
+        mock_filesystem::SetFile(kLogPath, Trip(5));
+
+        NewCompactedTrip();
+
+        THEN("it's moved without sending anything")
+        {
+            CHECK(requests.empty());
+            CHECK(filesystem.FileExists(kSentPath));
+            CHECK_FALSE(filesystem.FileExists(kLogPath));
+            CHECK(LastSentUtc() == 0);
+        }
+    }
+
+    GIVEN("the progress of another trip")
+    {
+        state.Set<AS::traccar::last_sent_utc>(kUtc + 100);
+        mock_filesystem::SetFile(kLogPath, Trip(2));
+
+        NewCompactedTrip();
+
+        THEN("the whole trip is sent")
+        {
+            CHECK(requests == std::vector {Url(0), Url(1)});
+        }
+    }
+
+    GIVEN("a trip with broken lines")
+    {
+        state.Set<AS::traccar::last_sent_utc>(kUtc + 1);
+        mock_filesystem::SetFile(kLogPath,
+                                 "garbage\n" + Line(0) + "\n[]\n{}\n" + R"({"utc":"1"})" + "\n" +
+                                     Line(1) + "\ngarbage\n" + Line(2) + "\n");
+
+        NewCompactedTrip();
+
+        THEN("it continues after the last sent point")
+        {
+            CHECK(requests == std::vector {Url(2)});
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "demo trips also continue, after the real ones")
+{
+    state.Set<AS::traccar::last_sent_utc>(kUtc + 1);
+    mock_filesystem::SetFile("demo/log/55bbb7a3.jsl", Trip(3));
+
+    WHEN("there are only demo trips")
+    {
+        NewCompactedTrip();
+
+        THEN("the rest of the demo trip is sent")
+        {
+            CHECK(requests == std::vector {Url(2, "radbuzz-demo")});
+            CHECK(LastSentUtc() == 0);
+        }
+    }
+
+    WHEN("there is also a new real trip")
+    {
+        mock_filesystem::SetFile(kLogPath, Trip(2, 10));
+
+        NewCompactedTrip();
+
+        THEN("the whole real trip is sent, and the demo trip starts over")
+        {
+            CHECK(requests == std::vector {Url(10),
+                                           Url(11),
+                                           Url(0, "radbuzz-demo"),
+                                           Url(1, "radbuzz-demo"),
+                                           Url(2, "radbuzz-demo")});
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "broken lines are skipped")
+{
+    mock_filesystem::SetFile(
+        kLogPath, Line(0) + "\ngarbage\n" + R"({"utc":17,"lat":59.0})" + "\n" + Line(1) + "\n{}\n");
+
+    NewCompactedTrip();
+
+    CHECK(requests == std::vector {Url(0), Url(1)});
     CHECK(filesystem.FileExists(kSentPath));
 }
 
 TEST_CASE_FIXTURE(Fixture, "a sent trip with the same name is replaced")
 {
-    // E.g., a demo trip from an earlier run
+    // E.g., copied back to be uploaded again
     mock_filesystem::SetFile(kSentPath, "old");
     mock_filesystem::SetFile(kLogPath, Trip(2));
 

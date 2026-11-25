@@ -105,6 +105,7 @@ public:
 
         return std::tuple_cat(values(AS::configuration::parameters {}),
                               values(AS::wifi::parameters {}),
+                              values(AS::demo::parameters {}),
                               values(AS::traccar::parameters {}));
     }
 
@@ -383,6 +384,8 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     State().Set<AS::traccar::configuration>(
         {.url = "https://pi.tail.ts.net", .id = "k3v9x2qmw7rt", .demo_id = "p8d4"});
     State().Set<AS::traccar::configuration_file_hash>(0xfeedface);
+    State().Set<AS::traccar::last_sent_utc>(0xc0ffee00);
+    State().Set<AS::demo::next_start_utc>(1774269319);
     State().Set<Conf::brightness_mode>(BrightnessMode::kLow);
 
     // New settings must be added above
