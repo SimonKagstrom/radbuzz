@@ -104,6 +104,7 @@ public:
         };
 
         return std::tuple_cat(values(AS::configuration::parameters {}),
+                              values(AS::wifi::parameters {}),
                               values(AS::traccar::parameters {}));
     }
 
@@ -347,7 +348,7 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     REQUIRE(State().Get<Conf::bms_overheat_temperature>() == 83);
     REQUIRE(State().Get<Conf::cell_overheat_temperature>() == 84);
     REQUIRE(State().Get<Conf::brightness_mode>() == BrightnessMode::kMedium);
-    REQUIRE(*State().Get<Conf::wifi_ssid_data>() ==
+    REQUIRE(*State().Get<AS::wifi::networks>() ==
             WifiSsidData {{WifiSsidNetwork {"home", "secret"}, WifiSsidNetwork {"work", "pw"}}});
 }
 
@@ -376,9 +377,9 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     State().Set<Conf::motor_overheat_temperature>(92);
     State().Set<Conf::bms_overheat_temperature>(93);
     State().Set<Conf::cell_overheat_temperature>(94);
-    State().Set<Conf::wifi_ssid_data>({{{"cafe", "latte"}, {"open", ""}}});
+    State().Set<AS::wifi::networks>({{{"cafe", "latte"}, {"open", ""}}});
     // All 32 bits are used
-    State().Set<Conf::ssid_file_hash>(0xdeadbeef);
+    State().Set<AS::wifi::ssid_file_hash>(0xdeadbeef);
     State().Set<AS::traccar::configuration>(
         {.url = "https://pi.tail.ts.net", .id = "k3v9x2qmw7rt", .demo_id = "p8d4"});
     State().Set<AS::traccar::configuration_file_hash>(0xfeedface);
@@ -426,7 +427,7 @@ TEST_CASE_FIXTURE(Fixture, "settings changed before the storage thread starts ar
     // E.g., imported from the SD card by another thread, which was started first
     State().Set<AS::traccar::configuration>(traccar);
     State().Set<AS::traccar::configuration_file_hash>(0xfeedface);
-    State().Set<Conf::wifi_ssid_data>(networks);
+    State().Set<AS::wifi::networks>(networks);
     State().Set<AS::timezone>(60);
 
     StartThreads();
@@ -440,7 +441,7 @@ TEST_CASE_FIXTURE(Fixture, "settings changed before the storage thread starts ar
         {
             CHECK(*State().Get<AS::traccar::configuration>() == traccar);
             CHECK(State().Get<AS::traccar::configuration_file_hash>() == 0xfeedface);
-            CHECK(*State().Get<Conf::wifi_ssid_data>() == networks);
+            CHECK(*State().Get<AS::wifi::networks>() == networks);
             CHECK(State().Get<AS::timezone>() == 60);
             CHECK(State().Get<Conf::max_speedometer_speed>() == 60);
         }
@@ -468,7 +469,7 @@ TEST_CASE_FIXTURE(Fixture, "broken wifi network entries are skipped")
 
     StartBoard();
 
-    REQUIRE(*State().Get<Conf::wifi_ssid_data>() ==
+    REQUIRE(*State().Get<AS::wifi::networks>() ==
             WifiSsidData {{WifiSsidNetwork {"home", "secret"}, WifiSsidNetwork {"work", "pw"}}});
 }
 
@@ -478,7 +479,7 @@ TEST_CASE_FIXTURE(Fixture, "wifi passwords can be empty or contain the separator
 
     StartBoard();
 
-    REQUIRE(*State().Get<Conf::wifi_ssid_data>() ==
+    REQUIRE(*State().Get<AS::wifi::networks>() ==
             WifiSsidData {{WifiSsidNetwork {"open", ""}, WifiSsidNetwork {"cafe", "la@tte"}}});
 }
 

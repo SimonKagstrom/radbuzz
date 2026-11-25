@@ -57,7 +57,7 @@ public:
     {
         mock_filesystem::Clear();
 
-        state.Set<AS::configuration::wifi_ssid_data>({{{"Home", "home-password"}}});
+        state.Set<AS::wifi::networks>({{{"Home", "home-password"}}});
 
         // Default behavior of the wifi client: Scans finish immediately with
         // networks_in_range (unless scans_complete is cleared), and connections succeed
@@ -160,13 +160,13 @@ public:
 
     std::vector<WifiSsidNetwork> KnownNetworks()
     {
-        return state.Get<AS::configuration::wifi_ssid_data>()->networks;
+        return state.Get<AS::wifi::networks>()->networks;
     }
 
     void AddKnownNetwork(const WifiSsidNetwork& network)
     {
-        auto ps = state.CheckoutPartialSnapshot<AS::configuration::wifi_ssid_data>();
-        ps.GetWritableReference<AS::configuration::wifi_ssid_data>().networks.push_back(network);
+        auto ps = state.CheckoutPartialSnapshot<AS::wifi::networks>();
+        ps.GetWritableReference<AS::wifi::networks>().networks.push_back(network);
     }
 
     // The scan results sent since the last call
@@ -245,7 +245,7 @@ TEST_CASE_FIXTURE(Fixture, "networks from SSID.TXT are added to the known networ
     REQUIRE(connected_ssid == "Office");
     REQUIRE(connected_password == "office-password");
     // FNV-1a of the file. Changing the hash would import the file again on all boards
-    REQUIRE(state.Get<AS::configuration::ssid_file_hash>() == 0x780438d9);
+    REQUIRE(state.Get<AS::wifi::ssid_file_hash>() == 0x780438d9);
 }
 
 TEST_CASE_FIXTURE(Fixture, "SSID.TXT is parsed as SSID and password lines")
@@ -351,7 +351,7 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
     constexpr auto kOfficeFileHash = 0x780438d9u;
 
     // Imported on an earlier boot, and the Office network has since been forgotten
-    state.Set<AS::configuration::ssid_file_hash>(kOfficeFileHash);
+    state.Set<AS::wifi::ssid_file_hash>(kOfficeFileHash);
     networks_in_range = InRange({"Office"});
 
     WHEN("the file is unchanged")
@@ -362,7 +362,7 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
         THEN("the forgotten network is not added again")
         {
             REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {{"Home", "home-password"}});
-            REQUIRE(state.Get<AS::configuration::ssid_file_hash>() == kOfficeFileHash);
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() == kOfficeFileHash);
             REQUIRE(CurrentState() == State::kIdle);
         }
     }
@@ -376,7 +376,7 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
         {
             REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {{"Home", "home-password"},
                                                                      {"Office", "new-password"}});
-            REQUIRE(state.Get<AS::configuration::ssid_file_hash>() != kOfficeFileHash);
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() != kOfficeFileHash);
             REQUIRE(connected_ssid == "Office");
         }
     }
@@ -388,7 +388,7 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
 
         THEN("it counts as changed")
         {
-            REQUIRE(state.Get<AS::configuration::ssid_file_hash>() != kOfficeFileHash);
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() != kOfficeFileHash);
         }
     }
 
@@ -399,7 +399,7 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
         THEN("the stored networks and hash are kept")
         {
             REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {{"Home", "home-password"}});
-            REQUIRE(state.Get<AS::configuration::ssid_file_hash>() == kOfficeFileHash);
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() == kOfficeFileHash);
         }
     }
 
@@ -411,7 +411,7 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
         THEN("nothing is added, but the file is marked as imported")
         {
             REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {{"Home", "home-password"}});
-            REQUIRE(state.Get<AS::configuration::ssid_file_hash>() != kOfficeFileHash);
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() != kOfficeFileHash);
         }
     }
 }
@@ -625,7 +625,7 @@ TEST_CASE_FIXTURE(Fixture, "a failed network is tried again when its password ch
     REQUIRE(CurrentState() == State::kIdle);
 
     failing_ssids = {};
-    state.Set<AS::configuration::wifi_ssid_data>({{{"Home", "new-password"}}});
+    state.Set<AS::wifi::networks>({{{"Home", "new-password"}}});
     Advance(10s);
 
     REQUIRE(CurrentState() == State::kConnected);

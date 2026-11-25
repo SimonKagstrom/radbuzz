@@ -90,7 +90,7 @@ WifiPage::Update()
     }
 
     if (*m_state.Get<AS::connected_wifi_ssid>() != m_shown_connected_ssid ||
-        m_state.Get<AS::configuration::wifi_ssid_data>()->networks != m_shown_known_networks)
+        m_state.Get<AS::wifi::networks>()->networks != m_shown_known_networks)
     {
         Fill(*m_last_result);
     }
@@ -120,7 +120,7 @@ void
 WifiPage::Fill(const MSG::wifi_scan_result& result)
 {
     m_shown_connected_ssid = *m_state.Get<AS::connected_wifi_ssid>();
-    m_shown_known_networks = m_state.Get<AS::configuration::wifi_ssid_data>()->networks;
+    m_shown_known_networks = m_state.Get<AS::wifi::networks>()->networks;
 
     const auto networks =
         CreateWifiNetworkList(result.networks, m_shown_known_networks, m_shown_connected_ssid);

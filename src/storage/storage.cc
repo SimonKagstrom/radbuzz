@@ -59,7 +59,7 @@ constexpr auto kSettings = std::tuple {
     Setting<Conf::motor_overheat_temperature> {"1"},
     Setting<Conf::bms_overheat_temperature> {"2"},
     Setting<Conf::cell_overheat_temperature> {"3"},
-    Setting<Conf::ssid_file_hash> {"h"},
+    Setting<AS::wifi::ssid_file_hash> {"h"},
     Setting<AS::traccar::configuration_file_hash> {"t"},
     Setting<Conf::brightness_mode> {"L"},
 };
@@ -121,9 +121,11 @@ IsValid(T value)
 Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
-    , m_state_listener(
-          m_application_state
-              .AttachListener<AS::configuration, AS::traccar, AS::is_moving, AS::timezone>(*this))
+    , m_state_listener(m_application_state.AttachListener<AS::configuration,
+                                                          AS::wifi,
+                                                          AS::traccar,
+                                                          AS::is_moving,
+                                                          AS::timezone>(*this))
     , m_state_cache(m_application_state)
 {
     LoadFromNvm();
@@ -137,6 +139,7 @@ void
 Storage::LoadFromNvm()
 {
     auto qw = m_application_state.CheckoutQueuedWriter<AS::configuration,
+                                                       AS::wifi,
                                                        AS::traccar,
                                                        AS::wh_consumed,
                                                        AS::wh_regenerated,
@@ -187,7 +190,7 @@ Storage::LoadFromNvm()
 
             wifi_data.networks.push_back({ssid, password});
         }
-        qw.Set<Conf::wifi_ssid_data>(std::move(wifi_data));
+        qw.Set<AS::wifi::networks>(std::move(wifi_data));
     }
 }
 
@@ -238,9 +241,9 @@ Storage::OnActivation()
         do_commit = true;
     });
 
-    co.OnNewValue<Conf::wifi_ssid_data>([this, &do_commit](const auto& wifi_ssid_data) {
+    co.OnNewValue<AS::wifi::networks>([this, &do_commit](const auto& known_networks) {
         std::string networks;
-        for (const auto& network : wifi_ssid_data.networks)
+        for (const auto& network : known_networks.networks)
         {
             const auto ssid = TrimAtFirstNul(network.ssid);
             const auto password = TrimAtFirstNul(network.password);

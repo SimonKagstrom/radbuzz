@@ -58,14 +58,6 @@ parameters:
     home_position:
       type: struct Point
 
-    # The known networks, from SSID.TXT and the wifi menu
-    wifi_ssid_data:
-      type: struct WifiSsidData
-
-    # Hash of the last imported SSID.TXT, so that it's only imported when changed
-    ssid_file_hash:
-      type: uint32_t
-
     # Maximum power in watts
     max_watts:
       type: uint16_t
@@ -132,6 +124,17 @@ parameters:
 
     cell_overheat_temperature:
       type: uint8_t
+
+  # The wifi setup
+  wifi:
+    # The known networks, from SSID.TXT and the wifi menu. Stored in the NVM
+    networks:
+      type: struct WifiSsidData
+
+    # Hash of the last imported SSID.TXT, so that it's only imported when changed. Stored in the
+    # NVM
+    ssid_file_hash:
+      type: uint32_t
 
   # Uploading trips to a Traccar server
   traccar:

@@ -101,8 +101,7 @@ private:
     hal::IWifiClient& m_wifi_client;
 
     ListenerCookie m_state_listener;
-    ApplicationState::PartialReadOnlyCache<AS::is_moving, AS::configuration::wifi_ssid_data>
-        m_state_cache;
+    ApplicationState::PartialReadOnlyCache<AS::is_moving, AS::wifi::networks> m_state_cache;
     ListenerCookie m_wifi_listener;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox;
 
