@@ -52,7 +52,6 @@ constexpr auto kSettings = std::tuple {
     Setting<Conf::histogram_mode> {"5"},
     Setting<Conf::rotate_map> {"r"},
     Setting<Conf::tile_style> {"T"},
-    Setting<Conf::force_c6_update> {"f"},
     Setting<Conf::show_gps_speed> {"G"},
     Setting<Conf::show_clock> {"c"},
     Setting<Conf::show_speech_bubbles> {"b"},

@@ -40,7 +40,6 @@ application_state:
     controller_overheat_temperature: 80
     bms_overheat_temperature: 60
     cell_overheat_temperature: 50
-    force_c6_update: false
   current_power_w: 0
   wh_consumed: 0
   wh_regenerated: 0
