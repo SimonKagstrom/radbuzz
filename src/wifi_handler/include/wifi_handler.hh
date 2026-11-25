@@ -49,6 +49,7 @@ private:
     static constexpr auto kIdleTime = 10s;
 
     // WifiStateMachineBase, see wifi_state_machine.md
+    LoadKnownNetworks::Next Evaluate(LoadKnownNetworks&) final;
     On::Next Evaluate(On&) final;
     Scanning::Next Evaluate(Scanning& state) final;
     Idle::Next Evaluate(Idle&) final;
@@ -58,6 +59,7 @@ private:
     LostConnection::Next Evaluate(LostConnection&) final;
     Off::Next Evaluate(Off&) final;
 
+    void Enter(LoadKnownNetworks&) final;
     void Enter(On&) final;
     void Enter(Scanning& state) final;
     void Enter(Idle& state) final;
@@ -86,6 +88,8 @@ private:
 
     // A scan or connect request from the UI, which both start with a scan
     bool ScanOrConnectRequested() const;
+
+    bool HasKnownNetworks() const;
 
     // The first configured network found in the last scan, which hasn't failed here
     std::optional<WifiSsidNetwork> FindKnownNetwork() const;

@@ -46,8 +46,6 @@ WifiHandler::WifiHandler(ApplicationState& state,
 void
 WifiHandler::OnStartup()
 {
-    ReadSsidFile();
-
     m_movement_timer = StartTimer(kMovementTime);
 
     // Called from the wifi driver context, so only record the event and wake up the thread
@@ -99,7 +97,8 @@ WifiHandler::OnActivation()
             }
         });
 
-    if (m_scan_done_event.exchange(false))
+    // There is no result when off, but the event is sent if the scan was interrupted
+    if (m_scan_done_event.exchange(false) && CurrentState() != State::kOff)
     {
         m_scan_result = m_wifi_client.GetScanResult();
         SendScanResult();
@@ -234,6 +233,12 @@ WifiHandler::ScanOrConnectRequested() const
     return m_scan_requested || m_connect_requested;
 }
 
+bool
+WifiHandler::HasKnownNetworks() const
+{
+    return !m_state.Get<AS::wifi::networks>()->networks.empty();
+}
+
 std::optional<WifiSsidNetwork>
 WifiHandler::FindKnownNetwork() const
 {
@@ -275,6 +280,25 @@ void
 WifiHandler::OnTransition(State from, State to)
 {
     printf("Wifi: %s -> %s\n", StateName(from).data(), StateName(to).data());
+}
+
+
+// LoadKnownNetworks
+void
+WifiHandler::Enter(LoadKnownNetworks&)
+{
+    ReadSsidFile();
+}
+
+WifiHandler::LoadKnownNetworks::Next
+WifiHandler::Evaluate(LoadKnownNetworks&)
+{
+    if (HasKnownNetworks())
+    {
+        return State::kOn;
+    }
+
+    return State::kOff;
 }
 
 
@@ -337,12 +361,20 @@ WifiHandler::Enter(Idle& state)
 WifiHandler::Idle::Next
 WifiHandler::Evaluate(Idle& state)
 {
-    if (state.timer->IsExpired() || ScanOrConnectRequested())
+    if (ScanOrConnectRequested())
     {
         return State::kScanning;
     }
+    if (!state.timer->IsExpired())
+    {
+        return kStay;
+    }
+    if (MovingForAWhile() || !HasKnownNetworks())
+    {
+        return State::kOff;
+    }
 
-    return kStay;
+    return State::kScanning;
 }
 
 
@@ -466,7 +498,7 @@ WifiHandler::Evaluate(LostConnection&)
     {
         return State::kScanning;
     }
-    if (MovingForAWhile())
+    if (MovingForAWhile() || !HasKnownNetworks())
     {
         return State::kOff;
     }
@@ -490,7 +522,7 @@ WifiHandler::Enter(Off&)
 WifiHandler::Off::Next
 WifiHandler::Evaluate(Off&)
 {
-    if (StandingStillForAWhile() || ScanOrConnectRequested())
+    if (ScanOrConnectRequested() || (StandingStillForAWhile() && HasKnownNetworks()))
     {
         return State::kOn;
     }

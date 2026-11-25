@@ -715,7 +715,7 @@ TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when moving without a connect
     }
 }
 
-TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when scanning while moving")
+TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when idle while moving")
 {
     networks_in_range = InRange({"Neighbour"});
     // Moving already at startup
@@ -725,9 +725,172 @@ TEST_CASE_FIXTURE(Fixture, "the wifi is turned off when scanning while moving")
     REQUIRE(CurrentState() == State::kIdle);
 
     // Idle -> Scanning every 10 seconds, until moving for a minute
-    Advance(1min);
+    Advance(50s);
+    REQUIRE(CurrentState() == State::kIdle);
+    REQUIRE(scan_count == 6);
 
+    Advance(10s);
     REQUIRE(CurrentState() == State::kOff);
+    // Not started, just to be interrupted directly
+    REQUIRE(scan_count == 6);
+}
+
+TEST_CASE_FIXTURE(Fixture, "a scan can be interrupted by turning the wifi off")
+{
+    scans_complete = false;
+    state.Set<AS::is_moving>(true);
+
+    Start();
+    REQUIRE(CurrentState() == State::kScanning);
+    Advance(1min);
+    REQUIRE(CurrentState() == State::kOff);
+
+    WHEN("the interrupted scan is reported as done")
+    {
+        {
+            FORBID_CALL(wifi_client, GetScanResult());
+            SendWifiEvent(Event::kScanDone);
+            RunUntilStable();
+        }
+
+        THEN("there's no result")
+        {
+            REQUIRE(TakeScanResults().empty());
+            REQUIRE(CurrentState() == State::kOff);
+        }
+
+        AND_WHEN("the wifi is turned on again")
+        {
+            scans_complete = true;
+            SetMoving(false);
+            Advance(1min);
+
+            THEN("the new scan is used")
+            {
+                REQUIRE(TakeScanResults().size() == 1);
+                REQUIRE(CurrentState() == State::kConnected);
+            }
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the wifi is off without known networks")
+{
+    state.Set<AS::wifi::networks>({});
+    networks_in_range = InRange({"Neighbour", "Home"});
+
+    Start();
+    REQUIRE(CurrentState() == State::kOff);
+    REQUIRE(enable_count == 0);
+    REQUIRE(disable_count == 1);
+
+    WHEN("time passes")
+    {
+        Advance(5min);
+
+        THEN("no scans are made")
+        {
+            REQUIRE(scan_count == 0);
+            REQUIRE(enable_count == 0);
+            REQUIRE(CurrentState() == State::kOff);
+        }
+    }
+
+    WHEN("moving and stopping again")
+    {
+        SetMoving(true);
+        Advance(2min);
+        SetMoving(false);
+        Advance(2min);
+
+        THEN("no scans are made")
+        {
+            REQUIRE(scan_count == 0);
+            REQUIRE(CurrentState() == State::kOff);
+        }
+    }
+
+    WHEN("a network is added to the configuration")
+    {
+        Advance(2min);
+        AddKnownNetwork({"Home", "home-password"});
+        RunUntilStable();
+
+        THEN("it's connected")
+        {
+            REQUIRE(enable_count == 1);
+            REQUIRE(CurrentState() == State::kConnected);
+        }
+    }
+
+    WHEN("a scan is requested")
+    {
+        RequestScan();
+
+        THEN("it's done")
+        {
+            REQUIRE(scan_count == 1);
+            REQUIRE(TakeScanResults().size() == 1);
+            REQUIRE(CurrentState() == State::kIdle);
+        }
+
+        AND_WHEN("no network is selected")
+        {
+            Advance(10s);
+
+            THEN("the wifi is turned off again")
+            {
+                REQUIRE(scan_count == 1);
+                REQUIRE(disable_count == 2);
+                REQUIRE(CurrentState() == State::kOff);
+            }
+        }
+    }
+
+    WHEN("a network is requested")
+    {
+        RequestConnect("Home", "home-password");
+
+        THEN("it's connected")
+        {
+            REQUIRE(CurrentState() == State::kConnected);
+        }
+
+        AND_WHEN("it's removed, and the connection is lost")
+        {
+            state.Set<AS::wifi::networks>({});
+            SendWifiEvent(Event::kDisconnected);
+            RunUntilStable();
+
+            THEN("the wifi is turned off")
+            {
+                REQUIRE(scan_count == 1);
+                REQUIRE(CurrentState() == State::kOff);
+            }
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a scan requested before startup is done without known networks")
+{
+    state.Set<AS::wifi::networks>({});
+    post_office.Send<MSG::start_wifi_scan>();
+
+    Start();
+
+    REQUIRE(scan_count == 1);
+    REQUIRE(CurrentState() == State::kIdle);
+}
+
+TEST_CASE_FIXTURE(Fixture, "networks from SSID.TXT keep the wifi on with an empty configuration")
+{
+    state.Set<AS::wifi::networks>({});
+    mock_filesystem::SetFile("SSID.TXT", "Home\nhome-password\n");
+
+    Start();
+
+    REQUIRE(disable_count == 0);
+    REQUIRE(CurrentState() == State::kConnected);
 }
 
 TEST_CASE_FIXTURE(Fixture, "the wifi handler sends the result of every scan")

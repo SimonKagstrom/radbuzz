@@ -36,10 +36,11 @@ public:
     virtual void Enable() = 0;
     virtual void Disable() = 0;
 
-    // Start a scan in the background, kScanDone is sent when it's finished
+    // Start a scan in the background, kScanDone is sent when it's finished (or interrupted by
+    // Disable())
     virtual void StartScan() = 0;
 
-    // The access points found by the last finished scan. Only valid once per scan
+    // The access points found by the last finished scan, empty on errors. Only valid once per scan
     virtual std::vector<AccessPoint> GetScanResult() = 0;
 
     virtual void Connect(const char* ssid, const char* password) = 0;
