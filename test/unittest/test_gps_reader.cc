@@ -1,5 +1,6 @@
 #include "gps_reader.hh"
 #include "hal/mock/mock_gps.hh"
+#include "mock_event_notifier.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
 
@@ -46,19 +47,6 @@ private:
     IEventNotifier* m_gps_notifier {nullptr};
 };
 
-class StateNotifier : public IEventNotifier
-{
-public:
-    MAKE_MOCK0(Notify, void());
-
-private:
-    bool NotifyFromIsr() final
-    {
-        REQUIRE(false); // Forbidden in this test
-        return false;
-    }
-};
-
 } // namespace
 
 
@@ -81,7 +69,7 @@ TEST_CASE_FIXTURE(Fixture, "When data is received, the GPS state switches to kNo
     hal::RawGpsData raw_data {.position = std::nullopt, .heading = 1.0f, .speed = 2.0f};
 
     REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kSilent);
-    StateNotifier notifier;
+    MockEventNotifier notifier;
     auto c = state.AttachListener<AS::gps_status>(notifier);
 
     REQUIRE_CALL(notifier, Notify())
@@ -232,7 +220,7 @@ TEST_CASE_FIXTURE(Fixture, "A valid position is kept while GPS data keeps arrivi
     REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kPositionValid);
 
     // No calls expected, i.e., the GPS state should never change
-    StateNotifier notifier;
+    MockEventNotifier notifier;
     auto c = state.AttachListener<AS::gps_status>(notifier);
 
     WHEN("valid data arrives every second for a while")
@@ -256,7 +244,7 @@ TEST_CASE_FIXTURE(Fixture,
     DeliverData(raw_data);
     REQUIRE(state.Get<AS::gps_status>() == GpsStatus::kPositionValid);
 
-    StateNotifier notifier;
+    MockEventNotifier notifier;
     auto c = state.AttachListener<AS::gps_status>(notifier);
 
     WHEN("there is no data for a long time")

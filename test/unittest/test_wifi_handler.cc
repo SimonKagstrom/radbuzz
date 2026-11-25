@@ -1,4 +1,5 @@
 #include "hal/mock/mock_wifi_client.hh"
+#include "mock_event_notifier.hh"
 #include "mock_filesystem.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
@@ -9,19 +10,6 @@ namespace
 
 using State = WifiHandler::State;
 using Event = hal::IWifiClient::Event;
-
-class NullNotifier : public IEventNotifier
-{
-public:
-    void Notify() final
-    {
-    }
-
-    bool NotifyFromIsr() final
-    {
-        return false;
-    }
-};
 
 // Secured access points, all with the same signal strength
 std::vector<hal::IWifiClient::AccessPoint>
@@ -209,7 +197,7 @@ private:
     std::function<void(Event)> m_on_wifi_event;
     std::vector<std::unique_ptr<trompeloeil::expectation>> m_expectations;
 
-    NullNotifier m_notifier;
+    NullEventNotifier m_notifier;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
         post_office.Subscribe<MSG::wifi_scan_result>(m_notifier)};
 

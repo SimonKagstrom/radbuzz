@@ -1,4 +1,5 @@
 #include "job_pool_thread.hh"
+#include "mock_event_notifier.hh"
 #include "mock_filesystem.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
@@ -88,19 +89,6 @@ IsSubsequence(const std::vector<std::string>& sub, const std::vector<std::string
     return true;
 }
 
-class NullNotifier : public IEventNotifier
-{
-public:
-    void Notify() final
-    {
-    }
-
-    bool NotifyFromIsr() final
-    {
-        return false;
-    }
-};
-
 class Fixture : public ThreadFixture
 {
 public:
@@ -165,7 +153,7 @@ public:
 
 private:
     // Before the job pool, so that messages sent at startup are received
-    NullNotifier m_notifier;
+    NullEventNotifier m_notifier;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
         post_office.Subscribe<MSG::new_compacted_trip>(m_notifier)};
 

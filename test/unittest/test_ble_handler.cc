@@ -1,5 +1,6 @@
 #include "ble_handler.hh"
 #include "line_collector.hh"
+#include "mock_event_notifier.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
 
@@ -76,19 +77,6 @@ public:
     std::map<uint8_t, std::string> notified;
 };
 
-
-class NullNotifier : public IEventNotifier
-{
-public:
-    void Notify() final
-    {
-    }
-
-    bool NotifyFromIsr() final
-    {
-        return false;
-    }
-};
 
 class Fixture : public ThreadFixture
 {
@@ -439,7 +427,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler replies to GPS status requests")
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards call events from Gadgetbridge")
 {
-    NullNotifier notifier;
+    NullEventNotifier notifier;
     auto mailbox =
         post_office.Subscribe<MSG::incoming_call, MSG::call_ended, MSG::call_started>(notifier);
 
@@ -596,7 +584,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards navigation from Gadgetbridg
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards notifications from Gadgetbridge")
 {
-    NullNotifier notifier;
+    NullEventNotifier notifier;
     auto mailbox = post_office.Subscribe<MSG::message, MSG::dismiss_message>(notifier);
 
     std::vector<MSG::message> messages;
@@ -806,7 +794,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler sends the battery state of charge to
 
 TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards the time from Gadgetbridge")
 {
-    NullNotifier notifier;
+    NullEventNotifier notifier;
     auto mailbox = post_office.Subscribe<MSG::network_time>(notifier);
 
     std::vector<MSG::network_time> times;

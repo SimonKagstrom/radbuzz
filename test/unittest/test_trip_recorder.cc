@@ -1,3 +1,4 @@
+#include "mock_event_notifier.hh"
 #include "mock_filesystem.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
@@ -14,19 +15,6 @@ namespace
 
 constexpr uint32_t kUtc = 1774269319;
 constexpr GpsPosition kStockholm {59.3293, 18.0686};
-
-class NullNotifier : public IEventNotifier
-{
-public:
-    void Notify() final
-    {
-    }
-
-    bool NotifyFromIsr() final
-    {
-        return false;
-    }
-};
 
 class Fixture : public ThreadFixture
 {
@@ -155,7 +143,7 @@ public:
     TripRecorder recorder {state, post_office, filesystem};
 
 private:
-    NullNotifier m_notifier;
+    NullEventNotifier m_notifier;
     std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
         post_office.Subscribe<MSG::new_recorded_trip>(m_notifier)};
 };

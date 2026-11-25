@@ -1,3 +1,4 @@
+#include "mock_event_notifier.hh"
 #include "mock_filesystem.hh"
 #include "mock_https_client.hh"
 #include "test.hh"
@@ -136,19 +137,6 @@ public:
 
 private:
     std::vector<std::unique_ptr<trompeloeil::expectation>> m_expectations;
-};
-
-class StateNotifier : public IEventNotifier
-{
-public:
-    MAKE_MOCK0(Notify, void());
-
-private:
-    bool NotifyFromIsr() final
-    {
-        REQUIRE(false); // Forbidden in this test
-        return false;
-    }
 };
 
 class NoConfigurationFixture : public Fixture
@@ -416,7 +404,7 @@ TEST_CASE_FIXTURE(WithoutDemoIdFixture, "demo trips aren't uploaded without a de
 TEST_CASE_FIXTURE(Fixture, "the upload is shown as active while points are sent")
 {
     // Also checked for each request by the fixture
-    StateNotifier notifier;
+    MockEventNotifier notifier;
     auto listener = state.AttachListener<AS::traccar::upload_active>(notifier);
     std::vector<bool> changes;
 
