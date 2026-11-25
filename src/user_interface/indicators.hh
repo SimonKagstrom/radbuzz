@@ -69,16 +69,51 @@ private:
 class WifiIndicator final : public UserInterface::IndicatorBase
 {
 public:
-    WifiIndicator(UserInterface& parent, const Point& position)
+    WifiIndicator(UserInterface& parent, ApplicationState& state, const Point& position)
         : UserInterface::IndicatorBase(parent, position, &radbuzz_symbols_22)
+        , m_state_cache(state)
     {
-        lv_label_set_text(m_indicator_label, std::format("#4CAF50 {}#", LV_SYMBOL_WIFI).c_str());
+        SetBright(false);
     }
 
-    void Update(ApplicationState& state) final
+    void Update(ApplicationState&) final
     {
-        lv_obj_set_hidden(m_indicator_label, !state.Get<AS::wifi_connected>());
+        auto& co = m_state_cache.Pull().OnNewValue<AS::traccar::upload_active>([this](auto active) {
+            SetBright(active);
+            if (active)
+            {
+                m_blink_timer = m_parent.StartTimer(kBlinkTime, [this]() {
+                    SetBright(!m_bright);
+                    // Timers expire after the display has been updated
+                    m_parent.Awake();
+
+                    return kBlinkTime;
+                });
+            }
+            else
+            {
+                m_blink_timer = nullptr;
+            }
+        });
+
+        lv_obj_set_hidden(m_indicator_label, !co.Get<AS::wifi_connected>());
     }
+
+private:
+    static constexpr auto kBlinkTime = milliseconds(500);
+
+    void SetBright(bool bright)
+    {
+        m_bright = bright;
+        lv_label_set_text(
+            m_indicator_label,
+            std::format("#{} {}#", bright ? "00E676" : "4CAF50", LV_SYMBOL_WIFI).c_str());
+    }
+
+    ApplicationState::PartialReadOnlyCache<AS::wifi_connected, AS::traccar::upload_active>
+        m_state_cache;
+    bool m_bright {false};
+    os::TimerHandle m_blink_timer;
 };
 
 

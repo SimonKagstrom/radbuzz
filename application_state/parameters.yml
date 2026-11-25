@@ -158,6 +158,10 @@ parameters:
     last_sent_utc:
       type: uint32_t
 
+    # If trips are being sent right now
+    upload_active:
+      type: bool
+
   current_power_w:
     type: int16_t
 

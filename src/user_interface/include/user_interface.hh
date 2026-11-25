@@ -47,6 +47,7 @@ public:
     friend class OtaUpdateScreen;
     friend class SpeedometerOnlyScreen;
     friend class HomeIndicator;
+    friend class WifiIndicator;
     friend class IncomingCallScreen;
 
     class ScreenBase

@@ -75,6 +75,7 @@ public:
         m_expectations.push_back(NAMED_ALLOW_CALL(*https_mock, Get(_))
                                      .SIDE_EFFECT(requests.push_back(_1))
                                      .SIDE_EFFECT(progress.push_back(LastSentUtc()))
+                                     .SIDE_EFFECT(CHECK(UploadActive()))
                                      .RETURN(std::vector<std::byte> {}));
 
         state.Set<AS::wifi_connected>(true);
@@ -86,6 +87,11 @@ public:
     ~Fixture()
     {
         mock_filesystem::Clear();
+    }
+
+    bool UploadActive()
+    {
+        return state.Get<AS::traccar::upload_active>();
     }
 
     uint32_t LastSentUtc()
@@ -112,6 +118,7 @@ public:
     {
         return NAMED_REQUIRE_CALL(*https_mock, Get(url))
             .SIDE_EFFECT(requests.push_back(_1))
+            .SIDE_EFFECT(CHECK(UploadActive()))
             .RETURN(std::nullopt);
     }
 
@@ -129,6 +136,19 @@ public:
 
 private:
     std::vector<std::unique_ptr<trompeloeil::expectation>> m_expectations;
+};
+
+class StateNotifier : public IEventNotifier
+{
+public:
+    MAKE_MOCK0(Notify, void());
+
+private:
+    bool NotifyFromIsr() final
+    {
+        REQUIRE(false); // Forbidden in this test
+        return false;
+    }
 };
 
 class NoConfigurationFixture : public Fixture
@@ -390,6 +410,95 @@ TEST_CASE_FIXTURE(WithoutDemoIdFixture, "demo trips aren't uploaded without a de
     AND_THEN("the demo trip is left")
     {
         CHECK(filesystem.FileExists("demo/log/55bbb7a3.jsl"));
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the upload is shown as active while points are sent")
+{
+    // Also checked for each request by the fixture
+    StateNotifier notifier;
+    auto listener = state.AttachListener<AS::traccar::upload_active>(notifier);
+    std::vector<bool> changes;
+
+    ALLOW_CALL(notifier, Notify()).LR_SIDE_EFFECT(changes.push_back(UploadActive()));
+
+    WHEN("several trips are uploaded")
+    {
+        mock_filesystem::SetFile(kLogPath, Trip(3));
+        mock_filesystem::SetFile("trips/log/69c14000.jsl", Trip(2, 10));
+
+        NewCompactedTrip();
+
+        THEN("it's active until all of them are done")
+        {
+            CHECK(requests.size() == 5);
+            CHECK(changes == std::vector {true, false});
+        }
+    }
+
+    WHEN("the upload fails")
+    {
+        mock_filesystem::SetFile(kLogPath, Trip(3));
+        auto failing = FailingRequest(Url(1));
+
+        NewCompactedTrip();
+
+        THEN("it's not active while waiting to retry")
+        {
+            CHECK(changes == std::vector {true, false});
+        }
+
+        AND_WHEN("it's retried")
+        {
+            failing = nullptr;
+            changes.clear();
+            AdvanceTimeAndRunLoop(TraccarUploader::kRetryTime);
+
+            THEN("it's active again")
+            {
+                CHECK(requests.back() == Url(2));
+                CHECK(changes == std::vector {true, false});
+            }
+        }
+    }
+
+    WHEN("a trip only has broken lines")
+    {
+        mock_filesystem::SetFile(kLogPath, "garbage\n");
+
+        NewCompactedTrip();
+
+        THEN("it's never active")
+        {
+            CHECK(requests.empty());
+            CHECK(filesystem.FileExists(kSentPath));
+            CHECK(changes.empty());
+        }
+    }
+
+    WHEN("a trip has been sent completely already")
+    {
+        mock_filesystem::SetFile(kLogPath, Trip(2));
+        state.Set<AS::traccar::last_sent_utc>(kUtc + 1);
+
+        NewCompactedTrip();
+
+        THEN("it's never active")
+        {
+            CHECK(requests.empty());
+            CHECK(filesystem.FileExists(kSentPath));
+            CHECK(changes.empty());
+        }
+    }
+
+    WHEN("there are no trips")
+    {
+        NewCompactedTrip();
+
+        THEN("it's never active")
+        {
+            CHECK(changes.empty());
+        }
     }
 }
 

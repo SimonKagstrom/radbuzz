@@ -106,6 +106,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::bluetooth_connected,
                                               AS::wifi_connected,
                                               AS::connected_wifi_ssid,
+                                              AS::traccar::upload_active,
                                               AS::speed,
                                               AS::trip_duration,
                                               AS::navigation_active,
@@ -303,7 +304,7 @@ UserInterface::OnStartup()
     m_indicators[IndicatorType::kPaused] =
         std::make_unique<PausedIndicator>(*this, Point {kIndicatorColumn, 0});
     m_indicators[IndicatorType::kWifi] =
-        std::make_unique<WifiIndicator>(*this, Point {kIndicatorColumn, 0});
+        std::make_unique<WifiIndicator>(*this, m_state, Point {kIndicatorColumn, 0});
     m_indicators[IndicatorType::kBluetooth] =
         std::make_unique<BluetoothIndicator>(*this, Point {kIndicatorColumn, 0});
 

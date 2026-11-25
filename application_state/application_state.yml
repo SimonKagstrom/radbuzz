@@ -49,6 +49,7 @@ application_state:
     configuration: {}
     configuration_file_hash: 0
     last_sent_utc: 0
+    upload_active: false
   current_power_w: 0
   wh_consumed: 0
   wh_regenerated: 0

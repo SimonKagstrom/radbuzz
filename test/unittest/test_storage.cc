@@ -96,7 +96,7 @@ public:
         }
     }
 
-    // Everything in the groups which are stored in the NVM, as a tuple
+    // Everything which is stored in the NVM, as a tuple
     auto StoredSettings()
     {
         auto values = [this]<class... S>(AS::parameter_list<S...>) {
@@ -106,7 +106,10 @@ public:
         return std::tuple_cat(values(AS::configuration::parameters {}),
                               values(AS::wifi::parameters {}),
                               values(AS::demo::parameters {}),
-                              values(AS::traccar::parameters {}));
+                              // The rest of this group isn't stored
+                              values(AS::parameter_list<AS::traccar::configuration,
+                                                        AS::traccar::configuration_file_hash,
+                                                        AS::traccar::last_sent_utc> {}));
     }
 
     // As if written (and committed) by an earlier boot

@@ -27,6 +27,8 @@
  * An interrupted upload continues after the last sent point, whose UTC is kept in the NVM. After
  * a power-off, some points are sent again (see kProgressInterval) and stored twice, since Traccar
  * only filters duplicates of the newest point.
+ *
+ * AS::traccar::upload_active is set while points are sent, but not while waiting to retry.
  */
 class TraccarUploader : public os::BaseThread
 {

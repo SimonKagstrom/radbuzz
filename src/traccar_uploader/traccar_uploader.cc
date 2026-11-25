@@ -117,7 +117,10 @@ TraccarUploader::OnActivation()
         return std::nullopt;
     }
 
-    if (UploadAll())
+    const auto all_uploaded = UploadAll();
+    m_state.Set<AS::traccar::upload_active>(false);
+
+    if (all_uploaded)
     {
         return std::nullopt;
     }
@@ -232,6 +235,7 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
             continue;
         }
 
+        m_state.Set<AS::traccar::upload_active>(true);
         if (!m_https_client.Get(request->url))
         {
             // Continue with this point next time. If it did arrive after all, it's the newest
