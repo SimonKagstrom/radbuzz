@@ -334,7 +334,6 @@ TEST_CASE_FIXTURE(Fixture, "settings stored by an earlier firmware are read")
     REQUIRE(State().Get<Conf::histogram_mode>() == HistogramMode::kConsumption);
     REQUIRE(State().Get<Conf::rotate_map>() == true);
     REQUIRE(State().Get<Conf::tile_style>() == TileStyle::kLandscape);
-    REQUIRE(State().Get<Conf::force_c6_update>() == true);
     REQUIRE(State().Get<Conf::show_gps_speed>() == true);
     REQUIRE(State().Get<Conf::show_clock>() == false);
     REQUIRE(State().Get<Conf::show_speech_bubbles>() == false);
@@ -366,7 +365,6 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     State().Set<Conf::histogram_mode>(HistogramMode::kConsumption);
     State().Set<Conf::rotate_map>(true);
     State().Set<Conf::tile_style>(TileStyle::kMobileAtlas);
-    State().Set<Conf::force_c6_update>(true);
     State().Set<Conf::show_gps_speed>(true);
     State().Set<Conf::show_clock>(false);
     State().Set<Conf::show_speech_bubbles>(false);
