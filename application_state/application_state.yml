@@ -20,8 +20,6 @@ application_state:
     home_position: {}
     wifi_ssid_data: {}
     ssid_file_hash: 0
-    traccar: {}
-    traccar_file_hash: 0
     max_watts: 1000
     recent_power_distance: 100
     speedometer_type: SpeedometerType::kDigital
@@ -40,6 +38,10 @@ application_state:
     controller_overheat_temperature: 80
     bms_overheat_temperature: 60
     cell_overheat_temperature: 50
+  # Also used when not stored in the NVM
+  traccar:
+    configuration: {}
+    configuration_file_hash: 0
   current_power_w: 0
   wh_consumed: 0
   wh_regenerated: 0

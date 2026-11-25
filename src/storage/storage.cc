@@ -60,7 +60,7 @@ constexpr auto kSettings = std::tuple {
     Setting<Conf::bms_overheat_temperature> {"2"},
     Setting<Conf::cell_overheat_temperature> {"3"},
     Setting<Conf::ssid_file_hash> {"h"},
-    Setting<Conf::traccar_file_hash> {"t"},
+    Setting<AS::traccar::configuration_file_hash> {"t"},
     Setting<Conf::brightness_mode> {"L"},
 };
 
@@ -122,7 +122,8 @@ Storage::Storage(ApplicationState& application_state, hal::INvm& nvm)
     : m_application_state(application_state)
     , m_nvm(nvm)
     , m_state_listener(
-          m_application_state.AttachListener<AS::configuration, AS::is_moving, AS::timezone>(*this))
+          m_application_state
+              .AttachListener<AS::configuration, AS::traccar, AS::is_moving, AS::timezone>(*this))
     , m_state_cache(m_application_state)
 {
     LoadFromNvm();
@@ -136,6 +137,7 @@ void
 Storage::LoadFromNvm()
 {
     auto qw = m_application_state.CheckoutQueuedWriter<AS::configuration,
+                                                       AS::traccar,
                                                        AS::wh_consumed,
                                                        AS::wh_regenerated,
                                                        AS::timezone>();
@@ -159,7 +161,7 @@ Storage::LoadFromNvm()
     auto timezone = m_nvm.Get<int16_t>(kTimezoneKey).value_or(0);
     qw.Set<AS::timezone>(timezone >= kMinTimezone && timezone <= kMaxTimezone ? timezone : 0);
 
-    qw.Set<Conf::traccar>({
+    qw.Set<AS::traccar::configuration>({
         .url = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarUrlKey).value_or("")),
         .id = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarIdKey).value_or("")),
         .demo_id = TrimAtFirstNul(m_nvm.Get<std::string>(kTraccarDemoIdKey).value_or("")),
@@ -252,7 +254,7 @@ Storage::OnActivation()
         do_commit = true;
     });
 
-    co.OnNewValue<Conf::traccar>([this, &do_commit](const auto& traccar) {
+    co.OnNewValue<AS::traccar::configuration>([this, &do_commit](const auto& traccar) {
         m_nvm.Set<std::string>(kTraccarUrlKey, traccar.url);
         m_nvm.Set<std::string>(kTraccarIdKey, traccar.id);
         m_nvm.Set<std::string>(kTraccarDemoIdKey, traccar.demo_id);

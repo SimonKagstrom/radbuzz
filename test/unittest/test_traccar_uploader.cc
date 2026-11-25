@@ -163,9 +163,9 @@ TEST_CASE_FIXTURE(Fixture, "the configuration is imported from traccar.txt")
 {
     THEN("the trailing slash of the url is removed")
     {
-        CHECK(*state.Get<AS::configuration::traccar>() ==
+        CHECK(*state.Get<AS::traccar::configuration>() ==
               TraccarSettings {.url = kServer, .id = "radbuzz", .demo_id = "radbuzz-demo"});
-        CHECK(state.Get<AS::configuration::traccar_file_hash>() != 0);
+        CHECK(state.Get<AS::traccar::configuration_file_hash>() != 0);
     }
 }
 
@@ -173,29 +173,29 @@ TEST_CASE_FIXTURE(NoConfigurationFixture, "nothing is uploaded without a configu
 {
     NewCompactedTrip();
 
-    CHECK(*state.Get<AS::configuration::traccar>() == TraccarSettings {});
+    CHECK(*state.Get<AS::traccar::configuration>() == TraccarSettings {});
     CHECK(requests.empty());
 }
 
 TEST_CASE_FIXTURE(BrokenConfigurationFixture, "a broken traccar.txt isn't imported")
 {
-    CHECK(*state.Get<AS::configuration::traccar>() == TraccarSettings {});
-    CHECK(state.Get<AS::configuration::traccar_file_hash>() == 0);
+    CHECK(*state.Get<AS::traccar::configuration>() == TraccarSettings {});
+    CHECK(state.Get<AS::traccar::configuration_file_hash>() == 0);
 }
 
 TEST_CASE_FIXTURE(Fixture, "an unchanged traccar.txt isn't imported again")
 {
     // E.g., changed on the device, which isn't possible yet
     {
-        auto ps = state.CheckoutPartialSnapshot<AS::configuration::traccar>();
-        ps.GetWritableReference<AS::configuration::traccar>().id = "other";
+        auto ps = state.CheckoutPartialSnapshot<AS::traccar::configuration>();
+        ps.GetWritableReference<AS::traccar::configuration>().id = "other";
     }
 
     TraccarUploader second {state, post_office, filesystem, https_client};
     SetThread(&second);
     second.Start("traccar_uploader_2");
 
-    CHECK(state.Get<AS::configuration::traccar>()->id == "other");
+    CHECK(state.Get<AS::traccar::configuration>()->id == "other");
 }
 
 TEST_CASE_FIXTURE(Fixture, "a compacted trip is uploaded, a request per line")

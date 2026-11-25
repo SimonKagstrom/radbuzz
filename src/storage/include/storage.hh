@@ -18,8 +18,9 @@ private:
     ApplicationState& m_application_state;
     hal::INvm& m_nvm;
     ListenerCookie m_state_listener;
-    ApplicationState::PartialReadOnlyCache<AS::configuration, AS::is_moving, AS::timezone>
-        m_state_cache;
+    ApplicationState::
+        PartialReadOnlyCache<AS::configuration, AS::traccar, AS::is_moving, AS::timezone>
+            m_state_cache;
 
     bool m_tainted_by_demo_mode {false};
 };

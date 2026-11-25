@@ -148,7 +148,7 @@ TraccarUploader::ImportConfiguration()
 
     // Only import a changed file, like SSID.TXT
     const auto hash = Fnv1aHash(*data);
-    if (hash == m_state.Get<AS::configuration::traccar_file_hash>())
+    if (hash == m_state.Get<AS::traccar::configuration_file_hash>())
     {
         return;
     }
@@ -168,15 +168,15 @@ TraccarUploader::ImportConfiguration()
         server.pop_back();
     }
 
-    auto qw = m_state.CheckoutQueuedWriter<AS::configuration::traccar,
-                                           AS::configuration::traccar_file_hash>();
+    auto qw = m_state.CheckoutQueuedWriter<AS::traccar::configuration,
+                                           AS::traccar::configuration_file_hash>();
 
-    qw.Set<AS::configuration::traccar>({
+    qw.Set<AS::traccar::configuration>({
         .url = server,
         .id = GetString(json, "id"),
         .demo_id = GetString(json, "demo_id"),
     });
-    qw.Set<AS::configuration::traccar_file_hash>(hash);
+    qw.Set<AS::traccar::configuration_file_hash>(hash);
 
     printf("TraccarUploader: imported %s\n", kConfigurationFile);
 }
@@ -184,7 +184,7 @@ TraccarUploader::ImportConfiguration()
 bool
 TraccarUploader::UploadAll()
 {
-    const auto traccar = m_state.Get<AS::configuration::traccar>();
+    const auto traccar = m_state.Get<AS::traccar::configuration>();
     if (traccar->url.empty())
     {
         return true;
@@ -225,7 +225,7 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
     }
 
     // Read at once, since compacted trips have a bounded size
-    const auto server = m_state.Get<AS::configuration::traccar>()->url;
+    const auto server = m_state.Get<AS::traccar::configuration>()->url;
     for (auto line :
          SplitLines(std::string_view(reinterpret_cast<const char*>(data->data()), data->size())))
     {

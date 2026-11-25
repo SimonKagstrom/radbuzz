@@ -51,7 +51,7 @@ parameters:
   battery_soc:
     type: uint8_t
 
-  # The settings, which are stored in the NVM. Separate parameters, since different threads write
+  # The settings, all stored in the NVM. Separate parameters, since different threads write
   # them. See the warning in ApplicationState::CheckoutPartialSnapshot()
   configuration:
     # Not set when at 0, 0
@@ -64,14 +64,6 @@ parameters:
 
     # Hash of the last imported SSID.TXT, so that it's only imported when changed
     ssid_file_hash:
-      type: uint32_t
-
-    # Where to upload trips, from traccar.txt
-    traccar:
-      type: struct TraccarSettings
-
-    # Hash of the last imported traccar.txt, so that it's only imported when changed
-    traccar_file_hash:
       type: uint32_t
 
     # Maximum power in watts
@@ -140,6 +132,17 @@ parameters:
 
     cell_overheat_temperature:
       type: uint8_t
+
+  # Uploading trips to a Traccar server
+  traccar:
+    # Where to upload trips, from traccar.txt. Stored in the NVM
+    configuration:
+      type: struct TraccarSettings
+
+    # Hash of the last imported traccar.txt, so that it's only imported when changed. Stored in
+    # the NVM
+    configuration_file_hash:
+      type: uint32_t
 
   current_power_w:
     type: int16_t

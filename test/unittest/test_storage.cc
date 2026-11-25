@@ -96,12 +96,15 @@ public:
         }
     }
 
-    // Everything in the configuration, as a tuple
-    auto Configuration()
+    // Everything in the groups which are stored in the NVM, as a tuple
+    auto StoredSettings()
     {
-        return [this]<class... S>(AS::parameter_list<S...>) {
+        auto values = [this]<class... S>(AS::parameter_list<S...>) {
             return std::tuple {Value<S>()...};
-        }(AS::configuration::parameters {});
+        };
+
+        return std::tuple_cat(values(AS::configuration::parameters {}),
+                              values(AS::traccar::parameters {}));
     }
 
     // As if written (and committed) by an earlier boot
@@ -198,7 +201,7 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread sets default values if the NVM is
     REQUIRE(State().Get<Conf::show_clock>() == true);
     REQUIRE(State().Get<Conf::tile_style>() == TileStyle::kCycle);
     REQUIRE(State().Get<Conf::brightness_mode>() == BrightnessMode::kAuto);
-    REQUIRE(*State().Get<Conf::traccar>() == TraccarSettings {});
+    REQUIRE(*State().Get<AS::traccar::configuration>() == TraccarSettings {});
 }
 
 TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state changes")
@@ -352,7 +355,7 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
 {
     StartBoard();
 
-    const auto defaults = Configuration();
+    const auto defaults = StoredSettings();
 
     State().Set<Conf::max_speedometer_speed>(60);
     State().Set<Conf::profile>(Profile::kNoLimit);
@@ -376,19 +379,19 @@ TEST_CASE_FIXTURE(Fixture, "all settings survive a restart")
     State().Set<Conf::wifi_ssid_data>({{{"cafe", "latte"}, {"open", ""}}});
     // All 32 bits are used
     State().Set<Conf::ssid_file_hash>(0xdeadbeef);
-    State().Set<Conf::traccar>(
+    State().Set<AS::traccar::configuration>(
         {.url = "https://pi.tail.ts.net", .id = "k3v9x2qmw7rt", .demo_id = "p8d4"});
-    State().Set<Conf::traccar_file_hash>(0xfeedface);
+    State().Set<AS::traccar::configuration_file_hash>(0xfeedface);
     State().Set<Conf::brightness_mode>(BrightnessMode::kLow);
 
     // New settings must be added above
-    const auto changed = Configuration();
+    const auto changed = StoredSettings();
     REQUIRE(AllDiffer(changed, defaults));
 
     DoRunLoop();
 
     StartBoard();
-    REQUIRE(Configuration() == changed);
+    REQUIRE(StoredSettings() == changed);
 }
 
 TEST_CASE_FIXTURE(Fixture, "only changed settings are written to the NVM")
@@ -421,8 +424,8 @@ TEST_CASE_FIXTURE(Fixture, "settings changed before the storage thread starts ar
     CreateBoard();
 
     // E.g., imported from the SD card by another thread, which was started first
-    State().Set<Conf::traccar>(traccar);
-    State().Set<Conf::traccar_file_hash>(0xfeedface);
+    State().Set<AS::traccar::configuration>(traccar);
+    State().Set<AS::traccar::configuration_file_hash>(0xfeedface);
     State().Set<Conf::wifi_ssid_data>(networks);
     State().Set<AS::timezone>(60);
 
@@ -435,8 +438,8 @@ TEST_CASE_FIXTURE(Fixture, "settings changed before the storage thread starts ar
 
         THEN("the changes are kept, together with what was stored before")
         {
-            CHECK(*State().Get<Conf::traccar>() == traccar);
-            CHECK(State().Get<Conf::traccar_file_hash>() == 0xfeedface);
+            CHECK(*State().Get<AS::traccar::configuration>() == traccar);
+            CHECK(State().Get<AS::traccar::configuration_file_hash>() == 0xfeedface);
             CHECK(*State().Get<Conf::wifi_ssid_data>() == networks);
             CHECK(State().Get<AS::timezone>() == 60);
             CHECK(State().Get<Conf::max_speedometer_speed>() == 60);
