@@ -250,13 +250,14 @@ TEST_CASE_FIXTURE(Fixture, "ssid.txt is parsed as JSON")
 
     WHEN("the file has several networks, over Windows lines")
     {
-        mock_filesystem::SetFile(WifiHandler::kSsidFile,
-                                 "{\r\n"
-                                 "  \"networks\": [\r\n"
-                                 "    {\"ssid\": \"Office\", \"password\": \"office-password\"},\r\n"
-                                 "    {\"ssid\": \"Café\", \"password\": \"latte\"}\r\n"
-                                 "  ]\r\n"
-                                 "}\r\n");
+        mock_filesystem::SetFile(
+            WifiHandler::kSsidFile,
+            "{\r\n"
+            "  \"networks\": [\r\n"
+            "    {\"ssid\": \"Office\", \"password\": \"office-password\"},\r\n"
+            "    {\"ssid\": \"Café\", \"password\": \"latte\"}\r\n"
+            "  ]\r\n"
+            "}\r\n");
         Start();
 
         THEN("all of them are added, in order")
@@ -398,8 +399,9 @@ TEST_CASE_FIXTURE(Fixture, "ssid.txt is only imported when it has changed")
 
     WHEN("the file has changed")
     {
-        mock_filesystem::SetFile(WifiHandler::kSsidFile,
-                                 R"({"networks": [{"ssid": "Office", "password": "new-password"}]})");
+        mock_filesystem::SetFile(
+            WifiHandler::kSsidFile,
+            R"({"networks": [{"ssid": "Office", "password": "new-password"}]})");
         Start();
 
         THEN("it's imported, and the new hash is stored")
@@ -413,9 +415,9 @@ TEST_CASE_FIXTURE(Fixture, "ssid.txt is only imported when it has changed")
 
     WHEN("only the formatting has changed")
     {
-        mock_filesystem::SetFile(
-            WifiHandler::kSsidFile,
-            "{\"networks\": [\r\n  {\"ssid\": \"Office\", \"password\": \"office-password\"}\r\n]}");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                                 "{\"networks\": [\r\n  {\"ssid\": \"Office\", \"password\": "
+                                 "\"office-password\"}\r\n]}");
         Start();
 
         THEN("it counts as changed")
@@ -538,6 +540,124 @@ TEST_CASE_FIXTURE(Fixture, "failed connections are retried before giving up on t
             REQUIRE(connect_count == 2);
             REQUIRE(scan_count == 1);
         }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a hanging connection is stopped and retried")
+{
+    // E.g., associated, but DHCP doesn't answer
+    hanging_ssids = {"Home"};
+
+    Start();
+    REQUIRE(CurrentState() == State::kConnecting);
+    REQUIRE(connect_count == 1);
+
+    WHEN("it times out")
+    {
+        Advance(13s);
+
+        THEN("the attempt is stopped")
+        {
+            REQUIRE(disconnect_count == 1);
+            REQUIRE(connect_count == 1);
+        }
+
+        AND_WHEN("the retry delay has passed")
+        {
+            Advance(5s);
+
+            THEN("it's retried")
+            {
+                REQUIRE(connect_count == 2);
+                REQUIRE(CurrentState() == State::kConnecting);
+            }
+        }
+    }
+
+    WHEN("the retries also time out")
+    {
+        for (auto i = 0; i < 3; i++)
+        {
+            Advance(13s);
+            Advance(5s);
+        }
+        REQUIRE(connect_count == 4);
+        Advance(13s);
+
+        THEN("the network is given up, and each attempt is stopped")
+        {
+            REQUIRE(disconnect_count == 4);
+            REQUIRE(connect_count == 4);
+            REQUIRE(CurrentState() == State::kIdle);
+            REQUIRE_FALSE(state.Get<AS::wifi_connected>());
+        }
+    }
+
+    WHEN("the last attempt is slow")
+    {
+        for (auto i = 0; i < 3; i++)
+        {
+            Advance(13s);
+            Advance(5s);
+        }
+        Advance(12s);
+
+        THEN("it also gets the whole timeout")
+        {
+            REQUIRE(connect_count == 4);
+            REQUIRE(disconnect_count == 3);
+            REQUIRE(CurrentState() == State::kConnecting);
+        }
+
+        AND_WHEN("it connects")
+        {
+            SendWifiEvent(Event::kConnected);
+            RunUntilStable();
+
+            THEN("it's connected")
+            {
+                REQUIRE(CurrentState() == State::kConnected);
+                REQUIRE(state.Get<AS::wifi_connected>());
+            }
+        }
+    }
+
+    WHEN("it connects before the timeout")
+    {
+        Advance(12s);
+        SendWifiEvent(Event::kConnected);
+        RunUntilStable();
+        Advance(1s);
+
+        THEN("it's connected")
+        {
+            REQUIRE(CurrentState() == State::kConnected);
+            REQUIRE(disconnect_count == 0);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the next known network is tried when one hangs")
+{
+    AddKnownNetwork({"Office", "office-password"});
+    networks_in_range = InRange({"Office", "Home"});
+    hanging_ssids = {"Home"};
+
+    Start();
+    for (auto i = 0; i < 3; i++)
+    {
+        Advance(13s);
+        Advance(5s);
+    }
+    Advance(13s);
+
+    THEN("the next one is connected")
+    {
+        REQUIRE(CurrentState() == State::kConnected);
+        REQUIRE(connected_ssid == "Office");
+        REQUIRE(connect_attempts ==
+                std::vector<std::string> {"Home", "Home", "Home", "Home", "Office"});
+        REQUIRE(state.Get<AS::wifi_connected>());
     }
 }
 

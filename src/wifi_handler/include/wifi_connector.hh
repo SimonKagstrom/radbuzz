@@ -10,6 +10,11 @@
 
 struct WifiConnectorStateData : WifiConnectStateMachineData
 {
+    struct Connect : WifiConnectStateMachineData::Connect
+    {
+        os::TimerHandle timer;
+    };
+
     struct RetryConnect : WifiConnectStateMachineData::RetryConnect
     {
         os::TimerHandle timer;
@@ -44,17 +49,22 @@ public:
     const std::string& Ssid() const;
 
 private:
+    // Until there is an IP address, which also covers e.g., DHCP
+    static constexpr auto kConnectTimeout = 13s;
     static constexpr auto kRetryConnectTime = 5s;
     static constexpr auto kMaxConnectRetries = 3;
 
     // WifiConnectStateMachineBase, see wifi_connect_state_machine.md
-    Connect::Next Evaluate(Connect&) final;
+    Connect::Next Evaluate(Connect& state) final;
+    Abort::Next Evaluate(Abort&) final;
     RetryConnect::Next Evaluate(RetryConnect& state) final;
     Succeeded::Next Evaluate(Succeeded&) final;
     Failed::Next Evaluate(Failed&) final;
 
-    void Enter(Connect&) final;
+    void Enter(Connect& state) final;
+    void Enter(Abort&) final;
     void Enter(RetryConnect& state) final;
+    void Enter(Failed&) final;
 
     void OnTransition(State from, State to) final;
 

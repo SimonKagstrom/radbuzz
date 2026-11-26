@@ -11,7 +11,10 @@ stateDiagram-v2
 
     Connect --> Succeeded : Connected
     Connect --> RetryConnect : Connection failed, retries left
-    Connect --> Failed : Connection failed, no retries left
+    Connect --> Abort : Timeout (13 seconds), retries left
+    Connect --> Failed : Connection failed or timeout, no retries left
+
+    Abort --> RetryConnect
 
     RetryConnect --> Connect : After 5 seconds
 
@@ -23,7 +26,10 @@ stateDiagram-v2
 
 ## States
 
-- **Connect**: Connect to the network
+- **Connect**: Connect to the network. Connected means having an IP address, so a timeout
+  also covers e.g., DHCP not answering
+- **Abort**: Stop the timed out attempt, which is still ongoing
 - **RetryConnect**: Wait 5 seconds before retrying the connection (up to 3 retries)
 - **Succeeded**: Connected to the network
-- **Failed**: The connection failed, also after the retries
+- **Failed**: The connection failed, also after the retries. Stop the attempt, in case it
+  timed out

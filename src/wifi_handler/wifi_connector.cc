@@ -56,30 +56,53 @@ WifiConnector::OnTransition(State from, State to)
 
 // Connect
 void
-WifiConnector::Enter(Connect&)
+WifiConnector::Enter(Connect& state)
 {
     m_link_down_event = false;
+
+    state.timer = m_timer_manager.StartTimer(kConnectTimeout);
+
     m_wifi_client.Connect(m_network.ssid.c_str(), m_network.password.c_str());
 }
 
 WifiConnector::Connect::Next
-WifiConnector::Evaluate(Connect&)
+WifiConnector::Evaluate(Connect& state)
 {
     if (m_link_up)
     {
         return State::kSucceeded;
     }
-    if (m_link_down_event)
-    {
-        if (m_retries < kMaxConnectRetries)
-        {
-            return State::kRetryConnect;
-        }
 
+    if (!m_link_down_event && !state.timer->IsExpired())
+    {
+        return kStay;
+    }
+
+    if (m_retries >= kMaxConnectRetries)
+    {
         return State::kFailed;
     }
 
-    return kStay;
+    if (m_link_down_event)
+    {
+        return State::kRetryConnect;
+    }
+
+    return State::kAbort;
+}
+
+
+// Abort
+void
+WifiConnector::Enter(Abort&)
+{
+    m_wifi_client.Disconnect();
+}
+
+WifiConnector::Abort::Next
+WifiConnector::Evaluate(Abort&)
+{
+    return State::kRetryConnect;
 }
 
 
@@ -109,6 +132,13 @@ WifiConnector::Succeeded::Next
 WifiConnector::Evaluate(Succeeded&)
 {
     return kStay;
+}
+
+void
+WifiConnector::Enter(Failed&)
+{
+    // Still ongoing after a timeout
+    m_wifi_client.Disconnect();
 }
 
 WifiConnector::Failed::Next
