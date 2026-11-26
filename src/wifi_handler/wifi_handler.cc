@@ -1,33 +1,12 @@
 #include "wifi_handler.hh"
 
 #include "fnv1a_hash.hh"
+#include "json_helpers.hh"
 
 #include <algorithm>
 #include <cstddef>
 #include <ranges>
 #include <span>
-#include <sstream>
-
-namespace
-{
-
-// A line without the line ending (also \r\n, from Windows). False at the end of the file
-bool
-ReadLine(std::istream& stream, std::string& line)
-{
-    if (!std::getline(stream, line))
-    {
-        return false;
-    }
-    if (line.ends_with('\r'))
-    {
-        line.pop_back();
-    }
-
-    return true;
-}
-
-} // namespace
 
 WifiHandler::WifiHandler(ApplicationState& state,
                          PostOffice<MSG::AllMessages>& post_office,
@@ -112,7 +91,7 @@ WifiHandler::OnActivation()
 void
 WifiHandler::ReadSsidFile()
 {
-    auto ssid_data = m_filesystem.ReadFile("SSID.TXT");
+    auto ssid_data = m_filesystem.ReadFile(kSsidFile);
     if (!ssid_data)
     {
         return;
@@ -123,31 +102,36 @@ WifiHandler::ReadSsidFile()
     const auto hash = Fnv1aHash(*ssid_data);
     if (hash == m_state.Get<AS::wifi::ssid_file_hash>())
     {
-        printf("SSID.TXT unchanged since the last import, ignoring it\n");
+        printf("%s unchanged since the last import, ignoring it\n", kSsidFile);
+        return;
+    }
+
+    auto json = ParseJson(*ssid_data);
+    if (!json.is_object())
+    {
+        // Not marked as imported, so a fixed file is imported on the next boot
+        printf("%s isn't a JSON object, ignoring it\n", kSsidFile);
         return;
     }
 
     WifiSsidData parsed_ssid_data {};
-    const std::string ssid_text(reinterpret_cast<const char*>(ssid_data->data()),
-                                ssid_data->size());
-    std::stringstream ssid_stream(ssid_text);
-
-    printf("Read SSID.TXT:\n%s\n", ssid_text.c_str());
-    while (true)
+    if (auto networks = json.find("networks"); networks != json.end() && networks->is_array())
     {
-        std::string ssid, password;
-        if (!ReadLine(ssid_stream, ssid) || ssid.empty())
+        for (const auto& network : *networks)
         {
-            break;
-        }
-        // An empty password line is an open network, but a missing one is a broken file
-        if (!ReadLine(ssid_stream, password))
-        {
-            break;
-        }
+            auto ssid = GetJsonString(network, "ssid");
+            // A missing password is an open network, but e.g. an unquoted number is a mistake
+            auto password = network.is_object() ? network.find("password") : network.end();
+            if (ssid.empty() || (password != network.end() && !password->is_string()))
+            {
+                continue;
+            }
 
-        parsed_ssid_data.networks.push_back({ssid, password});
+            parsed_ssid_data.networks.push_back({ssid, GetJsonString(network, "password")});
+        }
     }
+
+    printf("Imported %zu networks from %s\n", parsed_ssid_data.networks.size(), kSsidFile);
 
     auto ps = m_state.CheckoutPartialSnapshot<AS::wifi::ssid_file_hash, AS::wifi::networks>();
     auto& networks = ps.GetWritableReference<AS::wifi::networks>().networks;

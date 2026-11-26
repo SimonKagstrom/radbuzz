@@ -1,6 +1,7 @@
 #include "traccar_uploader.hh"
 
 #include "fnv1a_hash.hh"
+#include "json_helpers.hh"
 #include "split_string.hh"
 #include "trip_compactor.hh"
 #include "trip_recorder.hh"
@@ -18,14 +19,6 @@ namespace
 {
 
 constexpr auto kKmhPerKnot = 1.852f;
-
-// The string value of a key, or empty if missing or not a string
-std::string
-GetString(const nlohmann::json& json, const char* key)
-{
-    auto it = json.find(key);
-    return it != json.end() && it->is_string() ? it->get<std::string>() : std::string();
-}
 
 // Unreserved characters as they are, everything else percent-encoded
 std::string
@@ -138,22 +131,21 @@ TraccarUploader::ImportConfiguration()
         return;
     }
 
-    // Only import a changed file, like SSID.TXT
+    // Only import a changed file, like ssid.txt
     const auto hash = Fnv1aHash(*data);
     if (hash == m_state.Get<AS::traccar::configuration_file_hash>())
     {
         return;
     }
 
-    const auto text = std::string_view(reinterpret_cast<const char*>(data->data()), data->size());
-    auto json = nlohmann::json::parse(text, nullptr, false);
+    auto json = ParseJson(*data);
     if (!json.is_object())
     {
         printf("TraccarUploader: %s isn't a JSON object, ignoring it\n", kConfigurationFile);
         return;
     }
 
-    auto server = GetString(json, "url");
+    auto server = GetJsonString(json, "url");
     // Without the trailing slash, which is added for each request
     while (server.ends_with('/'))
     {
@@ -164,8 +156,8 @@ TraccarUploader::ImportConfiguration()
 
     qw.Set<AS::traccar::configuration>({
         .url = server,
-        .id = GetString(json, "id"),
-        .demo_id = GetString(json, "demo_id"),
+        .id = GetJsonString(json, "id"),
+        .demo_id = GetJsonString(json, "demo_id"),
     });
     qw.Set<AS::traccar::configuration_file_hash>(hash);
     // A new server (or device) needs a partly uploaded trip from the start

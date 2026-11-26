@@ -98,23 +98,39 @@ firmware for wifi/Bluetooth.
 ## The OSM API key
 Get an API key for thunderforest via https://www.thunderforest.com/docs/apikeys/
 
-Put this key as a string in a `/APP_DATA/OSM_KEY.TXT` file in the root directory of this project.
+Put this key as a plain string in an `osm_api_key.txt` file in the root directory of this
+project, to build it into the firmware.
 
-A key can also be placed on the SD card, as osm_key.txt, which will be
-preferred over the build time one if it exists.
+A key can also be placed on the SD card, as `app_data/osm_key.txt`, which will be
+preferred over the build time one if it exists. It's JSON:
+
+```json
+{"api_key": "0123456789abcdef"}
+```
 
 ## Wifi SSID
-Store the SSIDs and passwords in a `/APP_DATA/SSID.TXT` file on the SD card, with
-newlines. E.g.,
+Store the SSIDs and passwords as JSON in an `app_data/ssid.txt` file on the SD card. E.g.,
 
+```json
+{
+  "networks": [
+    {"ssid": "MySsid", "password": "PasswordForMySsid"},
+    {"ssid": "OtherSsid", "password": "PasswordForOtherSsid"},
+    {"ssid": "OpenCafeSsid"}
+  ]
+}
 ```
-MySsid
-PasswordForMySsid
-OtherSsid
-PasswordForOtherSsid
-OpenCafeSsid
 
-```
-
-Leave the password line empty for open networks. The networks are stored on the
+Leave out the password for open networks. The networks are stored on the
 board, and the file is only imported again when its contents change.
+
+## Trip upload
+Trips are uploaded to a [Traccar](https://www.traccar.org/) server with the OsmAnd protocol,
+configured with a JSON `app_data/traccar.txt` file on the SD card:
+
+```json
+{"url": "https://host.tailnet.ts.net", "id": "device-id", "demo_id": "demo-device-id"}
+```
+
+The `demo_id` is optional, and demo trips are only uploaded with it. Like `ssid.txt`, the file
+is stored on the board and only imported again when it changes.

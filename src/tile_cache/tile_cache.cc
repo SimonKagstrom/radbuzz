@@ -1,8 +1,8 @@
 #include "tile_cache.hh"
 
 #include "png_decoder.hh"
+#include "tile_styles.hh"
 
-#include <cctype>
 #include <mutex>
 
 namespace
@@ -18,24 +18,6 @@ constexpr auto kRegionConfigurations = std::array {
 constexpr auto kRegionSaveInterval = 10s;
 // Limit the time spent checking for existing tiles on the SD card in one go
 constexpr auto kMaxDiskChecksPerActivation = 32;
-
-constexpr auto kRuntimeOsmApiKeyFilename = "OSM_KEY.TXT";
-
-void
-TrimAsciiWhitespace(std::string& value)
-{
-    auto is_space = [](unsigned char ch) { return std::isspace(ch) != 0; };
-
-    while (!value.empty() && is_space(static_cast<unsigned char>(value.front())))
-    {
-        value.erase(value.begin());
-    }
-
-    while (!value.empty() && is_space(static_cast<unsigned char>(value.back())))
-    {
-        value.pop_back();
-    }
-}
 
 class TileHandle final : public ITileHandle
 {
@@ -93,15 +75,15 @@ void
 TileCache::OnStartup()
 {
     std::string osm_api_key = OSM_API_KEY;
-    if (auto runtime_key_data = m_filesystem.ReadFile(kRuntimeOsmApiKeyFilename);
-        runtime_key_data && !runtime_key_data->empty())
+    if (auto data = m_filesystem.ReadFile(kApiKeyFile))
     {
-        std::string runtime_key(reinterpret_cast<const char*>(runtime_key_data->data()),
-                                runtime_key_data->size());
-        TrimAsciiWhitespace(runtime_key);
-        if (!runtime_key.empty())
+        if (auto runtime_key = ApiKeyFromFile(*data); !runtime_key.empty())
         {
             osm_api_key = std::move(runtime_key);
+        }
+        else
+        {
+            printf("TileCache: no api_key in %s, using the build time key\n", kApiKeyFile);
         }
     }
     m_web_thread->SetOsmApiKey(std::move(osm_api_key));

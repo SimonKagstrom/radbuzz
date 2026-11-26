@@ -54,6 +54,24 @@ TEST_CASE("each style has its own name, URL and directory")
     REQUIRE(RegionsPath(TileStyle::kLandscape) == "pending/landscap/regions.bin");
 }
 
+TEST_CASE("the API key is read from osm_key.txt as JSON")
+{
+    auto key_from = [](std::string_view contents) {
+        return ApiKeyFromFile(std::as_bytes(std::span(contents)));
+    };
+
+    REQUIRE(key_from(R"({"api_key": "abc123"})") == "abc123");
+    REQUIRE(key_from("{\r\n  \"api_key\": \"abc123\",\r\n  \"comment\": \"x\"\r\n}\r\n") == "abc123");
+
+    // Broken files give no key, so the build time one is used
+    REQUIRE(key_from("abc123").empty());
+    REQUIRE(key_from(R"({"api_key": "abc1)").empty());
+    REQUIRE(key_from("").empty());
+    REQUIRE(key_from(R"({"apikey": "abc123"})").empty());
+    REQUIRE(key_from(R"({"api_key": 123})").empty());
+    REQUIRE(key_from(R"(["abc123"])").empty());
+}
+
 TEST_CASE("each style has a sample tile")
 {
     SingleColorImage image(kTileSize, kTileSize, 2, 0x1234);
@@ -107,7 +125,7 @@ TEST_CASE("unstyled tiles are migrated to the cycle directory")
         mock_filesystem::SetFile("tiles/13/4400/2325.png", "z13");
         mock_filesystem::SetFile("tiles/10/550/290.png", "z10");
         mock_filesystem::SetFile("pending/regions.bin", "regions");
-        mock_filesystem::SetFile("OSM_KEY.TXT", "key");
+        mock_filesystem::SetFile(kApiKeyFile, "key");
 
         WHEN("migrating")
         {
@@ -129,7 +147,7 @@ TEST_CASE("unstyled tiles are migrated to the cycle directory")
 
             AND_THEN("unrelated files are left alone")
             {
-                REQUIRE(Contents(filesystem, "OSM_KEY.TXT") == "key");
+                REQUIRE(Contents(filesystem, kApiKeyFile) == "key");
             }
 
             AND_WHEN("migrating again (i.e., the next boot)")

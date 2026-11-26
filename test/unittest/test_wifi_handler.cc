@@ -11,6 +11,9 @@ namespace
 using State = WifiHandler::State;
 using Event = hal::IWifiClient::Event;
 
+constexpr auto kOfficeFile = R"({"networks": [{"ssid": "Office", "password": "office-password"}]})";
+constexpr auto kOfficeFileHash = 0x02cc4ceau;
+
 // Secured access points, all with the same signal strength
 std::vector<hal::IWifiClient::AccessPoint>
 InRange(std::initializer_list<const char*> ssids)
@@ -222,9 +225,9 @@ TEST_CASE_FIXTURE(Fixture, "a known network in range is connected at startup")
     REQUIRE(state.Get<AS::wifi_connected>());
 }
 
-TEST_CASE_FIXTURE(Fixture, "networks from SSID.TXT are added to the known networks")
+TEST_CASE_FIXTURE(Fixture, "networks from ssid.txt are added to the known networks")
 {
-    mock_filesystem::SetFile("SSID.TXT", "Office\noffice-password\n");
+    mock_filesystem::SetFile(WifiHandler::kSsidFile, kOfficeFile);
     networks_in_range = InRange({"Office"});
 
     Start();
@@ -233,10 +236,10 @@ TEST_CASE_FIXTURE(Fixture, "networks from SSID.TXT are added to the known networ
     REQUIRE(connected_ssid == "Office");
     REQUIRE(connected_password == "office-password");
     // FNV-1a of the file. Changing the hash would import the file again on all boards
-    REQUIRE(state.Get<AS::wifi::ssid_file_hash>() == 0x780438d9);
+    REQUIRE(state.Get<AS::wifi::ssid_file_hash>() == kOfficeFileHash);
 }
 
-TEST_CASE_FIXTURE(Fixture, "SSID.TXT is parsed as SSID and password lines")
+TEST_CASE_FIXTURE(Fixture, "ssid.txt is parsed as JSON")
 {
     auto require_imported = [this](const std::vector<WifiSsidNetwork>& from_file) {
         auto expected = std::vector<WifiSsidNetwork> {{"Home", "home-password"}};
@@ -245,64 +248,83 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is parsed as SSID and password lines")
         REQUIRE(KnownNetworks() == expected);
     };
 
-    WHEN("the file has Windows line endings")
+    WHEN("the file has several networks, over Windows lines")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Office\r\noffice-password\r\nCafé\r\nlatte\r\n");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                                 "{\r\n"
+                                 "  \"networks\": [\r\n"
+                                 "    {\"ssid\": \"Office\", \"password\": \"office-password\"},\r\n"
+                                 "    {\"ssid\": \"Café\", \"password\": \"latte\"}\r\n"
+                                 "  ]\r\n"
+                                 "}\r\n");
         Start();
 
-        THEN("the \\r is not part of the SSID or password")
+        THEN("all of them are added, in order")
         {
             require_imported({{"Office", "office-password"}, {"Café", "latte"}});
         }
     }
 
-    WHEN("a password line is empty")
+    WHEN("a network has no password")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Open cafe\n\nOffice\noffice-password\n");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                                 R"({"networks": [{"ssid": "Open cafe"},
+                                                  {"ssid": "Office", "password": "office-password"}]})");
         Start();
 
-        THEN("it's an open network, and the rest of the file is also parsed")
+        THEN("it's an open network")
         {
             require_imported({{"Open cafe", ""}, {"Office", "office-password"}});
         }
     }
 
-    WHEN("the empty password line has a Windows line ending")
+    WHEN("some networks are broken")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Open cafe\r\n\r\n");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                                 R"({"networks": [{"password": "no-ssid"},
+                                                  {"ssid": "", "password": "empty-ssid"},
+                                                  {"ssid": 7, "password": "number-ssid"},
+                                                  {"ssid": "Number", "password": 12345678},
+                                                  "Office",
+                                                  null,
+                                                  {"ssid": "Café", "password": "latte"}]})");
         Start();
 
-        THEN("it's still an open network")
+        THEN("only those are skipped")
         {
-            require_imported({{"Open cafe", ""}});
+            require_imported({{"Café", "latte"}});
         }
     }
 
-    WHEN("the last line has no line ending")
+    WHEN("there are unknown keys")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Office\noffice-password");
+        mock_filesystem::SetFile(
+            WifiHandler::kSsidFile,
+            R"({"comment": "x", "networks": [{"ssid": "Café", "password": "latte", "note": 1}]})");
         Start();
 
-        THEN("the password is still read")
+        THEN("they are ignored")
         {
-            require_imported({{"Office", "office-password"}});
+            require_imported({{"Café", "latte"}});
         }
     }
 
-    WHEN("the password line is missing at the end of the file")
+    WHEN("networks is missing")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Office\noffice-password\nCafé\n");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile, R"({"network": [{"ssid": "Café"}]})");
         Start();
 
-        THEN("the incomplete network is not added as an open network")
+        THEN("nothing is added, but the file is marked as imported")
         {
-            require_imported({{"Office", "office-password"}});
+            require_imported({});
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() != 0);
         }
     }
 
-    WHEN("the file only has an SSID, without a line ending")
+    WHEN("networks isn't an array")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Café");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                                 R"({"networks": {"ssid": "Café", "password": "latte"}})");
         Start();
 
         THEN("nothing is added")
@@ -311,20 +333,10 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is parsed as SSID and password lines")
         }
     }
 
-    WHEN("there is an empty line instead of an SSID")
-    {
-        mock_filesystem::SetFile("SSID.TXT", "Office\noffice-password\n\nCafé\nlatte\n");
-        Start();
-
-        THEN("parsing stops there")
-        {
-            require_imported({{"Office", "office-password"}});
-        }
-    }
-
     WHEN("a network in the file is already known")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Home\r\nnew-password\r\n");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                                 R"({"networks": [{"ssid": "Home", "password": "new-password"}]})");
         Start();
 
         THEN("only the password is updated")
@@ -332,19 +344,48 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is parsed as SSID and password lines")
             REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {{"Home", "new-password"}});
         }
     }
+
+    WHEN("the file isn't JSON")
+    {
+        std::string contents;
+
+        SUBCASE("the old line format")
+        {
+            contents = "Office\noffice-password\n";
+        }
+        SUBCASE("truncated")
+        {
+            contents = R"({"networks": [{"ssid": "Office", "password": "office-pa)";
+        }
+        SUBCASE("empty")
+        {
+            contents = "";
+        }
+        SUBCASE("an array")
+        {
+            contents = R"([{"ssid": "Office", "password": "office-password"}])";
+        }
+
+        mock_filesystem::SetFile(WifiHandler::kSsidFile, contents);
+        Start();
+
+        THEN("nothing is added, and it's not marked as imported (so a fixed file is imported)")
+        {
+            require_imported({});
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() == 0);
+        }
+    }
 }
 
-TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
+TEST_CASE_FIXTURE(Fixture, "ssid.txt is only imported when it has changed")
 {
-    constexpr auto kOfficeFileHash = 0x780438d9u;
-
     // Imported on an earlier boot, and the Office network has since been forgotten
     state.Set<AS::wifi::ssid_file_hash>(kOfficeFileHash);
     networks_in_range = InRange({"Office"});
 
     WHEN("the file is unchanged")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Office\noffice-password\n");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile, kOfficeFile);
         Start();
 
         THEN("the forgotten network is not added again")
@@ -357,7 +398,8 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
 
     WHEN("the file has changed")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Office\nnew-password\n");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                                 R"({"networks": [{"ssid": "Office", "password": "new-password"}]})");
         Start();
 
         THEN("it's imported, and the new hash is stored")
@@ -369,9 +411,11 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
         }
     }
 
-    WHEN("only the line endings have changed")
+    WHEN("only the formatting has changed")
     {
-        mock_filesystem::SetFile("SSID.TXT", "Office\r\noffice-password\r\n");
+        mock_filesystem::SetFile(
+            WifiHandler::kSsidFile,
+            "{\"networks\": [\r\n  {\"ssid\": \"Office\", \"password\": \"office-password\"}\r\n]}");
         Start();
 
         THEN("it counts as changed")
@@ -391,15 +435,27 @@ TEST_CASE_FIXTURE(Fixture, "SSID.TXT is only imported when it has changed")
         }
     }
 
-    WHEN("the file is empty")
+    WHEN("the file has no networks")
     {
-        mock_filesystem::SetFile("SSID.TXT", "");
+        mock_filesystem::SetFile(WifiHandler::kSsidFile, R"({"networks": []})");
         Start();
 
         THEN("nothing is added, but the file is marked as imported")
         {
             REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {{"Home", "home-password"}});
             REQUIRE(state.Get<AS::wifi::ssid_file_hash>() != kOfficeFileHash);
+        }
+    }
+
+    WHEN("the file is broken")
+    {
+        mock_filesystem::SetFile(WifiHandler::kSsidFile, "Office\nnew-password\n");
+        Start();
+
+        THEN("the stored networks and hash are kept")
+        {
+            REQUIRE(KnownNetworks() == std::vector<WifiSsidNetwork> {{"Home", "home-password"}});
+            REQUIRE(state.Get<AS::wifi::ssid_file_hash>() == kOfficeFileHash);
         }
     }
 }
@@ -882,10 +938,11 @@ TEST_CASE_FIXTURE(Fixture, "a scan requested before startup is done without know
     REQUIRE(CurrentState() == State::kIdle);
 }
 
-TEST_CASE_FIXTURE(Fixture, "networks from SSID.TXT keep the wifi on with an empty configuration")
+TEST_CASE_FIXTURE(Fixture, "networks from ssid.txt keep the wifi on with an empty configuration")
 {
     state.Set<AS::wifi::networks>({});
-    mock_filesystem::SetFile("SSID.TXT", "Home\nhome-password\n");
+    mock_filesystem::SetFile(WifiHandler::kSsidFile,
+                             R"({"networks": [{"ssid": "Home", "password": "home-password"}]})");
 
     Start();
 

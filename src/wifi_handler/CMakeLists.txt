@@ -21,4 +21,6 @@ PUBLIC
     radbuzz_messages
     wifi_connect_state_machine
     wifi_state_machine
+PRIVATE
+    nlohmann_json::nlohmann_json
 )

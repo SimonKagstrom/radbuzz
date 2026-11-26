@@ -39,6 +39,9 @@ struct WifiHandlerStateData : WifiStateMachineData
 class WifiHandler : public os::BaseThread, public WifiStateMachineBase<WifiHandlerStateData>
 {
 public:
+    /// {"networks": [{"ssid": "Home", "password": "secret"}, {"ssid": "Open cafe"}]}
+    static constexpr auto kSsidFile = "ssid.txt";
+
     WifiHandler(ApplicationState& state,
                 PostOffice<MSG::AllMessages>& post_office,
                 Filesystem& filesystem,
@@ -74,7 +77,7 @@ private:
     void OnStartup() final;
     std::optional<milliseconds> OnActivation() final;
 
-    // Add/update networks from SSID.TXT to the configuration
+    // Add/update networks from ssid.txt to the configuration
     void ReadSsidFile();
 
     // Send the last scan result to the UI (and others)

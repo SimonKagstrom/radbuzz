@@ -39,7 +39,9 @@ PUBLIC
     filesystem_implementation
     radbuzz_messages
 PRIVATE
+    nlohmann_json::nlohmann_json
     pngdec
+    radbuzz_interface
     tile_style_atlas_library
     tile_style_cycle_library
     tile_style_landscape_library

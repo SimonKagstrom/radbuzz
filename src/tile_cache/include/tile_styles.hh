@@ -20,6 +20,12 @@ std::span<const std::byte> TileStyleSample(TileStyle style);
 // https://tile.thunderforest.com/<style>/<zoom>/<x>/<y>.png?apikey=<api_key>
 std::string TileUrl(TileStyle style, const Tile& tile, std::string_view api_key);
 
+// osm_key.txt on the SD card, which overrides the build time key (osm_api_key.txt)
+constexpr auto kApiKeyFile = "osm_key.txt";
+
+// The key from kApiKeyFile, {"api_key": "<key>"}. Empty if missing or broken
+std::string ApiKeyFromFile(std::span<const std::byte> data);
+
 // tiles/<style>/<zoom>/<x>/<y>.png
 std::string TilePath(TileStyle style, const Tile& tile);
 

@@ -1,5 +1,6 @@
 #include "tile_styles.hh"
 
+#include "json_helpers.hh"
 #include "tile_style_atlas.hh"
 #include "tile_style_cycle.hh"
 #include "tile_style_landscape.hh"
@@ -94,6 +95,12 @@ TileUrl(TileStyle style, const Tile& tile, std::string_view api_key)
                        tile.x,
                        tile.y,
                        api_key);
+}
+
+std::string
+ApiKeyFromFile(std::span<const std::byte> data)
+{
+    return GetJsonString(ParseJson(data), "api_key");
 }
 
 std::string
