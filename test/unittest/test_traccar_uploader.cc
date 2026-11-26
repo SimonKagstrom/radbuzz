@@ -41,9 +41,9 @@ Trip(uint32_t lines, uint32_t first = 0)
     return out;
 }
 
-// The request for a line of Trip()
+// The request for a line of Trip(), without the ignition
 std::string
-Url(uint32_t index, std::string_view id = "radbuzz")
+PointUrl(uint32_t index, std::string_view id)
 {
     return std::format("{}/?id={}&timestamp={}&lat={:.6f}&lon=18.068600&speed=19.4&batt=76&"
                        "watts=-1234",
@@ -51,6 +51,20 @@ Url(uint32_t index, std::string_view id = "radbuzz")
                        id,
                        kUtc + index,
                        59.3293 + index * 0.0002);
+}
+
+// The request for a line of Trip(), except for the last one
+std::string
+Url(uint32_t index, std::string_view id = "radbuzz")
+{
+    return PointUrl(index, id) + "&ignition=true";
+}
+
+// The request for the last line of Trip()
+std::string
+LastUrl(uint32_t index, std::string_view id = "radbuzz")
+{
+    return PointUrl(index, id) + "&ignition=false";
 }
 
 std::optional<TraccarUploader::PointRequest>
@@ -340,7 +354,7 @@ TEST_CASE_FIXTURE(Fixture, "a compacted trip is uploaded, a request per line")
 
     NewCompactedTrip();
 
-    CHECK(requests == std::vector {Url(0), Url(1)});
+    CHECK(requests == std::vector {Url(0), LastUrl(1)});
 
     THEN("the trip is moved to sent, unchanged")
     {
@@ -357,7 +371,7 @@ TEST_CASE_FIXTURE(Fixture, "a compacted trip is uploaded, a request per line")
 
         THEN("only the new trip is uploaded")
         {
-            CHECK(requests == std::vector {Url(10)});
+            CHECK(requests == std::vector {LastUrl(10)});
             CHECK(filesystem.ListDirectory("trips/log").empty());
             CHECK(filesystem.ListDirectory("trips/sent").size() == 2);
         }
@@ -368,7 +382,7 @@ TEST_CASE_FIXTURE(PendingTripFixture, "pending trips are uploaded at startup")
 {
     RunLoopWhileReady();
 
-    CHECK(requests == std::vector {Url(0), Url(1), Url(2)});
+    CHECK(requests == std::vector {Url(0), Url(1), LastUrl(2)});
 }
 
 TEST_CASE_FIXTURE(Fixture, "demo trips are uploaded with the demo id")
@@ -378,7 +392,7 @@ TEST_CASE_FIXTURE(Fixture, "demo trips are uploaded with the demo id")
 
     NewCompactedTrip();
 
-    CHECK(requests == std::vector {Url(5), Url(0, "radbuzz-demo")});
+    CHECK(requests == std::vector {LastUrl(5), LastUrl(0, "radbuzz-demo")});
     CHECK(filesystem.FileExists("demo/sent/55bbb7a3.jsl"));
     CHECK(filesystem.ListDirectory("demo/log").empty());
 }
@@ -444,7 +458,7 @@ TEST_CASE_FIXTURE(Fixture, "the upload is shown as active while points are sent"
 
             THEN("it's active again")
             {
-                CHECK(requests.back() == Url(2));
+                CHECK(requests.back() == LastUrl(2));
                 CHECK(changes == std::vector {true, false});
             }
         }
@@ -505,7 +519,7 @@ TEST_CASE_FIXTURE(Fixture, "nothing is uploaded without wifi")
 
         THEN("the trip is uploaded")
         {
-            CHECK(requests == std::vector {Url(0), Url(1)});
+            CHECK(requests == std::vector {Url(0), LastUrl(1)});
         }
     }
 }
@@ -534,7 +548,7 @@ TEST_CASE_FIXTURE(Fixture, "a failed upload continues where it failed")
 
         THEN("the rest is uploaded, starting with the failed point")
         {
-            CHECK(requests == std::vector {Url(2), Url(3), Url(4), Url(10)});
+            CHECK(requests == std::vector {Url(2), Url(3), LastUrl(4), LastUrl(10)});
             CHECK(filesystem.ListDirectory("trips/log").empty());
             CHECK(Contents(kSentPath) == Trip(5));
             CHECK(LastSentUtc() == 0);
@@ -600,7 +614,7 @@ TEST_CASE_FIXTURE(Fixture, "an upload interrupted by a power-off continues")
 
         THEN("only the rest is sent")
         {
-            CHECK(requests == std::vector {Url(3), Url(4)});
+            CHECK(requests == std::vector {Url(3), LastUrl(4)});
             CHECK(Contents(kSentPath) == Trip(5));
             CHECK(LastSentUtc() == 0);
         }
@@ -631,7 +645,7 @@ TEST_CASE_FIXTURE(Fixture, "an upload interrupted by a power-off continues")
 
         THEN("the whole trip is sent")
         {
-            CHECK(requests == std::vector {Url(0), Url(1)});
+            CHECK(requests == std::vector {Url(0), LastUrl(1)});
         }
     }
 
@@ -646,7 +660,7 @@ TEST_CASE_FIXTURE(Fixture, "an upload interrupted by a power-off continues")
 
         THEN("it continues after the last sent point")
         {
-            CHECK(requests == std::vector {Url(2)});
+            CHECK(requests == std::vector {LastUrl(2)});
         }
     }
 }
@@ -662,7 +676,7 @@ TEST_CASE_FIXTURE(Fixture, "demo trips also continue, after the real ones")
 
         THEN("the rest of the demo trip is sent")
         {
-            CHECK(requests == std::vector {Url(2, "radbuzz-demo")});
+            CHECK(requests == std::vector {LastUrl(2, "radbuzz-demo")});
             CHECK(LastSentUtc() == 0);
         }
     }
@@ -676,10 +690,10 @@ TEST_CASE_FIXTURE(Fixture, "demo trips also continue, after the real ones")
         THEN("the whole real trip is sent, and the demo trip starts over")
         {
             CHECK(requests == std::vector {Url(10),
-                                           Url(11),
+                                           LastUrl(11),
                                            Url(0, "radbuzz-demo"),
                                            Url(1, "radbuzz-demo"),
-                                           Url(2, "radbuzz-demo")});
+                                           LastUrl(2, "radbuzz-demo")});
         }
     }
 }
@@ -691,8 +705,57 @@ TEST_CASE_FIXTURE(Fixture, "broken lines are skipped")
 
     NewCompactedTrip();
 
-    CHECK(requests == std::vector {Url(0), Url(1)});
+    CHECK(requests == std::vector {Url(0), LastUrl(1)});
     CHECK(filesystem.FileExists(kSentPath));
+}
+
+TEST_CASE_FIXTURE(Fixture, "the ignition is off only for the last point of each trip")
+{
+    WHEN("there are several trips")
+    {
+        mock_filesystem::SetFile(kLogPath, Trip(3));
+        mock_filesystem::SetFile("trips/log/69c14000.jsl", Trip(2, 10));
+
+        NewCompactedTrip();
+
+        THEN("each of them is ended")
+        {
+            CHECK(requests == std::vector {Url(0), Url(1), LastUrl(2), Url(10), LastUrl(11)});
+        }
+    }
+
+    WHEN("the trip ends with broken lines")
+    {
+        mock_filesystem::SetFile(kLogPath, Trip(2) + "garbage\n{}\n" + R"({"utc":17)");
+
+        NewCompactedTrip();
+
+        THEN("the last valid point ends it")
+        {
+            CHECK(requests == std::vector {Url(0), LastUrl(1)});
+        }
+    }
+
+    WHEN("the last point fails")
+    {
+        mock_filesystem::SetFile(kLogPath, Trip(2));
+        auto failing = FailingRequest(LastUrl(1));
+
+        NewCompactedTrip();
+
+        AND_WHEN("it's retried")
+        {
+            failing = nullptr;
+            requests.clear();
+            AdvanceTimeAndRunLoop(TraccarUploader::kRetryTime);
+
+            THEN("it still ends the trip")
+            {
+                CHECK(requests == std::vector {LastUrl(1)});
+                CHECK(filesystem.FileExists(kSentPath));
+            }
+        }
+    }
 }
 
 TEST_CASE_FIXTURE(Fixture, "a sent trip with the same name is replaced")
@@ -703,7 +766,7 @@ TEST_CASE_FIXTURE(Fixture, "a sent trip with the same name is replaced")
 
     NewCompactedTrip();
 
-    CHECK(requests == std::vector {Url(0), Url(1)});
+    CHECK(requests == std::vector {Url(0), LastUrl(1)});
     CHECK(Contents(kSentPath) == Trip(2));
     CHECK_FALSE(filesystem.FileExists(kLogPath));
 }

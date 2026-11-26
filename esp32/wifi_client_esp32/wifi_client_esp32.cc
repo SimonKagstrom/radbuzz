@@ -16,7 +16,7 @@ WifiClientEsp32::WifiClientEsp32()
 
     ESP_ERROR_CHECK(esp_wifi_init(&wifi_config));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    // Started by Enable()
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
         WIFI_EVENT, ESP_EVENT_ANY_ID, &EventHandler, static_cast<void*>(this), &m_event_data));

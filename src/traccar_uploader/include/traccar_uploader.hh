@@ -24,6 +24,9 @@
  * completely uploaded trip is moved to <root>/sent. Nothing is uploaded without an id, and demo
  * trips not without a demo id.
  *
+ * The points are sent with the ignition on, except for the last one of a trip. With
+ * report.trip.useIgnition set in Traccar, it gets the same trips instead of guessing them.
+ *
  * An interrupted upload continues after the last sent point, whose UTC is kept in the NVM. After
  * a power-off, some points are sent again (see kProgressInterval) and stored twice, since Traccar
  * only filters duplicates of the newest point.
@@ -51,7 +54,7 @@ public:
                     Filesystem& filesystem,
                     HttpsClient& https_client);
 
-    /// The OsmAnd request for a trip line, or nothing if the line is broken
+    /// The OsmAnd request for a trip line, without the ignition, or nothing if the line is broken
     static std::optional<PointRequest>
     CreatePointRequest(std::string_view server, std::string_view device_id, std::string_view line);
 

@@ -20,6 +20,9 @@ namespace
 
 constexpr auto kKmhPerKnot = 1.852f;
 
+constexpr auto kIgnitionOn = "&ignition=true";
+constexpr auto kIgnitionOff = "&ignition=false";
+
 // Unreserved characters as they are, everything else percent-encoded
 std::string
 UrlEncode(std::string_view value)
@@ -216,9 +219,15 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
 
     const auto server = m_state.Get<AS::traccar::configuration>()->url;
 
+    // Without broken lines at the end, so that the last line is the end of the trip
+    while (!unsent.empty() && !CreatePointRequest(server, device_id, unsent.back()))
+    {
+        unsent = unsent.first(unsent.size() - 1);
+    }
+
     std::optional<uint32_t> last_sent_utc;
     auto sent = 0u;
-    for (auto line : unsent)
+    for (const auto& line : unsent)
     {
         auto request = CreatePointRequest(server, device_id, line);
         if (!request)
@@ -227,8 +236,9 @@ TraccarUploader::Upload(std::string_view root, std::string_view device_id, std::
             continue;
         }
 
+        const auto end_of_trip = &line == &unsent.back();
         m_state.Set<AS::traccar::upload_active>(true);
-        if (!m_https_client.Get(request->url))
+        if (!m_https_client.Get(request->url + (end_of_trip ? kIgnitionOff : kIgnitionOn)))
         {
             // Continue with this point next time. If it did arrive after all, it's the newest
             // point, which Traccar filters
