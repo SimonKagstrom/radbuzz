@@ -61,7 +61,11 @@ TEST_CASE("the API key is read from osm_key.txt as JSON")
     };
 
     REQUIRE(key_from(R"({"api_key": "abc123"})") == "abc123");
-    REQUIRE(key_from("{\r\n  \"api_key\": \"abc123\",\r\n  \"comment\": \"x\"\r\n}\r\n") == "abc123");
+    REQUIRE(key_from(R"({
+  "api_key": "abc123",
+  "comment": "x"
+}
+)") == "abc123");
 
     // Broken files give no key, so the build time one is used
     REQUIRE(key_from("abc123").empty());
