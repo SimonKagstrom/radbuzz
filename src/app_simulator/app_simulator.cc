@@ -91,7 +91,7 @@ AppSimulator::OnActivation()
         {
             // Disable navigation and BMS data
             printf("Navigation deactivated\n");
-            m_application_state.Set<AS::navigation_active>(false);
+            m_application_state.Set<AS::navigation::active>(false);
             m_application_state.Set<AS::bms_data>(BmsData {});
         }
         else
@@ -111,9 +111,9 @@ AppSimulator::OnActivation()
 
     const auto previous_distance_left = m_distance_left;
 
-    auto qw = m_application_state.CheckoutQueuedWriter<AS::turn_symbol,
-                                                       AS::next_street,
-                                                       AS::distance_to_next,
+    auto qw = m_application_state.CheckoutQueuedWriter<AS::navigation::turn_symbol,
+                                                       AS::navigation::next_street,
+                                                       AS::navigation::distance_to_next,
                                                        AS::position,
                                                        AS::pixel_position,
                                                        AS::gps_status,
@@ -143,7 +143,7 @@ AppSimulator::OnActivation()
         {
             SetupStreetOrder();
         }
-        qw.Set<AS::turn_symbol>(m_turn_symbol);
+        qw.Set<AS::navigation::turn_symbol>(m_turn_symbol);
         m_turn_symbol = static_cast<TurnSymbol>(std::to_underlying(m_turn_symbol) + 1);
         if (m_turn_symbol == TurnSymbol::kValueCount)
         {
@@ -160,14 +160,14 @@ AppSimulator::OnActivation()
                                                           AS::speed,
                                                           AS::can_bus_active,
                                                           AS::current_power_w,
-                                                          AS::navigation_active,
+                                                          AS::navigation::active,
                                                           AS::trip_max_speed>();
 
-    qw.Set<AS::next_street>(std::string(m_streets.back()));
-    qw.Set<AS::distance_to_next>(GadgetBridgeProtocol::RoundDistance(m_distance_left));
+    qw.Set<AS::navigation::next_street>(std::string(m_streets.back()));
+    qw.Set<AS::navigation::distance_to_next>(GadgetBridgeProtocol::RoundDistance(m_distance_left));
 
     // Always navigating in demo mode
-    ps.Set<AS::navigation_active>(true);
+    ps.Set<AS::navigation::active>(true);
     ps.Set<AS::can_bus_active>(true);
     ps.GetWritableReference<AS::odometer>() += odometer_delta;
     ps.GetWritableReference<AS::wh_consumed>() += (2.001f + (m_random_engine() % 5)) * 0.01f;

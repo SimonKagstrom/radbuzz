@@ -120,7 +120,7 @@ TEST_CASE_FIXTURE(StartedFixture, "the speedometer will only listen to speed cha
 
             state.Set<AS::battery_millivolts>(3000);
             state.Set<AS::controller_temperature>(45);
-            state.Set<AS::next_street>("Tunavägen");
+            state.Set<AS::navigation::next_street>("Tunavägen");
             state.Set<AS::odometer>(100);
             state.Set<AS::configuration::max_watts>(1234);
 

@@ -314,7 +314,7 @@ SpeedometerOnlyScreen::Update()
 
 
     const auto side_pane_shown = m_parent.SidePaneShown();
-    const auto navigating = m_parent.m_state.Get<AS::navigation_active>();
+    const auto navigating = m_parent.m_state.Get<AS::navigation::active>();
     if (side_pane_shown != m_laid_out_for_side_pane || navigating != m_laid_out_for_navigation)
     {
         Layout(side_pane_shown, navigating);

@@ -8,18 +8,24 @@ cpp_includes:
 
 
 parameters:
-  turn_symbol:
-    type: enum TurnSymbol
+  # From the phone
+  navigation:
+    # If the phone currently supplies navigation instructions
+    active:
+      type: bool
+
+    turn_symbol:
+      type: enum TurnSymbol
+
+    # Distance to the next turn in meters
+    distance_to_next:
+      type: uint32_t
+
+    next_street:
+      type: std::string
 
   call_ongoing:
     type: bool
-
-  # Distance to the next turn in meters
-  distance_to_next:
-    type: uint32_t
-
-  next_street:
-    type: std::string
 
   # The wifi network currently connected to, empty when not connected
   connected_wifi_ssid:
@@ -29,10 +35,6 @@ parameters:
     type: bool
 
   can_bus_active:
-    type: bool
-
-  # If the phone currently supplies navigation instructions
-  navigation_active:
     type: bool
 
   speed:

@@ -216,7 +216,7 @@ TEST_CASE_FIXTURE(Fixture, "the storage thread is awoken on application state ch
     DoRunLoop();
 
     // Some unrelated change
-    State().Set<AS::distance_to_next>(13);
+    State().Set<AS::navigation::distance_to_next>(13);
     auto ran = DoRunLoop();
     REQUIRE_FALSE(ran);
 

@@ -109,10 +109,7 @@ UserInterface::UserInterface(hal::IDisplay& display,
                                               AS::traccar::upload_active,
                                               AS::speed,
                                               AS::trip_duration,
-                                              AS::navigation_active,
-                                              AS::next_street,
-                                              AS::distance_to_next,
-                                              AS::turn_symbol,
+                                              AS::navigation,
                                               AS::is_moving,
                                               AS::wh_consumed,
                                               AS::wh_regenerated,
@@ -416,7 +413,7 @@ UserInterface::DrawPowerBar(uint16_t* dst)
     auto y_start = 0;
     // Above the navigation description box
     if (m_current_screen && m_current_screen->ShowsNavigation() &&
-        m_state.Get<AS::navigation_active>())
+        m_state.Get<AS::navigation::active>())
     {
         height -= NavigationWidget::kDescriptionBoxHeight;
     }
@@ -663,7 +660,7 @@ UserInterface::PlaceStatusIndicators()
     if (OnMapScreen())
     {
         auto bottom = hal::kDisplayHeight - kStatusIndicatorMapBottomMargin;
-        if (m_state.Get<AS::navigation_active>())
+        if (m_state.Get<AS::navigation::active>())
         {
             bottom -= NavigationWidget::kDescriptionBoxHeight;
         }

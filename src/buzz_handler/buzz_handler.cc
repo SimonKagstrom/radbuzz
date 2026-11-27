@@ -23,7 +23,8 @@ BuzzHandler::BuzzHandler(hal::IGpio& left_buzzer,
     , m_right_buzzer(right_buzzer)
     , m_state(app_state)
     , m_state_listener(
-          m_state.AttachListener<AS::turn_symbol, AS::distance_to_next>(GetSemaphore()))
+          m_state.AttachListener<AS::navigation::turn_symbol, AS::navigation::distance_to_next>(
+              GetSemaphore()))
     , m_off_timer(StartTimer(0ms))
 {
 }
@@ -33,7 +34,7 @@ BuzzHandler::OnActivation()
 {
     RunStateMachine();
 
-    m_last_distance = m_state.Get<AS::distance_to_next>();
+    m_last_distance = m_state.Get<AS::navigation::distance_to_next>();
 
     return std::nullopt;
 }
@@ -41,15 +42,15 @@ BuzzHandler::OnActivation()
 bool
 BuzzHandler::NavigationActive() const
 {
-    return m_state.Get<AS::turn_symbol>() != TurnSymbol::kNone &&
-           m_state.Get<AS::distance_to_next>() != 0;
+    return m_state.Get<AS::navigation::turn_symbol>() != TurnSymbol::kNone &&
+           m_state.Get<AS::navigation::distance_to_next>() != 0;
 }
 
 bool
 BuzzHandler::TurnChanged() const
 {
-    return m_state.Get<AS::turn_symbol>() != m_current_turn ||
-           m_state.Get<AS::distance_to_next>() > m_last_distance + kNewTurnDistanceJump;
+    return m_state.Get<AS::navigation::turn_symbol>() != m_current_turn ||
+           m_state.Get<AS::navigation::distance_to_next>() > m_last_distance + kNewTurnDistanceJump;
 }
 
 void
@@ -62,7 +63,7 @@ BuzzHandler::Indicate()
 
     auto delay = 100ms;
 
-    switch (m_state.Get<AS::turn_symbol>())
+    switch (m_state.Get<AS::navigation::turn_symbol>())
     {
     case TurnSymbol::kTurnLeft:
     case TurnSymbol::kRampLeft:
@@ -130,14 +131,14 @@ BuzzHandler::Evaluate(NoNavigation&)
 void
 BuzzHandler::Enter(NewTurn&)
 {
-    m_current_turn = m_state.Get<AS::turn_symbol>();
-    m_last_distance = m_state.Get<AS::distance_to_next>();
+    m_current_turn = m_state.Get<AS::navigation::turn_symbol>();
+    m_last_distance = m_state.Get<AS::navigation::distance_to_next>();
 }
 
 BuzzHandler::NewTurn::Next
 BuzzHandler::Evaluate(NewTurn&)
 {
-    auto distance = m_state.Get<AS::distance_to_next>();
+    auto distance = m_state.Get<AS::navigation::distance_to_next>();
 
     if (distance <= kAtDistance)
     {
@@ -167,7 +168,7 @@ BuzzHandler::Evaluate(Far&)
         return State::kNewTurn;
     }
 
-    auto distance = m_state.Get<AS::distance_to_next>();
+    auto distance = m_state.Get<AS::navigation::distance_to_next>();
 
     if (distance <= kAtDistance)
     {
@@ -203,7 +204,7 @@ BuzzHandler::Evaluate(Near& near)
         return State::kNewTurn;
     }
 
-    auto distance = m_state.Get<AS::distance_to_next>();
+    auto distance = m_state.Get<AS::navigation::distance_to_next>();
     near.closest = std::min(near.closest, distance);
 
     if (distance > near.closest + kDirectionMargin)
@@ -241,7 +242,7 @@ BuzzHandler::Evaluate(Imminent& imminent)
         return State::kNewTurn;
     }
 
-    auto distance = m_state.Get<AS::distance_to_next>();
+    auto distance = m_state.Get<AS::navigation::distance_to_next>();
     imminent.closest = std::min(imminent.closest, distance);
 
     if (distance > imminent.closest + kDirectionMargin)
@@ -276,7 +277,7 @@ BuzzHandler::Evaluate(At& at)
         return State::kNewTurn;
     }
 
-    auto distance = m_state.Get<AS::distance_to_next>();
+    auto distance = m_state.Get<AS::navigation::distance_to_next>();
     at.closest = std::min(at.closest, distance);
 
     if (distance > at.closest + kDirectionMargin)
@@ -299,7 +300,7 @@ BuzzHandler::Evaluate(Receding& receding)
         return State::kNewTurn;
     }
 
-    auto distance = m_state.Get<AS::distance_to_next>();
+    auto distance = m_state.Get<AS::navigation::distance_to_next>();
     receding.farthest = std::max(receding.farthest, distance);
 
     if (distance > kRearmDistance)

@@ -104,7 +104,7 @@ NavigationWidget::Update(ApplicationState& state, bool show, int32_t left_x)
         SetLeftX(left_x);
     }
 
-    auto navigation_active = show && state.Get<AS::navigation_active>();
+    auto navigation_active = show && state.Get<AS::navigation::active>();
 
     lv_obj_set_hidden(m_navigation_box, !navigation_active);
     lv_obj_set_hidden(m_navigation_description_box, !navigation_active);
@@ -112,11 +112,11 @@ NavigationWidget::Update(ApplicationState& state, bool show, int32_t left_x)
     if (navigation_active)
     {
         lv_label_set_text(m_description_label,
-                          std::format("{}", *state.Get<AS::next_street>()).c_str());
+                          std::format("{}", *state.Get<AS::navigation::next_street>()).c_str());
         lv_label_set_text(m_distance_left_label,
-                          DistanceToString(state.Get<AS::distance_to_next>()).c_str());
+                          DistanceToString(state.Get<AS::navigation::distance_to_next>()).c_str());
 
-        auto turn = std::to_underlying(state.Get<AS::turn_symbol>());
+        auto turn = std::to_underlying(state.Get<AS::navigation::turn_symbol>());
         if (turn < kTurnSymbolStrings.size())
         {
             lv_label_set_text(m_current_turn_symbol, kTurnSymbolStrings[turn].data());

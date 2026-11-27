@@ -559,7 +559,7 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
     if (!json.contains("action"))
     {
         m_navigation_active_timer = nullptr;
-        m_state.Set<AS::navigation_active>(false);
+        m_state.Set<AS::navigation::active>(false);
         return;
     }
 
@@ -567,19 +567,19 @@ GadgetBridgeProtocol::HandleNavigationEvent(const nlohmann::json& json)
     auto instr = GetString(json, "instr");
     auto action = GetString(json, "action");
 
-    auto qw = m_state.CheckoutQueuedWriter<AS::navigation_active,
-                                           AS::next_street,
-                                           AS::distance_to_next,
-                                           AS::turn_symbol>();
+    auto qw = m_state.CheckoutQueuedWriter<AS::navigation::active,
+                                           AS::navigation::next_street,
+                                           AS::navigation::distance_to_next,
+                                           AS::navigation::turn_symbol>();
 
-    qw.Set<AS::navigation_active>(true);
-    qw.Set<AS::next_street>(instr);
-    qw.Set<AS::distance_to_next>(distance);
-    qw.Set<AS::turn_symbol>(StringToTurn(action));
+    qw.Set<AS::navigation::active>(true);
+    qw.Set<AS::navigation::next_street>(instr);
+    qw.Set<AS::navigation::distance_to_next>(distance);
+    qw.Set<AS::navigation::turn_symbol>(StringToTurn(action));
 
     // Long timeout for the case where the moped is stopped
     m_navigation_active_timer = m_timer_manager.StartTimer(1min, [this]() {
-        m_state.Set<AS::navigation_active>(false);
+        m_state.Set<AS::navigation::active>(false);
 
         return std::nullopt;
     });

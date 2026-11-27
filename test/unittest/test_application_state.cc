@@ -34,7 +34,7 @@ TEST_CASE("The application state has default values")
 
     REQUIRE(app_state.Get<AS::wifi_connected>() == false);
     REQUIRE(app_state.Get<AS::speed>() == 0);
-    REQUIRE(*app_state.Get<AS::next_street>() == "");
+    REQUIRE(*app_state.Get<AS::navigation::next_street>() == "");
 
     auto p = app_state.Get<AS::position>();
     REQUIRE(p->position == GpsPosition {0.0f, 0.0f});
@@ -56,19 +56,19 @@ TEST_CASE("Writes are seen immediately in read-only checkouts")
 TEST_CASE("Non-atomic members are kept alive via shared pointers")
 {
     ApplicationState app_state;
-    app_state.Set<AS::next_street>("St Mickelsgatan");
-    auto s = app_state.Get<AS::next_street>();
-    auto s2 = app_state.Get<AS::next_street>();
+    app_state.Set<AS::navigation::next_street>("St Mickelsgatan");
+    auto s = app_state.Get<AS::navigation::next_street>();
+    auto s2 = app_state.Get<AS::navigation::next_street>();
     REQUIRE(*s == "St Mickelsgatan");
     REQUIRE(*s2 == "St Mickelsgatan");
     REQUIRE(s.get() == s2.get()); // Same pointer
-    app_state.Set<AS::next_street>("Östra Prinsgatan");
-    auto s3 = app_state.Get<AS::next_street>();
+    app_state.Set<AS::navigation::next_street>("Östra Prinsgatan");
+    auto s3 = app_state.Get<AS::navigation::next_street>();
     REQUIRE(*s == "St Mickelsgatan");
     REQUIRE(*s2 == "St Mickelsgatan");
     REQUIRE(*s3 == "Östra Prinsgatan");
 
-    s = app_state.Get<AS::next_street>();
+    s = app_state.Get<AS::navigation::next_street>();
     REQUIRE(*s == "Östra Prinsgatan");
 }
 
@@ -96,7 +96,7 @@ TEST_CASE("Partial snapshot sizes are reasonable")
     auto big_snapshot = app_state.CheckoutPartialSnapshot<AS::speed,
                                                           AS::controller_temperature,
                                                           AS::battery_millivolts,
-                                                          AS::distance_to_next>();
+                                                          AS::navigation::distance_to_next>();
 
     REQUIRE(sizeof(small_snapshot) < sizeof(big_snapshot));
     REQUIRE(sizeof(small_snapshot) <= 16); // Reasonable for now
@@ -128,23 +128,23 @@ TEST_CASE("A partial snapshot keeps a cached state")
 TEST_CASE("Writes in partial snapshots are written back on destruction")
 {
     ApplicationState app_state;
-    app_state.Set<AS::next_street>("Tunavägen");
+    app_state.Set<AS::navigation::next_street>("Tunavägen");
 
     {
-        auto snapshot = app_state.CheckoutPartialSnapshot<AS::speed, AS::next_street>();
+        auto snapshot = app_state.CheckoutPartialSnapshot<AS::speed, AS::navigation::next_street>();
 
         snapshot.Set<AS::speed>(10);
-        snapshot.Set<AS::next_street>("St Mickelsgatan");
+        snapshot.Set<AS::navigation::next_street>("St Mickelsgatan");
 
         REQUIRE(snapshot.Get<AS::speed>() == 10);
-        REQUIRE(snapshot.Get<AS::next_street>() == "St Mickelsgatan");
+        REQUIRE(snapshot.Get<AS::navigation::next_street>() == "St Mickelsgatan");
 
         REQUIRE(app_state.Get<AS::speed>() == 0);
-        REQUIRE(*app_state.Get<AS::next_street>() == "Tunavägen");
+        REQUIRE(*app_state.Get<AS::navigation::next_street>() == "Tunavägen");
     }
 
     REQUIRE(app_state.Get<AS::speed>() == 10);
-    REQUIRE(*app_state.Get<AS::next_street>() == "St Mickelsgatan");
+    REQUIRE(*app_state.Get<AS::navigation::next_street>() == "St Mickelsgatan");
 }
 
 
@@ -152,8 +152,9 @@ TEST_CASE("PartialStateCaches can be used to track changes")
 {
     ApplicationState app_state;
     auto state_cache =
-        ApplicationState::PartialReadOnlyCache<AS::speed, AS::battery_millivolts, AS::next_street>(
-            app_state);
+        ApplicationState::PartialReadOnlyCache<AS::speed,
+                                               AS::battery_millivolts,
+                                               AS::navigation::next_street>(app_state);
 
     WHEN("a value in the global application state is changed")
     {
@@ -214,10 +215,10 @@ TEST_CASE("PartialStateCaches can be used to track changes")
 
         auto old_cb_speed = app_state.Get<AS::speed>();
         auto old_cb_battery = app_state.Get<AS::battery_millivolts>();
-        auto old_cb_next_street = *app_state.Get<AS::next_street>();
+        auto old_cb_next_street = *app_state.Get<AS::navigation::next_street>();
 
         app_state.Set<AS::speed>(10);
-        app_state.Set<AS::next_street>("St Mickelsgatan");
+        app_state.Set<AS::navigation::next_street>("St Mickelsgatan");
 
         const auto& co = state_cache.Pull();
 
@@ -226,7 +227,8 @@ TEST_CASE("PartialStateCaches can be used to track changes")
             co.OnChanged<AS::speed>([&]() { cb_speed = co.Get<AS::speed>(); })
                 .OnChanged<AS::battery_millivolts>(
                     [&]() { cb_battery = co.Get<AS::battery_millivolts>(); })
-                .OnChanged<AS::next_street>([&]() { cb_next_street = co.Get<AS::next_street>(); });
+                .OnChanged<AS::navigation::next_street>(
+                    [&]() { cb_next_street = co.Get<AS::navigation::next_street>(); });
 
             REQUIRE(cb_speed == 10);
             REQUIRE(cb_battery == 124);
@@ -237,7 +239,7 @@ TEST_CASE("PartialStateCaches can be used to track changes")
             co.OnNewValue<AS::speed>([&](const auto& new_value) { cb_speed = new_value; })
                 .OnNewValue<AS::battery_millivolts>(
                     [&](const auto& new_value) { cb_battery = new_value; })
-                .OnNewValue<AS::next_street>(
+                .OnNewValue<AS::navigation::next_street>(
                     [&](const auto& new_value) { cb_next_street = new_value; });
 
             REQUIRE(cb_speed == 10);
@@ -255,10 +257,11 @@ TEST_CASE("PartialStateCaches can be used to track changes")
                         old_cb_battery = old;
                         cb_battery = new_value;
                     })
-                .OnChangedValue<AS::next_street>([&](const auto& old, const auto& new_value) {
-                    old_cb_next_street = old;
-                    cb_next_street = new_value;
-                });
+                .OnChangedValue<AS::navigation::next_street>(
+                    [&](const auto& old, const auto& new_value) {
+                        old_cb_next_street = old;
+                        cb_next_street = new_value;
+                    });
 
 
             REQUIRE(old_cb_speed == 0);
@@ -279,7 +282,7 @@ TEST_CASE("PartialStateCaches can be used to track changes")
               })
                 .OnChanged<AS::battery_millivolts>(
                     [&]() { cb_battery = co.Get<AS::battery_millivolts>(); })
-                .OnNewValue<AS::next_street>(
+                .OnNewValue<AS::navigation::next_street>(
                     [&](const auto& new_value) { cb_next_street = new_value; });
 
 
@@ -296,24 +299,24 @@ TEST_CASE("A pulled partial state cache keeps its values until pulled again")
 {
     ApplicationState app_state;
     auto state_cache =
-        ApplicationState::PartialReadOnlyCache<AS::speed, AS::next_street>(app_state);
+        ApplicationState::PartialReadOnlyCache<AS::speed, AS::navigation::next_street>(app_state);
 
     app_state.Set<AS::speed>(10);
-    app_state.Set<AS::next_street>("Tunavägen");
+    app_state.Set<AS::navigation::next_street>("Tunavägen");
     const auto& co = state_cache.Pull();
-    REQUIRE(co.Get<AS::next_street>() == "Tunavägen");
+    REQUIRE(co.Get<AS::navigation::next_street>() == "Tunavägen");
 
     WHEN("the global values are changed after pulling")
     {
         app_state.Set<AS::speed>(11);
-        app_state.Set<AS::next_street>("St Mickelsgatan");
+        app_state.Set<AS::navigation::next_street>("St Mickelsgatan");
 
         THEN("the checkout still holds the pulled values")
         {
             REQUIRE(co.Get<AS::speed>() == 10);
-            REQUIRE(co.Get<AS::next_street>() == "Tunavägen");
+            REQUIRE(co.Get<AS::navigation::next_street>() == "Tunavägen");
             REQUIRE(state_cache.Get<AS::speed>() == 10);
-            REQUIRE(state_cache.Get<AS::next_street>() == "Tunavägen");
+            REQUIRE(state_cache.Get<AS::navigation::next_street>() == "Tunavägen");
         }
 
         AND_WHEN("the cache is pulled again")
@@ -323,32 +326,32 @@ TEST_CASE("A pulled partial state cache keeps its values until pulled again")
             THEN("the new values are visible, and marked as changed")
             {
                 REQUIRE(next_co.Get<AS::speed>() == 11);
-                REQUIRE(next_co.Get<AS::next_street>() == "St Mickelsgatan");
+                REQUIRE(next_co.Get<AS::navigation::next_street>() == "St Mickelsgatan");
                 REQUIRE(next_co.IsChanged<AS::speed>());
-                REQUIRE(next_co.IsChanged<AS::next_street>());
+                REQUIRE(next_co.IsChanged<AS::navigation::next_street>());
             }
 
             AND_WHEN("the values are changed and pulled a third time")
             {
                 app_state.Set<AS::speed>(12);
-                app_state.Set<AS::next_street>("Östra Prinsgatan");
+                app_state.Set<AS::navigation::next_street>("Östra Prinsgatan");
 
                 REQUIRE(next_co.Get<AS::speed>() == 11);
-                REQUIRE(next_co.Get<AS::next_street>() == "St Mickelsgatan");
+                REQUIRE(next_co.Get<AS::navigation::next_street>() == "St Mickelsgatan");
 
                 const auto& third_co = state_cache.Pull();
 
                 THEN("the reused buffer holds the new values, and the old ones are the previous")
                 {
                     REQUIRE(third_co.Get<AS::speed>() == 12);
-                    REQUIRE(third_co.Get<AS::next_street>() == "Östra Prinsgatan");
+                    REQUIRE(third_co.Get<AS::navigation::next_street>() == "Östra Prinsgatan");
 
                     third_co
                         .OnChangedValue<AS::speed>([](const auto& old, const auto& new_value) {
                             REQUIRE(old == 11);
                             REQUIRE(new_value == 12);
                         })
-                        .OnChangedValue<AS::next_street>(
+                        .OnChangedValue<AS::navigation::next_street>(
                             [](const auto& old, const auto& new_value) {
                                 REQUIRE(old == "St Mickelsgatan");
                                 REQUIRE(new_value == "Östra Prinsgatan");
@@ -362,14 +365,14 @@ TEST_CASE("A pulled partial state cache keeps its values until pulled again")
 TEST_CASE("Partial state caches share non-atomic values with the global state")
 {
     ApplicationState app_state;
-    app_state.Set<AS::next_street>("Tunavägen");
+    app_state.Set<AS::navigation::next_street>("Tunavägen");
 
     auto state_cache =
-        ApplicationState::PartialReadOnlyCache<AS::speed, AS::next_street>(app_state);
+        ApplicationState::PartialReadOnlyCache<AS::speed, AS::navigation::next_street>(app_state);
 
     WHEN("a non-atomic value is unchanged between pulls")
     {
-        const auto* before = &state_cache.Get<AS::next_street>();
+        const auto* before = &state_cache.Get<AS::navigation::next_street>();
 
         app_state.Set<AS::speed>(10);
         const auto& co = state_cache.Pull();
@@ -377,33 +380,35 @@ TEST_CASE("Partial state caches share non-atomic values with the global state")
         THEN("the value is not copied")
         {
             REQUIRE(co.IsChanged<AS::speed>());
-            REQUIRE(co.IsChanged<AS::next_street>() == false);
-            REQUIRE(&co.Get<AS::next_street>() == before);
-            REQUIRE(&co.Get<AS::next_street>() == app_state.Get<AS::next_street>().get());
+            REQUIRE(co.IsChanged<AS::navigation::next_street>() == false);
+            REQUIRE(&co.Get<AS::navigation::next_street>() == before);
+            REQUIRE(&co.Get<AS::navigation::next_street>() ==
+                    app_state.Get<AS::navigation::next_street>().get());
         }
     }
 
     WHEN("a non-atomic value is changed and then changed back between pulls")
     {
-        const auto* before = &state_cache.Get<AS::next_street>();
+        const auto* before = &state_cache.Get<AS::navigation::next_street>();
 
-        app_state.Set<AS::next_street>("St Mickelsgatan");
-        app_state.Set<AS::next_street>("Tunavägen");
+        app_state.Set<AS::navigation::next_street>("St Mickelsgatan");
+        app_state.Set<AS::navigation::next_street>("Tunavägen");
         const auto& co = state_cache.Pull();
 
         THEN("the new value is pulled, but not marked as changed")
         {
-            REQUIRE(&co.Get<AS::next_street>() != before);
-            REQUIRE(&co.Get<AS::next_street>() == app_state.Get<AS::next_street>().get());
-            REQUIRE(co.Get<AS::next_street>() == "Tunavägen");
-            REQUIRE(co.IsChanged<AS::next_street>() == false);
+            REQUIRE(&co.Get<AS::navigation::next_street>() != before);
+            REQUIRE(&co.Get<AS::navigation::next_street>() ==
+                    app_state.Get<AS::navigation::next_street>().get());
+            REQUIRE(co.Get<AS::navigation::next_street>() == "Tunavägen");
+            REQUIRE(co.IsChanged<AS::navigation::next_street>() == false);
         }
     }
 
     WHEN("a reference to a non-atomic value is taken, and the global value changes")
     {
-        app_state.Set<AS::next_street>("St Mickelsgatan");
-        const auto& old_value = state_cache.Get<AS::next_street>();
+        app_state.Set<AS::navigation::next_street>("St Mickelsgatan");
+        const auto& old_value = state_cache.Get<AS::navigation::next_street>();
 
         THEN("the reference is unaffected before pulling")
         {
@@ -416,10 +421,10 @@ TEST_CASE("Partial state caches share non-atomic values with the global state")
 
             THEN("the new value is passed by reference")
             {
-                REQUIRE(co.IsChanged<AS::next_street>());
+                REQUIRE(co.IsChanged<AS::navigation::next_street>());
 
-                co.OnNewValue<AS::next_street>([&app_state](const auto& value) {
-                    REQUIRE(&value == app_state.Get<AS::next_street>().get());
+                co.OnNewValue<AS::navigation::next_street>([&app_state](const auto& value) {
+                    REQUIRE(&value == app_state.Get<AS::navigation::next_street>().get());
                     REQUIRE(value == "St Mickelsgatan");
                 });
             }
@@ -428,7 +433,7 @@ TEST_CASE("Partial state caches share non-atomic values with the global state")
             {
                 REQUIRE(old_value == "Tunavägen");
 
-                co.OnChangedValue<AS::next_street>(
+                co.OnChangedValue<AS::navigation::next_street>(
                     [&old_value](const auto& previous, const auto& value) {
                         REQUIRE(&previous == &old_value);
                         REQUIRE(value == "St Mickelsgatan");
@@ -461,8 +466,8 @@ TEST_CASE("Listeners can be added to the application state")
     ApplicationState app_state;
     os::binary_semaphore sem {0}, sem_other {0};
 
-    auto listener = app_state.AttachListener<AS::speed, AS::next_street>(sem);
-    auto listener_2 = app_state.AttachListener<AS::next_street>(sem_other);
+    auto listener = app_state.AttachListener<AS::speed, AS::navigation::next_street>(sem);
+    auto listener_2 = app_state.AttachListener<AS::navigation::next_street>(sem_other);
     WHEN("a non-listened to parameter is changed")
     {
         app_state.Set<AS::controller_temperature>(45);
@@ -481,7 +486,7 @@ TEST_CASE("Listeners can be added to the application state")
         REQUIRE(sem_other.try_acquire() == false);
 
         // Listened to by both
-        app_state.Set<AS::next_street>("St Mickelsgatan");
+        app_state.Set<AS::navigation::next_street>("St Mickelsgatan");
         REQUIRE(sem.try_acquire() == true);
         REQUIRE(sem_other.try_acquire() == true);
         REQUIRE(sem.try_acquire() == false); // No extra notifications
@@ -489,7 +494,7 @@ TEST_CASE("Listeners can be added to the application state")
         AND_WHEN("the same value is set")
         {
             app_state.Set<AS::speed>(10);
-            app_state.Set<AS::next_street>("St Mickelsgatan");
+            app_state.Set<AS::navigation::next_street>("St Mickelsgatan");
             THEN("there is no notification")
             {
                 REQUIRE(sem.try_acquire() == false);
@@ -499,7 +504,7 @@ TEST_CASE("Listeners can be added to the application state")
         AND_WHEN("the listener is removed")
         {
             listener.Reset();
-            app_state.Set<AS::next_street>("Östra Hamngatan");
+            app_state.Set<AS::navigation::next_street>("Östra Hamngatan");
 
             THEN("notifications are no longer sent")
             {
@@ -519,11 +524,11 @@ TEST_CASE("A new listener isn't notified of what a removed listener listened to"
     ApplicationState app_state;
     os::binary_semaphore sem_removed {0}, sem_new {0};
 
-    auto removed = app_state.AttachListener<AS::speed, AS::next_street>(sem_removed);
+    auto removed = app_state.AttachListener<AS::speed, AS::navigation::next_street>(sem_removed);
     removed.Reset();
 
     // Takes the place of the removed listener
-    auto listener = app_state.AttachListener<AS::next_street>(sem_new);
+    auto listener = app_state.AttachListener<AS::navigation::next_street>(sem_new);
 
     WHEN("a parameter only the removed listener listened to is changed")
     {
@@ -538,7 +543,7 @@ TEST_CASE("A new listener isn't notified of what a removed listener listened to"
 
     WHEN("a parameter both listened to is changed")
     {
-        app_state.Set<AS::next_street>("Kungsgatan");
+        app_state.Set<AS::navigation::next_street>("Kungsgatan");
 
         THEN("only the new listener is notified")
         {

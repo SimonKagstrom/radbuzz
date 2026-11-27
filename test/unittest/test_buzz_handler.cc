@@ -19,8 +19,8 @@ public:
 
     void Update(TurnSymbol symbol, uint32_t distance)
     {
-        state.Set<AS::turn_symbol>(symbol);
-        state.Set<AS::distance_to_next>(distance);
+        state.Set<AS::navigation::turn_symbol>(symbol);
+        state.Set<AS::navigation::distance_to_next>(distance);
 
         // Let the buzzers turn off before the next update
         AdvanceTimeAndRunLoop(1s);
@@ -34,8 +34,7 @@ public:
     int right_buzzes {0};
 
     // Before buzz, since the buzzers are turned off in the constructor
-    std::unique_ptr<trompeloeil::expectation> r_left_off {
-        NAMED_ALLOW_CALL(left, SetState(false))};
+    std::unique_ptr<trompeloeil::expectation> r_left_off {NAMED_ALLOW_CALL(left, SetState(false))};
     std::unique_ptr<trompeloeil::expectation> r_right_off {
         NAMED_ALLOW_CALL(right, SetState(false))};
     std::unique_ptr<trompeloeil::expectation> r_left_on {

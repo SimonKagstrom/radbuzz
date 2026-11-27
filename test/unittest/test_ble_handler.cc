@@ -547,10 +547,10 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards navigation from Gadgetbridg
 
         THEN("the navigation state is updated")
         {
-            CHECK(state.Get<AS::navigation_active>() == true);
-            CHECK(*state.Get<AS::next_street>() == "Brittmässgatan");
-            CHECK(state.Get<AS::distance_to_next>() == 160);
-            CHECK(state.Get<AS::turn_symbol>() == TurnSymbol::kTurnRight);
+            CHECK(state.Get<AS::navigation::active>() == true);
+            CHECK(*state.Get<AS::navigation::next_street>() == "Brittmässgatan");
+            CHECK(state.Get<AS::navigation::distance_to_next>() == 160);
+            CHECK(state.Get<AS::navigation::turn_symbol>() == TurnSymbol::kTurnRight);
         }
 
         AND_WHEN("navigation ends")
@@ -560,7 +560,7 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards navigation from Gadgetbridg
 
             THEN("navigation is no longer active")
             {
-                CHECK(state.Get<AS::navigation_active>() == false);
+                CHECK(state.Get<AS::navigation::active>() == false);
             }
         }
     }
@@ -574,10 +574,10 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards navigation from Gadgetbridg
 
         THEN("the broken fields are treated as empty")
         {
-            CHECK(state.Get<AS::navigation_active>() == true);
-            CHECK(*state.Get<AS::next_street>() == "");
-            CHECK(state.Get<AS::distance_to_next>() == 0);
-            CHECK(state.Get<AS::turn_symbol>() == TurnSymbol::kNone);
+            CHECK(state.Get<AS::navigation::active>() == true);
+            CHECK(*state.Get<AS::navigation::next_street>() == "");
+            CHECK(state.Get<AS::navigation::distance_to_next>() == 0);
+            CHECK(state.Get<AS::navigation::turn_symbol>() == TurnSymbol::kNone);
         }
     }
 }
@@ -820,7 +820,9 @@ TEST_CASE_FIXTURE(Fixture, "the BLE handler forwards the time from Gadgetbridge"
 
     WHEN("other JavaScript arrives")
     {
-        srv.Inject(kRxCharacteristicUuid, "\x10" "Bangle.buzz();\n");
+        srv.Inject(kRxCharacteristicUuid,
+                   "\x10"
+                   "Bangle.buzz();\n");
         DoRunLoop();
 
         THEN("no time is sent")
