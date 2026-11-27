@@ -1077,6 +1077,68 @@ TEST_CASE("Groups can be used as lists of parameters")
     }
 }
 
+TEST_CASE("Parameters and groups can be reset to their default values")
+{
+    ApplicationState app_state;
+    os::binary_semaphore sem {0}, sem_other {0};
+
+    app_state.Set<AS::speed>(10);
+    app_state.Set<AS::test_group::number>(18);
+    app_state.Set<AS::test_group::text>("other");
+    app_state.Set<AS::test_group::nested::flag>(false);
+    app_state.Set<AS::test_group::server::url>("https://example.com");
+
+    auto listener = app_state.AttachListener<AS::speed, AS::test_group>(sem);
+    auto listener_other = app_state.AttachListener<AS::test_group::server>(sem_other);
+
+    WHEN("a group and a parameter are reset")
+    {
+        app_state.Reset<AS::test_group::nested, AS::speed, AS::test_group::number>();
+
+        THEN("they get their default values")
+        {
+            REQUIRE(app_state.Get<AS::speed>() == 0);
+            REQUIRE(app_state.Get<AS::test_group::number>() == 17);
+            REQUIRE(app_state.Get<AS::test_group::nested::flag>() == true);
+        }
+        AND_THEN("others keep their values")
+        {
+            REQUIRE(*app_state.Get<AS::test_group::text>() == "other");
+            REQUIRE(*app_state.Get<AS::test_group::server::url>() == "https://example.com");
+        }
+        AND_THEN("the listeners are notified once")
+        {
+            REQUIRE(sem.try_acquire() == true);
+            REQUIRE(sem.try_acquire() == false);
+            REQUIRE(sem_other.try_acquire() == false);
+        }
+    }
+
+    WHEN("parameters which already have their default values are reset")
+    {
+        app_state.Reset<AS::test_group::counted, AS::test_group::type>();
+
+        THEN("no-one is notified")
+        {
+            REQUIRE(sem.try_acquire() == false);
+        }
+    }
+
+    WHEN("everything in a group is reset")
+    {
+        app_state.Reset<AS::test_group>();
+
+        THEN("all in the group, also nested, get their default values")
+        {
+            REQUIRE(app_state.Get<AS::test_group::number>() == 17);
+            REQUIRE(*app_state.Get<AS::test_group::text>() == "default");
+            REQUIRE(app_state.Get<AS::test_group::nested::flag>() == true);
+            REQUIRE(*app_state.Get<AS::test_group::server::url>() == "");
+            REQUIRE(app_state.Get<AS::speed>() == 10);
+        }
+    }
+}
+
 TEST_CASE("the build is OK even with parameters not in the application state")
 {
     ApplicationState app_state;
