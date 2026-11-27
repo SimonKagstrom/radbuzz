@@ -161,7 +161,7 @@ AppSimulator::OnActivation()
                                                           AS::can_bus_active,
                                                           AS::current_power_w,
                                                           AS::navigation::active,
-                                                          AS::trip_max_speed>();
+                                                          AS::trip::max_speed>();
 
     qw.Set<AS::navigation::next_street>(std::string(m_streets.back()));
     qw.Set<AS::navigation::distance_to_next>(GadgetBridgeProtocol::RoundDistance(m_distance_left));
@@ -184,8 +184,8 @@ AppSimulator::OnActivation()
         speed = static_cast<uint8_t>(
             std::clamp(speed + sign * static_cast<uint8_t>(m_random_engine() % 3), 0, kMaxSpeed));
 
-        ps.GetWritableReference<AS::trip_max_speed>() =
-            std::max(m_application_state.Get<AS::trip_max_speed>(), speed);
+        ps.GetWritableReference<AS::trip::max_speed>() =
+            std::max(m_application_state.Get<AS::trip::max_speed>(), speed);
     }
     else
     {

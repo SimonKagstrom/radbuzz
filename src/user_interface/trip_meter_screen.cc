@@ -240,16 +240,16 @@ TripMeterScreen::Update()
             break;
         }
         case StatValueKind::kTripMaxSpeed: {
-            value_text = std::format("{}", m_parent.m_state.Get<AS::trip_max_speed>());
+            value_text = std::format("{}", m_parent.m_state.Get<AS::trip::max_speed>());
 
             debug_assert(row.second_column != nullptr);
             lv_label_set_text(
                 row.second_column->value,
-                std::format("{}", m_parent.m_state.Get<AS::trip_average_speed>()).c_str());
+                std::format("{}", m_parent.m_state.Get<AS::trip::average_speed>()).c_str());
             break;
         }
         case StatValueKind::kTripDistance: {
-            auto [value, unit] = DistanceToValueAndUnit(m_parent.m_state.Get<AS::trip_distance>());
+            auto [value, unit] = DistanceToValueAndUnit(m_parent.m_state.Get<AS::trip::distance>());
 
             value_text = std::move(value);
             unit_text = std::move(unit);
@@ -265,7 +265,7 @@ TripMeterScreen::Update()
         }
 
         case StatValueKind::kTime: {
-            auto seconds = m_parent.m_state.Get<AS::trip_duration>().count();
+            auto seconds = m_parent.m_state.Get<AS::trip::duration>().count();
 
             value_text = SecondsToString(seconds);
         }

@@ -218,17 +218,8 @@ TripComputer::ResetTrip()
 {
     m_trip_start_distance = m_state.Get<AS::odometer>();
 
-    auto qw = m_state.CheckoutQueuedWriter<AS::trip_distance,
-                                           AS::trip_duration,
-                                           AS::trip_average_speed,
-                                           AS::is_moving,
-                                           AS::trip_max_speed>();
-    qw.Set<AS::trip_distance>(0);
-    qw.Set<AS::trip_duration>(0s);
-    qw.Set<AS::trip_average_speed>(0);
-    qw.Set<AS::is_moving>(false);
-    // Set by the can bus handler
-    qw.Set<AS::trip_max_speed>(0);
+    // The max speed is set by the can bus handler
+    m_state.Reset<AS::trip, AS::is_moving>();
 
     m_display_logs[0].clear();
     m_display_logs[1].clear();
@@ -338,9 +329,9 @@ void
 TripComputer::UpdateSpeedAndTime(uint32_t distance_now)
 {
     auto qw = m_state.CheckoutQueuedWriter<AS::is_moving,
-                                           AS::trip_duration,
-                                           AS::trip_distance,
-                                           AS::trip_average_speed>();
+                                           AS::trip::duration,
+                                           AS::trip::distance,
+                                           AS::trip::average_speed>();
 
     auto is_moving_now = distance_now != m_current_distance;
     auto is_moving = m_state.Get<AS::is_moving>();
@@ -351,7 +342,7 @@ TripComputer::UpdateSpeedAndTime(uint32_t distance_now)
         if (!is_moving)
         {
             // Take the current value into account
-            m_current_trip_movement_second = now - m_state.Get<AS::trip_duration>();
+            m_current_trip_movement_second = now - m_state.Get<AS::trip::duration>();
         }
 
         is_moving = true;
@@ -369,18 +360,18 @@ TripComputer::UpdateSpeedAndTime(uint32_t distance_now)
         auto trip_duration = now - m_current_trip_movement_second;
         auto trip_distance = distance_now - m_trip_start_distance;
 
-        qw.Set<AS::trip_duration>(trip_duration);
-        qw.Set<AS::trip_distance>(trip_distance);
+        qw.Set<AS::trip::duration>(trip_duration);
+        qw.Set<AS::trip::distance>(trip_distance);
 
         if (trip_duration.count() != 0)
         {
-            qw.Set<AS::trip_average_speed>(
+            qw.Set<AS::trip::average_speed>(
                 static_cast<uint8_t>(trip_distance * 3.6f / trip_duration.count()));
         }
         else
         {
             // Shouldn't happen, but why take a chance?
-            qw.Set<AS::trip_average_speed>(0);
+            qw.Set<AS::trip::average_speed>(0);
         }
     }
 }

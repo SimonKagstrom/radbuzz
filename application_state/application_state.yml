@@ -56,11 +56,12 @@ application_state:
   wh_regenerated: 0
   odometer: 0
   pixel_position: {}
-  trip_distance: 0
   call_ongoing: false
-  trip_duration: 0s
-  trip_max_speed: 0
-  trip_average_speed: 0
+  trip:
+    distance: 0
+    duration: 0s
+    max_speed: 0
+    average_speed: 0
   estimated_range_km: 0
   overheated: false
   bms_data: {}

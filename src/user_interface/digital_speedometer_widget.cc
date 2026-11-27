@@ -108,7 +108,7 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
 
     if (show_distance)
     {
-        auto distance = state.Get<AS::trip_distance>();
+        auto distance = state.Get<AS::trip::distance>();
 
         if (distance >= 1000)
         {
@@ -125,7 +125,7 @@ DigitalSpeedometerWidget::Update(ApplicationState& state,
         }
 
 
-        auto seconds = state.Get<AS::trip_duration>().count();
+        auto seconds = state.Get<AS::trip::duration>().count();
         lv_label_set_text(m_distance_labels[kTripTimeIndex], SecondsToString(seconds).c_str());
 
         lv_obj_set_hidden(m_distance_unit_labels[kTripTimeIndex], seconds >= 60);

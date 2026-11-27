@@ -292,13 +292,13 @@ SpeedometerOnlyScreen::Update()
     lv_label_set_text(m_range.value_label,
                       std::format("{}", m_parent.m_state.Get<AS::estimated_range_km>()).c_str());
 
-    auto trip_duration = m_parent.m_state.Get<AS::trip_duration>();
+    auto trip_duration = m_parent.m_state.Get<AS::trip::duration>();
     std::string trip_time_text = SecondsToString(trip_duration);
 
     lv_label_set_text(m_trip_time.value_label, trip_time_text.c_str());
 
     std::string trip_value_text;
-    auto trip_distance_m = m_parent.m_state.Get<AS::trip_distance>();
+    auto trip_distance_m = m_parent.m_state.Get<AS::trip::distance>();
 
     if (trip_distance_m < 1000)
     {

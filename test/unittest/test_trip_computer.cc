@@ -88,9 +88,9 @@ TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
     // Some misaligned value to mimic the real world
     AdvanceTimeAndRunLoop(17399ms);
 
-    REQUIRE(state.Get<AS::trip_duration>() == 0s);
+    REQUIRE(state.Get<AS::trip::duration>() == 0s);
     REQUIRE(state.Get<AS::is_moving>() == false);
-    REQUIRE(state.Get<AS::trip_duration>() == 0s);
+    REQUIRE(state.Get<AS::trip::duration>() == 0s);
 
     WHEN("the moped starts moving")
     {
@@ -98,28 +98,28 @@ TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
         state.Set<AS::odometer>(state.Get<AS::odometer>() + 1);
         AdvanceTimeAndRunLoop(250ms);
         REQUIRE(state.Get<AS::is_moving>());
-        REQUIRE(state.Get<AS::trip_duration>() == 0s);
+        REQUIRE(state.Get<AS::trip::duration>() == 0s);
 
         // Up to 1s
         AdvanceTimeAndRunLoop(750ms);
 
         THEN("the trip duration is updated")
         {
-            REQUIRE(state.Get<AS::trip_duration>() == 1s);
+            REQUIRE(state.Get<AS::trip::duration>() == 1s);
         }
 
         AND_THEN("it's updated every started second")
         {
             AdvanceTimeAndRunLoop(1s);
-            REQUIRE(state.Get<AS::trip_duration>() == 2s);
+            REQUIRE(state.Get<AS::trip::duration>() == 2s);
 
             AdvanceTimeAndRunLoop(2s);
-            REQUIRE(state.Get<AS::trip_duration>() == 4s);
+            REQUIRE(state.Get<AS::trip::duration>() == 4s);
 
             AND_THEN("it stops updating when the moped stops moving")
             {
                 AdvanceTimeAndRunLoop(10s);
-                REQUIRE(state.Get<AS::trip_duration>() == 5s);
+                REQUIRE(state.Get<AS::trip::duration>() == 5s);
 
                 AND_WHEN("the moped starts moving again")
                 {
@@ -130,7 +130,7 @@ TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
 
                     THEN("counting starts again")
                     {
-                        REQUIRE(state.Get<AS::trip_duration>() == 6s);
+                        REQUIRE(state.Get<AS::trip::duration>() == 6s);
                     }
                 }
             }
@@ -143,7 +143,7 @@ TEST_CASE_FIXTURE(Fixture, "trip_duration is updated when the moped is moving")
 
             THEN("the trip duration is reset")
             {
-                REQUIRE(state.Get<AS::trip_duration>() == 0s);
+                REQUIRE(state.Get<AS::trip::duration>() == 0s);
             }
         }
     }
@@ -156,7 +156,7 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
 
     AdvanceTimeAndRunLoop(1s);
     REQUIRE(state.Get<AS::is_moving>() == false);
-    REQUIRE(state.Get<AS::trip_distance>() == 0);
+    REQUIRE(state.Get<AS::trip::distance>() == 0);
 
     WHEN("the odometer is updated")
     {
@@ -169,11 +169,11 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
 
         THEN("trip_distance is set")
         {
-            REQUIRE(state.Get<AS::trip_distance>() == 2 * 60);
+            REQUIRE(state.Get<AS::trip::distance>() == 2 * 60);
         }
         AND_THEN("the average speed is calculated")
         {
-            REQUIRE(state.Get<AS::trip_average_speed>() == 7);
+            REQUIRE(state.Get<AS::trip::average_speed>() == 7);
         }
 
         WHEN("the moped is no longer moving")
@@ -183,8 +183,8 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
 
             THEN("the average is no longer updated")
             {
-                REQUIRE(state.Get<AS::trip_average_speed>() >= 6);
-                REQUIRE(state.Get<AS::trip_average_speed>() <= 7);
+                REQUIRE(state.Get<AS::trip::average_speed>() >= 6);
+                REQUIRE(state.Get<AS::trip::average_speed>() <= 7);
             }
 
             AND_WHEN("the moped starts moving again")
@@ -199,21 +199,24 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
                 THEN("the average speed is updated again")
                 {
                     // 2m/s for 1 minute, then 4m/s for 1 minute -> average speed = 3m/s -> 10.8km/h
-                    REQUIRE(state.Get<AS::trip_average_speed>() == 10);
+                    REQUIRE(state.Get<AS::trip::average_speed>() == 10);
                 }
             }
         }
 
         WHEN("the trip is reset")
         {
+            // By the can bus handler
+            state.Set<AS::trip::max_speed>(25);
             post_office.Send<MSG::reset_trip>();
 
             DoRunLoop();
 
-            THEN("the trip speed and distance are reset")
+            THEN("the trip speeds and distance are reset")
             {
-                REQUIRE(state.Get<AS::trip_distance>() == 0);
-                REQUIRE(state.Get<AS::trip_average_speed>() == 0);
+                REQUIRE(state.Get<AS::trip::distance>() == 0);
+                REQUIRE(state.Get<AS::trip::average_speed>() == 0);
+                REQUIRE(state.Get<AS::trip::max_speed>() == 0);
             }
 
             AND_WHEN("the moped has moved a bit")
@@ -228,8 +231,8 @@ TEST_CASE_FIXTURE(Fixture, "trip_distance and trip_average_speed is set by the t
                 THEN("the average speed and distance are updated again")
                 {
                     // 4m/s for 1 minute -> average speed = 4m/s -> 14.4km/h
-                    REQUIRE(state.Get<AS::trip_average_speed>() == 14);
-                    REQUIRE(state.Get<AS::trip_distance>() == 4 * 60);
+                    REQUIRE(state.Get<AS::trip::average_speed>() == 14);
+                    REQUIRE(state.Get<AS::trip::distance>() == 4 * 60);
                 }
             }
         }

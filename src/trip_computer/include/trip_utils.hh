@@ -9,7 +9,7 @@ inline auto
 AverageConsumption(ApplicationState& state, const auto& trip_start)
 {
     // For the trip, not the odometer
-    const uint32_t trip_distance_m = state.Get<AS::trip_distance>();
+    const uint32_t trip_distance_m = state.Get<AS::trip::distance>();
 
     const float total_wh_consumed = state.Get<AS::wh_consumed>();
     const float trip_wh_consumed = std::max(0.0f, total_wh_consumed - trip_start.start_wh_consumed);
