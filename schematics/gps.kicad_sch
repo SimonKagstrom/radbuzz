@@ -1999,7 +1999,7 @@
 		)
 		(uuid "f0f81c40-ff38-4c73-9add-8d5275ea9d88")
 	)
-	(global_label "GPS_RX"
+	(global_label "TO_GPS"
 		(shape input)
 		(at 171.45 107.95 180)
 		(fields_autoplaced yes)
@@ -2023,7 +2023,7 @@
 			)
 		)
 	)
-	(global_label "GPS_TX"
+	(global_label "FROM_GPS"
 		(shape input)
 		(at 224.79 118.11 0)
 		(fields_autoplaced yes)

@@ -2541,7 +2541,7 @@
 		)
 		(uuid "fadfc707-8a34-413f-9319-7daba03d9aa7")
 	)
-	(global_label "GPS_RX"
+	(global_label "TO_GPS"
 		(shape input)
 		(at 151.13 105.41 0)
 		(fields_autoplaced yes)
@@ -2757,7 +2757,7 @@
 			)
 		)
 	)
-	(global_label "GPS_TX"
+	(global_label "FROM_GPS"
 		(shape input)
 		(at 162.56 107.95 0)
 		(fields_autoplaced yes)
