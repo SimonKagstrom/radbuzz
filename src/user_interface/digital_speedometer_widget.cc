@@ -31,7 +31,7 @@ DigitalSpeedometerWidget::DigitalSpeedometerWidget(lv_obj_t* parent)
     for (auto& box : m_boxes)
     {
         box = ui::CreatePane(parent, kPaneCornerRadius);
-        lv_obj_set_size(box, 128 + kCornerClipPx, kBoxDimensions + 32);
+        lv_obj_set_size(box, kBoxWidth + kCornerClipPx, kBoxDimensions + 32);
     }
     lv_obj_align(
         m_boxes[kSpeedometerBox], LV_ALIGN_TOP_LEFT, kSpeedometerBoxOffset, kSpeedometerBoxOffset);

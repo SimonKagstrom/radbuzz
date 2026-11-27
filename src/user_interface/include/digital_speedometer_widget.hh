@@ -9,6 +9,7 @@ public:
     friend class UserInterface;
 
     static constexpr auto kBoxDimensions = 96;
+    static constexpr auto kBoxWidth = 128;
 
     DigitalSpeedometerWidget(lv_obj_t* parent);
 

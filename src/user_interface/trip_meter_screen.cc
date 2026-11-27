@@ -356,20 +356,6 @@ TripMeterScreen::HandleInput(const Input::Event& event)
         break;
     }
 
-
-    debug_assert(m_parent.m_lvgl_touch_input_dev);
-
-    if (m_parent.m_touch_state == LV_INDEV_STATE_PRESSED)
-    {
-        lv_point_t touch_vector {0, 0};
-
-        lv_indev_get_vect(m_parent.m_lvgl_touch_input_dev, &touch_vector);
-
-        // Swipes anywhere
-        const auto gesture_dir = lv_indev_get_gesture_dir(m_parent.m_lvgl_touch_input_dev);
-        dx = 1 * (gesture_dir == LV_DIR_LEFT) - 1 * (gesture_dir == LV_DIR_RIGHT);
-    }
-
     if (dx == -1)
     {
         m_parent.ActivateScreen(*m_parent.m_speedometer_only_screen);

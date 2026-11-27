@@ -242,6 +242,14 @@ UserInterface::OnStartup()
         data->state = p->m_touch_state;
         data->point = p->m_touch_point;
     });
+    // Sent to the indev regardless of which object is touched
+    lv_indev_add_event_cb(
+        m_lvgl_touch_input_dev,
+        [](lv_event_t* e) {
+            static_cast<UserInterface*>(lv_event_get_user_data(e))->OnTouchShortClick();
+        },
+        LV_EVENT_SHORT_CLICKED,
+        this);
 
     m_map_screen = std::make_unique<MapScreen>(*this, m_image_cache, m_tile_cache, kDefaultZoom);
     m_trip_meter_screen = std::make_unique<TripMeterScreen>(*this);
@@ -562,6 +570,20 @@ UserInterface::OnActivation()
         {
             m_current_screen->HandleInput(input_event);
         }
+
+        if (auto tap = std::exchange(m_double_tap_event, std::nullopt))
+        {
+            const auto on_main_screen =
+                OnMapScreen() || OnTripMeterScreen() || OnSpeedometerScreen();
+            const auto message_box_open = m_message_box && m_message_box->IsOpen();
+            const auto on_side_pane =
+                side_pane_shown && m_side_pane->Contains(input_event.x, input_event.y);
+
+            if (on_main_screen && !message_box_open && !on_side_pane)
+            {
+                m_current_screen->HandleInput({*tap, input_event.x, input_event.y});
+            }
+        }
     }
     UpdateSidePane();
 
@@ -680,6 +702,19 @@ void
 UserInterface::UpdateSidePane()
 {
     m_side_pane->SetSuppressed(OnCallScreen() || OnMenuScreen() || m_state.Get<AS::is_moving>());
+}
+
+void
+UserInterface::OnTouchShortClick()
+{
+    lv_point_t point;
+    lv_indev_get_point(m_lvgl_touch_input_dev, &point);
+
+    // Not LVGL's double click detection, since it requires both taps within a few pixels
+    if (auto event = m_double_tap_detector.OnTap(point.x, point.y, lv_tick_get()))
+    {
+        m_double_tap_event = event;
+    }
 }
 
 bool

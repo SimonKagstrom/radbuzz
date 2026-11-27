@@ -3,6 +3,7 @@
 #include "application_state.hh"
 #include "base_thread.hh"
 #include "digital_speedometer_widget.hh"
+#include "double_tap_detector.hh"
 #include "hal/i_blitter.hh"
 #include "hal/i_display.hh"
 #include "hal/i_gpio.hh"
@@ -22,6 +23,7 @@
 
 #include <etl/queue_spsc_atomic.h>
 #include <lvgl.h>
+#include <optional>
 
 class MapScreen;
 class TripMeterScreen;
@@ -227,6 +229,9 @@ private:
     // The status icons are at the bottom of the screen on the map, otherwise below the warnings
     void PlaceStatusIndicators();
 
+    // LVGL short click on the touch device. Detects double taps
+    void OnTouchShortClick();
+
     // Return to the screen which was active before the call
     void EndIncomingCall();
 
@@ -280,6 +285,13 @@ private:
     lv_indev_state_t m_button_state {LV_INDEV_STATE_RELEASED};
     lv_indev_state_t m_touch_state {LV_INDEV_STATE_RELEASED};
     lv_point_t m_touch_point {0, 0};
+
+    // Corner zones about the size of the speedometer box
+    DoubleTapDetector m_double_tap_detector {hal::kDisplayWidth,
+                                             hal::kDisplayHeight,
+                                             DigitalSpeedometerWidget::kBoxWidth,
+                                             DigitalSpeedometerWidget::kBoxDimensions};
+    std::optional<hal::IInput::EventType> m_double_tap_event;
 
     ListenerCookie m_state_listener;
     ListenerCookie m_cache_listener;

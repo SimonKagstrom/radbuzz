@@ -53,6 +53,7 @@ add_executable(unittest_radbuzz
     test_buzz_handler.cc
     test_clock_string.cc
     test_distance_string.cc
+    test_double_tap_detector.cc
     test_gps_reader.cc
     test_king_shark_packet_protocol.cc
     test_speedometer_handler.cc

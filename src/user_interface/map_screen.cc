@@ -598,14 +598,6 @@ MapScreen::HandleInput(const Input::Event& event)
         lv_point_t touch_vector {0, 0};
 
         lv_indev_get_vect(m_parent.m_lvgl_touch_input_dev, &touch_vector);
-
-        // Allow swipes near the lower end of the screen
-        if (m_parent.m_touch_point.y >= hal::kDisplayHeight - 80)
-        {
-            const auto gesture_dir = lv_indev_get_gesture_dir(m_parent.m_lvgl_touch_input_dev);
-
-            dx = 1 * (gesture_dir == LV_DIR_LEFT) - 1 * (gesture_dir == LV_DIR_RIGHT);
-        }
         m_touch_timer = m_parent.StartTimer(3s);
 
         m_current_view_center.x -= touch_vector.x;
