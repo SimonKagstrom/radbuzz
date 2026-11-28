@@ -64,6 +64,3 @@ managed_components
 *.code-workspace
 build/
 target/build
-external/lvgl/examples
-external/lvgl/tests
-external/lvgl/zephyr
