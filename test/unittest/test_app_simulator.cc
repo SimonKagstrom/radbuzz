@@ -1,5 +1,6 @@
 #include "app_simulator.hh"
 #include "job_pool_thread.hh"
+#include "mock_event_notifier.hh"
 #include "test.hh"
 #include "thread_fixture.hh"
 
@@ -39,10 +40,25 @@ public:
         return utc > start_utc && utc <= start_utc + 21;
     }
 
+    // keep_recorded_trip of the trip resets since the last call
+    std::vector<bool> TakeTripResets()
+    {
+        std::vector<bool> out;
+        m_mailbox->Collect().On<MSG::reset_trip>(
+            [&out](auto reset) { out.push_back(reset->keep_recorded_trip); });
+
+        return out;
+    }
+
     ApplicationState state;
     PostOffice<MSG::AllMessages> post_office;
 
     JobPoolThread job_pool;
+
+private:
+    NullEventNotifier m_notifier;
+    std::unique_ptr<Mailbox<MSG::AllMessages>> m_mailbox {
+        post_office.Subscribe<MSG::reset_trip>(m_notifier)};
 };
 
 } // namespace
@@ -77,6 +93,27 @@ TEST_CASE_FIXTURE(Fixture, "the demo GPS time runs faster than real time")
         THEN("a second passes for each step")
         {
             CHECK(state.Get<AS::gps_utc>() >= kDemoStartUtc + 1 + 5);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "the trip is reset on demo mode changes")
+{
+    SetDemoMode(true);
+
+    THEN("a real trip before it is kept")
+    {
+        CHECK(TakeTripResets() == std::vector {true});
+    }
+
+    AND_WHEN("demo mode is turned off")
+    {
+        TakeTripResets();
+        SetDemoMode(false);
+
+        THEN("the demo trip isn't kept")
+        {
+            CHECK(TakeTripResets() == std::vector {false});
         }
     }
 }

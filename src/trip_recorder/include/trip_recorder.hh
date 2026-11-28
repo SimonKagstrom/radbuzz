@@ -17,7 +17,8 @@
  * trips, or demo for trips started in demo mode. The lines are buffered, and appended when the
  * buffer is full or the vehicle stops. Only fixes with a GPS time, which move the pixel position
  * while the vehicle is moving, are recorded. On MSG::reset_trip, the trip is moved to
- * <root>/raw, MSG::new_recorded_trip is sent, and the next fix starts a new trip.
+ * <root>/raw, MSG::new_recorded_trip is sent, and the next fix starts a new trip. A reset
+ * without keep_recorded_trip removes the trip instead (e.g., when demo mode is turned off).
  *
  * At startup, a trip left in current (i.e., at power-off) is closed: a real one is moved to raw
  * like on a reset, and a demo one is removed, so that demo trips are only kept on purpose.

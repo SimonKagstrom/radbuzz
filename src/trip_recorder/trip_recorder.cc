@@ -69,7 +69,16 @@ TripRecorder::OnStartup()
 std::optional<milliseconds>
 TripRecorder::OnActivation()
 {
-    m_mailbox->Collect().On<MSG::reset_trip>([this](auto) {
+    m_mailbox->Collect().On<MSG::reset_trip>([this](auto reset) {
+        if (!m_filename.empty() && !reset->keep_recorded_trip)
+        {
+            // Not on file if the buffer was never full. A demo trip is otherwise removed at the
+            // next startup if this fails
+            m_buffer.clear();
+            m_filesystem.Remove(PathIn(kCurrentDirectory));
+
+            m_filename.clear();
+        }
         if (!m_filename.empty())
         {
             Flush();

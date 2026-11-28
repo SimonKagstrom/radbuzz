@@ -20,6 +20,8 @@ struct tile_loaded
 
 struct reset_trip
 {
+    /// Keep the recorded trip, or drop it (e.g., when demo mode is turned off)
+    bool keep_recorded_trip {true};
 };
 
 struct new_recorded_trip

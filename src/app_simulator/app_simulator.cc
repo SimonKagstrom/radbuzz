@@ -87,7 +87,8 @@ AppSimulator::OnActivation()
 
     auto demo_active = co.Get<AS::demo_mode>();
     co.OnChangedValue<AS::demo_mode>([this](auto old, auto now) {
-        if (old == true && now == false)
+        const auto turned_off = old == true && now == false;
+        if (turned_off)
         {
             // Disable navigation and BMS data
             printf("Navigation deactivated\n");
@@ -100,7 +101,9 @@ AppSimulator::OnActivation()
             m_application_state.Set<AS::demo::next_start_utc>(m_utc + kTimeBetweenStarts.count());
         }
 
-        m_post_office.Send<MSG::reset_trip>();
+        // A demo trip is only kept by resetting it in demo mode, so that demo mode can be used
+        // without uploading the trips. A real trip is kept when demo mode is turned on
+        m_post_office.Send(MSG::reset_trip {.keep_recorded_trip = !turned_off});
     });
 
     if (demo_active == false)

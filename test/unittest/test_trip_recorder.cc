@@ -71,9 +71,9 @@ public:
         RunLoopWhileReady();
     }
 
-    void ResetTrip()
+    void ResetTrip(bool keep_recorded_trip = true)
     {
-        post_office.Send<MSG::reset_trip>();
+        post_office.Send(MSG::reset_trip {.keep_recorded_trip = keep_recorded_trip});
         RunLoopWhileReady();
     }
 
@@ -362,6 +362,58 @@ TEST_CASE_FIXTURE(Fixture, "demo trips are recorded separately")
         }
     }
 
+    AND_WHEN("demo mode ends during a trip")
+    {
+        StartMoving();
+        Fix(kUtc + 2);
+
+        // The demo app resets the trip on demo mode changes, without keeping it when turned off
+        state.Set<AS::demo_mode>(false);
+        ResetTrip(false);
+
+        THEN("the demo trip is removed, without announcing it")
+        {
+            CHECK(filesystem.ListDirectory("demo/current").empty());
+            CHECK(filesystem.ListDirectory("demo/raw").empty());
+            CHECK(NewRecordedTrips() == 0);
+        }
+
+        AND_WHEN("a fix arrives")
+        {
+            Fix(kUtc + 3);
+            Stop();
+
+            THEN("it starts a real trip")
+            {
+                CHECK(JsonLines(TripPath(kUtc + 3)).size() == 1);
+                CHECK(filesystem.ListDirectory("demo/current").empty());
+            }
+        }
+    }
+
+    AND_WHEN("demo mode ends before the buffer is written")
+    {
+        ResetTrip();
+        NewRecordedTrips();
+        StartMoving();
+        Fix(kUtc + 2);
+
+        state.Set<AS::demo_mode>(false);
+        ResetTrip(false);
+
+        THEN("nothing is left of the trip")
+        {
+            CHECK_FALSE(filesystem.FileExists(DemoPath("current", kUtc + 2)));
+            CHECK_FALSE(filesystem.FileExists(DemoPath("raw", kUtc + 2)));
+            CHECK(NewRecordedTrips() == 0);
+
+            AND_THEN("the trip kept before is still there")
+            {
+                CHECK(JsonLines(DemoPath("raw", kUtc)).size() == 2);
+            }
+        }
+    }
+
     AND_WHEN("demo mode ends without a trip reset")
     {
         state.Set<AS::demo_mode>(false);
@@ -525,6 +577,35 @@ TEST_CASE_FIXTURE(Fixture, "a trip reset moves the trip to raw")
         {
             CHECK(filesystem.ListDirectory("trips/current").empty());
             CHECK(filesystem.ListDirectory("trips/raw") == Entries {Entry(kUtc)});
+            CHECK(NewRecordedTrips() == 1);
+        }
+    }
+}
+
+TEST_CASE_FIXTURE(Fixture, "a trip reset can drop the trip")
+{
+    Fix(kUtc);
+    Stop();
+    StartMoving();
+    Fix(kUtc + 1);
+
+    ResetTrip(false);
+
+    THEN("it's removed, also what wasn't written yet, without announcing it")
+    {
+        CHECK(filesystem.ListDirectory("trips/current").empty());
+        CHECK(filesystem.ListDirectory("trips/raw").empty());
+        CHECK(NewRecordedTrips() == 0);
+    }
+
+    AND_WHEN("more fixes arrive")
+    {
+        Fix(kUtc + 2);
+        ResetTrip();
+
+        THEN("they start a new trip, which is kept")
+        {
+            CHECK(JsonLines(RawPath(kUtc + 2)).size() == 1);
             CHECK(NewRecordedTrips() == 1);
         }
     }
